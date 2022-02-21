@@ -1858,11 +1858,6 @@ class Doc2VecClass:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
 
-        # documents_df = pd.DataFrame(documents, columns=['title_x', 'keywords'])
-
-        # documents_df = pd.DataFrame(documents)
-        # title_df = pd.DataFrame(documents_title, columns=['title_x'])
-        # slug_df = pd.DataFrame(documents_title, columns=['slug_x'])
 
         """
         documents_df['documents_cleaned'] = documents_df.title_x.apply(lambda x: " ".join(
@@ -2095,56 +2090,10 @@ class Lda:
         print("self.df['tokenized']")
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed']
 
-        """
-
-        self.df['tokenized'] = self.df.apply(
-            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
-            axis=1)
-        # self.df['tokenized'] = self.df.all_features_preprocessed_stopwords_clear.apply(lambda x: x.split(' '))
-        self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        print("self.df['tokenized']")
-        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized']
-        all_words = [word for item in list(self.df["tokenized"]) for word in item]
-
-        # use nltk fdist to get a frequency distribution of all words
-        fdist = FreqDist(all_words)
-        # self.lda_stats(fdist=fdist,searched_slug=searched_slug)
-        k = 15000
-        top_k_words, _ = zip(*fdist.most_common(k))
-        self.top_k_words = set(top_k_words)
-
-        self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
-        print("self.df['tokenized']")
-        print(self.df['tokenized'])
-
-        # document length
-        self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
-        doc_lengths = list(self.df['doc_len'])
-        self.df.drop(labels='doc_len', axis=1, inplace=True)
-
-        minimum_amount_of_words = 30
-
-        self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
-        # make sure all tokenized items are lists
-        self.df = self.df[self.df['tokenized'].map(type) == list]
-        self.df.reset_index(drop=True, inplace=True)
-        print("After cleaning and excluding short articles, the dataframe now has:", len(self.df), "articles")
-        print("df head:")
-        print(self.df.head)
-
-        
-
-        print("dictionary, corpus, lda")
-
-        # bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
-        # print("new_bow")
-        # print(new_bow)
-        # searched_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=bow)])
-        # print("new_doc_distribution")
-        # print(new_doc_distribution)
-        """
         # self.train_lda(self.df)
         dictionary, corpus, lda = self.load_lda(self.df)
+
+        gc.collect()
 
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
@@ -2197,14 +2146,8 @@ class Lda:
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
-        """
-
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-        print("self.df['tokenized_keywords'][0]")
-        print(self.df['tokenized_keywords'][0])
 
-        self.df.fillna("", inplace=True)
-        
         self.df['tokenized'] = self.df.apply(
             lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
             axis=1)
@@ -2212,35 +2155,8 @@ class Lda:
         self.df['tokenized_full_text'] = self.df.apply(
             lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
             axis=1)
-        self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
 
         gc.collect()
-
-        self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(lambda x: x.split(' '))
-        print("self.df['tokenized']")
-        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df['tokenized_full_text']
-        print("all_words")
-        all_words = [word for item in list(self.df["tokenized"]) for word in item]
-        print("freq_dist")
-        fdist = FreqDist(all_words)
-        # self.lda_stats(fdist=fdist,searched_slug=searched_slug)
-        k = 15000
-        print("zip(*fdist.most_common(k))")
-        top_k_words, _ = zip(*fdist.most_common(k))
-        self.top_k_words = set(top_k_words)
-
-        print("self.df['tokenized']")
-        self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
-        """
-        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-
-        self.df['tokenized'] = self.df.apply(
-            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
-            axis=1)
-
-        self.df['tokenized_full_text'] = self.df.apply(
-            lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
-            axis=1)
         self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
 
         gc.collect()
@@ -2254,7 +2170,7 @@ class Lda:
         print("searched_doc_id_list")
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
-
+        gc.collect()
         print("dictionary,corpus, lda")
         dictionary, corpus, lda = self.load_lda_full_text(self.df)
         print("self.df")
@@ -2274,6 +2190,8 @@ class Lda:
 
         most_similar_df = self.df.iloc[most_sim_ids]
         print(most_similar_df)
+        del self.df
+        gc.collect()
         most_similar_df = most_similar_df.iloc[1:, :]
         list_of_coefficients = []
         post_recommendations = pd.DataFrame()
@@ -2382,7 +2300,7 @@ class Lda:
         try:
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus.pkl', 'rb'))
-        except FileNotFoundError:
+        except:
             if training_now is False:
                 self.train_lda(data)
 
@@ -2391,8 +2309,6 @@ class Lda:
             dictionary = corpora.Dictionary(data['tokenized'])
             print("corpus")
             corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-
-            self.save_corpus_dict(corpus, dictionary)
 
         return dictionary, corpus, lda_model
 
@@ -2420,8 +2336,7 @@ class Lda:
         try:
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
-        except FileNotFoundError:
-            # COMMENT FOR FASTER PERFORMANCE
+        except:
             if training_now is False:
                 self.train_lda_full_text(data)
 
@@ -2430,8 +2345,6 @@ class Lda:
             dictionary = corpora.Dictionary(data['tokenized'])
             print("corpus")
             corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-
-            self.save_corpus_dict_full_text(corpus,dictionary)
 
         return dictionary, corpus, lda_model
 
@@ -2447,9 +2360,11 @@ class Lda:
         2 passes of the data since this is a small dataset, so we want the distributions to stabilize
         """
         dictionary = corpora.Dictionary(data['tokenized'])
+        dictionary.filter_extremes(no_below=20, no_above=0.5)
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
         num_topics = 400
-        chunksize = 300
+        chunksize = 2000
+        iterations = 400
         t1 = time.time()
 
         # low alpha means each document is only represented by a small number of topics, and vice versa
@@ -2458,7 +2373,7 @@ class Lda:
         print("LDA training...")
         lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.0,
                              chunksize=chunksize, alpha='auto', eta='auto',
-                             passes=2)
+                             passes=2, iterations=iterations)
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
@@ -2550,13 +2465,13 @@ class Lda:
         print("df head:")
         print(self.df.head)
 
-        dictionary, corpus, lda = self.load_lda(self.df,training_now=True)
+        self.save_corpus_dict(corpus, dictionary)
 
         # print("Most common topics found:")
         # print(lda.show_topics(num_topics=10, num_words=20))
         # print(lda.show_topic(topicid=4, topn=20))
 
-        print("doc_topic_dist")
+        lda = lda_model.load("models/lda_model")
         doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
         print("np.save")
         # save doc_topic_dist
@@ -2570,9 +2485,11 @@ class Lda:
         2 passes of the data since this is a small dataset, so we want the distributions to stabilize
         """
         dictionary = corpora.Dictionary(data['tokenized'])
+        dictionary.filter_extremes(no_below=20, no_above=0.5)
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
         num_topics = 400
-        chunksize = 300
+        chunksize = 2000
+        iterations = 400
         t1 = time.time()
 
         # low alpha means each document is only represented by a small number of topics, and vice versa
@@ -2581,7 +2498,7 @@ class Lda:
         print("LDA training...")
         lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.0,
                              chunksize=chunksize, alpha='auto', eta='auto',
-                             passes=2)
+                             passes=2, iterations=iterations)
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
@@ -2662,13 +2579,14 @@ class Lda:
         print("df head:")
         print(self.df.head)
 
-        dictionary, corpus, lda = self.load_lda_full_text(self.df, training_now=True)
+        self.save_corpus_dict_full_text(corpus, dictionary)
 
         # print("Most common topics found:")
         # print(lda.show_topics(num_topics=10, num_words=20))
         # print(lda.show_topic(topicid=4, topn=20))
-
+        lda = lda_model.load("models/lda_model_full_text")
         doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
+
 
         # save doc_topic_dist
         # https://stackoverflow.com/questions/9619199/best-way-to-preserve-numpy-arrays-on-disk
