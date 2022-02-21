@@ -2072,7 +2072,7 @@ class Lda:
         print("text")
         return text.split(" ")
 
-    @profile
+    # @profile
     def get_similar_lda(self, searched_slug, N=21):
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
@@ -2141,7 +2141,7 @@ class Lda:
         return self.flatten(list_of_articles)
 
 
-    @profile
+    # @profile
     def get_similar_lda_full_text(self, searched_slug, N=21):
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
