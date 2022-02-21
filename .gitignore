@@ -139,15 +139,3 @@ bin
 
 models/d2v_full_text.model.syn1neg.npy
 models/d2v_full_text.model.wv.vectors.npy
-
-models/lda_model
-models/lda_model.expElogbeta.npy
-models/lda_model.state
-models/lda_model.id2word
-models/lda_model.state.sstats.npy
-
-models/lda_model_full_text
-models/lda_model_full_text.expElogbeta.npy
-models/lda_model_full_text.id2word
-models/lda_model_full_text.state
-models/lda_model_full_text.state.sstats.npy

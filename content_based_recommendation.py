@@ -2090,10 +2090,9 @@ class Lda:
         print("self.df['tokenized']")
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed']
 
+        gc.collect()
         # self.train_lda(self.df)
         dictionary, corpus, lda = self.load_lda(self.df)
-
-        gc.collect()
 
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
@@ -2101,14 +2100,11 @@ class Lda:
         new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
-        # new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
-        # new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
-
         print("most_sim_ids, most_sim_coefficients")
-        # most_sim_ids = self.get_most_similar_documents(new_doc_distribution, doc_topic_dist)[0]
-
         doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist.npy')
+
         most_sim_ids, most_sim_coefficients = self.get_most_similar_documents(new_doc_distribution, doc_topic_dist, N)
+
         print("most_sim_ids")
         print(most_sim_ids)
 
@@ -2117,6 +2113,8 @@ class Lda:
 
         most_similar_df = self.df.iloc[most_sim_ids]
         print(most_similar_df)
+        del self.df
+        gc.collect()
         most_similar_df = most_similar_df.iloc[1:, :]
         list_of_coefficients = []
         """
@@ -2167,16 +2165,14 @@ class Lda:
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
             'tokenized_full_text']
 
-        print("searched_doc_id_list")
-        searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
-        searched_doc_id = searched_doc_id_list[0]
         gc.collect()
         print("dictionary,corpus, lda")
         dictionary, corpus, lda = self.load_lda_full_text(self.df)
+        searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
+        searched_doc_id = searched_doc_id_list[0]
         print("self.df")
         print(self.df)
         new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
-        print("new_doc_distribution")
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
         print("most_sim_ids, most_sim_coefficients")
@@ -2286,18 +2282,22 @@ class Lda:
 
         self.save_corpus_dict(corpus,dictionary)
         """
+        """
         try:
-            lda_model = LdaModel.load("models/lda_model")
+
         except FileNotFoundError:
+            
             dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
             dropbox_file_download(dropbox_access_token, "models/lda_model", "/lda_model")
             dropbox_file_download(dropbox_access_token, "models/lda_model.expElogbeta.npy", "/lda_model.expElogbeta.npy")
             dropbox_file_download(dropbox_access_token, "models/lda_model.id2word", "/lda_model.id2word")
             dropbox_file_download(dropbox_access_token, "models/lda_model.state", "/lda_model.state")
             dropbox_file_download(dropbox_access_token, "models/lda_model.state.sstats.npy", "/lda_model.state.sstats.npy")
-
+            
             lda_model = LdaModel.load("models/lda_model")
+        """
         try:
+            lda_model = LdaModel.load("models/lda_model")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus.pkl', 'rb'))
         except:
@@ -2305,10 +2305,8 @@ class Lda:
                 self.train_lda(data)
 
             lda_model = LdaModel.load("models/lda_model")
-            print("dictionary")
-            dictionary = corpora.Dictionary(data['tokenized'])
-            print("corpus")
-            corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
+            corpus = pickle.load(open('precalc_vectors/corpus.pkl', 'rb'))
 
         return dictionary, corpus, lda_model
 
@@ -2320,6 +2318,7 @@ class Lda:
 
     def load_lda_full_text(self, data, training_now=False):
 
+        """
         try:
             lda_model = LdaModel.load("models/lda_model_full_text")
         except FileNotFoundError:
@@ -2333,7 +2332,9 @@ class Lda:
             print("LDA Model files downloaded")
 
             lda_model = LdaModel.load("models/lda_model_full_text")
+        """
         try:
+            lda_model = LdaModel.load("models/lda_model_full_text")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
         except:
@@ -2341,17 +2342,14 @@ class Lda:
                 self.train_lda_full_text(data)
 
             lda_model = LdaModel.load("models/lda_model_full_text")
-            print("dictionary")
-            dictionary = corpora.Dictionary(data['tokenized'])
-            print("corpus")
-            corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
+            corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
 
         return dictionary, corpus, lda_model
 
     def save_corpus_dict_full_text(self, corpus, dictionary):
 
         print("Saving corpus and dictionary...")
-
         pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
@@ -2396,10 +2394,6 @@ class Lda:
         # lda_model_local = pickle.load(smart_open.smart_open("lda_all_in_one"))
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
-
-        documents_df = pd.DataFrame()
-        # print("documents_df:")
-        # print(documents_df)
 
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
         print("self.df['tokenized_keywords'][0]")
@@ -2523,7 +2517,6 @@ class Lda:
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
         print("self.df['tokenized_keywords'][0]")
         print(self.df['tokenized_keywords'][0])
-        self.df.fillna("", inplace=True)
 
         self.df['tokenized'] = self.df.apply(
             lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
@@ -2586,7 +2579,6 @@ class Lda:
         # print(lda.show_topic(topicid=4, topn=20))
         lda = lda_model.load("models/lda_model_full_text")
         doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
-
 
         # save doc_topic_dist
         # https://stackoverflow.com/questions/9619199/best-way-to-preserve-numpy-arrays-on-disk
