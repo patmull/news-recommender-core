@@ -1480,7 +1480,6 @@ class Word2VecClass:
         del documents_df
         print("Calculating similarity...")
         # https://github.com/v1shwa/document-similarity with my edits
-        print("list_of_document_features")
         most_similar_articles_with_scores = ds.calculate_similarity(found_post,
                                                                     list_of_document_features)[:21]
         print("sim_scores")
@@ -1534,9 +1533,10 @@ class Word2VecClass:
         del found_post_dataframe
 
         # Uncomment for change of model
-        self.save_fast_text_to_w2v()
+        # self.save_fast_text_to_w2v()
+        # self.save_full_model_to_smaller()
+
         print("Loading word2vec model...")
-        self.save_full_model_to_smaller()
 
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
         # self.amazon_bucket_url#
@@ -2663,7 +2663,7 @@ def main():
     # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
 
     word2vecClass = Word2VecClass()
-    # print(word2vecClass.get_similar_word2vec(searched_slug))
+    print(word2vecClass.get_similar_word2vec(searched_slug))
     print(word2vecClass.get_similar_word2vec_full_text(searched_slug))
 
     # print(psutil.cpu_percent())
