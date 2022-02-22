@@ -29,22 +29,23 @@ class DocSim:
             doc_without_slug = doc.split(";", 1) # removing slug
             print("target_vec")
             target_vec = vectorizer.transform([doc_without_slug[0]])
-            print(target_vec)
-            print("source_vec")
-            print(source_vec)
+            # print(target_vec)
+            # print("source_vec")
+            # print(source_vec)
             sim_score = 1 - spatial.distance.cosine(source_vec[0].toarray(), target_vec[0].toarray())
-            print("if sim_score > threshold")
+            # print("if sim_score > threshold")
             if sim_score > threshold:
                 # print("type(doc)")
                 # print(type(doc))
-                print("slug = re.sub(...)")
+                # print("slug = re.sub(...)")
                 slug = re.sub(r'^.*?;', ';', doc) # keeping only slug of the document
-                print("slug.replace")
+                # print("slug.replace")
                 slug = slug.replace('; ','')
-                print("results.append")
+                # print("results.append")
                 results.append({"slug": slug, "coefficient": sim_score})
             # Sort results by score in desc order
-            print("results.sort")
+            # print("results.sort")
+            print("Searching for similar articles...")
             results.sort(key=lambda k: k["coefficient"], reverse=True)
             # else:
               #  continue
