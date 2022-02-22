@@ -162,6 +162,44 @@ class Database:
             self.cnx.rollback()
             pass
 
+    def insert_recommended_word2vec_json(self, articles_recommended_json, article_id):
+        try:
+            query = """UPDATE posts SET recommended_word2vec=%s WHERE id=%s;"""
+            inserted_values = (articles_recommended_json, article_id)
+            self.cursor.execute(query, inserted_values)
+            self.cnx.commit()
+            print("Inserted")
+
+        except mysql.connector.Error as e:
+            print("NOT INSERTED")
+            print("Error code:", e.errno)  # error number
+            print("SQLSTATE value:", e.sqlstate)  # SQLSTATE value
+            print("Error message:", e.msg)  # error message
+            print("Error:", e)  # errno, sqlstate, msg values
+            s = str(e)
+            print("Error:", s)  # errno, sqlstate, msg values
+            self.cnx.rollback()
+            pass
+
+    def insert_recommended_word2vec_full_json(self, articles_recommended_json, article_id):
+        try:
+            query = """UPDATE posts SET recommended_word2vec_full_text=%s WHERE id=%s;"""
+            inserted_values = (articles_recommended_json, article_id)
+            self.cursor.execute(query, inserted_values)
+            self.cnx.commit()
+            print("Inserted")
+
+        except mysql.connector.Error as e:
+            print("NOT INSERTED")
+            print("Error code:", e.errno)  # error number
+            print("SQLSTATE value:", e.sqlstate)  # SQLSTATE value
+            print("Error message:", e.msg)  # error message
+            print("Error:", e)  # errno, sqlstate, msg values
+            s = str(e)
+            print("Error:", s)  # errno, sqlstate, msg values
+            self.cnx.rollback()
+            pass
+
     def insert_preprocessed_combined(self, preprocessed_all_features, post_id):
         try:
             query = """UPDATE posts SET all_features_preprocessed=%s WHERE id=%s;"""

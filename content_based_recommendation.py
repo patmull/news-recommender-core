@@ -1594,6 +1594,48 @@ class Word2VecClass:
         word2vec_model.save_word2vec_format("full_models/w2v_model_full")
         print("Fast text saved...")
 
+    def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True):
+
+        database = Database()
+        database.connect()
+        all_posts = database.get_all_posts()
+
+        number_of_inserted_rows = 0
+
+        for post in all_posts:
+
+            post_id = post[0]
+            slug = post[3]
+            current_recommended = post[15]
+
+            if skip_already_filled is True:
+                if current_recommended is None:
+                    if full_text is False:
+                        actual_recommended_json = self.get_similar_word2vec(slug)
+                    else:
+                        actual_recommended_json = self.get_similar_word2vec_full_text(slug)
+                    actual_recommended_json = json.dumps(actual_recommended_json)
+                    if full_text is False:
+                        database.insert_recommended_word2vec_json(articles_recommended_json=actual_recommended_json,
+                                                                  article_id=post_id)
+                    else:
+                        database.insert_recommended_word2vec_full_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
+                    number_of_inserted_rows += 1
+                    # print(str(number_of_inserted_rows) + " rows insertd.")
+                else:
+                    print("Skipping.")
+            else:
+                if full_text is False:
+                    actual_recommended_json = self.get_similar_word2vec(slug)
+                else:
+                    actual_recommended_json = self.get_similar_word2vec_full_text(slug)
+                actual_recommended_json = json.dumps(actual_recommended_json)
+                if full_text is False:
+                    database.insert_recommended_word2vec_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
+                else:
+                    database.insert_recommended_word2vec_full_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
+                number_of_inserted_rows += 1
+                # print(str(number_of_inserted_rows) + " rows insertd.")
 
 class Doc2VecClass:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/d2v_all_in_one.model"
@@ -2662,13 +2704,22 @@ def main():
     # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
     # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
 
+    """
     word2vecClass = Word2VecClass()
+    start = time.time()
     print(word2vecClass.get_similar_word2vec(searched_slug))
-    print(word2vecClass.get_similar_word2vec_full_text(searched_slug))
-
+    end = time.time()
+    print("Elapsed time: " + str(end - start))
+    start = time.time()
+    # print(word2vecClass.get_similar_word2vec_full_text(searched_slug))
+    end = time.time()
+    print("Elapsed time: " + str(end - start))
     # print(psutil.cpu_percent())
     # print(psutil.virtual_memory())  # physical memory usage
     # print('memory % used:', psutil.virtual_memory()[2])
+    """
+    word2vec = Word2VecClass()
+    word2vec.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False)
     """
     h = hpy()
     print(h.heap())
