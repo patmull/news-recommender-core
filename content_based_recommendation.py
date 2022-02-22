@@ -1,16 +1,14 @@
 import gc
 import json
-import os
 import re
 import string
 import time
-import nltk
 from collections import defaultdict
 from pathlib import Path
 import pickle
 import dropbox
 import gensim
-import majka
+# import majka
 import numpy as np
 import pandas as pd
 from gensim import corpora
