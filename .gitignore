@@ -142,4 +142,4 @@ models/d2v_full_text.model.wv.vectors.npy
 
 models/old_models
 
-text_classification/data_sets
+text_classification
