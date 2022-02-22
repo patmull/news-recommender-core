@@ -140,6 +140,4 @@ bin
 models/d2v_full_text.model.syn1neg.npy
 models/d2v_full_text.model.wv.vectors.npy
 
-/text_classification
-
 models/old_models
