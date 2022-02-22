@@ -39,7 +39,7 @@ from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
 
 from doc_sim import DocSim
 from data_conenction import Database
-from text_classification.czech_stemmer import cz_stem
+from cz_stemmer.czech_stemmer import cz_stem
 
 # AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
 # AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
