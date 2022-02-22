@@ -1,2 +1,2 @@
 web: gunicorn app:app
-worker: content_based_recommendation.py
+worker: python content_based_recommendation.py
