@@ -18,10 +18,6 @@ def create_app():
     #app.config['CELERY_BROKER_URL'] = REDIS_URL
     #app.config['CELERY_BACKEND'] = REDIS_URL
 
-    """
-    from celery.celery_api import bp
-    app.register_blueprint(bp)
-    """
     return app
 
 app = create_app()
