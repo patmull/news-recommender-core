@@ -13,21 +13,20 @@ class DocSim:
         the target documents."""
         if not target_docs:
             return []
-        print("isinstance")
         if isinstance(target_docs, str):
             target_docs = [target_docs]
 
         vectorizer = HashingVectorizer(n_features=20)
-        print("source_vec")
+        # print("source_vec")
         source_vec = vectorizer.transform([source_doc])
-        print(source_vec)
+        # print(source_vec)
         results = []
-        print("for doc")
+        # print("for doc")
         for doc in target_docs:
             # if type(doc) is str:
-            print("doc_without_slug")
+            # print("doc_without_slug")
             doc_without_slug = doc.split(";", 1) # removing slug
-            print("target_vec")
+            # print("target_vec")
             target_vec = vectorizer.transform([doc_without_slug[0]])
             # print(target_vec)
             # print("source_vec")
