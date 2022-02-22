@@ -2718,6 +2718,7 @@ def main():
     """
     word2vec = Word2VecClass()
     word2vec.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False)
+    word2vec.fill_recommended_for_all_posts(skip_already_filled=True, full_text=True)
     """
     h = hpy()
     print(h.heap())
