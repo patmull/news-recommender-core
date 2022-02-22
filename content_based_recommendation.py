@@ -82,7 +82,7 @@ def load_models():
     bucket_name = "moje-clanky"
     s3.download_file(bucket_name, destination_file, destination_file)
     """
-    word2vec_embedding = KeyedVectors.load("models/w2v_model")
+    word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
 
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/d2v_all_in_one.model"
     print("Loading Doc2Vec model")
@@ -1417,7 +1417,7 @@ class Word2VecClass:
             ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
              'all_features_preprocessed', 'body_preprocessed', 'full_text']]
 
-    # @profile
+    @profile
     def get_similar_word2vec(self, searched_slug):
         recommenderMethods = RecommenderMethods()
 
@@ -1467,7 +1467,7 @@ class Word2VecClass:
 
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
         # global word2vec_embedding
-        word2vec_embedding = KeyedVectors.load("models/w2v_model")
+        word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
 
         # print("Model loaded...")
         # word2vec_embedding = KeyedVectors.load_word2vec_format("w2v_model",binary=False,unicode_errors='ignore')
@@ -1491,8 +1491,9 @@ class Word2VecClass:
         # workaround due to float32 error in while converting to JSON
         return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
 
+    @profile
     def get_similar_word2vec_full_text(self, searched_slug):
-        tfidf = TfIdf()
+        recommenderMethods = RecommenderMethods()
 
         self.get_posts_dataframe()
         self.get_categories_dataframe()
@@ -1500,7 +1501,7 @@ class Word2VecClass:
         # post_found = self.(search_slug)
 
         # search_terms = 'Domácí. Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.'
-        found_post_dataframe = tfidf.find_post_by_slug(searched_slug)
+        found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
         print("post_dataframe.iloc[0]")
         # print(found_post_dataframe.iloc[0])
@@ -1525,19 +1526,17 @@ class Word2VecClass:
         print(self.df["keywords"])
 
         documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["title_y"] + ' ' + self.df[
-            "all_features_preprocessed"] + self.df["body_preprocessed"]
+            "all_features_preprocessed"] + ' ' + self.df["body_preprocessed"]
         documents_df["slug"] = self.df["slug_x"]
         found_post = found_post_dataframe['features_to_use'].iloc[0]
 
         del self.df
         del found_post_dataframe
-        # documents_df['features_combined'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
-        # documents = list(map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
 
         # Uncomment for change of model
-        # self.save_fast_text_to_w2v()
-        # print("Loading word2vec model...")
-        # self.save_full_model_to_smaller()
+        self.save_fast_text_to_w2v()
+        print("Loading word2vec model...")
+        self.save_full_model_to_smaller()
 
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
         # self.amazon_bucket_url#
@@ -1545,9 +1544,13 @@ class Word2VecClass:
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
         # global word2vec_embedding
 
-        dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
-        dropbox_file_download(dropbox_access_token, "models/w2v_model.vectors.npy", "/w2v_model.vectors.npy")
-        word2vec_embedding = KeyedVectors.load("models/w2v_model")
+        try:
+            word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+        except FileNotFoundError:
+            print("Downloading from Dropbox...")
+            dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
+            dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy", "/w2v_model.vectors.npy")
+            word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
 
         # print("Model loaded...")
         # word2vec_embedding = KeyedVectors.load_word2vec_format("w2v_model",binary=False,unicode_errors='ignore')
@@ -1579,10 +1582,12 @@ class Word2VecClass:
         return [item for sublist in t for item in sublist]
 
     def save_full_model_to_smaller(self):
+        print("Saving full model to limited model...")
         word2vec_embedding = KeyedVectors.load_word2vec_format("full_models/w2v_model_full", limit=87000)  #
-        word2vec_embedding.save("models/w2v_model")  # write separately=[] for all_in_one model
+        word2vec_embedding.save("models/w2v_model_limited")  # write separately=[] for all_in_one model
 
     def save_fast_text_to_w2v(self):
+        print("Loading and saving FastText pretrained model to Word2Vec model")
         word2vec_model = gensim.models.fasttext.load_facebook_vectors("full_models/cc.cs.300.bin.gz", encoding="utf-8")
         print("FastText loaded...")
         word2vec_model.fill_norms()
@@ -2646,19 +2651,20 @@ def main():
     # print(doc2vecClass.get_similar_doc2vec(searched_slug))
     # print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug))
 
+    """
     lda = Lda()
     print("--------------LDA------------------")
     print(lda.get_similar_lda(searched_slug))
     print("--------------LDA FULL TEXT------------------")
     print(lda.get_similar_lda_full_text(searched_slug))
-
+    """
     # lda = Lda()
     # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
     # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
 
-    # word2vecClass = Word2VecClass()
+    word2vecClass = Word2VecClass()
     # print(word2vecClass.get_similar_word2vec(searched_slug))
-    # print(word2vecClass.get_similar_word2vec_full_text(searched_slug))
+    print(word2vecClass.get_similar_word2vec_full_text(searched_slug))
 
     # print(psutil.cpu_percent())
     # print(psutil.virtual_memory())  # physical memory usage
@@ -2667,6 +2673,5 @@ def main():
     h = hpy()
     print(h.heap())
     """
-
 
 if __name__ == "__main__": main()
