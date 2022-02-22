@@ -1415,7 +1415,7 @@ class Word2VecClass:
             ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
              'all_features_preprocessed', 'body_preprocessed', 'full_text']]
 
-    @profile
+    #@profile
     def get_similar_word2vec(self, searched_slug):
         recommenderMethods = RecommenderMethods()
 
@@ -1488,7 +1488,7 @@ class Word2VecClass:
         # workaround due to float32 error in while converting to JSON
         return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
 
-    @profile
+    #@profile
     def get_similar_word2vec_full_text(self, searched_slug):
         recommenderMethods = RecommenderMethods()
 
