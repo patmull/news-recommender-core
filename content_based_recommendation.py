@@ -1624,11 +1624,13 @@ class Word2VecClass:
                             database.insert_recommended_word2vec_json(articles_recommended_json=actual_recommended_json,
                                                                     article_id=post_id)
                         except:
+                            print("Error in DB insert. Skipping.")
                             pass
                     else:
                         try:
                             database.insert_recommended_word2vec_full_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
                         except:
+                            print("Error in DB insert. Skipping.")
                             pass
                     number_of_inserted_rows += 1
                     # print(str(number_of_inserted_rows) + " rows insertd.")
