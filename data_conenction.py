@@ -1,4 +1,4 @@
-# import mysql.connector
+# import psycopg2.connector
 import os
 
 import psycopg2
@@ -133,7 +133,7 @@ class Database:
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
 
-        except mysql.connector.Error as e:
+        except psycopg2.connector.Error as e:
             print("NOT INSERTED")
             print("Error code:", e.errno)  # error number
             print("SQLSTATE value:", e.sqlstate)  # SQLSTATE value
@@ -151,7 +151,7 @@ class Database:
             self.cnx.commit()
             print("Inserted")
 
-        except mysql.connector.Error as e:
+        except psycopg2.connector.Error as e:
             print("NOT INSERTED")
             print("Error code:", e.errno)  # error number
             print("SQLSTATE value:", e.sqlstate)  # SQLSTATE value
@@ -170,7 +170,7 @@ class Database:
             self.cnx.commit()
             print("Inserted")
 
-        except mysql.connector.Error as e:
+        except psycopg2.connector.Error as e:
             print("NOT INSERTED")
             print("Error code:", e.errno)  # error number
             print("SQLSTATE value:", e.sqlstate)  # SQLSTATE value
@@ -189,7 +189,7 @@ class Database:
             self.cnx.commit()
             print("Inserted")
 
-        except mysql.connector.Error as e:
+        except psycopg2.connector.Error as e:
             print("NOT INSERTED")
             print("Error code:", e.errno)  # error number
             print("SQLSTATE value:", e.sqlstate)  # SQLSTATE value
@@ -207,7 +207,7 @@ class Database:
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
 
-        except mysql.connector.Error as e:
+        except psycopg2.connector.Error as e:
             print("NOT INSERTED")
             print("Error code:", e.errno)  # error number
             print("SQLSTATE value:", e.sqlstate)  # SQLSTATE value
@@ -216,3 +216,16 @@ class Database:
             s = str(e)
             print("Error:", s)  # errno, sqlstate, msg values
             self.cnx.rollback()
+
+    def get_not_prefilled_posts(self, full_text):
+        if full_text is False:
+            sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
+        else:
+            sql = """SELECT * FROM posts WHERE recommended_word2vec_full_text IS NULL ORDER BY id;"""
+
+        query = (sql)
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
+        

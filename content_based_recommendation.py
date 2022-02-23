@@ -1,5 +1,6 @@
 import gc
 import json
+import random
 import re
 import string
 import time
@@ -1592,15 +1593,25 @@ class Word2VecClass:
         word2vec_model.save_word2vec_format("full_models/w2v_model_full")
         print("Fast text saved...")
 
-    def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True):
+    def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True, random_order=False):
 
         database = Database()
         database.connect()
-        all_posts = database.get_all_posts()
+        if skip_already_filled is False:
+            posts = database.get_all_posts()
+        else:
+            posts = database.get_not_prefilled_posts(full_text)
 
         number_of_inserted_rows = 0
 
-        for post in all_posts:
+        if random_order is True:
+            print("Starting random iteration...")
+            time.sleep(5)
+            random.shuffle(posts)
+
+        for post in posts:
+            if len(posts) < 1:
+                break
             print("post")
             print(post[22])
             post_id = post[0]
@@ -1633,6 +1644,12 @@ class Word2VecClass:
                             print("Error in DB insert. Skipping.")
                             pass
                     number_of_inserted_rows += 1
+                    if number_of_inserted_rows > 20:
+                        print("Refreshing list of posts for finding only not prefilled posts.")
+                        if full_text is False:
+                            self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False)
+                        else:
+                            self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=True)
                     # print(str(number_of_inserted_rows) + " rows insertd.")
                 else:
                     print("Skipping.")
