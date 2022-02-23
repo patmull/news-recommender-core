@@ -1614,10 +1614,16 @@ class Word2VecClass:
                         actual_recommended_json = self.get_similar_word2vec_full_text(slug)
                     actual_recommended_json = json.dumps(actual_recommended_json)
                     if full_text is False:
-                        database.insert_recommended_word2vec_json(articles_recommended_json=actual_recommended_json,
-                                                                  article_id=post_id)
+                        try:
+                            database.insert_recommended_word2vec_json(articles_recommended_json=actual_recommended_json,
+                                                                    article_id=post_id)
+                        except:
+                            pass
                     else:
-                        database.insert_recommended_word2vec_full_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
+                        try:
+                            database.insert_recommended_word2vec_full_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
+                        except:
+                            pass
                     number_of_inserted_rows += 1
                     # print(str(number_of_inserted_rows) + " rows insertd.")
                 else:
