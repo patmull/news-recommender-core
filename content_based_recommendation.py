@@ -1606,6 +1606,8 @@ class Word2VecClass:
             slug = post[3]
             current_recommended = post[15]
 
+            print("Searching similar articles for article: " + slug)
+
             if skip_already_filled is True:
                 if current_recommended is None:
                     if full_text is False:
