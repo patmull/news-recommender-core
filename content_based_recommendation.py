@@ -12,6 +12,7 @@ import gensim
 # import majka
 import numpy as np
 import pandas as pd
+import psycopg2
 from gensim import corpora
 from gensim import models
 from gensim import similarities
@@ -2754,8 +2755,26 @@ def main():
     # print('memory % used:', psutil.virtual_memory()[2])
     """
     word2vec = Word2VecClass()
-    word2vec.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False)
-    word2vec.fill_recommended_for_all_posts(skip_already_filled=True, full_text=True)
+
+    for i in range(100):
+        while True:
+            try:
+                word2vec.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False)
+            except psycopg2.OperationalError:
+                print("DB operational error. Waiting few seconds before trying again...")
+                time.sleep(30) # wait 30 seconds then try again
+                continue
+            break
+
+    for i in range(100):
+        while True:
+            try:
+                word2vec.fill_recommended_for_all_posts(skip_already_filled=True, full_text=True)
+            except psycopg2.OperationalError:
+                print("DB operational error. Waiting few seconds before trying again...")
+                time.sleep(30) # wait 30 seconds then try again
+                continue
+            break
     """
     h = hpy()
     print(h.heap())
