@@ -544,12 +544,16 @@ class RecommenderMethods:
         self.database = Database()
 
     def get_posts_dataframe(self):
+        self.database.connect()
         self.posts_df = self.database.get_posts_dataframe_from_cache()
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
+        self.database.disconnect()
         return self.posts_df
 
     def get_categories_dataframe(self):
+        self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
+        self.database.disconnect()
         return self.categories_df
 
     def join_posts_ratings_categories(self):
@@ -1399,7 +1403,9 @@ class Word2VecClass:
         return self.posts_df
 
     def get_categories_dataframe(self):
+        self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
+        self.database.disconnect()
         return self.categories_df
 
     def join_posts_ratings_categories(self):

@@ -15,9 +15,6 @@ class Database:
     cursor = None
     df = None
 
-    def __init__(self):
-        self.connect()
-
     def connect(self):
         self.cnx = psycopg2.connect(user="azuzazlsunperc" ,
                                     password="04f3582a0c5ea6074d9e3c4ed16d2152594b2f76f2c0768e05db2c037fb65cd3",
@@ -25,6 +22,10 @@ class Database:
                                     dbname="dfjbkqmu3imv9u")
 
         self.cursor = self.cnx.cursor()
+
+    def disconnect(self):
+        self.cursor.close()
+        self.cnx.close()
 
     def get_cnx(self):
         return self.cnx
