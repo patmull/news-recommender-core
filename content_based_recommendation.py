@@ -1601,10 +1601,14 @@ class Word2VecClass:
         number_of_inserted_rows = 0
 
         for post in all_posts:
-
+            print("post")
+            print(post[22])
             post_id = post[0]
             slug = post[3]
-            current_recommended = post[15]
+            if full_text is False:
+                current_recommended = post[22]
+            else:
+                current_recommended = post[23]
 
             print("Searching similar articles for article: " + slug)
 
