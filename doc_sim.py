@@ -22,6 +22,7 @@ class DocSim:
         # print(source_vec)
         results = []
         # print("for doc")
+        print("Searching for similar articles...")
         for doc in target_docs:
             # if type(doc) is str:
             # print("doc_without_slug")
@@ -44,7 +45,7 @@ class DocSim:
                 results.append({"slug": slug, "coefficient": sim_score})
             # Sort results by score in desc order
             # print("results.sort")
-            print("Searching for similar articles...")
+
             results.sort(key=lambda k: k["coefficient"], reverse=True)
             # else:
               #  continue
