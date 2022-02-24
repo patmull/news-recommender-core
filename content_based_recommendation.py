@@ -1423,7 +1423,7 @@ class Word2VecClass:
             ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
              'all_features_preprocessed', 'body_preprocessed', 'full_text']]
 
-    #@profile
+    # @profile
     def get_similar_word2vec(self, searched_slug):
         recommenderMethods = RecommenderMethods()
 
@@ -1496,7 +1496,7 @@ class Word2VecClass:
         # workaround due to float32 error in while converting to JSON
         return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
 
-    #@profile
+    # @profile
     def get_similar_word2vec_full_text(self, searched_slug):
         recommenderMethods = RecommenderMethods()
 
@@ -1555,7 +1555,8 @@ class Word2VecClass:
         except FileNotFoundError:
             print("Downloading from Dropbox...")
             dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
-            dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy", "/w2v_model.vectors.npy")
+            dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
+                                  "/w2v_model.vectors.npy")
             word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
 
         # print("Model loaded...")
@@ -1600,7 +1601,7 @@ class Word2VecClass:
         word2vec_model.save_word2vec_format("full_models/w2v_model_full")
         print("Fast text saved...")
 
-    def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True, random_order=False):
+    def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True, random_order=False, reversed=False):
 
         database = Database()
         database.connect()
@@ -1610,6 +1611,10 @@ class Word2VecClass:
             posts = database.get_not_prefilled_posts(full_text)
 
         number_of_inserted_rows = 0
+
+        if reversed is True:
+            print("Reversing list of posts...")
+            posts.reverse()
 
         if random_order is True:
             print("Starting random iteration...")
@@ -1640,13 +1645,14 @@ class Word2VecClass:
                     if full_text is False:
                         try:
                             database.insert_recommended_word2vec_json(articles_recommended_json=actual_recommended_json,
-                                                                    article_id=post_id)
+                                                                      article_id=post_id)
                         except:
                             print("Error in DB insert. Skipping.")
                             pass
                     else:
                         try:
-                            database.insert_recommended_word2vec_full_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
+                            database.insert_recommended_word2vec_full_json(
+                                articles_recommended_json=actual_recommended_json, article_id=post_id)
                         except:
                             print("Error in DB insert. Skipping.")
                             pass
@@ -1667,11 +1673,36 @@ class Word2VecClass:
                     actual_recommended_json = self.get_similar_word2vec_full_text(slug)
                 actual_recommended_json = json.dumps(actual_recommended_json)
                 if full_text is False:
-                    database.insert_recommended_word2vec_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
+                    database.insert_recommended_word2vec_json(articles_recommended_json=actual_recommended_json,
+                                                              article_id=post_id)
                 else:
-                    database.insert_recommended_word2vec_full_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
+                    database.insert_recommended_word2vec_full_json(articles_recommended_json=actual_recommended_json,
+                                                                   article_id=post_id)
                 number_of_inserted_rows += 1
                 # print(str(number_of_inserted_rows) + " rows insertd.")
+
+    def prefilling_job(self, full_text, reverse, random=False):
+        if full_text is False:
+            for i in range(100):
+                while True:
+                    try:
+                        self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False)
+                    except psycopg2.OperationalError:
+                        print("DB operational error. Waiting few seconds before trying again...")
+                        time.sleep(30)  # wait 30 seconds then try again
+                        continue
+                    break
+        else:
+            for i in range(100):
+                while True:
+                    try:
+                        self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=True)
+                    except psycopg2.OperationalError:
+                        print("DB operational error. Waiting few seconds before trying again...")
+                        time.sleep(30)  # wait 30 seconds then try again
+                        continue
+                    break
+
 
 class Doc2VecClass:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/d2v_all_in_one.model"
@@ -1940,7 +1971,6 @@ class Doc2VecClass:
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
-
 
         """
         documents_df['documents_cleaned'] = documents_df.title_x.apply(lambda x: " ".join(
@@ -2221,7 +2251,6 @@ class Lda:
         # print(list_of_article_slugs[0])
         return self.flatten(list_of_articles)
 
-
     # @profile
     def get_similar_lda_full_text(self, searched_slug, N=21):
         self.get_posts_dataframe()
@@ -2320,7 +2349,6 @@ class Lda:
         # print("top_k_words")
         # print("top_k_words[-10:]")
         # print(top_k_words[-10:])
-
 
     def flatten(self, t):
         return [item for sublist in t for item in sublist]
@@ -2614,7 +2642,8 @@ class Lda:
 
         print("self.df['tokenized']")
         # print(self.df['tokenized'].iloc[0])
-        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df['tokenized_full_text']
+        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
+            'tokenized_full_text']
         all_words = [word for item in list(self.df["tokenized"]) for word in item]
 
         fdist = FreqDist(all_words)
@@ -2755,29 +2784,12 @@ def main():
     # print('memory % used:', psutil.virtual_memory()[2])
     """
     word2vec = Word2VecClass()
+    word2vec.prefilling_job(full_text=True, reverse=False)
 
-    for i in range(100):
-        while True:
-            try:
-                word2vec.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False)
-            except psycopg2.OperationalError:
-                print("DB operational error. Waiting few seconds before trying again...")
-                time.sleep(30) # wait 30 seconds then try again
-                continue
-            break
-
-    for i in range(100):
-        while True:
-            try:
-                word2vec.fill_recommended_for_all_posts(skip_already_filled=True, full_text=True)
-            except psycopg2.OperationalError:
-                print("DB operational error. Waiting few seconds before trying again...")
-                time.sleep(30) # wait 30 seconds then try again
-                continue
-            break
     """
     h = hpy()
     print(h.heap())
     """
+
 
 if __name__ == "__main__": main()
