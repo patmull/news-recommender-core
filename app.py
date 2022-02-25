@@ -1,4 +1,3 @@
-import sys
 import traceback
 
 from user_based_recommendation import UserBasedRecommendation
@@ -7,9 +6,6 @@ from flask_restful import Api, Resource
 from content_based_recommendation import TfIdf, Doc2VecClass, Word2VecClass, Lda, word2vec_embedding, load_models, load_stopwords
 from collaboration_based_recommendation import Svd
 from content_based_old import TfIdfOld, Doc2VecOld, Word2VecOld, LdaOld
-# from flask_celery_config import make_celery
-import redis
-from urllib.parse import urlparse
 
 REDIS_URL = 'redis://default:RuTYjOqZZofckHAPTNqUMlg8XjT1nQdZ@redis-18878.c59.eu-west-1-2.ec2.cloud.redislabs.com:18878'
 
