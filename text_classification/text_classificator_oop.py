@@ -6,7 +6,7 @@ import nltk
 import numpy as np
 from nltk.stem.lancaster import LancasterStemmer
 
-from text_classification.czech_stemmer import cz_stem
+from cz_stemmer.czech_stemmer import cz_stem
 
 # nltk.download('punkt') -- INIT method. Run this when using the project for the first time
 stemmer = LancasterStemmer()
