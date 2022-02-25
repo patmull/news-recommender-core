@@ -29,7 +29,7 @@ import psutil
 """
 # from guppy import hpy
 
-from gensim.models import TfidfModel, KeyedVectors, LdaModel, fasttext, Word2Vec
+from gensim.models import TfidfModel, KeyedVectors, LdaModel, fasttext, Word2Vec, CoherenceModel
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk import RegexpTokenizer, FreqDist, word_tokenize
 from scipy import sparse
@@ -104,7 +104,7 @@ global cz_stopwords
 
 
 def load_stopwords():
-    filename = "text_classification/czech_stopwords.txt"
+    filename = "cz_stemmer/czech_stopwords.txt"
     with open(filename, encoding="utf-8") as file:
         global cz_stopwords
         cz_stopwords = file.readlines()
@@ -155,7 +155,7 @@ class CosineTransform:
 
     def simple_example(self):
         text = ["London Paris London", "Paris Paris London"]
-        cv = CountVectorizer()
+        cv = CountVectorizer(analyzer='word',min_df=10,stop_words='czech',lowercase=True,token_pattern='[a-zA-Z0-9]{3,}')
 
         count_matrix = cv.fit_transform(text)
 
@@ -184,7 +184,7 @@ class CosineTransform:
         self.posts_df["combined_features"] = self.posts_df.apply(self.combine_features, axis=1)
 
         ##Step 4: Create count matrix from this new combined column
-        cv = CountVectorizer()
+        cv = CountVectorizer(analyzer='word',min_df=10,stop_words='czech',lowercase=True,token_pattern='[a-zA-Z0-9]{3,}')
 
         self.count_matrix = cv.fit_transform(self.posts_df["combined_features"])
 
@@ -393,7 +393,7 @@ class GenSim:
 
         print("self.documents")
         print(self.documents)
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -627,7 +627,7 @@ class RecommenderMethods:
 
     def set_tfIdfVectorizer(self):
         # load czech stopwords from file
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -842,6 +842,8 @@ class TfIdf:
 
         names = vectorize.get_feature_names()
         data = vectors.todense().tolist()
+        # Compute Sparsicity = Percentage of Non-Zero cells
+        print("Sparsicity: ", ((vectors.todense() > 0).sum() / vectors.todense().size) * 100, "%")
         df = pd.DataFrame(data, columns=names)
         # print("SKLEARN:")
         """
@@ -1244,7 +1246,7 @@ class TfIdf:
         tokens = tokenizer.tokenize(rem_num)
         print("tokens:")
         print(tokens)
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
 
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
@@ -1353,7 +1355,7 @@ class TfIdf:
         documents_df['features_combined'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
         documents = list(map(' '.join, documents_df[['features_combined']].values.tolist()))
 
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -1797,7 +1799,7 @@ class Doc2VecClass:
 
         # print("document_keywords:")
         # print(document_keywords)
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -1902,7 +1904,7 @@ class Doc2VecClass:
 
         # self.train_doc2vec(documents_all_features_preprocessed)
 
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -1967,7 +1969,7 @@ class Doc2VecClass:
 
         # print("document_keywords:")
         # print(document_keywords)
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -2172,6 +2174,7 @@ class Lda:
         return self.df
 
     def get_categories_dataframe(self):
+
         self.categories_df = self.database.get_categories_dataframe(pd)
         return self.categories_df
 
@@ -2252,9 +2255,11 @@ class Lda:
         return self.flatten(list_of_articles)
 
     # @profile
-    def get_similar_lda_full_text(self, searched_slug, N=21):
+    def get_similar_lda_full_text(self, searched_slug, N=21, retrain=False):
+        self.database.connect()
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
+        self.database.disconnect()
 
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
 
@@ -2279,7 +2284,7 @@ class Lda:
 
         gc.collect()
         print("dictionary,corpus, lda")
-        dictionary, corpus, lda = self.load_lda_full_text(self.df)
+        dictionary, corpus, lda = self.load_lda_full_text(self.df, retrain=retrain)
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
         print("self.df")
@@ -2427,7 +2432,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus.pkl', 'wb'))
         dictionary.save('precalc_vectors/dictionary.gensim')
 
-    def load_lda_full_text(self, data, training_now=False):
+    def load_lda_full_text(self, data, training_now=False, retrain=False):
 
         """
         try:
@@ -2444,17 +2449,24 @@ class Lda:
 
             lda_model = LdaModel.load("models/lda_model_full_text")
         """
-        try:
-            lda_model = LdaModel.load("models/lda_model_full_text")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
-        except:
-            if training_now is False:
+        if retrain is False:
+            try:
+                lda_model = LdaModel.load("models/lda_model_full_text")
+                dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
+                corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
+            except:
+                if training_now is False:
+                    self.train_lda_full_text(data)
+
+                lda_model = LdaModel.load("models/lda_model_full_text")
+                dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
+                corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
+        else:
                 self.train_lda_full_text(data)
 
-            lda_model = LdaModel.load("models/lda_model_full_text")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
+                lda_model = LdaModel.load("models/lda_model_full_text")
+                dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
+                corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
 
         return dictionary, corpus, lda_model
 
@@ -2589,23 +2601,37 @@ class Lda:
         """
         2 passes of the data since this is a small dataset, so we want the distributions to stabilize
         """
-        dictionary = corpora.Dictionary(data['tokenized'])
-        dictionary.filter_extremes(no_below=20, no_above=0.5)
-        corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
+        print("data['tokenized']")
+        print(data['tokenized'])
+        data_words_nostops = self.remove_stopwords(data['tokenized'])
+        data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
+        # Term Document Frequency
+
+        # View
+        dictionary = corpora.Dictionary(data_words_bigrams)
+        # dictionary.filter_extremes(no_below=20, no_above=0.5)
+        corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
         num_topics = 400
-        chunksize = 2000
+        chunksize = 100
         iterations = 400
         t1 = time.time()
-
+        print("corpus[:1]")
+        print(corpus[:1])
+        print("words:")
+        print([[(dictionary[id], freq) for id, freq in cp] for cp in corpus[:1]])
         # low alpha means each document is only represented by a small number of topics, and vice versa
         # low eta means each topic is only represented by a small number of words, and vice versa
 
         print("LDA training...")
         lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.0,
                              chunksize=chunksize, alpha='auto', eta='auto',
-                             passes=2, iterations=iterations)
+                             passes=10, iterations=iterations, update_every=1, per_word_topics=True)
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
+
+        print("Keywords for 10 topics:")
+        print(lda_model.print_topics())
+        doc_lda = lda_model[corpus]
 
         # native gensim method (abandoned due to not storing to single file like it should with separately=[] option)
         lda_model.save("models/lda_model_full_text")
@@ -2614,13 +2640,14 @@ class Lda:
         # Compute Perplexity
         print('\nPerplexity: ', lda_model.log_perplexity(corpus))
         # a measure of how good the model is. lower the better.
-        """
+
         # Compute Coherence Score
         coherence_model_lda = CoherenceModel(model=lda_model, texts=data['tokenized'], dictionary=dictionary,
                                              coherence='c_v')
         coherence_lda = coherence_model_lda.get_coherence()
         print('\nCoherence Score: ', coherence_lda)
-        """
+
+        self.visualise_lda()
 
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
@@ -2697,13 +2724,43 @@ class Lda:
         np.save('precalc_vectors/lda_doc_topic_dist_full_text.npy', doc_topic_dist)
         print("LDA model and documents topic distribution saved")
 
+    def build_bigrams_and_trigrams(self, data_words):
+        bigram = gensim.models.Phrases(data_words, min_count=5, threshold=100)
+        trigram = gensim.models.Phrases(bigram[data_words], threshold=100)
+
+        # Faster way to get a sentence clubbed as a trigram/bigram
+        bigram_mod = gensim.models.phrases.Phraser(bigram)
+        trigram_mod = gensim.models.phrases.Phraser(trigram)
+
+        # See trigram example
+        print(trigram_mod[bigram_mod[data_words[0]]])
+
+        # Form Bigrams
+        data_words_bigrams = self.make_bigrams(bigram_mod,data_words)
+
+        return data_words_bigrams
+
+    def make_bigrams(self,bigram_mod,texts):
+        return [bigram_mod[doc] for doc in texts]
+
+    def make_trigrams(self,trigram_mod,bigram_mod,texts):
+        return [trigram_mod[bigram_mod[doc]] for doc in texts]
+
+    def remove_stopwords(self,texts):
+        stop_words = self.load_stopwords()
+        return [[word for word in gensim.utils.simple_preprocess(str(doc)) if word not in stop_words] for doc in texts]
+
     def load_stopwords(self):
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
             return cz_stopwords
-
+    
+    def visualise_lda(self, corpus, dictionary):
+        pyLDAvis.enable_notebook()
+        vis = pyLDAvis.gensim.prepare(lda_model, corpus, dictionary)
+        vis
 
 def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
     try:
@@ -2765,10 +2822,9 @@ def main():
     print("--------------LDA FULL TEXT------------------")
     print(lda.get_similar_lda_full_text(searched_slug))
     """
-    # lda = Lda()
+    lda = Lda()
     # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
-    # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
-
+    print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', retrain=True))
     """
     word2vecClass = Word2VecClass()
     start = time.time()
@@ -2783,8 +2839,8 @@ def main():
     # print(psutil.virtual_memory())  # physical memory usage
     # print('memory % used:', psutil.virtual_memory()[2])
     """
-    word2vec = Word2VecClass()
-    word2vec.prefilling_job(full_text=True, reverse=False)
+    # word2vec = Word2VecClass()
+    # word2vec.prefilling_job(full_text=True, reverse=False, random=True)
 
     """
     h = hpy()
