@@ -104,7 +104,7 @@ global cz_stopwords
 
 
 def load_stopwords():
-    filename = "text_classification/czech_stopwords.txt"
+    filename = "cz_stemmer/czech_stopwords.txt"
     with open(filename, encoding="utf-8") as file:
         global cz_stopwords
         cz_stopwords = file.readlines()
@@ -393,7 +393,7 @@ class GenSim:
 
         print("self.documents")
         print(self.documents)
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -627,7 +627,7 @@ class RecommenderMethods:
 
     def set_tfIdfVectorizer(self):
         # load czech stopwords from file
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -1244,7 +1244,7 @@ class TfIdf:
         tokens = tokenizer.tokenize(rem_num)
         print("tokens:")
         print(tokens)
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
 
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
@@ -1353,7 +1353,7 @@ class TfIdf:
         documents_df['features_combined'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
         documents = list(map(' '.join, documents_df[['features_combined']].values.tolist()))
 
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -1721,7 +1721,9 @@ class Doc2VecClass:
         return self.posts_df
 
     def get_categories_dataframe(self):
+        self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
+        self.database.disconnect()
         return self.categories_df
 
     def join_posts_ratings_categories(self):
@@ -1797,7 +1799,7 @@ class Doc2VecClass:
 
         # print("document_keywords:")
         # print(document_keywords)
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -1902,7 +1904,7 @@ class Doc2VecClass:
 
         # self.train_doc2vec(documents_all_features_preprocessed)
 
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -1967,7 +1969,7 @@ class Doc2VecClass:
 
         # print("document_keywords:")
         # print(document_keywords)
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -2172,7 +2174,9 @@ class Lda:
         return self.df
 
     def get_categories_dataframe(self):
+        self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
+        self.database.disconnect()
         return self.categories_df
 
     def get_posts_dataframe(self):
@@ -2698,7 +2702,7 @@ class Lda:
         print("LDA model and documents topic distribution saved")
 
     def load_stopwords(self):
-        filename = "text_classification/czech_stopwords.txt"
+        filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -2724,12 +2728,12 @@ def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
 def main():
     # database = Database()
     # database.insert_posts_dataframe_to_cache() # for update
+    """
     searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"  # print(doc2vecClass.get_similar_doc2vec(slug))
-
-    # tfidf = TfIdf()
-
-    # print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
-    # print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
+    tfidf = TfIdf()
+    print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
+    print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
+    """
     # print(tfidf.recommend_posts_by_all_features('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
     # print(tfidf.preprocess("Vítkovice prohrály důležitý zápas s Třincem po prodloužení"))
     # print(tfidf.recommend_posts_by_all_features_preprocessed('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
@@ -2753,11 +2757,11 @@ def main():
 
     # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     # searched_slug = "facr-o-slavii-a-rangers-verime-v-objektivni-vysetreni-odmitame-rasismus"
-
-    # doc2vecClass = Doc2VecClass()
-    # print(doc2vecClass.get_similar_doc2vec(searched_slug))
-    # print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug))
-
+    """
+    doc2vecClass = Doc2VecClass()
+    print(doc2vecClass.get_similar_doc2vec(searched_slug))
+    print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug))
+    """
     """
     lda = Lda()
     print("--------------LDA------------------")
@@ -2765,10 +2769,11 @@ def main():
     print("--------------LDA FULL TEXT------------------")
     print(lda.get_similar_lda_full_text(searched_slug))
     """
-    # lda = Lda()
-    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
-    # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
-
+    """
+    lda = Lda()
+    print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
+    print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
+    """
     """
     word2vecClass = Word2VecClass()
     start = time.time()
@@ -2783,13 +2788,12 @@ def main():
     # print(psutil.virtual_memory())  # physical memory usage
     # print('memory % used:', psutil.virtual_memory()[2])
     """
-    word2vec = Word2VecClass()
-    word2vec.prefilling_job(full_text=True, reverse=False)
+    # word2vec = Word2VecClass()
+    # word2vec.prefilling_job(full_text=True, reverse=False)
 
     """
     h = hpy()
     print(h.heap())
     """
-
 
 if __name__ == "__main__": main()
