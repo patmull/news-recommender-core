@@ -256,7 +256,6 @@ classify("Popularita Netflixu a dalších služeb prospívá i Česku, míní š
         "V roce 2019 zahraniční filmaři v Česku utratili přes devět miliard korun. Hlavním konkurentem České republiky v rámci filmových pobídek je Maďarsko. Poskytuje pobídky ve výši 30 procent a činí tak odlišným způsobem než Státní fond kinematografie. „Je to něco jako daňová asignace, forma praktičtější pro jejich fond, trochu komplikovanější pro producenta, ale dává tím Maďarsku v podstatě neomezený rozpočet,“ podotýká Fraňková. Sama by v Česku ráda prosadila zvýšení pobídek na 25 procent, s tím však přímo souvisí i nutné navýšení rozpočtu. / "
         "V tuto chvíli jsou pro Helenu Bezděk Fraňkovou nejpodstatnějšími tématy Národní plán obnovy, ze kterého by fond mohl získat dostatek nových financí na přeměnu fondu kinematografie na fond audiovize. „Začínají se totiž zcela stírat hranice mezi tím, jestli jdeme do kina, nebo se doma díváme na obrazovku. Podporovat bychom navíc chtěli i gaming,“ prozrazuje.",
          synapse_0, synapse_1)
-
 """
 classify("Leicester ve čtvrtfinále Anglického poháru zdolal United, postoupily i City a Chelsea")
 classify("Real má po půli dvoubrankový náskok nad Liverpoolem, City vede o gól")
