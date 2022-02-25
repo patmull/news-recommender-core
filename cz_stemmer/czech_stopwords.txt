@@ -291,7 +291,6 @@ tvá
 tvé
 tvoje
 tvůj
-ty
 určitě
 už
 vám
@@ -737,7 +736,6 @@ třetí
 tento
 důkladné
 důkladně
-ty
 ačkoli
 tři
 prostřednictvím
@@ -852,3 +850,19 @@ red
 tzv
 te
 tyt
+konečně
+ovšem
+jako
+sem
+nebýt
+muset
+tu
+všechen
+nemít
+jaký
+což
+teď
+lze
+jenž
+takový
+jež
