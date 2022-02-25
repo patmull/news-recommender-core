@@ -15,7 +15,7 @@ from nltk import RegexpTokenizer, FreqDist, word_tokenize
 import string
 from cz_stemmer.czech_stemmer import cz_stem
 from sklearn.metrics.pairwise import cosine_similarity, linear_kernel, euclidean_distances
-import majka
+# import majka
 from gensim.models.doc2vec import TaggedDocument, Doc2Vec
 from scipy.stats import entropy
 from sklearn.feature_extraction.text import TfidfVectorizer
