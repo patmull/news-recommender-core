@@ -13,7 +13,7 @@ from scipy import sparse
 
 from nltk import RegexpTokenizer, FreqDist, word_tokenize
 import string
-from text_classification.czech_stemmer import cz_stem
+from cz_stemmer.czech_stemmer import cz_stem
 from sklearn.metrics.pairwise import cosine_similarity, linear_kernel, euclidean_distances
 import majka
 from gensim.models.doc2vec import TaggedDocument, Doc2Vec

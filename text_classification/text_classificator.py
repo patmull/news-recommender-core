@@ -6,7 +6,7 @@ import json
 import nltk
 from nltk.stem.lancaster import LancasterStemmer
 import numpy as np
-from text_classification.czech_stemmer import cz_stem
+from cz_stemmer.czech_stemmer import cz_stem
 
 words = []
 classes = []
