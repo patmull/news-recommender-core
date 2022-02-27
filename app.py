@@ -5,7 +5,6 @@ from flask import Flask, request
 from flask_restful import Api, Resource
 from content_based_recommendation import TfIdf, Doc2VecClass, Word2VecClass, Lda, word2vec_embedding, load_models, load_stopwords
 from collaboration_based_recommendation import Svd
-from content_based_old import TfIdfOld, Doc2VecOld, Word2VecOld, LdaOld
 
 REDIS_URL = 'redis://default:RuTYjOqZZofckHAPTNqUMlg8XjT1nQdZ@redis-18878.c59.eu-west-1-2.ec2.cloud.redislabs.com:18878'
 
@@ -230,11 +229,6 @@ api.add_resource(GetWordLemma, "/api/lemma/<string:word>")
 api.add_resource(GetWordStem, "/api/stem/<string:word>/<string:aggressive>")
 api.add_resource(Preprocess, "/api/preprocess/<string:slug>")
 api.add_resource(PreprocessStemming, "/api/preprocess-stemming/<string:slug>")
-
-api.add_resource(GetPostsByOtherPostTfIdfOld, "/api/post-tfidf-old/<string:param>")
-api.add_resource(GetPostsByOtherPostWord2VecOld, "/api/post-word2vec-old/<string:param>")
-api.add_resource(GetPostsByOtherPostDoc2VecOld, "/api/post-doc2vec-old/<string:param>")
-api.add_resource(GetPostsByOtherPostLdaOld, "/api/post-lda-old/<string:param>")
 
 api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<string:param>")
