@@ -3,7 +3,7 @@ import traceback
 from user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
 from flask_restful import Api, Resource
-from content_based_recommendation import TfIdf, Doc2VecClass, Word2VecClass, Lda, word2vec_embedding, load_models, load_stopwords
+from content_based_recommendation import TfIdf, Doc2VecClass, Lda, word2vec_embedding, load_models, load_stopwords
 from collaboration_based_recommendation import Svd
 
 REDIS_URL = 'redis://default:RuTYjOqZZofckHAPTNqUMlg8XjT1nQdZ@redis-18878.c59.eu-west-1-2.ec2.cloud.redislabs.com:18878'
@@ -52,16 +52,6 @@ class GetPostsByOtherPostDoc2Vec(Resource):
         return {"data": "Posted"}
 
 
-class GetPostsByOtherPostWord2Vec(Resource):
-
-    def get(self, param):
-        word2vecClass = Word2VecClass()
-        return word2vecClass.get_similar_word2vec(param)
-
-    def post(self):
-        return {"data": "Posted"}
-
-
 class GetPostsByOtherPostLda(Resource):
 
     def get(self, param):
@@ -71,16 +61,6 @@ class GetPostsByOtherPostLda(Resource):
     def post(self):
         return {"data": "Posted"}
 
-
-@DeprecationWarning
-class GetPostsByOtherPostTfIdfOld(Resource):
-
-    def get(self, param):
-        tfidf = TfIdfOld()
-        return tfidf.recommend_posts_by_all_features_preprocessed(param)
-
-    def post(self):
-        return {"data": "Posted"}
 
 class GetPostsByOtherPostTfIdfFullText(Resource):
 
@@ -92,54 +72,11 @@ class GetPostsByOtherPostTfIdfFullText(Resource):
         return {"data": "Posted"}
 
 
-@DeprecationWarning
-class GetPostsByOtherPostDoc2VecOld(Resource):
-
-    def get(self, param):
-        doc2vec = Doc2VecOld()
-        return doc2vec.get_similar_doc2vec(param)
-
-    def post(self):
-        return {"data": "Posted"}
-
-
 class GetPostsByOtherPostDoc2VecFullText(Resource):
 
     def get(self, param):
         doc2vec = Doc2VecClass()
         return doc2vec.get_similar_doc2vec_with_full_text(param)
-
-    def post(self):
-        return {"data": "Posted"}
-
-
-@DeprecationWarning
-class GetPostsByOtherPostWord2VecOld(Resource):
-
-    def get(self, param):
-        word2vecClass = Word2VecOld()
-        return word2vecClass.get_similar_word2vec(param)
-
-    def post(self):
-        return {"data": "Posted"}
-
-
-class GetPostsByOtherPostWord2VecFullText(Resource):
-
-    def get(self, param):
-        word2vecClass = Word2VecClass()
-        return word2vecClass.get_similar_word2vec_full_text(param)
-
-    def post(self):
-        return {"data": "Posted"}
-
-
-@DeprecationWarning
-class GetPostsByOtherPostLdaOld(Resource):
-
-    def get(self, param):
-        lda = LdaOld()
-        return lda.get_similar_lda(param)
 
     def post(self):
         return {"data": "Posted"}
@@ -235,12 +172,6 @@ def set_global_exception_handler(app):
         response["errorMessage"] = error_message
         return response, 500
 
-
-api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-tfidf/<string:param>")
-api.add_resource(GetPostsByOtherPostWord2Vec, "/api/post-word2vec/<string:param>")
-api.add_resource(GetPostsByOtherPostDoc2Vec, "/api/post-doc2vec/<string:param>")
-api.add_resource(GetPostsByOtherPostLda, "/api/post-lda/<string:param>")
-
 api.add_resource(GetPostsByOtherUsers, "/api/user/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByUserPreferences, "/api/user-preferences/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByKeywords, "/api/user-keywords")
@@ -249,8 +180,11 @@ api.add_resource(GetWordStem, "/api/stem/<string:word>/<string:aggressive>")
 api.add_resource(Preprocess, "/api/preprocess/<string:slug>")
 api.add_resource(PreprocessStemming, "/api/preprocess-stemming/<string:slug>")
 
+api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-tfidf/<string:param>")
+api.add_resource(GetPostsByOtherPostDoc2Vec, "/api/post-doc2vec/<string:param>")
+api.add_resource(GetPostsByOtherPostLda, "/api/post-lda/<string:param>")
+
 api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<string:param>")
-api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<string:param>")
 
