@@ -1479,12 +1479,8 @@ class Word2VecClass:
                                   "/w2v_model.vectors.npy")
             word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
 
-        # print("Model loaded...")
-        # word2vec_embedding = KeyedVectors.load_word2vec_format("w2v_model",binary=False,unicode_errors='ignore')
-        # print(test_word in word2vec_model.key_to_index))
         ds = DocSim(word2vec_embedding)
-        # del word2vec_embedding
-        # documents_df['features_to_use'] = documents_df.replace(',','', regex=True)
+
         documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(';', ' ')
         documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(r'\r\n', '', regex=True)
         documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
