@@ -70,7 +70,7 @@ word2vec_embedding = None
 doc2vec_model = None
 lda_model = None
 
-
+@DeprecationWarning
 def load_models():
     print("Loading Word2Vec model")
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/w2v_embedding_all_in_one"
@@ -89,7 +89,7 @@ def load_models():
     global doc2vec_model
     # doc2vec_model = pickle.load(smart_open.smart_open(amazon_bucket_url))
     # doc2vec_model = Doc2Vec.load("d2v_all_in_one.model")
-    doc2vec_model = Doc2Vec.load("models/d2v.model")
+    doc2vec_model = Doc2Vec.load("models/d2v_limited.model")
 
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/lda_all_in_one"
     print("Loading LDA model")
@@ -750,6 +750,21 @@ class RecommenderMethods:
         amazon_model = pickle.load(smart_open.smart_open(self.amazon_bucket_url))
         return amazon_model
 
+    def dropbox_file_download(self, access_token, dropbox_file_path, local_folder_name):
+        try:
+            dbx = dropbox.Dropbox(access_token)
+
+            """
+            print("Dropbox Files:")
+            for entry in dbx.files_list_folder('').entries:
+                print(entry.path_lower)
+            """
+            dbx.files_download_to_file(dropbox_file_path, local_folder_name)
+
+        except Exception as e:
+            print(e)
+            return False
+
 class TfIdf:
 
     def __init__(self):
@@ -1052,7 +1067,6 @@ class TfIdf:
 
         post_recommendations = recommenderMethods.recommend_by_more_features_with_full_text(slug,
                                                                                             tuple_of_fitted_matrices)
-
         del recommenderMethods
         return post_recommendations
 
@@ -1089,20 +1103,10 @@ class TfIdf:
 
         # join feature tuples into one matrix
         tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
-        print("tuple_of_fitted_matrices[0]")
-        print(str(tuple_of_fitted_matrices[0]))
         post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices)
 
         del recommenderMethods
         return post_recommendations
-
-    """
-        predictions_json = post_recommendations.to_json(orient="split")
-
-        predictions_json_parsed = json.loads(predictions_json)
-
-        return predictions_json_parsed
-    """
 
     def convert_df_to_json(self, dataframe):
         result = dataframe[["title", "excerpt", "body"]].to_json(orient="records", lines=True)
@@ -1122,16 +1126,8 @@ class TfIdf:
     def convert_to_json_keyword_based(self, post_recommendations):
 
         list_of_article_slugs = []
-
-        # post_recommendations['coefficient'] = list_of_coefficients
-
         dict = post_recommendations.to_dict('records')
-
         list_of_article_slugs.append(dict.copy())
-        # print("------------------------------------")
-        # print("JSON:")
-        # print("------------------------------------")
-        # print(list_of_article_slugs[0])
         return list_of_article_slugs[0]
 
     def fill_recommended_for_all_posts(self, skip_already_filled):
@@ -1379,28 +1375,16 @@ class Word2VecClass:
         self.get_posts_dataframe()
         self.get_categories_dataframe()
         self.join_posts_ratings_categories()
-        # post_found = self.(search_slug)
 
-        # search_terms = 'Domácí. Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.'
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
-        print("post_dataframe.iloc[0]")
-        # print(found_post_dataframe.iloc[0])
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
                                                   found_post_dataframe.iloc[0]['title_y'] + " " + \
                                                   found_post_dataframe.iloc[0]['all_features_preprocessed']
 
         del self.posts_df
         del self.categories_df
-        """
-        self.df["title_y"] = self.df["title_y"]
-        self.df["title_x"] = self.df["title_x"].map(lambda s: self.preprocess(s, stemming=False))
-        self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False))
-        self.df["keywords"] = self.df["keywords"]
-        """
 
-        # cols = ["title_y", "title_x", "excerpt", "keywords", "slug_x", "all_features_preprocessed"]
-        cols = ["all_features_preprocessed"]
         documents_df = pd.DataFrame()
         documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["title_y"] + ' ' + self.df[
             "all_features_preprocessed"]
@@ -1409,13 +1393,12 @@ class Word2VecClass:
 
         del self.df
         del found_post_dataframe
+
         # documents_df['features_combined'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
         # documents = list(map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
 
         # Uncomment for change of model
-        # self.save_fast_text_to_w2v()
-        # print("Loading word2vec model...")
-        # self.save_full_model_to_smaller()
+        # self.refresh_model()
 
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
         # self.amazon_bucket_url#
@@ -1433,12 +1416,10 @@ class Word2VecClass:
         documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
         list_of_document_features = documents_df["features_to_use"].tolist()
         del documents_df
-        print("Calculating similarity...")
         # https://github.com/v1shwa/document-similarity with my edits
         most_similar_articles_with_scores = ds.calculate_similarity(found_post,
                                                                     list_of_document_features)[:21]
-        print("sim_scores")
-        print(most_similar_articles_with_scores)
+
         # removing post itself
         del most_similar_articles_with_scores[0]  # removing post itself
 
@@ -1457,8 +1438,6 @@ class Word2VecClass:
         # search_terms = 'Domácí. Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.'
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
-        print("post_dataframe.iloc[0]")
-        # print(found_post_dataframe.iloc[0])
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
                                                   found_post_dataframe.iloc[0]['title_y'] + " " + \
                                                   found_post_dataframe.iloc[0]['all_features_preprocessed'] + " " + \
@@ -1466,18 +1445,9 @@ class Word2VecClass:
 
         del self.posts_df
         del self.categories_df
-        """
-        self.df["title_y"] = self.df["title_y"]
-        self.df["title_x"] = self.df["title_x"].map(lambda s: self.preprocess(s, stemming=False))
-        self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False))
-        self.df["keywords"] = self.df["keywords"]
-        """
 
         # cols = ["title_y", "title_x", "excerpt", "keywords", "slug_x", "all_features_preprocessed"]
-        cols = ["all_features_preprocessed"]
         documents_df = pd.DataFrame()
-        print('self.df["keywords"]')
-        print(self.df["keywords"])
 
         documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["title_y"] + ' ' + self.df[
             "all_features_preprocessed"] + ' ' + self.df["body_preprocessed"]
@@ -1504,7 +1474,8 @@ class Word2VecClass:
         except FileNotFoundError:
             print("Downloading from Dropbox...")
             dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
-            dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
+            recommenderMethods = RecommenderMethods()
+            recommenderMethods.dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
                                   "/w2v_model.vectors.npy")
             word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
 
@@ -1519,15 +1490,10 @@ class Word2VecClass:
         documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
         list_of_document_features = documents_df["features_to_use"].tolist()
         del documents_df
-        print("Calculating similarity...")
         # https://github.com/v1shwa/document-similarity with my edits
-        print("type(list_of_document_features)")
-        print(type(list_of_document_features))
-        print("list_of_document_features")
+
         most_similar_articles_with_scores = ds.calculate_similarity(found_post,
                                                                     list_of_document_features)[:21]
-        print("sim_scores")
-        print(most_similar_articles_with_scores)
         # removing post itself
         del most_similar_articles_with_scores[0]  # removing post itself
 
@@ -1652,6 +1618,10 @@ class Word2VecClass:
                         continue
                     break
 
+    def refresh_model(self):
+        self.save_fast_text_to_w2v()
+        print("Loading word2vec model...")
+        self.save_full_model_to_smaller()
 
 class Doc2VecClass:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/d2v_all_in_one.model"
@@ -1703,7 +1673,7 @@ class Doc2VecClass:
         doc2vec_model.save("models/d2v_full_text_limited")  # write separately=[] for all_in_one model
         """
 
-    def get_similar_doc2vec(self, slug, train=False, number_of_recommended_posts=21):
+    def get_similar_doc2vec(self, slug, train=False, limited=True, number_of_recommended_posts=21):
         self.get_posts_dataframe()
         self.get_categories_dataframe()
         self.join_posts_ratings_categories()
@@ -1742,53 +1712,29 @@ class Doc2VecClass:
         # pickle.dump(d2v_model,open("d2v_all_in_one.model", "wb" ))
         # global doc2vec_model
 
-        doc2vec_model = Doc2Vec.load("models/d2v.model")
+        if limited is True:
+            doc2vec_model = Doc2Vec.load("models/d2v_limited.model")
+        else:
+            doc2vec_model = Doc2Vec.load("models/d2v.model")
         # model = pickle.load(smart_open.smart_open(self.amazon_bucket_url))
         # to find the vector of a document which is not in training data
         recommenderMethods = RecommenderMethods()
-
         # not necessary
         post_found = recommenderMethods.find_post_by_slug(slug)
-        # print("post_preprocessed:")
-        # print(post_preprocessed)
-        print(post_found.iloc[0])
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
+
         tokens = keywords_preprocessed + all_features_preprocessed
-        # post_features_to_find = post_preprocessed.iloc[0]['title']
-        """
-        print(post_features_to_find)
-        print("post_features_to_find")
-        """
-        # tokens = post_features_to_find.split()
-        print("tokens:")
-        print(tokens)
+
         vector_source = doc2vec_model.infer_vector(tokens)
-        print("vector_source:")
-        print(vector_source)
+
         most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
-        """
-        print("most_similar:")
-        print(most_similar)
-        print(self.get_similar_posts_slug(most_similar,documents_slugs,number_of_recommended_posts))
-        """
         return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
-    def get_similar_doc2vec_with_full_text(self, slug, train=False,number_of_recommended_posts=21):
+    def get_similar_doc2vec_with_full_text(self, slug, train=False, number_of_recommended_posts=21):
         self.get_posts_dataframe()
         self.get_categories_dataframe()
         self.join_posts_ratings_categories()
-
-        ## merge more columns!
-        # cols = ["title_y","title_x","excerpt","keywords"]
-        tfidf = TfIdf()
-        """
-        self.df["title_y"] = self.df["title_y"]
-        self.df["title_x"] = self.df["title_x"].map(lambda s: tfidf.preprocess(s, stemming=False))
-        self.df["excerpt"] = self.df["excerpt"].map(lambda s: tfidf.preprocess(s, stemming=False))
-        self.df["keywords"] = self.df["keywords"]
-        """
-        # cols = ["title_y","title_x","excerpt","keywords","slug_x"]
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
         documents_df = pd.DataFrame()
@@ -1801,7 +1747,6 @@ class Doc2VecClass:
             lambda x: x.replace(' ', ', '))
         documents_df['all_features_preprocessed'] = self.df[cols].apply(lambda row: ' '.join(row.values.astype(str)),
                                                                         axis=1)
-        # self.df['body_preprocessed'] = self.df[cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
 
         documents_df['all_features_preprocessed'] = self.df['title_y'] + ', ' + documents_df[
             'all_features_preprocessed'] + ", " + self.df['body_preprocessed']
@@ -1817,56 +1762,34 @@ class Doc2VecClass:
         print("documents_all_features_preprocessed[0]")
         print(documents_all_features_preprocessed[0])
 
-        # print("documents_keywords[0]")
-        # print(documents_keywords[0])
         documents_slugs = self.df['slug_x'].tolist()
 
-        # documents = list(map(' '.join, self.df[["title_y","title_x","excerpt","keywords"]].values.tolist()))
-        # documents_title = list(map(' '.join, self.df[["title_x"]].values.tolist()))
-        # documents_keywords = list(map(' '.join, self.df[["keywords"]].values.tolist()))
-
-        # print("document_keywords:")
-        # print(document_keywords)
         if train is True:
-            self.train_doc2vec(documents_all_features_preprocessed)
+            self.train_doc2vec(documents_all_features_preprocessed, True)
         del documents_all_features_preprocessed
         gc.collect()
 
+        """
         filename = "cz_stemmer/czech_stopwords.txt"
+        
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
-
+        """
         doc2vec_model = Doc2Vec.load("models/d2v_full_text_limited")
 
         recommendMethods = RecommenderMethods()
 
         # not necessary
         post_found = recommendMethods.find_post_by_slug(slug)
-        # print("post_preprocessed:")
-        # print(post_preprocessed)
-        print(post_found.iloc[0])
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
         full_text = post_found.iloc[0]['body_preprocessed'].split(" ")
         tokens = keywords_preprocessed + all_features_preprocessed + full_text
-        # post_features_to_find = post_preprocessed.iloc[0]['title']
-        """
-        print(post_features_to_find)
-        print("post_features_to_find")
-        """
-        # tokens = post_features_to_find.split()
-        print("tokens:")
-        print(tokens)
         vector_source = doc2vec_model.infer_vector(tokens)
-        print("vector_source:")
-        print(vector_source)
+
         most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
-        """
-        print("most_similar:")
-        print(most_similar)
-        print(self.get_similar_posts_slug(most_similar,documents_slugs,number_of_recommended_posts))
-        """
+
         return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
     def get_similar_doc2vec_by_keywords(self, slug, number_of_recommended_posts=21):
@@ -1874,29 +1797,13 @@ class Doc2VecClass:
         self.get_categories_dataframe()
         self.join_posts_ratings_categories()
 
-        ## merge more columns!
-        # cols = ["title_y","title_x","excerpt","keywords"]
-        tfidf = TfIdf()
-        """
-        self.df["title_y"] = self.df["title_y"]
-        self.df["title_x"] = self.df["title_x"].map(lambda s: tfidf.preprocess(s, stemming=False))
-        self.df["excerpt"] = self.df["excerpt"].map(lambda s: tfidf.preprocess(s, stemming=False))
-        self.df["keywords"] = self.df["keywords"]
-        """
         # cols = ["title_y","title_x","excerpt","keywords","slug_x"]
 
         cols = ["keywords"]
         documents_df = pd.DataFrame()
         documents_df['keywords'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
-        documents = list(map(' '.join, documents_df[['keywords']].values.tolist()))
         documents_slugs = self.df['slug_x'].tolist()
 
-        # documents = list(map(' '.join, self.df[["title_y","title_x","excerpt","keywords"]].values.tolist()))
-        # documents_title = list(map(' '.join, self.df[["title_x"]].values.tolist()))
-        # documents_keywords = list(map(' '.join, self.df[["keywords"]].values.tolist()))
-
-        # print("document_keywords:")
-        # print(document_keywords)
         filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
@@ -2096,7 +2003,6 @@ class Doc2VecClass:
 
         return (res[:20])
 
-
 class Lda:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/lda_all_in_one"
 
@@ -2133,69 +2039,52 @@ class Lda:
         return text.split(" ")
 
     # @profile
-    def get_similar_lda(self, searched_slug, N=21):
+    def get_similar_lda(self, searched_slug, train=False, N=21):
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-        print("self.df['tokenized_keywords'][0]")
-        print(self.df['tokenized_keywords'][0])
 
         gc.collect()
 
         self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
 
-        # self.df['tokenized'] = self.df.all_features_preprocessed_stopwords_clear.apply(lambda x: x.split(' '))
         self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        print("self.df['tokenized']")
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed']
 
         gc.collect()
-        # self.train_lda(self.df)
+
+        # if there is no LDA model, training will run anyway due to load method handle
+        if train is True:
+            self.train_lda(self.df)
+
         dictionary, corpus, lda = self.load_lda(self.df)
 
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
-        print(self.df.columns)
         new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
-        print("most_sim_ids, most_sim_coefficients")
         doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist.npy')
 
         most_sim_ids, most_sim_coefficients = self.get_most_similar_documents(new_doc_distribution, doc_topic_dist, N)
 
-        print("most_sim_ids")
-        print(most_sim_ids)
-
-        # most_sim_ids = np.insert(most_sim_ids, 0, searched_doc_id) # appending post itself
-        # most_similar_df = self.df[self.df.index.isin(most_sim_ids)]
-
         most_similar_df = self.df.iloc[most_sim_ids]
-        print(most_similar_df)
+
         del self.df
         gc.collect()
+
         most_similar_df = most_similar_df.iloc[1:, :]
-        list_of_coefficients = []
-        """
-        print("most_sim_coefficients[:K]")
-        print(most_sim_coefficients[:N])
-        """
+
         post_recommendations = pd.DataFrame()
         post_recommendations['slug'] = most_similar_df['slug_x'].iloc[:N]
         post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
 
-        print("post_recommendations")
-        print(post_recommendations)
         dict = post_recommendations.to_dict('records')
 
         list_of_articles = []
-
         list_of_articles.append(dict.copy())
-        # print("------------------------------------")
-        # print("JSON:")
-        # print("------------------------------------")
-        # print(list_of_article_slugs[0])
+
         return self.flatten(list_of_articles)
 
     # @profile
@@ -2204,68 +2093,48 @@ class Lda:
         self.join_posts_ratings_categories()
 
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-
         self.df['tokenized'] = self.df.apply(
             lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
             axis=1)
-
         self.df['tokenized_full_text'] = self.df.apply(
             lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
             axis=1)
 
         gc.collect()
+
         self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
 
         gc.collect()
 
         self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(lambda x: x.split(' '))
-        print("self.df['tokenized']")
-
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
             'tokenized_full_text']
 
         gc.collect()
-        print("dictionary,corpus, lda")
         dictionary, corpus, lda = self.load_lda_full_text(self.df)
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
-        print("self.df")
-        print(self.df)
         new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
-        print("most_sim_ids, most_sim_coefficients")
         doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist_full_text.npy')
 
         most_sim_ids, most_sim_coefficients = self.get_most_similar_documents(new_doc_distribution, doc_topic_dist, N)
 
-        print("most_sim_ids")
-        print(most_sim_ids)
-        print("most_similar_df")
-
         most_similar_df = self.df.iloc[most_sim_ids]
-        print(most_similar_df)
         del self.df
         gc.collect()
         most_similar_df = most_similar_df.iloc[1:, :]
-        list_of_coefficients = []
         post_recommendations = pd.DataFrame()
         post_recommendations['slug'] = most_similar_df['slug_x'].iloc[:N]
         post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
 
-        print("post_recommendations")
-        print(post_recommendations)
         dict = post_recommendations.to_dict('records')
-
         list_of_articles = []
-
         list_of_articles.append(dict.copy())
-        # print("------------------------------------")
-        # print("JSON:")
-        # print("------------------------------------")
-        # print(list_of_article_slugs[0])
         return self.flatten(list_of_articles)
 
+    @DeprecationWarning
     def lda_stats(self, fdist, doc_distribution, searched_slug):
         print("len(fdist)")
         print(len(fdist))  # number of unique words
@@ -2292,11 +2161,6 @@ class Lda:
             print(i, lda.show_topic(topicid=i, topn=10), "\n")
         """
 
-        # print(top_k_words)
-        # print("top_k_words")
-        # print("top_k_words[-10:]")
-        # print(top_k_words[-10:])
-
     def flatten(self, t):
         return [item for sublist in t for item in sublist]
 
@@ -2309,10 +2173,7 @@ class Lda:
 
         sorted_k_result = sims.argsort()[:k]
         sims = sorted(sims, reverse=True)
-        print("sims")
-        # print(sims)
-        print("sorted_k_result")
-        print(sorted_k_result)
+
         return sorted_k_result, sims  # the top k positional index of the smallest Jensen Shannon distances
 
     def jensen_shannon(self, query, matrix):
@@ -2396,9 +2257,7 @@ class Lda:
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
         except:
-            if training_now is False:
-                self.train_lda_full_text(data)
-
+            self.train_lda_full_text(data)
             lda_model = LdaModel.load("models/lda_model_full_text")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
@@ -2437,71 +2296,28 @@ class Lda:
         lda_model.save("models/lda_model")
         # pickle.dump(lda_model_local, open("lda_all_in_one", "wb"))
         print("Model Saved")
-        # Compute Perplexity
-        # print('\nPerplexity: ', lda_model.log_perplexity(corpus))
-        # a measure of how good the model is. lower the better.
-        """
-        # Compute Coherence Score
-        coherence_model_lda = CoherenceModel(model=lda_model, texts=data['tokenized'], dictionary=dictionary,
-                                             coherence='c_v')
-        coherence_lda = coherence_model_lda.get_coherence()
-        print('\nCoherence Score: ', coherence_lda)
-        """
-        # native gensim method (abandoned due to not storing to single file like it should with separately=[] option)
         # lda_model = LdaModel.load("models/lda_model")
         # lda_model_local = pickle.load(smart_open.smart_open("lda_all_in_one"))
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-        print("self.df['tokenized_keywords'][0]")
-        print(self.df['tokenized_keywords'][0])
-        """
-        self.df['tokenized'] = self.df.apply(
-            lambda row: row['all_features_preprocessed_stopwords_clear'].replace(str(row['tokenized_keywords']), ''),
-            axis=1)
-        """
         self.df['tokenized'] = self.df.apply(
             lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
             axis=1)
-        # self.df['tokenized'] = self.df.all_features_preprocessed_stopwords_clear.apply(lambda x: x.split(' '))
         self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        print("self.df['tokenized']")
-        # print(self.df['tokenized'].iloc[0])
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized']
-        # documents = list(map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
-        # self.df['tokenized'] = self.df['all_features_preprocessed']
-        # print("self.df['tokenized'].iloc[0]")
-        # print(self.df['tokenized'].iloc[0])
         all_words = [word for item in list(self.df["tokenized"]) for word in item]
-        # print("all_words[:10]")
-        # print(all_words[:10])
+
         # use nltk fdist to get a frequency distribution of all words
         fdist = FreqDist(all_words)
-        # print("fdist")
-        # print(fdist)
-        """
-        print("len(fdist)")
-        print(len(fdist))  # number of unique words
-        """
+
         k = 15000
-        top_k_words = fdist.most_common(k)
-        # print(top_k_words)
-        # print("top_k_words")
-        # print("top_k_words[-10:]")
-        # print(top_k_words[-10:])
         top_k_words, _ = zip(*fdist.most_common(k))
 
         self.top_k_words = set(top_k_words)
-        # print("Bottom of the top " + str(k) + " words")
-        # print(self.top_k_words)
-        # print("Most common words:")
-        # print(top_k_words[:10])
 
         self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
-        print("self.df['tokenized']")
-        print(self.df['tokenized'])
-
         # document length
         self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
         doc_lengths = list(self.df['doc_len'])
@@ -2518,10 +2334,6 @@ class Lda:
         print(self.df.head)
 
         self.save_corpus_dict(corpus, dictionary)
-
-        # print("Most common topics found:")
-        # print(lda.show_topics(num_topics=10, num_words=20))
-        # print(lda.show_topic(topicid=4, topn=20))
 
         lda = lda_model.load("models/lda_model")
         doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
@@ -2554,21 +2366,6 @@ class Lda:
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
-        # native gensim method (abandoned due to not storing to single file like it should with separately=[] option)
-        lda_model.save("models/lda_model_full_text")
-        # pickle.dump(lda_model_local, open("lda_all_in_one", "wb"))
-        print("Model Saved")
-        # Compute Perplexity
-        print('\nPerplexity: ', lda_model.log_perplexity(corpus))
-        # a measure of how good the model is. lower the better.
-        """
-        # Compute Coherence Score
-        coherence_model_lda = CoherenceModel(model=lda_model, texts=data['tokenized'], dictionary=dictionary,
-                                             coherence='c_v')
-        coherence_lda = coherence_model_lda.get_coherence()
-        print('\nCoherence Score: ', coherence_lda)
-        """
-
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
@@ -2582,47 +2379,26 @@ class Lda:
         self.df['tokenized_full_text'] = self.df.apply(
             lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
             axis=1)
-        # self.df['tokenized'] = self.df.all_features_preprocessed_stopwords_clear.apply(lambda x: x.split(' '))
         self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
         gc.collect()
         self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(lambda x: x.split(' '))
-
-        print("self.df['tokenized']")
-        # print(self.df['tokenized'].iloc[0])
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
             'tokenized_full_text']
         all_words = [word for item in list(self.df["tokenized"]) for word in item]
 
         fdist = FreqDist(all_words)
-        """
-        print("len(fdist)")
-        print(len(fdist))  # number of unique words
-        """
+
         k = 15000
-        top_k_words = fdist.most_common(k)
-        # print(top_k_words)
-        # print("top_k_words")
-        # print("top_k_words[-10:]")
-        # print(top_k_words[-10:])
         top_k_words, _ = zip(*fdist.most_common(k))
 
         self.top_k_words = set(top_k_words)
-        # print("Bottom of the top " + str(k) + " words")
-        # print(self.top_k_words)
-        # print("Most common words:")
-        # print(top_k_words[:10])
 
         self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
-        print("self.df['tokenized']")
-        print(self.df['tokenized'])
-
         # document length
         self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
-        doc_lengths = list(self.df['doc_len'])
         self.df.drop(labels='doc_len', axis=1, inplace=True)
 
         minimum_amount_of_words = 30
-
         self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
         # make sure all tokenized items are lists
         self.df = self.df[self.df['tokenized'].map(type) == list]
@@ -2633,9 +2409,6 @@ class Lda:
 
         self.save_corpus_dict_full_text(corpus, dictionary)
 
-        # print("Most common topics found:")
-        # print(lda.show_topics(num_topics=10, num_words=20))
-        # print(lda.show_topic(topicid=4, topn=20))
         lda = lda_model.load("models/lda_model_full_text")
         doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
 
@@ -2651,38 +2424,13 @@ class Lda:
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
             return cz_stopwords
 
-
-def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
-    try:
-        dbx = dropbox.Dropbox(access_token)
-
-        """
-        print("Dropbox Files:")
-        for entry in dbx.files_list_folder('').entries:
-            print(entry.path_lower)
-        """
-        dbx.files_download_to_file(dropbox_file_path, local_folder_name)
-
-    except Exception as e:
-        print(e)
-        return False
-
-
 def main():
     # database = Database()
     # database.insert_posts_dataframe_to_cache() # for update
 
     searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"  # print(doc2vecClass.get_similar_doc2vec(slug))
-    # tfidf = TfIdf()
-    # print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
-    # print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
-
-    # print(tfidf.recommend_posts_by_all_features('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
-    # print(tfidf.preprocess("Vítkovice prohrály důležitý zápas s Třincem po prodloužení"))
-    # print(tfidf.recommend_posts_by_all_features_preprocessed('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
-
-    # keywords = "fotbal hokej sport slavia"
-    # # print(tfidf.keyword_based_comparison(keywords))
+    # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
+    # searched_slug = "facr-o-slavii-a-rangers-verime-v-objektivni-vysetreni-odmitame-rasismus"
 
     # STEMMING
     # word = "rybolovný"
@@ -2698,25 +2446,24 @@ def main():
     # gensim = GenSim()
     # gensim.get_recommended_by_slug("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
 
-    # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
-    # searched_slug = "facr-o-slavii-a-rangers-verime-v-objektivni-vysetreni-odmitame-rasismus"
+    # tfidf = TfIdf()
+    # print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
+    # print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
 
-    doc2vecClass = Doc2VecClass()
-    print(doc2vecClass.get_similar_doc2vec(searched_slug,train=True))
-    print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train=True))
+    # print(tfidf.recommend_posts_by_all_features('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
+    # print(tfidf.preprocess("Vítkovice prohrály důležitý zápas s Třincem po prodloužení"))
+    # print(tfidf.recommend_posts_by_all_features_preprocessed('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
 
-    """
-    lda = Lda()
-    print("--------------LDA------------------")
-    print(lda.get_similar_lda(searched_slug))
-    print("--------------LDA FULL TEXT------------------")
-    print(lda.get_similar_lda_full_text(searched_slug))
-    """
-    """
-    lda = Lda()
-    print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
-    print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
-    """
+    # keywords = "fotbal hokej sport slavia"
+    # # print(tfidf.keyword_based_comparison(keywords))
+
+    # doc2vecClass = Doc2VecClass()
+    # print(doc2vecClass.get_similar_doc2vec(searched_slug,train=False))
+    # print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train=False))
+
+    # lda = Lda()
+    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
+    # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
     """
     word2vecClass = Word2VecClass()
     start = time.time()
@@ -2724,16 +2471,16 @@ def main():
     end = time.time()
     print("Elapsed time: " + str(end - start))
     start = time.time()
-    # print(word2vecClass.get_similar_word2vec_full_text(searched_slug))
+    print(word2vecClass.get_similar_word2vec_full_text(searched_slug))
     end = time.time()
     print("Elapsed time: " + str(end - start))
+    """
     # print(psutil.cpu_percent())
     # print(psutil.virtual_memory())  # physical memory usage
     # print('memory % used:', psutil.virtual_memory()[2])
-    """
+
     # word2vec = Word2VecClass()
     # word2vec.prefilling_job(full_text=True, reverse=False)
-
     """
     h = hpy()
     print(h.heap())
