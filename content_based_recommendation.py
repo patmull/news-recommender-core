@@ -506,6 +506,7 @@ class GenSim:
         else:
             return self.convert_df_to_json(post_dataframe)
 
+    @DeprecationWarning
     def cz_lemma(self, string, json=False):
         morph = majka.Majka('morphological_database/majka.w-lt')
 
@@ -1253,6 +1254,7 @@ class TfIdf:
         else:
             return cz_stem(string, aggressive_bool)
 
+    @DeprecationWarning
     def cz_lemma(self, string, json=False):
         morph = majka.Majka('morphological_database/majka.w-lt')
 
