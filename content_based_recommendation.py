@@ -571,15 +571,14 @@ class RecommenderMethods:
 
         return fit_by_feature
 
+    @DeprecationWarning
     def recommend_by_keywords(self, keywords, tupple_of_fitted_matrices):
         # combining results of all feature types to sparse matrix
         combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices, dtype=np.float16)
 
-        # # print(combined_matrix1.shape)
         # computing cosine similarity using matrix with combined features
+        print("Computing cosine similarity using matrix with combined features...")
         self.set_cosine_sim_use_own_matrix(combined_matrix1)
-        # # print("self.cosine_sim_df")
-        # # print(self.cosine_sim_df)
         combined_all = self.get_recommended_posts_for_keywords(keywords, self.cosine_sim_df,
                                                                self.df[['keywords']])
         # print("combined_all:")
@@ -599,16 +598,6 @@ class RecommenderMethods:
     def get_tfIdfVectorizer(self, fit_by, fit_by_2=None, stemming=False):
 
         self.set_tfIdfVectorizer()
-        # print("self.df[fit_by]")
-        # print(self.df[fit_by])
-
-        # self.preprocess_dataframe()
-
-        # self.df[fit_by] = self.df[fit_by].map(lambda s:self.preprocess(s))
-
-        # # print("PREPROCESSING: self.df[fit_by]")
-        # pd.set_option('display.max_columns', None)
-        # # print(self.df[fit_by].to_string())
 
         if fit_by_2 is None:
             self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[
@@ -618,11 +607,7 @@ class RecommenderMethods:
             # # print(self.df[fit_by])
             self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[
                                                                         fit_by])  # Metoda fit: výpočet průměru a rozptylu jednotlivých sloupců z dat. Metoda transformace: # transformuje všechny prvky pomocí příslušného průměru a rozptylu.
-        # print("Fitted by: " + str(fit_by) + " " + str(fit_by_2))
-        # print(self.tfidf_tuples)
-        # Outputing results:
-        print("self.tfidf_tuples")
-        print(self.tfidf_tuples)
+
         return self.tfidf_tuples  # tuples of (document_id, token_id) and tf-idf score for it
 
     def set_tfIdfVectorizer(self):
@@ -635,8 +620,6 @@ class RecommenderMethods:
 
         tfidf_vectorizer = TfidfVectorizer(dtype=np.float32,
                                            stop_words=cz_stopwords)  # transforms text to feature vectors that can be used as input to estimator
-        print("tfidf_vectorizer")
-        print(tfidf_vectorizer)
         self.tfidf_vectorizer = tfidf_vectorizer
 
     # # @profile
@@ -662,17 +645,12 @@ class RecommenderMethods:
         # # print(combined_matrix1.shape)
         # computing cosine similarity
         self.set_cosine_sim_use_own_matrix(combined_matrix1)
-        # # print("self.cosine_sim_df")
-        # # print(self.cosine_sim_df)
 
         # getting posts with highest similarity
         combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
                                                   self.df[['slug_x']])
-        # print("combined_all:")
-        # print(combined_all)
+
         df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
-        # print("df_renamed:")
-        # print(df_renamed)
 
         # json conversion
         json = self.convert_datframe_posts_to_json(df_renamed, slug)
@@ -698,20 +676,15 @@ class RecommenderMethods:
         Af \ b % solving with full Af takes about 2.3 seconds
 
         """
-        # # print(combined_matrix1.shape)
         # computing cosine similarity
+        print("Computing cosine simialirity")
         self.set_cosine_sim_use_own_matrix(combined_matrix1)
-        # # print("self.cosine_sim_df")
-        # # print(self.cosine_sim_df)
 
         # getting posts with highest similarity
         combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
                                                   self.df[['slug_x']])
-        # print("combined_all:")
-        # print(combined_all)
+
         df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
-        # print("df_renamed:")
-        # print(df_renamed)
 
         # json conversion
         json = self.convert_datframe_posts_to_json(df_renamed, slug)
@@ -763,21 +736,19 @@ class RecommenderMethods:
         list_of_article_slugs = []
         list_of_coefficients = []
 
+        # finding coefficient belonging to recommended posts compared to original post (for which we want to find recommendations)
         for index, row in post_recommendations.iterrows():
-            # finding coefficient belonging to recommended posts compared to original post (for which we want to find recommendations)
             list_of_coefficients.append(self.cosine_sim_df.at[row['slug'], slug])
 
         post_recommendations['coefficient'] = list_of_coefficients
-
         dict = post_recommendations.to_dict('records')
-
         list_of_article_slugs.append(dict.copy())
-        # print("------------------------------------")
-        # print("JSON:")
-        # print("------------------------------------")
-        # print(list_of_article_slugs[0])
         return list_of_article_slugs[0]
 
+    @DeprecationWarning
+    def download_from_amazon(self, amazon_bucket_url):
+        amazon_model = pickle.load(smart_open.smart_open(self.amazon_bucket_url))
+        return amazon_model
 
 class TfIdf:
 
@@ -1037,28 +1008,19 @@ class TfIdf:
 
         recommenderMethods = RecommenderMethods()
 
+        print("Loading posts.")
+
         recommenderMethods.get_posts_dataframe()  # load posts to dataframe
-        # print("posts dataframe:")
-        # print(recommenderMethods.get_posts_dataframe())
-        # print("posts categories:")
-        # print(recommenderMethods.get_categories_dataframe())
         recommenderMethods.get_categories_dataframe()  # load categories to dataframe
-        # tfidf.get_ratings_dataframe() # load post rating to dataframe
-
         recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
-        print("posts ratings categories dataframe:")
-        print(recommenderMethods.join_posts_ratings_categories())
 
-        # feature tuples of (document_id, token_id) and coefficient
-        # fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
         fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
         fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
 
-        # join feature tuples into one matrix
-        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
-        print("tuple_of_fitted_matrices[0]")
-        print(str(tuple_of_fitted_matrices[0]))
+        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title) # join feature tuples into one matrix
+
         gc.collect()
+
         post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices)
 
         del recommenderMethods
@@ -1068,25 +1030,15 @@ class TfIdf:
     def recommend_posts_by_all_features_preprocessed_with_full_text(self, slug):
 
         recommenderMethods = RecommenderMethods()
-
+        print("Loading posts")
         recommenderMethods.get_posts_dataframe()  # load posts to dataframe
         gc.collect()
-        # print("posts dataframe:")
-        # print(recommenderMethods.get_posts_dataframe())
-        # print("posts categories:")
-        # print(recommenderMethods.get_categories_dataframe())
         recommenderMethods.get_categories_dataframe()  # load categories to dataframe
-        # tfidf.get_ratings_dataframe() # load post rating to dataframe
-
         recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
-        print("posts ratings categories dataframe:")
-        print(recommenderMethods.join_posts_ratings_categories())
 
         # replacing None values with empty strings
         recommenderMethods.df['full_text'] = recommenderMethods.df['full_text'].replace([None], '')
 
-        # feature tuples of (document_id, token_id) and coefficient
-        # fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
         fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
         fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
         fit_by_full_text = recommenderMethods.get_fit_by_feature('full_text')
@@ -1097,9 +1049,6 @@ class TfIdf:
         del fit_by_all_features_matrix
         del fit_by_full_text
         gc.collect()
-
-        print("tuple_of_fitted_matrices[0]")
-        print(str(tuple_of_fitted_matrices[0]))
 
         post_recommendations = recommenderMethods.recommend_by_more_features_with_full_text(slug,
                                                                                             tuple_of_fitted_matrices)
@@ -1733,7 +1682,7 @@ class Doc2VecClass:
             ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
              'all_features_preprocessed', 'body_preprocessed']]
 
-    def train_doc2vec(self, documents_all_features_preprocessed):
+    def train_doc2vec(self, documents_all_features_preprocessed, body_text, limited=True):
 
         tagged_data = [TaggedDocument(words=_d.split(", "), tags=[str(i)]) for i, _d in
                        enumerate(documents_all_features_preprocessed)]
@@ -1741,32 +1690,23 @@ class Doc2VecClass:
         print("tagged_data:")
         print(tagged_data)
 
-        d2v_model = self.train_full_text(tagged_data)
-        self.train_full_text(tagged_data)
+        self.train_full_text(tagged_data, body_text, limited)
 
-        pickle.dump(d2v_model, open("d2v_all_in_one_with_full_text.model", "wb"))
-        global doc2vec_model
-        # model = pickle.load(smart_open.smart_open(self.amazon_bucket_url))
+        # amazon loading
+        # amazon_bucket_url = "..."
+        # recommenderMethods = RecommenderMethods()
+        # model = recommenderMethods.download_from_amazon(amazon_bucket_url)
+
         # to find the vector of a document which is not in training data
-
+        """        
         doc2vec_model = Doc2Vec.load("models/d2v_full_text.model")
         doc2vec_model.save("models/d2v_full_text_limited")  # write separately=[] for all_in_one model
+        """
 
-    def get_similar_doc2vec(self, slug, number_of_recommended_posts=21):
+    def get_similar_doc2vec(self, slug, train=False, number_of_recommended_posts=21):
         self.get_posts_dataframe()
         self.get_categories_dataframe()
         self.join_posts_ratings_categories()
-
-        ## merge more columns!
-        # cols = ["title_y","title_x","excerpt","keywords"]
-        tfidf = TfIdf()
-        """
-        self.df["title_y"] = self.df["title_y"]
-        self.df["title_x"] = self.df["title_x"].map(lambda s: tfidf.preprocess(s, stemming=False))
-        self.df["excerpt"] = self.df["excerpt"].map(lambda s: tfidf.preprocess(s, stemming=False))
-        self.df["keywords"] = self.df["keywords"]
-        """
-        # cols = ["title_y","title_x","excerpt","keywords","slug_x"]
 
         cols = ['keywords', 'all_features_preprocessed']
         documents_df = pd.DataFrame()
@@ -1776,8 +1716,6 @@ class Doc2VecClass:
                                                                         axis=1)
         documents_df['all_features_preprocessed'] = self.df['title_y'] + ', ' + documents_df[
             'all_features_preprocessed']
-        print("documents_df['all_features_preprocessed'].iloc[0]")
-        print(documents_df['all_features_preprocessed'].iloc[0])
 
         documents_all_features_preprocessed = list(
             map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
@@ -1785,36 +1723,25 @@ class Doc2VecClass:
         del documents_df
         gc.collect()
 
-        print("documents_all_features_preprocessed[0]")
-        print(documents_all_features_preprocessed[0])
-        del documents_all_features_preprocessed
-        gc.collect()
-        # print("documents_keywords[0]")
-        # print(documents_keywords[0])
         documents_slugs = self.df['slug_x'].tolist()
 
-        # documents = list(map(' '.join, self.df[["title_y","title_x","excerpt","keywords"]].values.tolist()))
-        # documents_title = list(map(' '.join, self.df[["title_x"]].values.tolist()))
-        # documents_keywords = list(map(' '.join, self.df[["keywords"]].values.tolist()))
-
-        # print("document_keywords:")
-        # print(document_keywords)
+        """
         filename = "cz_stemmer/czech_stopwords.txt"
+        
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
+        """
 
-        # documents_df = pd.DataFrame(documents, columns=['title_x', 'keywords'])
+        if train is True:
+            self.train_doc2vec(documents_all_features_preprocessed, False)
 
-        # self.train_doc2vec(documents_all_features_preprocessed)
-
-        # print("tagged_data:")
-        # print(tagged_data)
-
-        # d2v_model = self.train(tagged_data)
+        del documents_all_features_preprocessed
+        gc.collect()
 
         # pickle.dump(d2v_model,open("d2v_all_in_one.model", "wb" ))
         # global doc2vec_model
+
         doc2vec_model = Doc2Vec.load("models/d2v.model")
         # model = pickle.load(smart_open.smart_open(self.amazon_bucket_url))
         # to find the vector of a document which is not in training data
@@ -1847,7 +1774,7 @@ class Doc2VecClass:
         """
         return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
-    def get_similar_doc2vec_with_full_text(self, slug, number_of_recommended_posts=21):
+    def get_similar_doc2vec_with_full_text(self, slug, train=False,number_of_recommended_posts=21):
         self.get_posts_dataframe()
         self.get_categories_dataframe()
         self.join_posts_ratings_categories()
@@ -1889,8 +1816,7 @@ class Doc2VecClass:
 
         print("documents_all_features_preprocessed[0]")
         print(documents_all_features_preprocessed[0])
-        del documents_all_features_preprocessed
-        gc.collect()
+
         # print("documents_keywords[0]")
         # print(documents_keywords[0])
         documents_slugs = self.df['slug_x'].tolist()
@@ -1901,8 +1827,10 @@ class Doc2VecClass:
 
         # print("document_keywords:")
         # print(document_keywords)
-
-        # self.train_doc2vec(documents_all_features_preprocessed)
+        if train is True:
+            self.train_doc2vec(documents_all_features_preprocessed)
+        del documents_all_features_preprocessed
+        gc.collect()
 
         filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
@@ -2099,7 +2027,7 @@ class Doc2VecClass:
         model.save("models/d2v.model")
         print("LDA model Saved")
 
-    def train_full_text(self, tagged_data):
+    def train_full_text(self, tagged_data, full_body, limited):
 
         max_epochs = 20
         vec_size = 150
@@ -2107,10 +2035,16 @@ class Doc2VecClass:
         minimum_alpha = 0.0025
         reduce_alpha = 0.0002
 
-        model = Doc2Vec(vector_size=vec_size,
-                        alpha=alpha,
-                        min_count=0,
-                        dm=0, max_vocab_size=87000)
+        if limited is True:
+            model = Doc2Vec(vector_size=vec_size,
+                            alpha=alpha,
+                            min_count=0,
+                            dm=0, max_vocab_size=87000)
+        else:
+            model = Doc2Vec(vector_size=vec_size,
+                            alpha=alpha,
+                            min_count=0,
+                            dm=0)
 
         model.build_vocab(tagged_data)
 
@@ -2132,7 +2066,16 @@ class Doc2VecClass:
         # fix the learning rate, no decay
         model.min_alpha = model.alpha
 
-        model.save("models/d2v_full_text_limited.model")
+        if full_body is True:
+            if limited is True:
+                model.save("models/d2v_full_text_limited.model")
+            else:
+                model.save("models/d2v_full_text.model")
+        else:
+            if limited is True:
+                model.save("models/d2v_limited.model")
+            else:
+                model.save("models/d2v.model")
         print("LDA model Saved")
 
     def flatten(self, t):
@@ -2728,12 +2671,12 @@ def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
 def main():
     # database = Database()
     # database.insert_posts_dataframe_to_cache() # for update
-    """
+
     searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"  # print(doc2vecClass.get_similar_doc2vec(slug))
-    tfidf = TfIdf()
-    print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
-    print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
-    """
+    # tfidf = TfIdf()
+    # print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
+    # print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
+
     # print(tfidf.recommend_posts_by_all_features('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
     # print(tfidf.preprocess("Vítkovice prohrály důležitý zápas s Třincem po prodloužení"))
     # print(tfidf.recommend_posts_by_all_features_preprocessed('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
@@ -2757,11 +2700,11 @@ def main():
 
     # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     # searched_slug = "facr-o-slavii-a-rangers-verime-v-objektivni-vysetreni-odmitame-rasismus"
-    """
+
     doc2vecClass = Doc2VecClass()
-    print(doc2vecClass.get_similar_doc2vec(searched_slug))
-    print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug))
-    """
+    print(doc2vecClass.get_similar_doc2vec(searched_slug,train=True))
+    print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train=True))
+
     """
     lda = Lda()
     print("--------------LDA------------------")
