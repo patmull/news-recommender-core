@@ -1463,17 +1463,12 @@ class Doc2VecClass:
 
         documents_df['all_features_preprocessed'] = self.df['title_y'] + ', ' + documents_df[
             'all_features_preprocessed'] + ", " + self.df['body_preprocessed']
-        print("documents_df['all_features_preprocessed'].iloc[0]")
-        print(documents_df['all_features_preprocessed'].iloc[0])
 
         documents_all_features_preprocessed = list(
             map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
 
         del documents_df
         gc.collect()
-
-        print("documents_all_features_preprocessed[0]")
-        print(documents_all_features_preprocessed[0])
 
         documents_slugs = self.df['slug_x'].tolist()
 
@@ -1552,33 +1547,16 @@ class Doc2VecClass:
 
         # not necessary
         post_preprocessed = tfidf.preprocess_single_post(slug)
-        # print("post_preprocessed:")
-        # print(post_preprocessed)
-        # print(post_preprocessed.iloc[0])
         post_features_to_find = post_preprocessed.iloc[0]['keywords']
-        """
-        print(post_features_to_find)
-        print("post_features_to_find")
-        """
+
         tokens = post_features_to_find.split()
-        """
-        print("tokens:")
-        print(tokens)
-        """
+
         global doc2vec_model
 
         doc2vec_model = Doc2Vec.load("models/d2v.models")
         vector = doc2vec_model.infer_vector(tokens)
-        """
-        print("vector:")
-        print(vector)
-        """
+
         most_similar = doc2vec_model.docvecs.most_similar([vector], topn=number_of_recommended_posts)
-        """
-        print("most_similar:")
-        print(most_similar)
-        print(self.get_similar_posts_slug(most_similar,documents_slugs,number_of_recommended_posts))
-        """
         return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
     def get_similar_posts_slug(self, most_similar, documents_slugs, number_of_recommended_posts):
