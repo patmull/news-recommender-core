@@ -1381,10 +1381,6 @@ class Doc2VecClass:
         # model = recommenderMethods.download_from_amazon(amazon_bucket_url)
 
         # to find the vector of a document which is not in training data
-        """        
-        doc2vec_model = Doc2Vec.load("models/d2v_full_text.model")
-        doc2vec_model.save("models/d2v_full_text_limited")  # write separately=[] for all_in_one model
-        """
 
     def get_similar_doc2vec(self, slug, train=False, limited=True, number_of_recommended_posts=21):
         self.get_posts_dataframe()
