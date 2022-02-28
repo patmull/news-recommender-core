@@ -1457,17 +1457,7 @@ class Word2VecClass:
         del self.df
         del found_post_dataframe
 
-        # Uncomment for change of model
-        # self.save_fast_text_to_w2v()
-        # self.save_full_model_to_smaller()
-
         print("Loading word2vec model...")
-
-        # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
-        # self.amazon_bucket_url#
-
-        # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
-        # global word2vec_embedding
 
         try:
             word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
