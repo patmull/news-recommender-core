@@ -1484,7 +1484,7 @@ class Doc2VecClass:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
         """
-        doc2vec_model = Doc2Vec.load("models/d2v_full_text_limited")
+        doc2vec_model = Doc2Vec.load("models/d2v_full_text_limited.model")
 
         recommendMethods = RecommenderMethods()
 
@@ -1910,9 +1910,10 @@ class Lda:
             lda_model = LdaModel.load("models/lda_model")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus.pkl', 'rb'))
-        except:
-            if training_now is False:
-                self.train_lda(data)
+        except Exception as e:
+            print("Could not load LDA models or precalculated vectors. Reason:")
+            print(e)
+            self.train_lda(data)
 
             lda_model = LdaModel.load("models/lda_model")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
@@ -1947,7 +1948,9 @@ class Lda:
             lda_model = LdaModel.load("models/lda_model_full_text")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
-        except:
+        except Exception as e:
+            print("Could not load LDA models or precalculated vectors. Reason:")
+            print(e)
             self.train_lda_full_text(data)
             lda_model = LdaModel.load("models/lda_model_full_text")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
@@ -2137,9 +2140,9 @@ def main():
     # gensim = GenSim()
     # gensim.get_recommended_by_slug("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
 
-    # tfidf = TfIdf()
-    # print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
-    # print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
+    tfidf = TfIdf()
+    print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
+    print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
 
     # print(tfidf.recommend_posts_by_all_features('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
     # print(tfidf.preprocess("Vítkovice prohrály důležitý zápas s Třincem po prodloužení"))
@@ -2148,13 +2151,13 @@ def main():
     # keywords = "fotbal hokej sport slavia"
     # # print(tfidf.keyword_based_comparison(keywords))
 
-    # doc2vecClass = Doc2VecClass()
-    # print(doc2vecClass.get_similar_doc2vec(searched_slug,train=False))
-    # print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train=False))
+    doc2vecClass = Doc2VecClass()
+    print(doc2vecClass.get_similar_doc2vec(searched_slug,train=False))
+    print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train=False))
 
-    # lda = Lda()
-    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
-    # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
+    lda = Lda()
+    print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
+    print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
 
     # print(psutil.cpu_percent())
     # print(psutil.virtual_memory())  # physical memory usage
