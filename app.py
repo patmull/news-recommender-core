@@ -172,6 +172,7 @@ def set_global_exception_handler(app):
         response["errorMessage"] = error_message
         return response, 500
 
+
 api.add_resource(GetPostsByOtherUsers, "/api/user/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByUserPreferences, "/api/user-preferences/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByKeywords, "/api/user-keywords")
