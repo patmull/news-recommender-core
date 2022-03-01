@@ -572,7 +572,6 @@ class RecommenderMethods:
 
         return fit_by_feature
 
-    @DeprecationWarning
     def recommend_by_keywords(self, keywords, tupple_of_fitted_matrices):
         # combining results of all feature types to sparse matrix
         combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices, dtype=np.float16)
@@ -592,9 +591,54 @@ class RecommenderMethods:
 
         return json
 
+    def convert_to_json_keyword_based(self, post_recommendations):
+
+        list_of_article_slugs = []
+
+        # post_recommendations['coefficient'] = list_of_coefficients
+
+        dict = post_recommendations.to_dict('records')
+
+        list_of_article_slugs.append(dict.copy())
+        # print("------------------------------------")
+        # print("JSON:")
+        # print("------------------------------------")
+        # print(list_of_article_slugs[0])
+        return list_of_article_slugs[0]
+
+    def get_recommended_posts_for_keywords(self, keywords, data_frame, items, k=10):
+
+        keywords_list = [keywords]
+        txt_cleaned = self.get_cleaned_text(self.df,
+                                            self.df['title_x'] + self.df['title_y'] + self.df['keywords'] + self.df[
+                                                'excerpt'])
+        tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
+        tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
+        cosine_similarities = cosine_similarity(tfidf_keywords_input, tfidf).flatten()
+        # cosine_similarities = linear_kernel(tfidf_keywords_input, tfidf).flatten()
+
+        data_frame['coefficient'] = cosine_similarities
+
+        # related_docs_indices = cosine_similarities.argsort()[:-(number+1):-1]
+        related_docs_indices = cosine_similarities.argsort()[::-1][:k]
+
+        closest = data_frame.sort_values('coefficient', ascending=False)[:k]
+
+        closest.reset_index(inplace=True)
+        # closest = closest.set_index('index1')
+        closest['index1'] = closest.index
+        # closest.index.name = 'index1'
+        closest.columns.name = 'index'
+
+        return closest[["slug_x", "coefficient"]]
+        # return pd.DataFrame(closest).merge(items).head(k)
+
     def find_post_by_slug(self, slug):
         recommenderMethods = RecommenderMethods()
         return recommenderMethods.get_posts_dataframe().loc[recommenderMethods.get_posts_dataframe()['slug'] == slug]
+
+    def get_cleaned_text(self, df, row):
+        return row
 
     def get_tfIdfVectorizer(self, fit_by, fit_by_2=None, stemming=False):
 
@@ -2136,9 +2180,9 @@ def main():
     # gensim = GenSim()
     # gensim.get_recommended_by_slug("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
 
-    tfidf = TfIdf()
-    print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
-    print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
+    # tfidf = TfIdf()
+    # print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
+    # print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
 
     # print(tfidf.recommend_posts_by_all_features('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
     # print(tfidf.preprocess("Vítkovice prohrály důležitý zápas s Třincem po prodloužení"))
@@ -2147,13 +2191,13 @@ def main():
     # keywords = "fotbal hokej sport slavia"
     # # print(tfidf.keyword_based_comparison(keywords))
 
-    doc2vecClass = Doc2VecClass()
-    print(doc2vecClass.get_similar_doc2vec(searched_slug,train=False))
-    print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train=False))
+    # doc2vecClass = Doc2VecClass()
+    # print(doc2vecClass.get_similar_doc2vec(searched_slug,train=False))
+    # print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train=False))
 
-    lda = Lda()
-    print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
-    print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
+    # lda = Lda()
+    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
+    # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
 
     # print(psutil.cpu_percent())
     # print(psutil.virtual_memory())  # physical memory usage
