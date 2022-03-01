@@ -6,11 +6,12 @@ class UserBasedRecommendation:
 
     def __init__(self):
         self.user_id = None
-        self.database = None
+        self.database = Database()
 
     def get_user_id(self):
         return self.user_id
 
+    @DeprecationWarning
     def set_database(self, database):
         self.database = database
 
@@ -18,10 +19,6 @@ class UserBasedRecommendation:
         return self.database
 
     def load_ratings(self):
-
-        database = Database()
-        ##Step 1
-        self.set_database(database)
 
         # EXTRACT RESULTS FROM CURSOR
 
@@ -52,8 +49,10 @@ class UserBasedRecommendation:
 
     # loads posts for user based on his id and favourite categories
     def load_recommended_posts_for_user(self, user_id,num_of_recommendations=5):
+        self.database.connect()
         df_posts_users_of_categories = self.load_ratings()[self.load_ratings().category_slug.isin(self.load_user_categories(user_id)['category_slug'].tolist())]
         df_filter_current_user = df_posts_users_of_categories[df_posts_users_of_categories.rating_id != self.get_user_id()]
+        self.database.disconnect()
         df_sorted_results = df_filter_current_user[['post_id','post_slug','rating_value','post_created_at']].sort_values(['rating_value','post_created_at'], ascending=[False, False])
         df_sorted_results = df_sorted_results.drop_duplicates(subset=['post_id'])
         print("df_sorted_results[['post_slug']]")

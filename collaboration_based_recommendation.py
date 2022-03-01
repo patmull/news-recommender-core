@@ -16,6 +16,7 @@ class Svd:
 
     def get_user_item_from_db(self):
         database = Database()
+        database.connect()
         ##Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
@@ -38,6 +39,7 @@ class Svd:
         # LOAD INTO A DATAFRAME
         self.df_posts = pd.read_sql_query(sql_select_all_posts, database.get_cnx())
 
+        database.disconnect()
         # print("Posts:")
         # print(self.df_posts)
 
@@ -72,6 +74,7 @@ class Svd:
         return R_demeaned
 
     def run_svd(self, user_id, num_of_recommendations=10):
+
         U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
         # print("U:")
         # print(U)
