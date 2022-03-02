@@ -2197,70 +2197,65 @@ class Lda:
         return text.split(" ")
 
     # @profile
-    def get_similar_lda(self, searched_slug, N=21, retrain=False):
+    def get_similar_lda(self, searched_slug, train=False, N=21):
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-        print("self.df['tokenized_keywords'][0]")
-        print(self.df['tokenized_keywords'][0])
 
         gc.collect()
 
-        self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        # self.df['tokenized'] = self.df.all_features_preprocessed_stopwords_clear.apply(lambda x: x.split(' '))
+        self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(
+            lambda x: x.split(' '))
+
         self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        print("self.df['tokenized']")
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed']
 
         gc.collect()
 
-        if retrain is True:
+        # if there is no LDA model, training will run anyway due to load method handle
+        if train is True:
             self.train_lda(self.df)
 
-        dictionary, corpus, lda = self.load_lda(self.df, training_now=False, retrain=retrain)
+        dictionary, corpus, lda = self.load_lda(self.df)
 
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
         new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
-        print("most_sim_ids, most_sim_coefficients")
         doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist.npy')
 
         most_sim_ids, most_sim_coefficients = self.get_most_similar_documents(new_doc_distribution, doc_topic_dist, N)
 
+        # convert numpy array to Python native list
+        most_sim_ids = np.array(most_sim_ids).tolist()
+
         print("most_sim_ids")
         print(most_sim_ids)
+        print("self.df")
+        print(self.df)
+        most_similar_df = self.df.iloc[self.df.index.isin(most_sim_ids)]
 
-        # most_sim_ids = np.insert(most_sim_ids, 0, searched_doc_id) # appending post itself
-        # most_similar_df = self.df[self.df.index.isin(most_sim_ids)]
-
-        most_similar_df = self.df.iloc[most_sim_ids]
-        print(most_similar_df)
         del self.df
         gc.collect()
+
         most_similar_df = most_similar_df.iloc[1:, :]
-        list_of_coefficients = []
-        """
-        print("most_sim_coefficients[:K]")
-        print(most_sim_coefficients[:N])
-        """
+
+        print("most_similar_df['slug_x'].iloc[:N]")
+        print(len(most_similar_df['slug_x'].iloc[:N]))
+        print("len(most_sim_coefficients)")
+        print(len(most_sim_coefficients[:N-1]))
+
         post_recommendations = pd.DataFrame()
         post_recommendations['slug'] = most_similar_df['slug_x'].iloc[:N]
-        post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
+        post_recommendations['coefficient'] = most_sim_coefficients[:N-1]
 
-        print("post_recommendations")
-        print(post_recommendations)
         dict = post_recommendations.to_dict('records')
 
         list_of_articles = []
-
         list_of_articles.append(dict.copy())
-        # print("------------------------------------")
-        # print("JSON:")
-        # print("------------------------------------")
-        # print(list_of_article_slugs[0])
+
         return self.flatten(list_of_articles)
 
     # @profile
@@ -2334,14 +2329,13 @@ class Lda:
         and retruns the top k indices of the smallest jensen shannon distances
         """
         sims = self.jensen_shannon(query, matrix)  # list of jensen shannon distances
+        print(sims)
+        sims_sorted = sorted(sims, reverse=True)
+        return sims.argsort()[:k], sims_sorted
+        # sorted_k_result = sims.argsort()[:k]
+        # sims = sorted(sims, reverse=True)
 
-        sorted_k_result = sims.argsort()[:k]
-        sims = sorted(sims, reverse=True)
-        print("sims")
-        # print(sims)
-        print("sorted_k_result")
-        print(sorted_k_result)
-        return sorted_k_result, sims  # the top k positional index of the smallest Jensen Shannon distances
+        # return sorted_k_result, sims  # the top k positional index of the smallest Jensen Shannon distances
 
     def jensen_shannon(self, query, matrix):
         """
@@ -2359,41 +2353,38 @@ class Lda:
     def keep_top_k_words(self, text):
         return [word for word in text if word in self.top_k_words]
 
-    def load_lda(self, data, training_now=False, retrain=False):
+    def load_lda(self, data, training_now=False):
         """
         print("dictionary")
         dictionary = corpora.Dictionary(data['tokenized'])
         print("corpus")
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-
         self.save_corpus_dict(corpus,dictionary)
         """
         """
         try:
-
         except FileNotFoundError:
-            
+
             dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
             dropbox_file_download(dropbox_access_token, "models/lda_model", "/lda_model")
             dropbox_file_download(dropbox_access_token, "models/lda_model.expElogbeta.npy", "/lda_model.expElogbeta.npy")
             dropbox_file_download(dropbox_access_token, "models/lda_model.id2word", "/lda_model.id2word")
             dropbox_file_download(dropbox_access_token, "models/lda_model.state", "/lda_model.state")
             dropbox_file_download(dropbox_access_token, "models/lda_model.state.sstats.npy", "/lda_model.state.sstats.npy")
-            
+
             lda_model = LdaModel.load("models/lda_model")
         """
-
         try:
-            lda_model = LdaModel.load("models/lda_model_full_text")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
+            lda_model = LdaModel.load("models/lda_model")
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
+            corpus = pickle.load(open('precalc_vectors/corpus.pkl', 'rb'))
         except Exception as e:
             print("Could not load LDA models or precalculated vectors. Reason:")
             print(e)
-            self.train_lda_full_text(data)
-            lda_model = LdaModel.load("models/lda_model_full_text")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
+            self.train_lda(data)
+            lda_model = LdaModel.load("models/lda_model")
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
+            corpus = pickle.load(open('precalc_vectors/corpus.pkl', 'rb'))
 
         return dictionary, corpus, lda_model
 
@@ -2440,36 +2431,68 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
-    """
     def train_lda(self, data):
 
         data_words_nostops = self.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
+        self.df.assign(tokenized=data_words_bigrams)
+
+        all_words = [word for item in self.df['tokenized'] for word in item]
+        # use nltk fdist to get a frequency distribution of all words
+        fdist = FreqDist(all_words)
+        k = 15000
+        top_k_words, _ = zip(*fdist.most_common(k))
+        self.top_k_words = set(top_k_words)
+
+        print("self.df['tokenized']")
+        print(self.df['tokenized'])
+
+        print("self.df['tokenized']")
+        print(self.df['tokenized'])
+
+        self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
+
+        # document length
+        self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
+        self.df.drop(labels='doc_len', axis=1, inplace=True)
+
+        minimum_amount_of_words = 30
+
+        self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
+        # make sure all tokenized items are lists
+        self.df = self.df[self.df['tokenized'].map(type) == list]
+        self.df.reset_index(drop=True, inplace=True)
+
         # View
         dictionary = corpora.Dictionary(data_words_bigrams)
         dictionary.filter_extremes()
+        # dictionary.compactify()
         corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
+
+        self.save_corpus_dict(corpus, dictionary)
+
+        t1 = time.time()
 
         num_topics = 2  # set according visualise_lda() method (Coherence value) = 800
         chunksize = 1000
-        passes = 1 # evaluated on 20
+        passes = 2 # evaluated on 20
         workers = 7  # change when used on different computer/server according tu no. of CPU cores
         eta = 'auto'
         per_word_topics = True
 
-        t1 = time.time()
+        iterations = 2
 
         print("LDA training...")
-        lda_model = LdaMulticore(corpus=corpus, num_topics=num_topics, id2word=dictionary,
-                                 chunksize=chunksize, eta=eta,
-                                 passes=passes, per_word_topics=per_word_topics, workers=workers)
+        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.0,
+                             chunksize=chunksize, eta=eta,
+                             passes=passes)
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
         lda_model.save("models/lda_model")
         print("Model Saved")
-        
+        """
         # Compute Perplexity
         print('\nLog perplexity: ', lda_model.log_perplexity(corpus))
         # Compute Coherence Score
@@ -2478,7 +2501,8 @@ class Lda:
                                              coherence='c_v')
         coherence_lda = coherence_model_lda.get_coherence()
         print('\nCoherence Score: ', coherence_lda)
-
+        """
+        """
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
@@ -2493,36 +2517,8 @@ class Lda:
 
         data_words_nostops = self.remove_stopwords(self.df['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
-        ""
-        all_words = [word for item in data_words_bigrams for word in item]
-        # use nltk fdist to get a frequency distribution of all words
-        fdist = FreqDist(all_words)
-        k = 15000
-        top_k_words, _ = zip(*fdist.most_common(k))
-        self.top_k_words = set(top_k_words)
+        """
 
-        print("self.df['tokenized']")
-        print(self.df['tokenized'])
-
-        self.df.assign(tokenized=data_words_bigrams)
-
-        print("self.df['tokenized']")
-        print(self.df['tokenized'])
-
-        self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
-
-        # document length
-        self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
-        self.df.drop(labels='doc_len', axis=1, inplace=True)
-
-        minimum_amount_of_words = 30
-
-        self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
-        # make sure all tokenized items are lists
-        self.df = self.df[self.df['tokenized'].map(type) == list]
-        self.df.reset_index(drop=True, inplace=True)
-
-        self.save_corpus_dict(corpus, dictionary)
 
         lda = lda_model.load("models/lda_model")
         doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
@@ -2532,94 +2528,7 @@ class Lda:
         np.save('precalc_vectors/lda_doc_topic_dist.npy',
                 doc_topic_dist)  # IndexError: index 14969 is out of bounds for axis 1 with size 14969
         print("LDA model and documents topic distribution saved")
-    """
 
-    def train_lda(self, data):
-        # data_words_nostops = self.remove_stopwords(data['tokenized'])
-        # data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
-
-        # View
-        dictionary = corpora.Dictionary(data['tokenized'])
-        dictionary.filter_extremes()
-        corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-
-        num_topics = 2  # set according visualise_lda() method (Coherence value) = 800
-        chunksize = 1000
-        passes = 1  # evaluated on 20
-        workers = 7  # change when used on different computer/server according tu no. of CPU cores
-        eta = 'auto'
-        per_word_topics = True
-
-        t1 = time.time()
-
-        print("LDA training...")
-        lda_model = LdaMulticore(corpus=corpus, num_topics=num_topics, id2word=dictionary,
-                                 chunksize=chunksize, eta=eta,
-                                 passes=passes, per_word_topics=per_word_topics, workers=workers)
-        t2 = time.time()
-        print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
-
-        lda_model.save("models/lda_model")
-        print("Model Saved")
-
-        """
-        # Compute Perplexity
-        print('\nLog perplexity: ', lda_model.log_perplexity(corpus))
-        # Compute Coherence Score
-    
-        coherence_model_lda = CoherenceModel(model=lda_model, texts=data_words_bigrams, dictionary=dictionary,
-                                             coherence='c_v')
-        coherence_lda = coherence_model_lda.get_coherence()
-        print('\nCoherence Score: ', coherence_lda)
-        """
-
-        self.get_posts_dataframe()
-        self.join_posts_ratings_categories()
-
-        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-        self.df['tokenized'] = self.df.apply(
-            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
-            axis=1)
-        self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized']
-
-        gc.collect()
-
-        # data_words_nostops = self.remove_stopwords(self.df['tokenized'])
-        # data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
-        ""
-        all_words = [word for item in self.df['tokenized'] for word in item]
-        # use nltk fdist to get a frequency distribution of all words
-        fdist = FreqDist(all_words)
-        k = 15000
-        top_k_words, _ = zip(*fdist.most_common(k))
-        self.top_k_words = set(top_k_words)
-
-        # self.df.assign(tokenized=data_words_bigrams)
-
-        self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
-
-        # document length
-        self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
-        self.df.drop(labels='doc_len', axis=1, inplace=True)
-
-        minimum_amount_of_words = 30
-
-        self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
-        # make sure all tokenized items are lists
-        self.df = self.df[self.df['tokenized'].map(type) == list]
-        self.df.reset_index(drop=True, inplace=True)
-
-        self.save_corpus_dict(corpus, dictionary)
-
-        lda = lda_model.load("models/lda_model")
-        doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
-        print("np.save")
-        # save doc_topic_dist
-        # https://stackoverflow.com/questions/9619199/best-way-to-preserve-numpy-arrays-on-disk
-        np.save('precalc_vectors/lda_doc_topic_dist.npy',
-                doc_topic_dist)  # IndexError: index 14969 is out of bounds for axis 1 with size 14969
-        print("LDA model and documents topic distribution saved")
 
     def train_lda_full_text(self, data, lst=None):
 
@@ -3004,10 +2913,10 @@ def main():
     print(lda.get_similar_lda_full_text(searched_slug))
     """
     lda = Lda()
-    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', retrain=True))
+    print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', train=True))
     # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', retrain=True))
     # lda.display_lda_stats()
-    lda.find_optimal_model(body_text_model=True)
+    # lda.find_optimal_model(body_text_model=True)
     """
     word2vecClass = Word2VecClass()
     start = time.time()
