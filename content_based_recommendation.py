@@ -2457,7 +2457,7 @@ class Lda:
         self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
         self.df.drop(labels='doc_len', axis=1, inplace=True)
 
-        minimum_amount_of_words = 30
+        minimum_amount_of_words = 20
 
         self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
         # make sure all tokenized items are lists
@@ -2474,9 +2474,9 @@ class Lda:
 
         t1 = time.time()
 
-        num_topics = 2  # set according visualise_lda() method (Coherence value) = 800
+        num_topics = 800  # set according visualise_lda() method (Coherence value) = 800
         chunksize = 1000
-        passes = 2 # evaluated on 20
+        passes = 20 # evaluated on 20
         workers = 7  # change when used on different computer/server according tu no. of CPU cores
         eta = 'auto'
         per_word_topics = True
@@ -2744,6 +2744,7 @@ class Lda:
         corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
         chunksize = 1000
         passes = 20
+        eta = 'auto'
         workers = 7
 
         coherence_values = []
@@ -2751,9 +2752,9 @@ class Lda:
         i = 1
         for num_topics in num_topics_list:
             t1 = time.time()
-            lda_model = LdaMulticore(corpus=corpus, num_topics=num_topics, id2word=dictionary,
-                                     chunksize=chunksize, eta='auto',
-                                     passes=passes, per_word_topics=True, workers=workers)
+            lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
+                                     chunksize=chunksize, eta=eta,
+                                     passes=passes)
             t2 = time.time()
             print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
             print("Trained model no. " + str(i) + ' from ' + str(len(num_topics_list)))
@@ -2828,10 +2829,10 @@ class Lda:
         # Can take a long time to run.
         # num_topics_list = [20, 100, 200, 300, 400, 500, 800, 1000, 1500] # time heavy version
         # num_topics_list = [20,40,60,80,100]
-        # num_topics_list = [2,8,14]
+        # num_topics_list = [2,8,14,20,40,60,80,100]
         # num_topics_list = [26,32,38]
-        # num_topics_list = [200, 300, 400, 500]
-        num_topics_list = [600]
+        num_topics_list = [200, 300, 400, 500]
+        # num_topics_list = [600]
         # num_topics_list = [800]
         model_list, coherence_values = self.compute_coherence_values(data_words_bigrams=data_words_bigrams, start=start,
                                                                      limit=limit, step=step,
@@ -2913,10 +2914,10 @@ def main():
     print(lda.get_similar_lda_full_text(searched_slug))
     """
     lda = Lda()
-    print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', train=True))
+    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', train=True))
     # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', retrain=True))
     # lda.display_lda_stats()
-    # lda.find_optimal_model(body_text_model=True)
+    lda.find_optimal_model(body_text_model=False)
     """
     word2vecClass = Word2VecClass()
     start = time.time()
