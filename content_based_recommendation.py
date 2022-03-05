@@ -2011,9 +2011,9 @@ class Lda:
         dictionary = corpora.Dictionary(data['tokenized'])
         dictionary.filter_extremes(no_below=20, no_above=0.5)
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-        num_topics = 400
-        chunksize = 2000
-        iterations = 400
+        num_topics = 100
+        chunksize = 1000
+        iterations = 20
         t1 = time.time()
 
         # low alpha means each document is only represented by a small number of topics, and vice versa
@@ -2196,7 +2196,7 @@ def main():
     # print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train=False))
 
     # lda = Lda()
-    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
+    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', train=True))
     # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
 
     # print(psutil.cpu_percent())
