@@ -2197,7 +2197,7 @@ class Lda:
         return text.split(" ")
 
     # @profile
-    def get_similar_lda(self, searched_slug, train=False, N=21):
+    def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, N=21):
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
@@ -2215,7 +2215,7 @@ class Lda:
 
         # if there is no LDA model, training will run anyway due to load method handle
         if train is True:
-            self.train_lda(self.df)
+            self.train_lda(self.df, display_dominant_topics=display_dominant_topics)
 
         dictionary, corpus, lda = self.load_lda(self.df)
 
@@ -2224,7 +2224,7 @@ class Lda:
         new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
-        doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist.npy')
+        doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist.npy', allow_pickle=True)
 
         most_sim_ids, most_sim_coefficients = self.get_most_similar_documents(new_doc_distribution, doc_topic_dist, N)
 
@@ -2259,7 +2259,7 @@ class Lda:
         return self.flatten(list_of_articles)
 
     # @profile
-    def get_similar_lda_full_text(self, searched_slug, N=21, retrain=False):
+    def get_similar_lda_full_text(self, searched_slug, N=21, retrain=False, display_dominant_topics=True):
         self.database.connect()
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
@@ -2285,7 +2285,7 @@ class Lda:
 
         gc.collect()
         print("dictionary,corpus, lda")
-        dictionary, corpus, lda = self.load_lda_full_text(self.df, retrain=retrain)
+        dictionary, corpus, lda = self.load_lda_full_text(self.df, retrain=retrain, display_dominant_topics=display_dominant_topics)
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
         print("self.df")
@@ -2394,7 +2394,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus.pkl', 'wb'))
         dictionary.save('precalc_vectors/dictionary.gensim')
 
-    def load_lda_full_text(self, data, training_now=False, retrain=False):
+    def load_lda_full_text(self, data, display_dominant_topics, training_now=False, retrain=False, ):
 
         """
         try:
@@ -2418,7 +2418,7 @@ class Lda:
         except Exception as e:
             print("Could not load LDA models or precalculated vectors. Reason:")
             print(e)
-            self.train_lda_full_text(data)
+            self.train_lda_full_text(data, display_dominant_topics)
             lda_model = LdaModel.load("models/lda_model_full_text")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
@@ -2431,7 +2431,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
-    def train_lda(self, data):
+    def train_lda(self, data, display_dominant_topics=True):
 
         data_words_nostops = self.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
@@ -2474,7 +2474,7 @@ class Lda:
 
         t1 = time.time()
 
-        num_topics = 800  # set according visualise_lda() method (Coherence value) = 800
+        num_topics = 100  # set according visualise_lda() method (Coherence value) = 100
         chunksize = 1000
         passes = 20 # evaluated on 20
         workers = 7  # change when used on different computer/server according tu no. of CPU cores
@@ -2484,7 +2484,7 @@ class Lda:
         iterations = 2
 
         print("LDA training...")
-        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.0,
+        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
                              chunksize=chunksize, eta=eta,
                              passes=passes)
         t2 = time.time()
@@ -2492,6 +2492,10 @@ class Lda:
 
         lda_model.save("models/lda_model")
         print("Model Saved")
+
+        if display_dominant_topics is True:
+            self.display_dominant_topics(optimal_model=lda_model, corpus=corpus, texts=data_words_bigrams)
+
         """
         # Compute Perplexity
         print('\nLog perplexity: ', lda_model.log_perplexity(corpus))
@@ -2542,7 +2546,7 @@ class Lda:
         dictionary = corpora.Dictionary(data_words_bigrams)
         dictionary.filter_extremes()
         corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
-        num_topics = 14  # based on visualise_lda()
+        num_topics = 20  # based on visualise_lda()
         chunksize = 1000
         passes = 20
         workers = 7  # change when used on different computer/server according tu no. of CPU cores
@@ -2752,9 +2756,14 @@ class Lda:
         i = 1
         for num_topics in num_topics_list:
             t1 = time.time()
+            """
             lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
                                      chunksize=chunksize, eta=eta,
                                      passes=passes)
+            """
+            lda_model = LdaMulticore(corpus=corpus, num_topics=num_topics, id2word=dictionary,
+                                 chunksize=chunksize, eta=eta,
+                                 passes=passes, per_word_topics=True, workers=7)
             t2 = time.time()
             print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
             print("Trained model no. " + str(i) + ' from ' + str(len(num_topics_list)))
@@ -2831,7 +2840,7 @@ class Lda:
         # num_topics_list = [20,40,60,80,100]
         # num_topics_list = [2,8,14,20,40,60,80,100]
         # num_topics_list = [26,32,38]
-        num_topics_list = [200, 300, 400, 500]
+        num_topics_list = [2,8,14,20,40,60,80,100]
         # num_topics_list = [600]
         # num_topics_list = [800]
         model_list, coherence_values = self.compute_coherence_values(data_words_bigrams=data_words_bigrams, start=start,
@@ -2851,6 +2860,44 @@ class Lda:
             print("Num Topics =", m, " has Coherence Value of", round(cv, 4))
 
         # Select the model and print the topics
+
+    def format_topics_sentences(self, lda_model, corpus, texts):
+        # Init output
+        sent_topics_df = pd.DataFrame()
+
+        # Get main topic in each document
+        for i, row in enumerate(lda_model[corpus]):
+            row = sorted(row, key=lambda x: (x[1]), reverse=True)
+            # Get the Dominant topic, Perc Contribution and Keywords for each document
+            for j, (topic_num, prop_topic) in enumerate(row):
+                if j == 0:  # => dominant topic
+                    wp = lda_model.show_topic(topic_num)
+                    topic_keywords = ", ".join([word for word, prop in wp])
+                    sent_topics_df = sent_topics_df.append(
+                        pd.Series([int(topic_num), round(prop_topic, 4), topic_keywords]), ignore_index=True)
+                else:
+                    break
+        sent_topics_df.columns = ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords']
+
+        # Add original text to the end of the output
+        contents = pd.Series(texts)
+        sent_topics_df = pd.concat([sent_topics_df, contents], axis=1)
+        return (sent_topics_df)
+
+    # https: // www.machinelearningplus.com / nlp / topic - modeling - gensim - python /  # 17howtofindtheoptimalnumberoftopicsforlda
+    def display_dominant_topics(self, optimal_model, corpus, texts):
+
+        df_topic_sents_keywords = self.format_topics_sentences(lda_model=optimal_model, corpus=corpus, texts=texts)
+
+        # Format
+        df_dominant_topic = df_topic_sents_keywords.reset_index()
+        df_dominant_topic.columns = ['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords', 'Text']
+
+        # Show dominant topics
+        print("Cominant topics:")
+        print(df_dominant_topic.head(10))
+
+
 
 
 def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
@@ -2914,10 +2961,10 @@ def main():
     print(lda.get_similar_lda_full_text(searched_slug))
     """
     lda = Lda()
-    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', train=True))
-    # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', retrain=True))
+    print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', train=True, display_dominant_topics=True))
+    # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', retrain=True, display_dominant_topics=True))
     # lda.display_lda_stats()
-    lda.find_optimal_model(body_text_model=False)
+    # lda.find_optimal_model(body_text_model=True)
     """
     word2vecClass = Word2VecClass()
     start = time.time()
