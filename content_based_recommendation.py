@@ -17,6 +17,11 @@ from gensim import corpora
 from gensim import models
 from gensim import similarities
 
+# remove for production
+import pyLDAvis
+import pyLDAvis.gensim_models as gensimvis
+import matplotlib.pyplot as plt
+
 # import smart_open
 # import boto3
 # import psutil
@@ -29,7 +34,7 @@ import psutil
 """
 # from guppy import hpy
 
-from gensim.models import TfidfModel, KeyedVectors, LdaModel, fasttext, Word2Vec
+from gensim.models import TfidfModel, KeyedVectors, LdaModel, fasttext, Word2Vec, CoherenceModel, LdaMulticore
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from nltk import RegexpTokenizer, FreqDist, word_tokenize
 from scipy import sparse
@@ -155,7 +160,8 @@ class CosineTransform:
 
     def simple_example(self):
         text = ["London Paris London", "Paris Paris London"]
-        cv = CountVectorizer()
+        cv = CountVectorizer(analyzer='word', min_df=10, stop_words='czech', lowercase=True,
+                             token_pattern='[a-zA-Z0-9]{3,}')
 
         count_matrix = cv.fit_transform(text)
 
@@ -184,7 +190,8 @@ class CosineTransform:
         self.posts_df["combined_features"] = self.posts_df.apply(self.combine_features, axis=1)
 
         ##Step 4: Create count matrix from this new combined column
-        cv = CountVectorizer()
+        cv = CountVectorizer(analyzer='word', min_df=10, stop_words='czech', lowercase=True,
+                             token_pattern='[a-zA-Z0-9]{3,}')
 
         self.count_matrix = cv.fit_transform(self.posts_df["combined_features"])
 
@@ -873,6 +880,8 @@ class TfIdf:
 
         names = vectorize.get_feature_names()
         data = vectors.todense().tolist()
+        # Compute Sparsicity = Percentage of Non-Zero cells
+        print("Sparsicity: ", ((vectors.todense() > 0).sum() / vectors.todense().size) * 100, "%")
         df = pd.DataFrame(data, columns=names)
         # print("SKLEARN:")
         """
@@ -1450,7 +1459,7 @@ class Doc2VecClass:
 
         """
         filename = "cz_stemmer/czech_stopwords.txt"
-        
+
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -1561,15 +1570,12 @@ class Doc2VecClass:
         documents_df['documents_cleaned'] = documents_df.title_x.apply(lambda x: " ".join(
             re.sub(r'(?![\d_])\w', ' ', w).lower() for w in x.split() if
             # re.sub(r'[^a-zA-Z]', ' ', w).lower() not in cz_stopwords))
-
         documents_df['keywords_cleaned'] = documents_df.keywords.apply(lambda x: " ".join(
             w.lower() for w in x.split()
             if w.lower() not in cz_stopwords))
-
         documents_df['title_x'] = title_df.title_x.apply(lambda x: " ".join(
             w.lower() for w in x.split()
             if w.lower() not in cz_stopwords))
-
         documents_df['slug_x'] = slug_df.slug_x
         """
         # keywords_cleaned = list(map(' '.join, documents_df[['keywords_cleaned']].values.tolist()))
@@ -1770,7 +1776,8 @@ class Lda:
         return text.split(" ")
 
     # @profile
-    def get_similar_lda(self, searched_slug, train=False, N=21):
+
+    def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, N=21):
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
@@ -1787,7 +1794,7 @@ class Lda:
 
         # if there is no LDA model, training will run anyway due to load method handle
         if train is True:
-            self.train_lda(self.df)
+            self.train_lda(self.df, display_dominant_topics=display_dominant_topics)
 
         dictionary, corpus, lda = self.load_lda(self.df)
 
@@ -1819,9 +1826,11 @@ class Lda:
         return self.flatten(list_of_articles)
 
     # @profile
-    def get_similar_lda_full_text(self, searched_slug, N=21):
+    def get_similar_lda_full_text(self, searched_slug, N=21, retrain=False, display_dominant_topics=True):
+        self.database.connect()
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
+        self.database.disconnect()
 
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
         self.df['tokenized'] = self.df.apply(
@@ -1834,7 +1843,6 @@ class Lda:
         gc.collect()
 
         self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-
         gc.collect()
 
         self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(lambda x: x.split(' '))
@@ -1842,7 +1850,9 @@ class Lda:
             'tokenized_full_text']
 
         gc.collect()
-        dictionary, corpus, lda = self.load_lda_full_text(self.df)
+
+        print("dictionary,corpus, lda")
+        dictionary, corpus, lda = self.load_lda_full_text(self.df, retrain=retrain, display_dominant_topics=display_dominant_topics)
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
         new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
@@ -1863,34 +1873,8 @@ class Lda:
         dict = post_recommendations.to_dict('records')
         list_of_articles = []
         list_of_articles.append(dict.copy())
+
         return self.flatten(list_of_articles)
-
-    @DeprecationWarning
-    def lda_stats(self, fdist, doc_distribution, searched_slug):
-        print("len(fdist)")
-        print(len(fdist))  # number of unique words
-
-        print("Most common words:")
-        print(top_k_words[:10])
-
-        """
-        # bar plot of topic distribution for this document
-        fig, ax = plt.subplots(figsize=(12, 6));
-        # the histogram of the data
-        patches = ax.bar(np.arange(len(doc_distribution)), doc_distribution)
-        ax.set_xlabel('Topic ID', fontsize=15)
-        ax.set_ylabel('Topic Contribution', fontsize=15)
-        ax.set_title("Topic Distribution for Article " + str(searched_slug), fontsize=20)
-        ax.set_xticks(np.linspace(10, 100, 10))
-        fig.tight_layout()
-        plt.show()
-        """
-
-        print("TOP 10 TOPICS:")
-        """
-        for i in new_doc_distribution.argsort()[-5:][::-1]:
-            print(i, lda.show_topic(topicid=i, topn=10), "\n")
-        """
 
     def flatten(self, t):
         return [item for sublist in t for item in sublist]
@@ -1907,6 +1891,7 @@ class Lda:
 
         return sorted_k_result, sims  # the top k positional index of the smallest Jensen Shannon distances
 
+    # return sorted_k_result, sims  # the top k positional index of the smallest Jensen Shannon distances
     def jensen_shannon(self, query, matrix):
         """
         This function implements a Jensen-Shannon similarity
@@ -1929,21 +1914,19 @@ class Lda:
         dictionary = corpora.Dictionary(data['tokenized'])
         print("corpus")
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-
         self.save_corpus_dict(corpus,dictionary)
         """
         """
         try:
-
         except FileNotFoundError:
-            
+
             dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
             dropbox_file_download(dropbox_access_token, "models/lda_model", "/lda_model")
             dropbox_file_download(dropbox_access_token, "models/lda_model.expElogbeta.npy", "/lda_model.expElogbeta.npy")
             dropbox_file_download(dropbox_access_token, "models/lda_model.id2word", "/lda_model.id2word")
             dropbox_file_download(dropbox_access_token, "models/lda_model.state", "/lda_model.state")
             dropbox_file_download(dropbox_access_token, "models/lda_model.state.sstats.npy", "/lda_model.state.sstats.npy")
-            
+
             lda_model = LdaModel.load("models/lda_model")
         """
         try:
@@ -1967,7 +1950,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus.pkl', 'wb'))
         dictionary.save('precalc_vectors/dictionary.gensim')
 
-    def load_lda_full_text(self, data, training_now=False):
+    def load_lda_full_text(self, data, display_dominant_topics, training_now=False, retrain=False, ):
 
         """
         try:
@@ -1991,7 +1974,8 @@ class Lda:
         except Exception as e:
             print("Could not load LDA models or precalculated vectors. Reason:")
             print(e)
-            self.train_lda_full_text(data)
+            self.train_lda_full_text(data, display_dominant_topics)
+
             lda_model = LdaModel.load("models/lda_model_full_text")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
@@ -2004,25 +1988,30 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
-    def train_lda(self, data):
-        """
-        2 passes of the data since this is a small dataset, so we want the distributions to stabilize
-        """
+    """
+    def train_lda(self, data, display_dominant_topics=True):
+
+        data_words_nostops = self.remove_stopwords(data['tokenized'])
+        data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
+
+        self.df.assign(tokenized=data_words_bigrams)
+
         dictionary = corpora.Dictionary(data['tokenized'])
-        dictionary.filter_extremes(no_below=20, no_above=0.5)
+        dictionary.filter_extremes(no_below=20, no_above=0.5) # needs to be lowered probably to default
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-        num_topics = 100
+        num_topics = 100  # set according visualise_lda() method (Coherence value) = 100
         chunksize = 1000
-        iterations = 20
+        passes = 20 # evaluated on 20
+        workers = 7  # change when used on different computer/server according tu no. of CPU cores
+        eta = 'auto'
+        per_word_topics = True
+        iterations = 2
         t1 = time.time()
 
-        # low alpha means each document is only represented by a small number of topics, and vice versa
-        # low eta means each topic is only represented by a small number of words, and vice versa
-
         print("LDA training...")
-        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.0,
-                             chunksize=chunksize, alpha='auto', eta='auto',
-                             passes=2, iterations=iterations)
+        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
+                             chunksize=chunksize, eta=eta,
+                             passes=passes)
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
@@ -2045,10 +2034,84 @@ class Lda:
 
         # use nltk fdist to get a frequency distribution of all words
         fdist = FreqDist(all_words)
-
         k = 15000
         top_k_words, _ = zip(*fdist.most_common(k))
+        self.top_k_words = set(top_k_words)
 
+        self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
+        # document length
+        self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
+        doc_lengths = list(self.df['doc_len'])
+        self.df.drop(labels='doc_len', axis=1, inplace=True)
+
+        minimum_amount_of_words = 30
+
+        self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
+        # make sure all tokenized items are lists
+        self.df = self.df[self.df['tokenized'].map(type) == list]
+        self.df.reset_index(drop=True, inplace=True)
+        print("After cleaning and excluding short aticles, the dataframe now has:", len(self.df), "articles")
+        print("df head:")
+        print(self.df.head)
+
+        self.save_corpus_dict(corpus, dictionary)
+
+        lda = lda_model.load("models/lda_model")
+        doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
+        print("np.save")
+        # save doc_topic_dist
+        # https://stackoverflow.com/questions/9619199/best-way-to-preserve-numpy-arrays-on-disk
+        np.save('precalc_vectors/lda_doc_topic_dist.npy',
+                doc_topic_dist)  # IndexError: index 14969 is out of bounds for axis 1 with size 14969
+        print("LDA model and documents topic distribution saved")
+    """
+
+    def train_lda(self, data, display_dominant_topics=True):
+        data_words_nostops = self.remove_stopwords(data['tokenized'])
+        data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
+
+        self.df.assign(tokenized=data_words_bigrams)
+
+        dictionary = corpora.Dictionary(data['tokenized'])
+        dictionary.filter_extremes(no_below=20, no_above=0.5)
+        corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
+        num_topics = 100 # set according visualise_lda() method (Coherence value) = 100
+        chunksize = 1000
+        iterations = 50
+        passes = 20 # evaluated on 20
+        t1 = time.time()
+
+        # low alpha means each document is only represented by a small number of topics, and vice versa
+        # low eta means each topic is only represented by a small number of words, and vice versa
+
+        print("LDA training...")
+        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.00,
+                             chunksize=chunksize, alpha='auto', eta='auto',
+                             passes=passes)
+        t2 = time.time()
+        print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
+
+        # native gensim method (abandoned due to not storing to single file like it should with separately=[] option)
+        lda_model.save("models/lda_model")
+        # pickle.dump(lda_model_local, open("lda_all_in_one", "wb"))
+        print("Model Saved")
+        # lda_model = LdaModel.load("models/lda_model")
+        # lda_model_local = pickle.load(smart_open.smart_open("lda_all_in_one"))
+        self.get_posts_dataframe()
+        self.join_posts_ratings_categories()
+
+        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
+        self.df['tokenized'] = self.df.apply(
+            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
+            axis=1)
+        self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
+        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized']
+        all_words = [word for item in list(self.df["tokenized"]) for word in item]
+
+        # use nltk fdist to get a frequency distribution of all words
+        fdist = FreqDist(all_words)
+        k = 15000
+        top_k_words, _ = zip(*fdist.most_common(k))
         self.top_k_words = set(top_k_words)
 
         self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
@@ -2079,24 +2142,36 @@ class Lda:
         print("LDA model and documents topic distribution saved")
 
     def train_lda_full_text(self, data, lst=None):
-        """
-        2 passes of the data since this is a small dataset, so we want the distributions to stabilize
-        """
-        dictionary = corpora.Dictionary(data['tokenized'])
-        dictionary.filter_extremes(no_below=20, no_above=0.5)
-        corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-        num_topics = 400
-        chunksize = 2000
-        iterations = 400
-        t1 = time.time()
 
+        print("data['tokenized']")
+        print(data['tokenized'])
+        data_words_nostops = self.remove_stopwords(data['tokenized'])
+        data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
+        # Term Document Frequency
+
+        # View
+        dictionary = corpora.Dictionary(data_words_bigrams)
+        dictionary.filter_extremes()
+        corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
+        num_topics = 20  # based on visualise_lda()
+        chunksize = 1000
+        passes = 20
+        workers = 7  # change when used on different computer/server according tu no. of CPU cores
+        eta = 'auto'
+        per_word_topics = True
+
+        t1 = time.time()
+        print("corpus[:1]")
+        print(corpus[:1])
+        print("words:")
+        print([[(dictionary[id], freq) for id, freq in cp] for cp in corpus[:1]])
         # low alpha means each document is only represented by a small number of topics, and vice versa
         # low eta means each topic is only represented by a small number of words, and vice versa
 
         print("LDA training...")
-        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.0,
-                             chunksize=chunksize, alpha='auto', eta='auto',
-                             passes=2, iterations=iterations)
+        lda_model = LdaMulticore(corpus=corpus, num_topics=num_topics, id2word=dictionary,
+                                 chunksize=chunksize, eta=eta,
+                                 passes=passes, per_word_topics=per_word_topics, workers=workers)
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
@@ -2127,6 +2202,8 @@ class Lda:
 
         self.top_k_words = set(top_k_words)
 
+        self.df.assign(tokenized=data_words_bigrams)
+
         self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
         # document length
         self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
@@ -2151,12 +2228,298 @@ class Lda:
         np.save('precalc_vectors/lda_doc_topic_dist_full_text.npy', doc_topic_dist)
         print("LDA model and documents topic distribution saved")
 
+    def build_bigrams_and_trigrams(self, data_words):
+        bigram = gensim.models.Phrases(data_words, min_count=5, threshold=100)
+        trigram = gensim.models.Phrases(bigram[data_words], threshold=100)
+
+        # Faster way to get a sentence clubbed as a trigram/bigram
+        bigram_mod = gensim.models.phrases.Phraser(bigram)
+        trigram_mod = gensim.models.phrases.Phraser(trigram)
+
+        # See trigram example
+        print(trigram_mod[bigram_mod[data_words[0]]])
+
+        # Form Bigrams
+        data_words_bigrams = self.make_bigrams(bigram_mod, data_words)
+
+        return data_words_bigrams
+
+    def make_bigrams(self, bigram_mod, texts):
+        return [bigram_mod[doc] for doc in texts]
+
+    def make_trigrams(self, trigram_mod, bigram_mod, texts):
+        return [trigram_mod[bigram_mod[doc]] for doc in texts]
+
+    def remove_stopwords(self, texts):
+        stop_words = self.load_stopwords()
+        return [[word for word in gensim.utils.simple_preprocess(str(doc)) if word not in stop_words] for doc in texts]
+
     def load_stopwords(self):
         filename = "cz_stemmer/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
             return cz_stopwords
+
+    def visualise_lda(self, lda_model, corpus, dictionary, data_words_bigrams):
+
+        print("Keywords and topics:")
+        print(lda_model.print_topics())
+        # Compute Perplexity
+        print('\nLog perplexity: ', lda_model.log_perplexity(corpus))
+        # a measure of how good the model is. lower the better.
+
+        # Compute Coherence Score
+        coherence_model_lda = CoherenceModel(model=lda_model, texts=data_words_bigrams, dictionary=dictionary,
+                                             coherence='c_v')
+        coherence_lda = coherence_model_lda.get_coherence()
+        print('\nCoherence Score: ', coherence_lda)
+
+        vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
+        pyLDAvis.display(vis_data)
+        pyLDAvis.save_html(vis_data, 'C:\Dokumenty\OSU\Diplomová práce\LDA_Visualization.html')
+
+    def display_lda_stats(self):
+        self.database.connect()
+        self.get_posts_dataframe()
+        self.join_posts_ratings_categories()
+        self.database.disconnect()
+
+        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
+
+        self.df['tokenized'] = self.df.apply(
+            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
+            axis=1)
+
+        self.df['tokenized_full_text'] = self.df.apply(
+            lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
+            axis=1)
+
+        gc.collect()
+        self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
+
+        gc.collect()
+
+        self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(lambda x: x.split(' '))
+        print("self.df['tokenized']")
+
+        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
+            'tokenized_full_text']
+        data = self.df
+        print("data['tokenized']")
+        print(data['tokenized'])
+        data_words_nostops = self.remove_stopwords(data['tokenized'])
+        data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
+        # Term Document Frequency
+
+        # View
+        dictionary = corpora.Dictionary(data_words_bigrams)
+        # dictionary.filter_extremes(no_below=20, no_above=0.5)
+        corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
+
+        t1 = time.time()
+        print("corpus[:1]")
+        print(corpus[:1])
+        print("words:")
+        print([[(dictionary[id], freq) for id, freq in cp] for cp in corpus[:1]])
+        # low alpha means each document is only represented by a small number of topics, and vice versa
+        # low eta means each topic is only represented by a small number of words, and vice versa
+
+        print("LDA loading...")
+        lda_model = LdaModel.load("models/lda_model_full_text")
+        t2 = time.time()
+        print("Time to load LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
+
+        self.visualise_lda(lda_model, corpus, dictionary, data_words_bigrams)
+
+    def compute_coherence_values(self, data_words_bigrams, limit, start=2, step=3, num_topics_list=None,
+                                 body_text_model=True):
+        """
+        Compute c_v coherence for various number of topics
+
+        Parameters:
+        ----------
+        dictionary : Gensim dictionary
+        corpus : Gensim corpus
+        texts : List of input texts
+        limit : Max num of topics
+
+        Returns:
+        -------
+        model_list : List of LDA topic models
+        coherence_values : Coherence values corresponding to the LDA model with respective number of topics
+        """
+        dictionary = corpora.Dictionary(data_words_bigrams)
+        corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
+        chunksize = 1000
+        passes = 20
+        eta = 'auto'
+        workers = 7
+
+        coherence_values = []
+        model_list = []
+        i = 1
+        for num_topics in num_topics_list:
+            t1 = time.time()
+            """
+            lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
+                                     chunksize=chunksize, eta=eta,
+                                     passes=passes)
+            """
+            lda_model = LdaMulticore(corpus=corpus, num_topics=num_topics, id2word=dictionary,
+                                 chunksize=chunksize, eta=eta,
+                                 passes=passes, per_word_topics=True, workers=7)
+            t2 = time.time()
+            print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
+            print("Trained model no. " + str(i) + ' from ' + str(len(num_topics_list)))
+            i = i + 1
+            model_list.append(lda_model)
+            print("Creating CoherenceModel...")
+            coherencemodel = CoherenceModel(model=lda_model, texts=data_words_bigrams, dictionary=dictionary,
+                                            coherence='c_v')
+            coherence_values.append(coherencemodel.get_coherence())
+            print("Coherence model created.")
+
+            print("Coherence values:")
+            print(coherence_values)
+
+            if body_text_model is True:
+                try:
+                    vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
+                    pyLDAvis.display(vis_data)
+                    pyLDAvis.save_html(vis_data,
+                                       'C:\Dokumenty\OSU\Diplomová práce\LDA_Visualization_Body_Text_Model_' + str(
+                                           num_topics) + '_Topics.html')
+                except:
+                    pass
+            else:
+                try:
+                    vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
+                    pyLDAvis.display(vis_data)
+                    pyLDAvis.save_html(vis_data,
+                                       'C:\Dokumenty\OSU\Diplomová práce\LDA_Visualization_Short_Text_Model_' + str(
+                                           num_topics) + '_Topics.html')
+                except:
+                    pass
+        return model_list, coherence_values
+
+    def find_optimal_model(self, body_text_model=True):
+        self.database.connect()
+        self.get_posts_dataframe()
+        self.join_posts_ratings_categories()
+        self.database.disconnect()
+
+        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
+        self.df['tokenized'] = self.df.apply(
+            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
+            axis=1)
+        if body_text_model is True:
+            self.df['tokenized_full_text'] = self.df.apply(
+                lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
+                axis=1)
+            self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(lambda x: x.split(' '))
+        gc.collect()
+        self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
+
+        gc.collect()
+
+        if body_text_model is True:
+            self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + \
+                                   self.df[
+                                       'tokenized_full_text']
+        else:
+            self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed']
+
+        data = self.df
+        print("data['tokenized']")
+        print(data['tokenized'])
+        data_words_nostops = self.remove_stopwords(data['tokenized'])
+        data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
+
+        limit = 1500
+        start = 10
+        step = 100
+
+        # Can take a long time to run.
+        # num_topics_list = [20, 100, 200, 300, 400, 500, 800, 1000, 1500] # time heavy version
+        # num_topics_list = [20,40,60,80,100]
+        # num_topics_list = [2,8,14,20,40,60,80,100]
+        # num_topics_list = [26,32,38]
+        num_topics_list = [2,8,14,20,40,60,80,100]
+        # num_topics_list = [600]
+        # num_topics_list = [800]
+        model_list, coherence_values = self.compute_coherence_values(data_words_bigrams=data_words_bigrams, start=start,
+                                                                     limit=limit, step=step,
+                                                                     num_topics_list=num_topics_list,
+                                                                     body_text_model=body_text_model)
+        # Show graph
+        x = num_topics_list
+        plt.plot(x, coherence_values)
+        plt.xlabel("Num Topics")
+        plt.ylabel("Coherence score")
+        plt.legend(("coherence_values"), loc='best')
+        plt.show()
+
+        # Print the coherence scores
+        for m, cv in zip(x, coherence_values):
+            print("Num Topics =", m, " has Coherence Value of", round(cv, 4))
+
+        # Select the model and print the topics
+
+    def format_topics_sentences(self, lda_model, corpus, texts):
+        # Init output
+        sent_topics_df = pd.DataFrame()
+
+        # Get main topic in each document
+        for i, row in enumerate(lda_model[corpus]):
+            row = sorted(row, key=lambda x: (x[1]), reverse=True)
+            # Get the Dominant topic, Perc Contribution and Keywords for each document
+            for j, (topic_num, prop_topic) in enumerate(row):
+                if j == 0:  # => dominant topic
+                    wp = lda_model.show_topic(topic_num)
+                    topic_keywords = ", ".join([word for word, prop in wp])
+                    sent_topics_df = sent_topics_df.append(
+                        pd.Series([int(topic_num), round(prop_topic, 4), topic_keywords]), ignore_index=True)
+                else:
+                    break
+        sent_topics_df.columns = ['Dominant_Topic', 'Perc_Contribution', 'Topic_Keywords']
+
+        # Add original text to the end of the output
+        contents = pd.Series(texts)
+        sent_topics_df = pd.concat([sent_topics_df, contents], axis=1)
+        return (sent_topics_df)
+
+    # https: // www.machinelearningplus.com / nlp / topic - modeling - gensim - python /  # 17howtofindtheoptimalnumberoftopicsforlda
+    def display_dominant_topics(self, optimal_model, corpus, texts):
+
+        df_topic_sents_keywords = self.format_topics_sentences(lda_model=optimal_model, corpus=corpus, texts=texts)
+
+        # Format
+        df_dominant_topic = df_topic_sents_keywords.reset_index()
+        df_dominant_topic.columns = ['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords', 'Text']
+
+        # Show dominant topics
+        print("Cominant topics:")
+        print(df_dominant_topic.head(10))
+
+
+
+
+def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
+    try:
+        dbx = dropbox.Dropbox(access_token)
+
+        """
+        print("Dropbox Files:")
+        for entry in dbx.files_list_folder('').entries:
+            print(entry.path_lower)
+        """
+        dbx.files_download_to_file(dropbox_file_path, local_folder_name)
+
+    except Exception as e:
+        print(e)
+        return False
+
 
 def main():
     # database = Database()
@@ -2195,13 +2558,34 @@ def main():
     # print(doc2vecClass.get_similar_doc2vec(searched_slug,train=False))
     # print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train=False))
 
-    # lda = Lda()
-    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', train=True))
-    # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'))
-
+    """
+    lda = Lda()
+    print("--------------LDA------------------")
+    print(lda.get_similar_lda(searched_slug))
+    print("--------------LDA FULL TEXT------------------")
+    print(lda.get_similar_lda_full_text(searched_slug))
+    """
+    lda = Lda()
+    print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', train=True, display_dominant_topics=True))
+    # print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', retrain=True, display_dominant_topics=True))
+    # lda.display_lda_stats()
+    # lda.find_optimal_model(body_text_model=True)
+    """
+    word2vecClass = Word2VecClass()
+    start = time.time()
+    print(word2vecClass.get_similar_word2vec(searched_slug))
+    end = time.time()
+    print("Elapsed time: " + str(end - start))
+    start = time.time()
+    # print(word2vecClass.get_similar_word2vec_full_text(searched_slug))
+    end = time.time()
+    print("Elapsed time: " + str(end - start))
     # print(psutil.cpu_percent())
     # print(psutil.virtual_memory())  # physical memory usage
     # print('memory % used:', psutil.virtual_memory()[2])
+    """
+    # word2vec = Word2VecClass()
+    # word2vec.prefilling_job(full_text=True, reverse=False, random=True)
 
     # word2vec = Word2VecClass()
     # word2vec.prefilling_job(full_text=True, reverse=False)
