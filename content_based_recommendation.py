@@ -1988,7 +1988,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
-    def train_lda(self, data, display_dominant_topics=True):
+    def train_lda(self, data, display_dominant_topics=False):
         data_words_nostops = self.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
@@ -1997,10 +1997,10 @@ class Lda:
         dictionary = corpora.Dictionary(data['tokenized'])
         dictionary.filter_extremes()
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-        num_topics = 10 # set according visualise_lda() method (Coherence value) = 100
+        num_topics = 100 # set according visualise_lda() method (Coherence value) = 100
         chunksize = 1000
         iterations = 50
-        passes = 2 # evaluated on 20
+        passes = 20 # evaluated on 20
         t1 = time.time()
 
         # low alpha means each document is only represented by a small number of topics, and vice versa
@@ -2079,12 +2079,6 @@ class Lda:
         top_k_words, _ = zip(*fdist.most_common(k))
         self.top_k_words = set(top_k_words)
 
-        print("self.df['tokenized']")
-        print(self.df['tokenized'])
-
-        print("self.df['tokenized']")
-        print(self.df['tokenized'])
-
         self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
 
         # document length
@@ -2110,7 +2104,7 @@ class Lda:
 
         num_topics = 20  # set according visualise_lda() method (Coherence value) = 20
         chunksize = 1000
-        passes = 2 # evaluated on 20
+        passes = 20 # evaluated on 20
         # workers = 7  # change when used LdaMulticore on different computer/server according tu no. of CPU cores
         eta = 'auto'
 
@@ -2126,7 +2120,6 @@ class Lda:
 
         if display_dominant_topics is True:
             self.display_dominant_topics(optimal_model=lda_model, corpus=corpus, texts=data_words_bigrams)
-
 
         lda = lda_model.load("models/lda_model_full_text")
         doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
@@ -2411,7 +2404,7 @@ class Lda:
         print(self.df.head(10).to_string())
         df_dominant_topic_merged = df_dominant_topic.merge(self.df, how='outer', left_index=True, right_index=True)
         print("After join")
-        df_dominant_topic_filtered_columns = df_dominant_topic_merged[['Document_No', 'slug_x', 'title_x', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords', 'Text']]
+        df_dominant_topic_filtered_columns = df_dominant_topic_merged[['Document_No', 'slug_x', 'title_x', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords']]
         print(df_dominant_topic_filtered_columns.head(10).to_string())
         # saving dominant topics with corresponding documents
         df_dominant_topic_filtered_columns.to_csv("exports/dominant_topics_and_documents.csv", sep=';', encoding='iso8859_2', errors='replace')
@@ -2472,7 +2465,7 @@ def main():
     # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"  # print(doc2vecClass.get_similar_doc2vec(slug))
     # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     # searched_slug = "facr-o-slavii-a-rangers-verime-v-objektivni-vysetreni-odmitame-rasismus"
-    searched_slug = 'krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'
+    # searched_slug = 'krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'
 
     # STEMMING
     # word = "rybolovný"
@@ -2510,9 +2503,9 @@ def main():
     print("--------------LDA FULL TEXT------------------")
     print(lda.get_similar_lda_full_text(searched_slug))
     """
-    lda = Lda()
+    # lda = Lda()
     # print(lda.get_similar_lda(searched_slug, train=True, display_dominant_topics=True))
-    print(lda.get_similar_lda_full_text(searched_slug, train=True, display_dominant_topics=True))
+    # print(lda.get_similar_lda_full_text(searched_slug, train=True, display_dominant_topics=True))
     # lda.find_optimal_model(body_text_model=True)
     """
     word2vecClass = Word2VecClass()
