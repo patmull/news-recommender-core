@@ -6,13 +6,14 @@ from content_based_recommendation import TfIdf, Doc2VecClass, Lda, word2vec_embe
 from collaboration_based_recommendation import Svd
 
 
+
 def create_app():
     app = Flask(__name__)
     return app
 
-
 app = create_app()
 api = Api(app)
+
 
 @app.route('/', methods=['GET'])
 def home():
