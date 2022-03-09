@@ -20,6 +20,7 @@ from gensim import similarities
 # remove for production
 import pyLDAvis
 import pyLDAvis.gensim_models as gensimvis
+import tqdm
 import matplotlib.pyplot as plt
 
 # import smart_open
@@ -1792,6 +1793,7 @@ class Lda:
 
         gc.collect()
 
+        print(self.df.head(10).to_string())
         # if there is no LDA model, training will run anyway due to load method handle
         if train is True:
             self.train_lda(self.df, display_dominant_topics=display_dominant_topics)
@@ -1993,24 +1995,28 @@ class Lda:
         data_words_nostops = self.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
-        self.df.assign(tokenized=data_words_bigrams)
+        print("data_words_bigrams")
+        print(data_words_bigrams)
 
+        self.df.assign(tokenized=data_words_bigrams)
+        print("data['tokenized']")
+        print(data['tokenized'])
         dictionary = corpora.Dictionary(data['tokenized'])
-        dictionary.filter_extremes(no_below=20, no_above=0.5)
+        dictionary.filter_extremes()
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
         num_topics = 100 # set according visualise_lda() method (Coherence value) = 100
         chunksize = 1000
-        iterations = 50
+        iterations = 200
         passes = 20 # evaluated on 20
         t1 = time.time()
 
         # low alpha means each document is only represented by a small number of topics, and vice versa
         # low eta means each topic is only represented by a small number of words, and vice versa
-
         print("LDA training...")
-        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.00,
-                             chunksize=chunksize, alpha='auto', eta='auto',
-                             passes=passes)
+        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
+                             minimum_probability=0.00,chunksize=chunksize,
+                             alpha='auto', eta='auto',
+                             passes=passes, iterations=iterations)
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
@@ -2030,21 +2036,19 @@ class Lda:
         self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized']
         all_words = [word for item in list(self.df["tokenized"]) for word in item]
+        print(all_words[:50])
 
         # use nltk fdist to get a frequency distribution of all words
         fdist = FreqDist(all_words)
         k = 15000
         top_k_words, _ = zip(*fdist.most_common(k))
+        print(top_k_words)
+        print("top_k_words")
         self.top_k_words = set(top_k_words)
 
         self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
-        # document length
-        self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
-        doc_lengths = list(self.df['doc_len'])
-        self.df.drop(labels='doc_len', axis=1, inplace=True)
 
-        minimum_amount_of_words = 30
-
+        minimum_amount_of_words = 2
         self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
         # make sure all tokenized items are lists
         self.df = self.df[self.df['tokenized'].map(type) == list]
@@ -2114,12 +2118,13 @@ class Lda:
         workers = 7  # change when used on different computer/server according tu no. of CPU cores
         eta = 'auto'
         per_word_topics = True
-        iterations = 2
+        iterations = 200
 
         print("LDA training...")
         lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
-                             minimum_probability=0.0, chunksize=chunksize, eta=eta,
-                             passes=passes)
+                             minimum_probability=0.0, chunksize=chunksize,
+                             eta=eta, alpha='auto',
+                             passes=passes, iterations=iterations)
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
@@ -2243,76 +2248,25 @@ class Lda:
 
         self.visualise_lda(lda_model, corpus, dictionary, data_words_bigrams)
 
-    def compute_coherence_values(self, data_words_bigrams, limit, start=2, step=3, num_topics_list=None,
-                                 body_text_model=True):
-        """
-        Compute c_v coherence for various number of topics
+    # supporting function
+    def compute_coherence_values(self, corpus, dictionary, data_lemmatized, k, a, b):
 
-        Parameters:
-        ----------
-        dictionary : Gensim dictionary
-        corpus : Gensim corpus
-        texts : List of input texts
-        limit : Max num of topics
+        lda_model = gensim.models.LdaMulticore(corpus=corpus,
+                                               id2word=dictionary,
+                                               num_topics=k,
+                                               random_state=100,
+                                               chunksize=100,
+                                               passes=1, # default 10
+                                               alpha=a,
+                                               eta=b,
+                                               # added
+                                               workers=7,
+                                               iterations=2)
 
-        Returns:
-        -------
-        model_list : List of LDA topic models
-        coherence_values : Coherence values corresponding to the LDA model with respective number of topics
-        """
-        dictionary = corpora.Dictionary(data_words_bigrams)
-        corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
-        chunksize = 1000
-        passes = 20
-        eta = 'auto'
-        workers = 7
+        coherence_model_lda = CoherenceModel(model=lda_model, texts=data_lemmatized, dictionary=dictionary,
+                                             coherence='c_v')
 
-        coherence_values = []
-        model_list = []
-        i = 1
-        for num_topics in num_topics_list:
-            t1 = time.time()
-            """
-            lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
-                                     chunksize=chunksize, eta=eta,
-                                     passes=passes)
-            """
-            lda_model = LdaMulticore(corpus=corpus, num_topics=num_topics, id2word=dictionary,
-                                 chunksize=chunksize, eta=eta,
-                                 passes=passes, per_word_topics=True, workers=7)
-            t2 = time.time()
-            print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
-            print("Trained model no. " + str(i) + ' from ' + str(len(num_topics_list)))
-            i = i + 1
-            model_list.append(lda_model)
-            print("Creating CoherenceModel...")
-            coherencemodel = CoherenceModel(model=lda_model, texts=data_words_bigrams, dictionary=dictionary,
-                                            coherence='c_v')
-            coherence_values.append(coherencemodel.get_coherence())
-            print("Coherence model created.")
-
-            print("Coherence values:")
-            print(coherence_values)
-
-            if body_text_model is True:
-                try:
-                    vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
-                    pyLDAvis.display(vis_data)
-                    pyLDAvis.save_html(vis_data,
-                                       'C:\Dokumenty\OSU\Diplomová práce\LDA_Visualization_Body_Text_Model_' + str(
-                                           num_topics) + '_Topics.html')
-                except:
-                    pass
-            else:
-                try:
-                    vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
-                    pyLDAvis.display(vis_data)
-                    pyLDAvis.save_html(vis_data,
-                                       'C:\Dokumenty\OSU\Diplomová práce\LDA_Visualization_Short_Text_Model_' + str(
-                                           num_topics) + '_Topics.html')
-                except:
-                    pass
-        return model_list, coherence_values
+        return coherence_model_lda.get_coherence()
 
     def find_optimal_model(self, body_text_model=True):
         self.database.connect()
@@ -2346,36 +2300,62 @@ class Lda:
         print(data['tokenized'])
         data_words_nostops = self.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
+        data_lemmatized = data_words_bigrams
+        dictionary = corpora.Dictionary(data_lemmatized)
+        corpus = [dictionary.doc2bow(doc) for doc in data_lemmatized]
 
         limit = 1500
         start = 10
         step = 100
 
-        # Can take a long time to run.
-        # num_topics_list = [20, 100, 200, 300, 400, 500, 800, 1000, 1500] # time heavy version
-        # num_topics_list = [20,40,60,80,100]
-        # num_topics_list = [2,8,14,20,40,60,80,100]
-        # num_topics_list = [26,32,38]
-        num_topics_list = [2,8,14,20,40,60,80,100]
-        # num_topics_list = [600]
-        # num_topics_list = [800]
-        model_list, coherence_values = self.compute_coherence_values(data_words_bigrams=data_words_bigrams, start=start,
-                                                                     limit=limit, step=step,
-                                                                     num_topics_list=num_topics_list,
-                                                                     body_text_model=body_text_model)
-        # Show graph
-        x = num_topics_list
-        plt.plot(x, coherence_values)
-        plt.xlabel("Num Topics")
-        plt.ylabel("Coherence score")
-        plt.legend(("coherence_values"), loc='best')
-        plt.show()
+        # Topics range
+        min_topics = 2
+        max_topics = 3
+        step_size = 1
+        topics_range = range(min_topics, max_topics, step_size)  # Alpha parameter
+        alpha = list(np.arange(0.01, 1, 0.5))
+        alpha.append('symmetric')
+        alpha.append('asymmetric')  # Beta parameter
+        beta = list(np.arange(0.01, 1, 0.5))
+        beta.append('symmetric')  # Validation sets
+        num_of_docs = len(corpus)
+        corpus_sets = [
+            gensim.utils.ClippedCorpus(corpus, int(num_of_docs*0.05)),
+            # gensim.utils.ClippedCorpus(corpus, num_of_docs*0.5),
+            #gensim.utils.ClippedCorpus(corpus, int(num_of_docs * 0.75)),
+            corpus]
+        corpus_title = ['75% Corpus', '100% Corpus']
+        model_results = {'Validation_Set': [],
+                         'Topics': [],
+                         'Alpha': [],
+                         'Beta': [],
+                         'Coherence': []
+                         }  # Can take a long time to run
 
-        # Print the coherence scores
-        for m, cv in zip(x, coherence_values):
-            print("Num Topics =", m, " has Coherence Value of", round(cv, 4))
+        pbar = tqdm.tqdm(total=2)
 
-        # Select the model and print the topics
+        # iterate through validation corpuses
+        for i in range(len(corpus_sets)):
+            # iterate through number of topics
+            for k in topics_range:
+                # iterate through alpha values
+                for a in alpha:
+                    # iterare through beta values
+                    for b in beta:
+                        # get the coherence score for the given parameters
+                        cv = self.compute_coherence_values(corpus=corpus_sets[i], dictionary=dictionary,
+                                                           data_lemmatized=data_lemmatized,
+                                                           k=k, a=a, b=b)
+                        # Save the model results
+                        model_results['Validation_Set'].append(corpus_title[i])
+                        model_results['Topics'].append(k)
+                        model_results['Alpha'].append(a)
+                        model_results['Beta'].append(b)
+                        model_results['Coherence'].append(cv)
+
+                        pbar.update(1)
+        pd.DataFrame(model_results).to_csv('lda_tuning_results.csv', index=False)
+        pbar.close()
 
     def format_topics_sentences(self, lda_model, corpus, texts):
         # Init output
@@ -2511,10 +2491,10 @@ def main():
     print(lda.get_similar_lda_full_text(searched_slug))
     """
     lda = Lda()
-    # print(lda.get_similar_lda('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', train=True, display_dominant_topics=True))
-    print(lda.get_similar_lda_full_text('krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit', train=True, display_dominant_topics=True))
+    # print(lda.get_similar_lda('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem', train=True, display_dominant_topics=True))
+    # print(lda.get_similar_lda_full_text('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem', train=False, display_dominant_topics=False))
     # lda.display_lda_stats()
-    # lda.find_optimal_model(body_text_model=True)
+    lda.find_optimal_model(body_text_model=True)
     """
     word2vecClass = Word2VecClass()
     start = time.time()
