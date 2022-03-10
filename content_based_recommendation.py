@@ -2276,6 +2276,7 @@ class Lda:
         return coherence_model_lda.get_coherence()
 
     def find_optimal_model(self, body_text_model=True):
+        """
         self.database.connect()
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
@@ -2311,11 +2312,16 @@ class Lda:
         dictionary = corpora.Dictionary(data_lemmatized)
         dictionary.filter_extremes(no_below=20, no_above=0.5)
         corpus = [dictionary.doc2bow(doc) for doc in data_lemmatized]
+        """
 
         # Enabling LDA logging
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-
-        # Setting parameters
+        id2word = gensim.corpora.Dictionary.load_from_text('full_models/cswiki/cswiki_wordids.txt.bz2')
+        mm = gensim.corpora.MmCorpus('full_models/cswiki/cswiki_tfidf.mm')
+        lda = LdaMulticore(corpus=mm, id2word=id2word, num_topics=100, passes=1, workers=7)
+        print("mm")
+        print(mm) # Setting parameters
+        print(lda.print_topics(20))
         limit = 1500
         start = 10
         step = 100
@@ -2370,8 +2376,6 @@ class Lda:
                             # iterare through eta values
                             for e in eta:
                                 # get the coherence score for the given parameters
-                                print(alpha)
-                                print(eta)
                                 cv = self.compute_coherence_values(corpus=corpus_sets[i], dictionary=dictionary,
                                                                    data_lemmatized=data_lemmatized,
                                                                    num_topics=k, alpha=a, eta=e, passes=p, iterations=i)
@@ -2379,7 +2383,7 @@ class Lda:
                                 model_results['Validation_Set'].append(corpus_title[i])
                                 model_results['Topics'].append(k)
                                 model_results['Alpha'].append(a)
-                                model_results['eta'].append(e)
+                                model_results['Eta'].append(e)
                                 model_results['Coherence'].append(cv)
                                 model_results['Passes'].append(p)
                                 model_results['Iterations'].append(i)
