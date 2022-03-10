@@ -17,6 +17,19 @@ import psycopg2
 from gensim import corpora
 from gensim import models
 from gensim import similarities
+from gensim.models import TfidfModel, KeyedVectors, LdaModel, fasttext, Word2Vec, CoherenceModel, LdaMulticore
+from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+from nltk import RegexpTokenizer, FreqDist, word_tokenize
+from scipy import sparse
+from scipy.stats import entropy
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
+
+from doc_sim import DocSim
+from data_conenction import Database
+from cz_stemmer.czech_stemmer import cz_stem
 
 # remove for production
 import pyLDAvis
@@ -35,20 +48,6 @@ import pstats
 import psutil
 """
 # from guppy import hpy
-
-from gensim.models import TfidfModel, KeyedVectors, LdaModel, fasttext, Word2Vec, CoherenceModel, LdaMulticore
-from gensim.models.doc2vec import Doc2Vec, TaggedDocument
-from nltk import RegexpTokenizer, FreqDist, word_tokenize
-from scipy import sparse
-from scipy.stats import entropy
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
-
-from doc_sim import DocSim
-from data_conenction import Database
-from cz_stemmer.czech_stemmer import cz_stem
 
 # AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
 # AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
@@ -1992,7 +1991,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
-    def train_lda(self, data, display_dominant_topics=True):
+    def train_lda(self, data, display_dominant_topics=False):
         data_words_nostops = self.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
@@ -2012,12 +2011,13 @@ class Lda:
         t1 = time.time()
 
         # low alpha means each document is only represented by a small number of topics, and vice versa
-        # low eta means each topic is only represented by a small number of words, and vice versa
+        # low eta means
+        # each topic is only represented by a small number of words, and vice versa
+
         print("LDA training...")
-        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
-                             minimum_probability=0.00,chunksize=chunksize,
-                             alpha='auto', eta='auto',
-                             passes=passes, iterations=iterations)
+        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.0,
+                             chunksize=chunksize, eta='auto', alpha='auto',
+                             passes=passes)
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
@@ -2084,12 +2084,6 @@ class Lda:
         top_k_words, _ = zip(*fdist.most_common(k))
         self.top_k_words = set(top_k_words)
 
-        print("self.df['tokenized']")
-        print(self.df['tokenized'])
-
-        print("self.df['tokenized']")
-        print(self.df['tokenized'])
-
         self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
 
         # document length
@@ -2115,8 +2109,8 @@ class Lda:
 
         num_topics = 20  # set according visualise_lda() method (Coherence value) = 20
         chunksize = 1000
-        passes = 2 # evaluated on 20
-        workers = 7  # change when used on different computer/server according tu no. of CPU cores
+        passes = 20 # evaluated on 20
+        # workers = 7  # change when used LdaMulticore on different computer/server according tu no. of CPU cores
         eta = 'auto'
         per_word_topics = True
         iterations = 200
@@ -2126,6 +2120,7 @@ class Lda:
                              minimum_probability=0.0, chunksize=chunksize,
                              eta=eta, alpha='auto',
                              passes=passes, iterations=iterations)
+
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
@@ -2134,7 +2129,6 @@ class Lda:
 
         if display_dominant_topics is True:
             self.display_dominant_topics(optimal_model=lda_model, corpus=corpus, texts=data_words_bigrams)
-
 
         lda = lda_model.load("models/lda_model_full_text")
         doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
@@ -2271,7 +2265,6 @@ class Lda:
                                                iterations=iterations)
 
         coherence_model_lda = CoherenceModel(model=lda_model, texts=data_lemmatized, dictionary=dictionary,
-                                             coherence='c_v')
 
         return coherence_model_lda.get_coherence()
 
@@ -2421,25 +2414,28 @@ class Lda:
     def display_dominant_topics(self, optimal_model, corpus, texts):
 
         df_topic_sents_keywords = self.format_topics_sentences(lda_model=optimal_model, corpus=corpus, texts=texts)
-
         # Format
         df_dominant_topic = df_topic_sents_keywords.reset_index()
         df_dominant_topic.columns = ['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords', 'Text']
-
         # Show dominant topics
         pd.set_option('display.max_rows', 1000)
         print("Dominant topics:")
-        print(df_dominant_topic.head(10).to_string())
+        print(self.df.head(10).to_string())
+        df_dominant_topic_merged = df_dominant_topic.merge(self.df, how='outer', left_index=True, right_index=True)
+        print("After join")
+        df_dominant_topic_filtered_columns = df_dominant_topic_merged[['Document_No', 'slug_x', 'title_x', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords']]
+        print(df_dominant_topic_filtered_columns.head(10).to_string())
+        # saving dominant topics with corresponding documents
+        df_dominant_topic_filtered_columns.to_csv("exports/dominant_topics_and_documents.csv", sep=';', encoding='iso8859_2', errors='replace')
 
         # Group top 5 sentences under each topic
         sent_topics_sorteddf = pd.DataFrame()
-
         sent_topics_outdf_grpd = df_topic_sents_keywords.groupby('Dominant_Topic')
 
         for i, grp in sent_topics_outdf_grpd:
             sent_topics_sorteddf = pd.concat([sent_topics_sorteddf,
-                                                     grp.sort_values(['Perc_Contribution'], ascending=[0]).head(1)],
-                                                    axis=0)
+                                            grp.sort_values(['Perc_Contribution'], ascending=[0]).head(1)],
+                                            axis=0)
 
         # Reset Index
         sent_topics_sorteddf.reset_index(drop=True, inplace=True)
@@ -2456,10 +2452,8 @@ class Lda:
 
         # Topic Number and Keywords
         topic_num_keywords = df_topic_sents_keywords[['Dominant_Topic', 'Topic_Keywords']]
-
         # Concatenate Column wise
         df_dominant_topics = pd.concat([topic_num_keywords, topic_counts, topic_contribution], axis=1)
-
         # Change Column names
         df_dominant_topics.columns = ['Dominant_Topic', 'Topic_Keywords', 'Num_Documents', 'Perc_Documents']
 
@@ -2487,9 +2481,10 @@ def main():
     # database = Database()
     # database.insert_posts_dataframe_to_cache() # for update
 
-    searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"  # print(doc2vecClass.get_similar_doc2vec(slug))
+    # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"  # print(doc2vecClass.get_similar_doc2vec(slug))
     # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     # searched_slug = "facr-o-slavii-a-rangers-verime-v-objektivni-vysetreni-odmitame-rasismus"
+    # searched_slug = 'krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'
 
     # STEMMING
     # word = "rybolovný"

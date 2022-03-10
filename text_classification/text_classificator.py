@@ -15,7 +15,6 @@ ignore_words = ['?',',','.',':','!']
 
 # english stemmer
 stemmer = LancasterStemmer()
-
 training_data = []
 
 # open file in read mode
@@ -31,50 +30,7 @@ with open('articles_categories_recommender_full.csv', 'r', encoding='utf-8') as 
             training_data.append({"class": row['category_title'],
                               "sentence": row['post_title']})
 
-# manual training data
-"""
-training_data.append(
-    {"class": "hry", "sentence": "Milujete kávu? V Espresso Tycoon se budete starat o vlastní kavárnu"})
-training_data.append(
-    {"class": "hry", "sentence": "Vrací se Želvy Ninja, v nové videohře vyzvou samotného Trhače"})
-training_data.append(
-    {"class": "hry", "sentence": "Do prodeje míří plyšák podle nejdivnějšího hrdiny z Mass Effectu"})
-training_data.append(
-    {"class": "hry", "sentence": "Prodeje hororu Amnesia: Rebirth přesáhly sto tisíc, na zisk to nestačí"})
-
-training_data.append({"class": "věda a technologie",
-                      "sentence": "Brzy uvidíme nový supersmartphone pro geeky. Jací byli jeho předchůdci?"})
-training_data.append({"class": "věda a technologie",
-                      "sentence": "iPhony čeká designová změna. Apple se má inspirovat androidí konkurencí"})
-training_data.append(
-    {"class": "věda a technologie", "sentence": "Pomůžou na postcovidový syndrom vakcíny? Zdá se to možné"})
-training_data.append({"class": "věda a technologie",
-                      "sentence": "Život v budovách nám nesvědčí, říká vědkyně, která vymyslela rovnici stresu"})
-
-training_data.append(
-    {"class": "sport",
-     "sentence": "ONLINE: Pardubice zachraňují sérii, doma vedou 3:1. Vzepře se Hradec Tygrům?"})
-training_data.append(
-    {"class": "sport", "sentence": "FAČR o Slavii a Rangers: Věříme v objektivní vyšetření, odmítáme rasismus"})
-training_data.append(
-    {"class": "sport", "sentence": "První časovka v Quick-Stepu. Černý v Katalánsku vedl, nakonec byl osmý"})
-training_data.append(
-    {"class": "sport", "sentence": "Malý krok pro člověka, ale velký skok pro golf. Skončilo to před 50 lety"})
-training_data.append(
-    {"class": "sport", "sentence": "Johannes Bö porazil Lägreida. Potřetí v řadě je velký glóbus jeho"})
-
-training_data.append(
-    {"class": "domácí",
-     "sentence": "Muž se vyhýbal vězení. Když na sebe upozornil přestupkem, zkusil hlídce ujet"})
-training_data.append(
-    {"class": "domácí", "sentence": "VIDEO: Jezevčík se zřítil do sklepa, strážnice ho vylákala až díky šunce"})
-training_data.append(
-    {"class": "domácí", "sentence": "Třicet dnů rozhodně ne, řekl Bartoš. Opozici svorně vadí uzávěra okresů"})
-training_data.append({"class": "domácí", "sentence": "Zemřela první dáma českého šansonu Hana Hegerová"})
-
-"""
 print("%s sentences in training data" % len(training_data))
-
 
 # loop through each sentence in our training data
 for pattern in training_data:
@@ -164,7 +120,7 @@ def bow(sentence, words, show_details=False):
     return (np.array(bag))
 
 
-def think(sentence, show_details=False):
+def think(sentence, synapse_0, synapse_1, show_details=False):
 
     x = bow(sentence.lower(), words, show_details)
     if show_details:
@@ -258,31 +214,31 @@ def train(X, y, hidden_neurons=10, alpha=2, epochs=50000, dropout=False, dropout
         json.dump(synapse, outfile, indent=4, sort_keys=True, ensure_ascii=False)
     print("saving synapses to json file...", synapse_file)
 
-
+"""
 X = np.array(training)
 y = np.array(output)
 
 start_time = time.time()
-
 train(X, y, hidden_neurons=20, alpha=2, epochs=10000, dropout=False, dropout_percent=0.2)
-
 elapsed_time = time.time() - start_time
 print("Processing time:", elapsed_time, "seconds")
-
+"""
 # probability threshold
 ERROR_THRESHOLD = 0.2
 
-# load our calculated synapse values
-synapse_file = 'synapses.json'
-with open(synapse_file) as data_file:
-    synapse = json.load(data_file)
-    synapse_0 = np.asarray(synapse['synapse0'])
-    synapse_1 = np.asarray(synapse['synapse1'])
+def load_synapse_file():
+    # load our calculated synapse values
+    synapse_file = 'synapses.json'
+    with open(synapse_file) as data_file:
+        synapse = json.load(data_file)
+        synapse_0 = np.asarray(synapse['synapse0'])
+        synapse_1 = np.asarray(synapse['synapse1'])
 
+    return synapse_0, synapse_1
 
-def classify(sentence, show_details=False):
+def classify(sentence, synapse_0, synapse_1,show_details=False):
 
-    results = think(sentence, show_details)
+    results = think(sentence, show_details, synapse_0, synapse_1)
 
     results = [[i, r] for i, r in enumerate(results) if r > ERROR_THRESHOLD]
     results.sort(key=lambda x: x[1], reverse=True)
@@ -290,14 +246,16 @@ def classify(sentence, show_details=False):
     print("%s \n classification: %s" % (sentence, return_results))
     return return_results
 
+synapse_0, synapse_1 = load_synapse_file()
 
 classify("Popularita Netflixu a dalších služeb prospívá i Česku, míní šéfka fondu. Vítězi pandemie jsou streamovací platformy Netflix, Amazon nebo Apple TV, konstatuje šéfka Státního fondu kinematografie Helena Bezděk Fraňková v Rozstřelu. Poptávka předplatitelů po jejich původních seriálech i filmech stoupá, což se následně zrcadlí i ve zvýšeném zájmu zahraničních produkcí natáčet je v Česku. Osm set milionů korun, které má fond k dispozici na filmové pobídky, by tak letos stejně jako v roce 2019 nemuselo stačit. „Všichni jsou zavření doma, nemohou do kina ani do divadla, tak stoupá počet předplatitelů streamovacích služeb. A když už si je někdo předplatí, vyžaduje neustále nové seriály a filmy,“ uvádí ředitelka fondu. / "
-         "Zahraniční filmaře proto pandemie v důsledku nezastavila, ale spíše ještě nakopla. Zájem o filmové pobídky poskytované Státním fondem kinematografie je proto velký. Filmovou pobídku Helena Bezděk Fraňková zjednodušeně vysvětluje jako „dvacetiprocentní slevu na všechno české“. „Poskytujeme ji tak, že ještě než sem vůbec produkce přijede, producent si najde tuzemskou servisní producentskou firmu, která výrobu filmu nebo seriálu zajistí a současně pošle Fondu scénář daného projektu. Odborná komise si jej přečte, zhodnotí, a buď mu dá, nebo nedá značku kulturního produktu. / "
-         "„Na základě toho pak producent předloží výrobní rozpočet, my se podíváme, co je z předložených nákladů české, a dáme na to dvacet procent slevu. Podstatné je však říct, že už v tu chvíli musíme mít dané finanční prostředky ze státního rozpočtu na fondu připraveny, abychom je konkrétnímu projektu zavázali. Pokud finanční prostředky nemáme, zákonem je zakázáno cokoli filmové produkci slibovat. Vyplatit je pak můžeme v momentě, kdy produkce dotočí a producent předloží audit toho, co za výrobu v ČR utratil,“ vysvětluje /"
-         "se Carnival Row. A zatímco loni 800 milionů na filmové pobídky Fondu stačilo, letos tomu tak být nemusí a podle Bezděk Fraňkové ani nebude. Znovu se chce do Česka vrátit štáb seriálu Carnival Row, který zde utratil už přes tři miliardy korun a pokračovat v natáčení plánuje i producent seriálu The Wheel of Time, ve kterém hraje herečka Rosamund Pike. Ze svého dočasného pražského domova dokonce nedávno na dálku převzala Zlatý glóbus za roli ve filmu Jako v bavlnce. / "
-         "Šéfku fondu tak čekají vyjednávání s ministerstvem kultury a financí o navýšení rozpočtu filmových pobídek. Odmítat nové projekty by Bezděk Fraňková činila nerada. „Odmítáte tím totiž zároveň práci pro místní, a to je ještě teď v době pandemie zcela špatné. Firmy i lidi potřebují práci. Většina filmů se navíc natáčí v regionech, takže štáby bydlí po hotelech a pro ty je výhodné, že mohou alespoň někoho ubytovat. Do toho samozřejmě produkce odebírají jídlo z místních restaurací, art departmenty zaměstnávají malé firmy pro výrobu různých rekvizit z kovu či dřeva, nakupují se věci z kosmetického a textilního průmyslu a podobně,“ vysvětluje. / "
-         "V roce 2019 zahraniční filmaři v Česku utratili přes devět miliard korun. Hlavním konkurentem České republiky v rámci filmových pobídek je Maďarsko. Poskytuje pobídky ve výši 30 procent a činí tak odlišným způsobem než Státní fond kinematografie. „Je to něco jako daňová asignace, forma praktičtější pro jejich fond, trochu komplikovanější pro producenta, ale dává tím Maďarsku v podstatě neomezený rozpočet,“ podotýká Fraňková. Sama by v Česku ráda prosadila zvýšení pobídek na 25 procent, s tím však přímo souvisí i nutné navýšení rozpočtu. / "
-         "V tuto chvíli jsou pro Helenu Bezděk Fraňkovou nejpodstatnějšími tématy Národní plán obnovy, ze kterého by fond mohl získat dostatek nových financí na přeměnu fondu kinematografie na fond audiovize. „Začínají se totiž zcela stírat hranice mezi tím, jestli jdeme do kina, nebo se doma díváme na obrazovku. Podporovat bychom navíc chtěli i gaming,“ prozrazuje.")
+        "Zahraniční filmaře proto pandemie v důsledku nezastavila, ale spíše ještě nakopla. Zájem o filmové pobídky poskytované Státním fondem kinematografie je proto velký. Filmovou pobídku Helena Bezděk Fraňková zjednodušeně vysvětluje jako „dvacetiprocentní slevu na všechno české“. „Poskytujeme ji tak, že ještě než sem vůbec produkce přijede, producent si najde tuzemskou servisní producentskou firmu, která výrobu filmu nebo seriálu zajistí a současně pošle Fondu scénář daného projektu. Odborná komise si jej přečte, zhodnotí, a buď mu dá, nebo nedá značku kulturního produktu. / "
+        "„Na základě toho pak producent předloží výrobní rozpočet, my se podíváme, co je z předložených nákladů české, a dáme na to dvacet procent slevu. Podstatné je však říct, že už v tu chvíli musíme mít dané finanční prostředky ze státního rozpočtu na fondu připraveny, abychom je konkrétnímu projektu zavázali. Pokud finanční prostředky nemáme, zákonem je zakázáno cokoli filmové produkci slibovat. Vyplatit je pak můžeme v momentě, kdy produkce dotočí a producent předloží audit toho, co za výrobu v ČR utratil,“ vysvětluje /"
+        "se Carnival Row. A zatímco loni 800 milionů na filmové pobídky Fondu stačilo, letos tomu tak být nemusí a podle Bezděk Fraňkové ani nebude. Znovu se chce do Česka vrátit štáb seriálu Carnival Row, který zde utratil už přes tři miliardy korun a pokračovat v natáčení plánuje i producent seriálu The Wheel of Time, ve kterém hraje herečka Rosamund Pike. Ze svého dočasného pražského domova dokonce nedávno na dálku převzala Zlatý glóbus za roli ve filmu Jako v bavlnce. / "
+        "Šéfku fondu tak čekají vyjednávání s ministerstvem kultury a financí o navýšení rozpočtu filmových pobídek. Odmítat nové projekty by Bezděk Fraňková činila nerada. „Odmítáte tím totiž zároveň práci pro místní, a to je ještě teď v době pandemie zcela špatné. Firmy i lidi potřebují práci. Většina filmů se navíc natáčí v regionech, takže štáby bydlí po hotelech a pro ty je výhodné, že mohou alespoň někoho ubytovat. Do toho samozřejmě produkce odebírají jídlo z místních restaurací, art departmenty zaměstnávají malé firmy pro výrobu různých rekvizit z kovu či dřeva, nakupují se věci z kosmetického a textilního průmyslu a podobně,“ vysvětluje. / "
+        "V roce 2019 zahraniční filmaři v Česku utratili přes devět miliard korun. Hlavním konkurentem České republiky v rámci filmových pobídek je Maďarsko. Poskytuje pobídky ve výši 30 procent a činí tak odlišným způsobem než Státní fond kinematografie. „Je to něco jako daňová asignace, forma praktičtější pro jejich fond, trochu komplikovanější pro producenta, ale dává tím Maďarsku v podstatě neomezený rozpočet,“ podotýká Fraňková. Sama by v Česku ráda prosadila zvýšení pobídek na 25 procent, s tím však přímo souvisí i nutné navýšení rozpočtu. / "
+        "V tuto chvíli jsou pro Helenu Bezděk Fraňkovou nejpodstatnějšími tématy Národní plán obnovy, ze kterého by fond mohl získat dostatek nových financí na přeměnu fondu kinematografie na fond audiovize. „Začínají se totiž zcela stírat hranice mezi tím, jestli jdeme do kina, nebo se doma díváme na obrazovku. Podporovat bychom navíc chtěli i gaming,“ prozrazuje.",
+         synapse_0, synapse_1)
 """
 classify("Leicester ve čtvrtfinále Anglického poháru zdolal United, postoupily i City a Chelsea")
 classify("Real má po půli dvoubrankový náskok nad Liverpoolem, City vede o gól")
