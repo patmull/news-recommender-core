@@ -2264,8 +2264,7 @@ class Lda:
                                                # workers=7,
                                                iterations=iterations)
 
-        coherence_model_lda = CoherenceModel(model=lda_model, texts=data_lemmatized, dictionary=dictionary,
-
+        coherence_model_lda = CoherenceModel(model=lda_model, texts=data_lemmatized, dictionary=dictionary, coherence='c_v')
         return coherence_model_lda.get_coherence()
 
     def find_optimal_model(self, body_text_model=True):
@@ -2311,10 +2310,26 @@ class Lda:
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
         id2word = gensim.corpora.Dictionary.load_from_text('full_models/cswiki/cswiki_wordids.txt.bz2')
         mm = gensim.corpora.MmCorpus('full_models/cswiki/cswiki_tfidf.mm')
-        lda = LdaMulticore(corpus=mm, id2word=id2word, num_topics=100, passes=1, workers=7)
+        lda_model = LdaMulticore(corpus=mm, id2word=id2word, num_topics=2, passes=1, workers=7)
         print("mm")
         print(mm) # Setting parameters
-        print(lda.print_topics(20))
+        lda_model.save("full_models/cswiki/lda/lda_model")
+        lda_model_loaded = LdaModel.load("full_models/cswiki/lda/lda_model")
+
+        print(lda_model.print_topics(20))
+
+        meta_file = open("full_models/cswiki/cswiki_bow.mm.metadata.cpickle", 'rb')
+        docno2metadata = pickle.load(meta_file)
+        meta_file.close()
+
+        doc_num = 0
+        print("Title: {}".format(docno2metadata[doc_num][1]))  # take the first article as an example
+        vec = mm[doc_num]  # get tf-idf vector
+        print("lda.get_document_topics(vec)")
+        print(lda_model_loaded.get_document_topics(vec))
+
+        return
+
         limit = 1500
         start = 10
         step = 100
