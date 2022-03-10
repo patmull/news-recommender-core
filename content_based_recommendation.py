@@ -1,5 +1,6 @@
 import gc
 import json
+import logging
 import random
 import re
 import string
@@ -1925,7 +1926,7 @@ class Lda:
 
             dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
             dropbox_file_download(dropbox_access_token, "models/lda_model", "/lda_model")
-            dropbox_file_download(dropbox_access_token, "models/lda_model.expElogbeta.npy", "/lda_model.expElogbeta.npy")
+            dropbox_file_download(dropbox_access_token, "models/lda_model.expElogeta.npy", "/lda_model.expElogeta.npy")
             dropbox_file_download(dropbox_access_token, "models/lda_model.id2word", "/lda_model.id2word")
             dropbox_file_download(dropbox_access_token, "models/lda_model.state", "/lda_model.state")
             dropbox_file_download(dropbox_access_token, "models/lda_model.state.sstats.npy", "/lda_model.state.sstats.npy")
@@ -1962,7 +1963,7 @@ class Lda:
             print("Downloading LDA model files...")
             dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
             dropbox_file_download(dropbox_access_token, "models/lda_model_full_text", "/lda_model_full_text")
-            dropbox_file_download(dropbox_access_token, "models/lda_model_full_text.expElogbeta.npy", "/lda_model_full_text.expElogbeta.npy")
+            dropbox_file_download(dropbox_access_token, "models/lda_model_full_text.expElogeta.npy", "/lda_model_full_text.expElogeta.npy")
             dropbox_file_download(dropbox_access_token, "models/lda_model_full_text.id2word", "/lda_model_full_text.id2word")
             dropbox_file_download(dropbox_access_token, "models/lda_model_full_text.state", "/lda_model_full_text.state")
             dropbox_file_download(dropbox_access_token, "models/lda_model_full_text.state.sstats.npy", "/lda_model_full_text.state.sstats.npy")
@@ -2249,19 +2250,25 @@ class Lda:
         self.visualise_lda(lda_model, corpus, dictionary, data_words_bigrams)
 
     # supporting function
-    def compute_coherence_values(self, corpus, dictionary, data_lemmatized, k, a, b):
+    def compute_coherence_values(self, corpus, dictionary, data_lemmatized, num_topics, alpha, eta, passes, iterations):
 
-        lda_model = gensim.models.LdaMulticore(corpus=corpus,
+        # Make sure that by the final passes, most of the documents have converged. So you want to choose both passes and iterations to be high enough for this to happen.
+        # After choosing the right passes, you can set to None because it evaluates model perplexity and this takes too much time
+        eval_every = 1
+
+        lda_model = gensim.models.LdaModel(corpus=corpus,
                                                id2word=dictionary,
-                                               num_topics=k,
+                                               num_topics=num_topics,
                                                random_state=100,
-                                               chunksize=100,
-                                               passes=1, # default 10
-                                               alpha=a,
-                                               eta=b,
+                                               chunksize=2000,
+                                               passes=passes,
+                                               alpha=alpha,
+                                               eta=eta,
+                                               eval_every=eval_every,
+                                               # callbacks=[l],
                                                # added
-                                               workers=7,
-                                               iterations=2)
+                                               # workers=7,
+                                               iterations=iterations)
 
         coherence_model_lda = CoherenceModel(model=lda_model, texts=data_lemmatized, dictionary=dictionary,
                                              coherence='c_v')
@@ -2302,60 +2309,86 @@ class Lda:
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
         data_lemmatized = data_words_bigrams
         dictionary = corpora.Dictionary(data_lemmatized)
+        dictionary.filter_extremes(no_below=20, no_above=0.5)
         corpus = [dictionary.doc2bow(doc) for doc in data_lemmatized]
 
+        # Enabling LDA logging
+        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+
+        # Setting parameters
         limit = 1500
         start = 10
         step = 100
-
         # Topics range
         min_topics = 2
         max_topics = 3
         step_size = 1
-        topics_range = range(min_topics, max_topics, step_size)  # Alpha parameter
-        alpha = list(np.arange(0.01, 1, 0.5))
-        alpha.append('symmetric')
-        alpha.append('asymmetric')  # Beta parameter
-        beta = list(np.arange(0.01, 1, 0.5))
-        beta.append('symmetric')  # Validation sets
+        topics_range = range(min_topics, max_topics, step_size)
+        # alpha = list(np.arange(0.01, 1, 0.5))
+        alpha = []
+        # alpha_params = ['symmetric','asymmetric','auto']
+        alpha_params = ['auto']
+        alpha.extend(alpha_params)
+        eta = []
+        # eta_params = ['symmetric','asymmetric','auto']
+        eta_params = ['auto']
+        eta.extend(eta_params)
+        min_passes = 1
+        max_passes = 2
+        step_size = 1
+        passes_range = range(min_passes, max_passes, step_size)
+        min_iterations = 1
+        max_iterations = 2
+        step_size = 1
+        iterations_range = range(min_iterations, max_iterations, step_size)
         num_of_docs = len(corpus)
         corpus_sets = [
-            gensim.utils.ClippedCorpus(corpus, int(num_of_docs*0.05)),
+            # gensim.utils.ClippedCorpus(corpus, int(num_of_docs*0.05)),
             # gensim.utils.ClippedCorpus(corpus, num_of_docs*0.5),
-            #gensim.utils.ClippedCorpus(corpus, int(num_of_docs * 0.75)),
+            gensim.utils.ClippedCorpus(corpus, int(num_of_docs * 0.75)),
             corpus]
         corpus_title = ['75% Corpus', '100% Corpus']
         model_results = {'Validation_Set': [],
                          'Topics': [],
                          'Alpha': [],
-                         'Beta': [],
-                         'Coherence': []
+                         'eta': [],
+                         'Coherence': [],
+                         'Passes': [],
+                         'Iterations': []
                          }  # Can take a long time to run
 
-        pbar = tqdm.tqdm(total=2)
+        pbar = tqdm.tqdm(total=540)
 
         # iterate through validation corpuses
         for i in range(len(corpus_sets)):
             # iterate through number of topics
             for k in topics_range:
-                # iterate through alpha values
-                for a in alpha:
-                    # iterare through beta values
-                    for b in beta:
-                        # get the coherence score for the given parameters
-                        cv = self.compute_coherence_values(corpus=corpus_sets[i], dictionary=dictionary,
-                                                           data_lemmatized=data_lemmatized,
-                                                           k=k, a=a, b=b)
-                        # Save the model results
-                        model_results['Validation_Set'].append(corpus_title[i])
-                        model_results['Topics'].append(k)
-                        model_results['Alpha'].append(a)
-                        model_results['Beta'].append(b)
-                        model_results['Coherence'].append(cv)
+                for p in passes_range:
+                    for i in iterations_range:
+                        # iterate through alpha values
+                        for a in alpha:
+                            # iterare through eta values
+                            for e in eta:
+                                # get the coherence score for the given parameters
+                                print(alpha)
+                                print(eta)
+                                cv = self.compute_coherence_values(corpus=corpus_sets[i], dictionary=dictionary,
+                                                                   data_lemmatized=data_lemmatized,
+                                                                   num_topics=k, alpha=a, eta=e, passes=p, iterations=i)
+                                # Save the model results
+                                model_results['Validation_Set'].append(corpus_title[i])
+                                model_results['Topics'].append(k)
+                                model_results['Alpha'].append(a)
+                                model_results['eta'].append(e)
+                                model_results['Coherence'].append(cv)
+                                model_results['Passes'].append(p)
+                                model_results['Iterations'].append(i)
 
-                        pbar.update(1)
+                                pbar.update(1)
+
         pd.DataFrame(model_results).to_csv('lda_tuning_results.csv', index=False)
         pbar.close()
+
 
     def format_topics_sentences(self, lda_model, corpus, texts):
         # Init output
