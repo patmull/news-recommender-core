@@ -1,3 +1,3 @@
-Validation_Set,Topics,Alpha,eta,Coherence,Passes,Iterations
-100% Corpus,2,auto,auto,0.41946348283458834,1,1
-100% Corpus,2,auto,auto,0.41946348283458834,1,1
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,auto,-2.1266199612798156,1,1
+100% Corpus,2,symmetric,auto,-2.1266199612798156,1,1
