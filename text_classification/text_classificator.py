@@ -1,7 +1,5 @@
 import csv
 import datetime
-import itertools
-import time
 import json
 import nltk
 from nltk.stem.lancaster import LancasterStemmer
