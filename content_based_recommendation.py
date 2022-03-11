@@ -14,11 +14,14 @@ import gensim
 import numpy as np
 import pandas as pd
 import psycopg2
+import smart_open
 from gensim import corpora
 from gensim import models
 from gensim import similarities
+from gensim.corpora import WikiCorpus
 from gensim.models import TfidfModel, KeyedVectors, LdaModel, fasttext, Word2Vec, CoherenceModel, LdaMulticore
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+from gensim.utils import deaccent
 from nltk import RegexpTokenizer, FreqDist, word_tokenize
 from scipy import sparse
 from scipy.stats import entropy
@@ -27,6 +30,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
 
+import cz_lemmatization
 from doc_sim import DocSim
 from data_conenction import Database
 from cz_stemmer.czech_stemmer import cz_stem
@@ -506,13 +510,14 @@ class GenSim:
         # print(lemma_words)
 
     def preprocess_single_post(self, slug, json=False, stemming=False):
+        recommenderMethods = RecommenderMethods()
         post_dataframe = self.find_post_by_slug(slug)
         post_dataframe["title"] = post_dataframe["title"].map(lambda s: self.preprocess(s, stemming))
         post_dataframe["excerpt"] = post_dataframe["excerpt"].map(lambda s: self.preprocess(s, stemming))
         if json is False:
             return post_dataframe
         else:
-            return self.convert_df_to_json(post_dataframe)
+            return recommenderMethods.convert_df_to_json(post_dataframe)
 
     @DeprecationWarning
     def cz_lemma(self, string, json=False):
@@ -744,6 +749,17 @@ class RecommenderMethods:
 
         return json
 
+    def generate_lines_from_corpus(self, corpus, max_sentence=-1, preprocess=False):
+        for index, text in enumerate(corpus.get_texts()):
+            if index < max_sentence or max_sentence == -1:
+                if preprocess is False:
+                    yield text
+                if preprocess is True:
+                    czlemma = cz_lemmatization.CzLemma()
+                    yield czlemma.preprocess(deaccent(text))
+            else:
+                break
+
     def set_cosine_sim_use_own_matrix(self, own_tfidf_matrix):
         own_tfidf_matrix_csr = sparse.csr_matrix(own_tfidf_matrix.astype(dtype=np.float16)).astype(dtype=np.float16)
         cosine_sim = self.cosine_similarity_n_space(own_tfidf_matrix_csr, own_tfidf_matrix_csr)
@@ -798,6 +814,11 @@ class RecommenderMethods:
         list_of_article_slugs.append(dict.copy())
         return list_of_article_slugs[0]
 
+    def convert_df_to_json(self, dataframe):
+        result = dataframe[["title", "excerpt", "body"]].to_json(orient="records", lines=True)
+        parsed = json.loads(result)
+        return parsed
+
     @DeprecationWarning
     def download_from_amazon(self, amazon_bucket_url):
         amazon_model = pickle.load(smart_open.smart_open(self.amazon_bucket_url))
@@ -817,6 +838,7 @@ class RecommenderMethods:
         except Exception as e:
             print(e)
             return False
+
 
 class TfIdf:
 
@@ -1162,11 +1184,6 @@ class TfIdf:
 
         del recommenderMethods
         return post_recommendations
-
-    def convert_df_to_json(self, dataframe):
-        result = dataframe[["title", "excerpt", "body"]].to_json(orient="records", lines=True)
-        parsed = json.loads(result)
-        return parsed
 
     def convert_to_json_one_row(self, key, value):
         list_for_json = []
@@ -2244,13 +2261,13 @@ class Lda:
         self.visualise_lda(lda_model, corpus, dictionary, data_words_bigrams)
 
     # supporting function
-    def compute_coherence_values(self, corpus, dictionary, data_lemmatized, num_topics, alpha, eta, passes, iterations):
+    def compute_coherence_values(self, corpus, dictionary, num_topics, alpha, eta, passes, iterations, data_lemmatized=None):
 
         # Make sure that by the final passes, most of the documents have converged. So you want to choose both passes and iterations to be high enough for this to happen.
         # After choosing the right passes, you can set to None because it evaluates model perplexity and this takes too much time
         eval_every = 1
 
-        lda_model = gensim.models.LdaModel(corpus=corpus,
+        lda_model = gensim.models.LdaMulticore(corpus=corpus,
                                                id2word=dictionary,
                                                num_topics=num_topics,
                                                random_state=100,
@@ -2261,10 +2278,34 @@ class Lda:
                                                eval_every=eval_every,
                                                # callbacks=[l],
                                                # added
-                                               # workers=7,
+                                               workers=7,
                                                iterations=iterations)
 
-        coherence_model_lda = CoherenceModel(model=lda_model, texts=data_lemmatized, dictionary=dictionary, coherence='c_v')
+        print("mm")
+        print(corpus)
+
+        """
+        lda_model.save("full_models/cswiki/lda/lda_model")
+        lda_model_loaded = LdaMulticore.load("full_models/cswiki/lda/lda_model")
+        
+        print(lda_model.print_topics(20))
+
+        meta_file = open("full_models/cswiki/cswiki_bow.mm.metadata.cpickle", 'rb')
+        docno2metadata = pickle.load(meta_file)
+        meta_file.close()
+
+        doc_num = 0
+        print("Title: {}".format(docno2metadata[doc_num][1]))  # take the first article as an example
+        vec = corpus[doc_num]  # get tf-idf vector
+        print("lda.get_document_topics(vec)")
+        print(lda_model_loaded.get_document_topics(vec))
+        """
+        #  For ‘u_mass’ corpus should be provided, if texts is provided, it will be converted to corpus using the dictionary. For ‘c_v’, ‘c_uci’ and ‘c_npmi’ texts should be provided
+        if data_lemmatized is None:
+            coherence_model_lda = CoherenceModel(model=lda_model, corpus=corpus, dictionary=dictionary,coherence='u_mass')
+        else:
+            coherence_model_lda = CoherenceModel(model=lda_model, texts=data_lemmatized, dictionary=dictionary, coherence='c_v')
+
         return coherence_model_lda.get_coherence()
 
     def find_optimal_model(self, body_text_model=True):
@@ -2308,27 +2349,30 @@ class Lda:
 
         # Enabling LDA logging
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+        corpus = WikiCorpus('full_models/cswiki-20220301-pages-articles-multistream.xml.bz2', dictionary=False)
         id2word = gensim.corpora.Dictionary.load_from_text('full_models/cswiki/cswiki_wordids.txt.bz2')
-        mm = gensim.corpora.MmCorpus('full_models/cswiki/cswiki_tfidf.mm')
-        lda_model = LdaMulticore(corpus=mm, id2word=id2word, num_topics=2, passes=1, workers=7)
-        print("mm")
-        print(mm) # Setting parameters
-        lda_model.save("full_models/cswiki/lda/lda_model")
-        lda_model_loaded = LdaModel.load("full_models/cswiki/lda/lda_model")
+        # corpus = gensim.corpora.MmCorpus('full_models/cswiki/cswiki_tfidf.mm')
+        # corpus = [dct.doc2bow(line) for line in dataset]
 
-        print(lda_model.print_topics(20))
+        # preprocessing steps
+        processed_data = []
+        recommenderMethods = RecommenderMethods()
+        czlemma = cz_lemmatization.CzLemma()
+        processed_data = []
+        # takes very long time
 
-        meta_file = open("full_models/cswiki/cswiki_bow.mm.metadata.cpickle", 'rb')
-        docno2metadata = pickle.load(meta_file)
-        meta_file.close()
+        for doc in recommenderMethods.generate_lines_from_corpus(corpus):
+            tokens = deaccent(czlemma.preprocess(doc))
+            processed_data.append(tokens.split())
 
-        doc_num = 0
-        print("Title: {}".format(docno2metadata[doc_num][1]))  # take the first article as an example
-        vec = mm[doc_num]  # get tf-idf vector
-        print("lda.get_document_topics(vec)")
-        print(lda_model_loaded.get_document_topics(vec))
+        print("processed_data")
+        print(processed_data)
+        preprocessed_dictionary = corpora.Dictionary(processed_data)
+        #save dictionary
+        preprocessed_corpus = [preprocessed_dictionary.doc2bow(token, allow_update=True) for token in processed_data]
 
-        return
+        print("preprocessed_corpus:")
+        print(preprocessed_corpus)
 
         limit = 1500
         start = 10
@@ -2341,7 +2385,7 @@ class Lda:
         # alpha = list(np.arange(0.01, 1, 0.5))
         alpha = []
         # alpha_params = ['symmetric','asymmetric','auto']
-        alpha_params = ['auto']
+        alpha_params = ['symmetric']
         alpha.extend(alpha_params)
         eta = []
         # eta_params = ['symmetric','asymmetric','auto']
@@ -2355,17 +2399,17 @@ class Lda:
         max_iterations = 2
         step_size = 1
         iterations_range = range(min_iterations, max_iterations, step_size)
-        num_of_docs = len(corpus)
+        num_of_docs = len(preprocessed_corpus)
         corpus_sets = [
             # gensim.utils.ClippedCorpus(corpus, int(num_of_docs*0.05)),
             # gensim.utils.ClippedCorpus(corpus, num_of_docs*0.5),
-            gensim.utils.ClippedCorpus(corpus, int(num_of_docs * 0.75)),
-            corpus]
+            gensim.utils.ClippedCorpus(preprocessed_corpus, int(num_of_docs * 0.75)),
+            preprocessed_corpus]
         corpus_title = ['75% Corpus', '100% Corpus']
         model_results = {'Validation_Set': [],
                          'Topics': [],
                          'Alpha': [],
-                         'eta': [],
+                         'Eta': [],
                          'Coherence': [],
                          'Passes': [],
                          'Iterations': []
@@ -2384,9 +2428,10 @@ class Lda:
                             # iterare through eta values
                             for e in eta:
                                 # get the coherence score for the given parameters
-                                cv = self.compute_coherence_values(corpus=corpus_sets[i], dictionary=dictionary,
-                                                                   data_lemmatized=data_lemmatized,
+                                cv = self.compute_coherence_values(corpus=corpus_sets[i], dictionary=id2word,
+                                                                   # data_lemmatized=data_lemmatized,
                                                                    num_topics=k, alpha=a, eta=e, passes=p, iterations=i)
+
                                 # Save the model results
                                 model_results['Validation_Set'].append(corpus_title[i])
                                 model_results['Topics'].append(k)
