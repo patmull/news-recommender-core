@@ -89,6 +89,7 @@ class Database:
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         return self.posts_df
 
+
     def insert_posts_dataframe_to_cache(self):
         sql = """SELECT * FROM posts ORDER BY id;"""
 
