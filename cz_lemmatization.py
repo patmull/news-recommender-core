@@ -2,7 +2,7 @@ import re, string
 from nltk import RegexpTokenizer
 import majka
 
-from content_based_recommendation import RecommenderMethods
+from content_based_algorithms.data_queries import RecommenderMethods
 from data_conenction import Database
 
 
@@ -79,6 +79,7 @@ class CzLemma:
                 return str(ls[0]['lemma'])
         else:
             return ls
+
 
 def main():
     cz_lemma = CzLemma()
