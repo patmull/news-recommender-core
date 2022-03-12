@@ -2,7 +2,11 @@ import traceback
 from user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
 from flask_restful import Api, Resource
-from content_based_recommendation import TfIdf, Doc2VecClass, Lda, word2vec_embedding, load_models, load_stopwords
+from content_based_recommendation import word2vec_embedding, load_models
+from content_based_algorithms.lda import Lda
+from content_based_algorithms.doc2vec import Doc2VecClass
+from content_based_algorithms.tfidf import TfIdf
+from content_based_algorithms.preprocessing import load_stopwords
 from collaboration_based_recommendation import Svd
 
 
