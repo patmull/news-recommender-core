@@ -80,6 +80,7 @@ word2vec_embedding = None
 doc2vec_model = None
 lda_model = None
 
+
 @DeprecationWarning
 def load_models():
     print("Loading Word2Vec model")
@@ -1109,7 +1110,7 @@ class TfIdf:
         fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
         fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
 
-        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title) # join feature tuples into one matrix
+        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)  # join feature tuples into one matrix
 
         gc.collect()
 
@@ -1406,6 +1407,7 @@ class TfIdf:
                 # print(actual_recommended_json)
                 database.insert_recommended_json(articles_recommended_json=actual_recommended_json,article_id=post_id)
 """
+
 
 class Doc2VecClass:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/d2v_all_in_one.model"
@@ -1758,6 +1760,7 @@ class Doc2VecClass:
 
         return (res[:20])
 
+
 class Lda:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/lda_all_in_one"
 
@@ -1871,7 +1874,8 @@ class Lda:
         if train is True:
             self.train_lda_full_text(self.df, display_dominant_topics=display_dominant_topics)
 
-        dictionary, corpus, lda = self.load_lda_full_text(self.df, retrain=train, display_dominant_topics=display_dominant_topics)
+        dictionary, corpus, lda = self.load_lda_full_text(self.df, retrain=train,
+                                                          display_dominant_topics=display_dominant_topics)
 
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
@@ -2021,10 +2025,10 @@ class Lda:
         dictionary = corpora.Dictionary(data['tokenized'])
         dictionary.filter_extremes()
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-        num_topics = 100 # set according visualise_lda() method (Coherence value) = 100
+        num_topics = 100  # set according visualise_lda() method (Coherence value) = 100
         chunksize = 1000
         iterations = 200
-        passes = 20 # evaluated on 20
+        passes = 20  # evaluated on 20
         t1 = time.time()
 
         # low alpha means each document is only represented by a small number of topics, and vice versa
@@ -2126,7 +2130,7 @@ class Lda:
 
         num_topics = 20  # set according visualise_lda() method (Coherence value) = 20
         chunksize = 1000
-        passes = 20 # evaluated on 20
+        passes = 20  # evaluated on 20
         # workers = 7  # change when used LdaMulticore on different computer/server according tu no. of CPU cores
         eta = 'auto'
         per_word_topics = True
@@ -2261,7 +2265,8 @@ class Lda:
         self.visualise_lda(lda_model, corpus, dictionary, data_words_bigrams)
 
     # supporting function
-    def compute_coherence_values(self, corpus, dictionary, num_topics, alpha, eta, passes, iterations, data_lemmatized=None):
+    def compute_coherence_values(self, corpus, dictionary, num_topics, alpha, eta, passes, iterations,
+                                 data_lemmatized=None):
 
         # Make sure that by the final passes, most of the documents have converged. So you want to choose both passes and iterations to be high enough for this to happen.
         # After choosing the right passes, you can set to None because it evaluates model perplexity and this takes too much time
@@ -2302,9 +2307,11 @@ class Lda:
         """
         #  For ‘u_mass’ corpus should be provided, if texts is provided, it will be converted to corpus using the dictionary. For ‘c_v’, ‘c_uci’ and ‘c_npmi’ texts should be provided
         if data_lemmatized is None:
-            coherence_model_lda = CoherenceModel(model=lda_model, corpus=corpus, dictionary=dictionary,coherence='u_mass')
+            coherence_model_lda = CoherenceModel(model=lda_model, corpus=corpus, dictionary=dictionary,
+                                                 coherence='u_mass')
         else:
-            coherence_model_lda = CoherenceModel(model=lda_model, texts=data_lemmatized, dictionary=dictionary, coherence='c_v')
+            coherence_model_lda = CoherenceModel(model=lda_model, texts=data_lemmatized, dictionary=dictionary,
+                                                 coherence='c_v')
 
         return coherence_model_lda.get_coherence()
 
@@ -2361,14 +2368,27 @@ class Lda:
         processed_data = []
         # takes very long time
 
+        i = 0
+        batch_num = 1
+        path_to_save_list = "full_models/cswiki/lda/preprocessed/articles"
         for doc in recommenderMethods.generate_lines_from_corpus(corpus):
+            print("Processing doc. num. " + str(i) + " batch no. " + str(batch_num))
             tokens = deaccent(czlemma.preprocess(doc))
             processed_data.append(tokens.split())
+            i = i + 1
+            # saving list to pickle evey 100th document
+            if i > 100:
+                with open(path_to_save_list, 'wb') as f:
+                    print("Saving list to " + path_to_save_list)
+                    pickle.dump(processed_data, f)
+                batch_num = batch_num + 1
+                i = 0
 
         print("processed_data")
         print(processed_data)
         preprocessed_dictionary = corpora.Dictionary(processed_data)
-        #save dictionary
+        # save dictionary
+        preprocessed_dictionary.save("full_models/cswiki/lda/preprocessed/dictionary")
         preprocessed_corpus = [preprocessed_dictionary.doc2bow(token, allow_update=True) for token in processed_data]
 
         print("preprocessed_corpus:")
@@ -2446,7 +2466,6 @@ class Lda:
         pd.DataFrame(model_results).to_csv('lda_tuning_results.csv', index=False)
         pbar.close()
 
-
     def format_topics_sentences(self, lda_model, corpus, texts):
         # Init output
         sent_topics_df = pd.DataFrame()
@@ -2483,10 +2502,12 @@ class Lda:
         print(self.df.head(10).to_string())
         df_dominant_topic_merged = df_dominant_topic.merge(self.df, how='outer', left_index=True, right_index=True)
         print("After join")
-        df_dominant_topic_filtered_columns = df_dominant_topic_merged[['Document_No', 'slug_x', 'title_x', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords']]
+        df_dominant_topic_filtered_columns = df_dominant_topic_merged[
+            ['Document_No', 'slug_x', 'title_x', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords']]
         print(df_dominant_topic_filtered_columns.head(10).to_string())
         # saving dominant topics with corresponding documents
-        df_dominant_topic_filtered_columns.to_csv("exports/dominant_topics_and_documents.csv", sep=';', encoding='iso8859_2', errors='replace')
+        df_dominant_topic_filtered_columns.to_csv("exports/dominant_topics_and_documents.csv", sep=';',
+                                                  encoding='iso8859_2', errors='replace')
 
         # Group top 5 sentences under each topic
         sent_topics_sorteddf = pd.DataFrame()
@@ -2494,8 +2515,8 @@ class Lda:
 
         for i, grp in sent_topics_outdf_grpd:
             sent_topics_sorteddf = pd.concat([sent_topics_sorteddf,
-                                            grp.sort_values(['Perc_Contribution'], ascending=[0]).head(1)],
-                                            axis=0)
+                                              grp.sort_values(['Perc_Contribution'], ascending=[0]).head(1)],
+                                             axis=0)
 
         # Reset Index
         sent_topics_sorteddf.reset_index(drop=True, inplace=True)
@@ -2610,5 +2631,6 @@ def main():
     h = hpy()
     print(h.heap())
     """
+
 
 if __name__ == "__main__": main()
