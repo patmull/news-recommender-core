@@ -1,3 +1,104 @@
 Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
-100% Corpus,2,symmetric,auto,-2.1266199612798156,1,1
-100% Corpus,2,symmetric,auto,-2.1266199612798156,1,1
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,auto,0.6698909778666604,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,auto,0.6698909778666604,20,0
+100% Corpus,8,symmetric,symmetric,0.5456586483955767,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,auto,0.6698909778666604,20,0
+100% Corpus,8,symmetric,symmetric,0.5456586483955767,20,0
+100% Corpus,8,symmetric,auto,0.5456586483955767,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,auto,0.6698909778666604,20,0
+100% Corpus,8,symmetric,symmetric,0.5456586483955767,20,0
+100% Corpus,8,symmetric,auto,0.5456586483955767,20,0
+100% Corpus,8,asymmetric,symmetric,0.5348413376404193,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,auto,0.6698909778666604,20,0
+100% Corpus,8,symmetric,symmetric,0.5456586483955767,20,0
+100% Corpus,8,symmetric,auto,0.5456586483955767,20,0
+100% Corpus,8,asymmetric,symmetric,0.5348413376404193,20,0
+100% Corpus,8,asymmetric,auto,0.5348413376404193,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,auto,0.6698909778666604,20,0
+100% Corpus,8,symmetric,symmetric,0.5456586483955767,20,0
+100% Corpus,8,symmetric,auto,0.5456586483955767,20,0
+100% Corpus,8,asymmetric,symmetric,0.5348413376404193,20,0
+100% Corpus,8,asymmetric,auto,0.5348413376404193,20,0
+100% Corpus,14,symmetric,symmetric,0.528064658114879,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,auto,0.6698909778666604,20,0
+100% Corpus,8,symmetric,symmetric,0.5456586483955767,20,0
+100% Corpus,8,symmetric,auto,0.5456586483955767,20,0
+100% Corpus,8,asymmetric,symmetric,0.5348413376404193,20,0
+100% Corpus,8,asymmetric,auto,0.5348413376404193,20,0
+100% Corpus,14,symmetric,symmetric,0.528064658114879,20,0
+100% Corpus,14,symmetric,auto,0.528273594301069,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,auto,0.6698909778666604,20,0
+100% Corpus,8,symmetric,symmetric,0.5456586483955767,20,0
+100% Corpus,8,symmetric,auto,0.5456586483955767,20,0
+100% Corpus,8,asymmetric,symmetric,0.5348413376404193,20,0
+100% Corpus,8,asymmetric,auto,0.5348413376404193,20,0
+100% Corpus,14,symmetric,symmetric,0.528064658114879,20,0
+100% Corpus,14,symmetric,auto,0.528273594301069,20,0
+100% Corpus,14,asymmetric,symmetric,0.5512449864340186,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,auto,0.6698909778666604,20,0
+100% Corpus,8,symmetric,symmetric,0.5456586483955767,20,0
+100% Corpus,8,symmetric,auto,0.5456586483955767,20,0
+100% Corpus,8,asymmetric,symmetric,0.5348413376404193,20,0
+100% Corpus,8,asymmetric,auto,0.5348413376404193,20,0
+100% Corpus,14,symmetric,symmetric,0.528064658114879,20,0
+100% Corpus,14,symmetric,auto,0.528273594301069,20,0
+100% Corpus,14,asymmetric,symmetric,0.5512449864340186,20,0
+100% Corpus,14,asymmetric,auto,0.5532677267007404,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,2,symmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,symmetric,auto,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,symmetric,0.6698909778666604,20,0
+100% Corpus,2,asymmetric,auto,0.6698909778666604,20,0
+100% Corpus,8,symmetric,symmetric,0.5456586483955767,20,0
+100% Corpus,8,symmetric,auto,0.5456586483955767,20,0
+100% Corpus,8,asymmetric,symmetric,0.5348413376404193,20,0
+100% Corpus,8,asymmetric,auto,0.5348413376404193,20,0
+100% Corpus,14,symmetric,symmetric,0.528064658114879,20,0
+100% Corpus,14,symmetric,auto,0.528273594301069,20,0
+100% Corpus,14,asymmetric,symmetric,0.5512449864340186,20,0
+100% Corpus,14,asymmetric,auto,0.5532677267007404,20,0
+100% Corpus,20,symmetric,symmetric,0.520229935540454,20,0
