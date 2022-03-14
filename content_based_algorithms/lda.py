@@ -396,7 +396,6 @@ class Lda:
         eta = 'auto'
         per_word_topics = True
         iterations = 200
-
         print("LDA training...")
         lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
                              minimum_probability=0.0, chunksize=chunksize,
@@ -405,7 +404,6 @@ class Lda:
 
         t2 = time.time()
         print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
-
         lda_model.save("models/lda_model_full_text")
         print("Model Saved")
 
@@ -614,76 +612,63 @@ class Lda:
 
         # Enabling LDA logging
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-        corpus = WikiCorpus('full_models/cswiki-20220301-pages-articles-multistream.xml.bz2', dictionary=False)
-        id2word = gensim.corpora.Dictionary.load_from_text('full_models/cswiki/cswiki_wordids.txt.bz2')
-        # corpus = gensim.corpora.MmCorpus('full_models/cswiki/cswiki_tfidf.mm')
-        # corpus = [dct.doc2bow(line) for line in dataset]
+        # self.preprocess_wiki_corpus()
+        list_of_preprocessed_files = ["full_models/cswiki/lda/preprocessed/articles_0_7000", "full_models/cswiki/lda/preprocessed/articles_7000_11000", "full_models/cswiki/lda/preprocessed/articles_11000_34000"]
+        print("Loading preprocessed corpus...")
+        processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
+        print("Removing stopwords...")
+        data_words_nostops = self.remove_stopwords(processed_data)
+        print("Building bigrams...")
+        processed_data = self.build_bigrams_and_trigrams(data_words_nostops)
 
-        # preprocessing steps
-        czlemma = cz_lemmatization.CzLemma()
-        helper = Helper()
-        processed_data = []
-        # takes very long time
-
-        i = 0
-        batch_num = 70
-        num_of_iterations_until_saving = 100
-        path_to_save_list = "full_models/cswiki/lda/preprocessed/articles" + str(batch_num*num_of_iterations_until_saving)
-        for doc in helper.generate_lines_from_corpus(corpus):
-            print("Processing doc. num. " + str(i) + " batch no. " + str(batch_num))
-            tokens = deaccent(czlemma.preprocess(doc))
-            processed_data.append(tokens.split())
-            i = i + 1
-            # saving list to pickle evey 100th document
-            if i > num_of_iterations_until_saving:
-                with open(path_to_save_list, 'wb') as f:
-                    print("Saving list to " + path_to_save_list)
-                    pickle.dump(processed_data, f)
-                batch_num = batch_num + 1
-                i = 0
-
-        print("processed_data")
-        print(processed_data)
+        print("Creating dictionary...")
         preprocessed_dictionary = corpora.Dictionary(processed_data)
-        # save dictionary
+        print("Saving dictionary...")
         preprocessed_dictionary.save("full_models/cswiki/lda/preprocessed/dictionary")
+        print("Translating words into Doc2Bow vectors")
         preprocessed_corpus = [preprocessed_dictionary.doc2bow(token, allow_update=True) for token in processed_data]
 
-        print("preprocessed_corpus:")
-        print(preprocessed_corpus)
+        print("Piece of preprocessed_corpus:")
+        print(preprocessed_corpus[:1])
 
         limit = 1500
         start = 10
         step = 100
         # Topics range
+        """
         min_topics = 2
         max_topics = 3
         step_size = 1
         topics_range = range(min_topics, max_topics, step_size)
+        """
+        topics_range = [20,40,60,80,100,200,300,400,500,600,700,800,900]
         # alpha = list(np.arange(0.01, 1, 0.5))
         alpha = []
         # alpha_params = ['symmetric','asymmetric','auto']
-        alpha_params = ['symmetric']
+        alpha_params = ['symmetric','asymmetric']
         alpha.extend(alpha_params)
         eta = []
         # eta_params = ['symmetric','asymmetric','auto']
-        eta_params = ['auto']
+        eta_params = ['symmetric', 'auto']
         eta.extend(eta_params)
-        min_passes = 1
-        max_passes = 2
+        min_passes = 20
+        max_passes = 20
         step_size = 1
-        passes_range = range(min_passes, max_passes, step_size)
-        min_iterations = 1
-        max_iterations = 2
+        # passes_range = range(min_passes, max_passes, step_size)
+        passes_range = [20]
+        min_iterations = 50
+        max_iterations = 50
         step_size = 1
-        iterations_range = range(min_iterations, max_iterations, step_size)
+        # iterations_range = range(min_iterations, max_iterations, step_size)
+        iterations_range = [50]
         num_of_docs = len(preprocessed_corpus)
         corpus_sets = [
             # gensim.utils.ClippedCorpus(corpus, int(num_of_docs*0.05)),
             # gensim.utils.ClippedCorpus(corpus, num_of_docs*0.5),
-            gensim.utils.ClippedCorpus(preprocessed_corpus, int(num_of_docs * 0.75)),
+            # gensim.utils.ClippedCorpus(preprocessed_corpus, int(num_of_docs * 0.75)),
+            gensim.utils.ClippedCorpus(preprocessed_corpus, int(num_of_docs * 1.00)),
             preprocessed_corpus]
-        corpus_title = ['75% Corpus', '100% Corpus']
+        corpus_title = ['100% Corpus']
         model_results = {'Validation_Set': [],
                          'Topics': [],
                          'Alpha': [],
@@ -695,20 +680,33 @@ class Lda:
 
         pbar = tqdm.tqdm(total=540)
 
+        print("----------------------")
+        print("Testing model on:")
+        print("-----------------------")
+        print("Topics:")
+        print(topics_range)
+        print("Passes range")
+        print(passes_range)
+        print("Iterations:")
+        print(iterations_range)
+        print("Alpha:")
+        print(alpha)
+        print("Eta:")
+        print(eta)
         # iterate through validation corpuses
         for i in range(len(corpus_sets)):
             # iterate through number of topics
             for k in topics_range:
                 for p in passes_range:
-                    for i in iterations_range:
+                    for iterations in iterations_range:
                         # iterate through alpha values
                         for a in alpha:
                             # iterare through eta values
                             for e in eta:
                                 # get the coherence score for the given parameters
-                                cv = self.compute_coherence_values(corpus=corpus_sets[i], dictionary=id2word,
+                                cv = self.compute_coherence_values(corpus=corpus_sets[i], dictionary=preprocessed_dictionary,
                                                                    # data_lemmatized=data_lemmatized,
-                                                                   num_topics=k, alpha=a, eta=e, passes=p, iterations=i)
+                                                                   num_topics=k, alpha=a, eta=e, passes=p, iterations=iterations, data_lemmatized=processed_data)
                                 # Save the model results
                                 model_results['Validation_Set'].append(corpus_title[i])
                                 model_results['Topics'].append(k)
@@ -719,8 +717,8 @@ class Lda:
                                 model_results['Iterations'].append(i)
 
                                 pbar.update(1)
-
-        pd.DataFrame(model_results).to_csv('lda_tuning_results.csv', index=False)
+                                pd.DataFrame(model_results).to_csv('lda_tuning_results.csv', index=False, mode="a")
+                                print("Saved training results...")
         pbar.close()
 
 
@@ -796,3 +794,46 @@ class Lda:
 
         df_dominant_topics.to_csv("exports/dominant_topics.csv", sep=';', encoding='iso8859_2', errors='replace')
         print("Results saved to csv")
+
+    def preprocess_wiki_corpus(self):
+
+        corpus = WikiCorpus('full_models/cswiki-20220301-pages-articles-multistream.xml.bz2', dictionary=False)
+        id2word = gensim.corpora.Dictionary.load_from_text('full_models/cswiki/cswiki_wordids.txt.bz2')
+        # corpus = gensim.corpora.MmCorpus('full_models/cswiki/cswiki_tfidf.mm')
+        # corpus = [dct.doc2bow(line) for line in dataset]
+
+        # preprocessing steps
+        czlemma = cz_lemmatization.CzLemma()
+        helper = Helper()
+        processed_data = []
+        # takes very long time
+
+        i = 0
+        batch_num = 34
+        num_of_iterations_until_saving = 100
+        path_to_save_list = "full_models/cswiki/lda/preprocessed/articles_" + str(batch_num*num_of_iterations_until_saving)
+        for doc in helper.generate_lines_from_corpus(corpus):
+            print("Processing doc. num. " + str(i) + " batch no. " + str(batch_num))
+            tokens = deaccent(czlemma.preprocess(doc))
+            processed_data.append(tokens.split())
+            i = i + 1
+            # saving list to pickle evey 100th document
+            if i > num_of_iterations_until_saving:
+                with open(path_to_save_list, 'wb') as f:
+                    print("Saving list to " + path_to_save_list)
+                    pickle.dump(processed_data, f)
+                batch_num = batch_num + 1
+                i = 0
+
+        print("Preprocessing Wikipedia has ended. All articles were preprocessed.")
+        print("processed_data")
+        print(processed_data)
+
+    def load_preprocessed_corpus(self, list_of_preprocessed_files):
+        preprocessed_data_from_pickles = []
+        for file_path in list_of_preprocessed_files:
+            with open(file_path, 'rb') as f:
+                preprocessed_data_from_pickles.extend(pickle.load(f))
+        print("Example of 100th loaded document:")
+        print(preprocessed_data_from_pickles[100:101])
+        return preprocessed_data_from_pickles
