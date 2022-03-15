@@ -541,7 +541,7 @@ class Lda:
                                                              eval_every=eval_every,
                                                              # callbacks=[l],
                                                              # added
-                                                             workers=7,
+                                                             workers=2,
                                                              iterations=iterations)
 
         print("mm")
@@ -611,11 +611,19 @@ class Lda:
         """
 
         # Enabling LDA logging
-        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO, filename='content_based_algorithms/training_logs/lda/logs.log')
         # self.preprocess_wiki_corpus()
         list_of_preprocessed_files = ["full_models/cswiki/lda/preprocessed/articles_0_7000", "full_models/cswiki/lda/preprocessed/articles_7000_11000", "full_models/cswiki/lda/preprocessed/articles_11000_34000"]
         print("Loading preprocessed corpus...")
         processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
+        print("Loaded " + str(len(processed_data)) + " documents.")
+        print("Saving corpus into single file...")
+
+        single_file_name = "full_models/cswiki/lda/preprocessed/articles_" + str(len(processed_data))
+        with open(single_file_name, 'wb') as f:
+            print("Saving list to " + single_file_name)
+            pickle.dump(processed_data, f)
+
         print("Removing stopwords...")
         data_words_nostops = self.remove_stopwords(processed_data)
         print("Building bigrams...")
@@ -641,7 +649,8 @@ class Lda:
         step_size = 1
         topics_range = range(min_topics, max_topics, step_size)
         """
-        topics_range = [20,40,60,80,100,200,300,400,500,600,700,800,900]
+        # topics_range = [20,40,60,80,100,200,300,400,500,600,700,800,900]
+        topics_range = [40, 60, 80, 100, 200, 300, 400, 500, 600, 700, 800, 900]
         # alpha = list(np.arange(0.01, 1, 0.5))
         alpha = []
         # alpha_params = ['symmetric','asymmetric','auto']
@@ -714,7 +723,7 @@ class Lda:
                                 model_results['Eta'].append(e)
                                 model_results['Coherence'].append(cv)
                                 model_results['Passes'].append(p)
-                                model_results['Iterations'].append(i)
+                                model_results['Iterations'].append(iterations)
 
                                 pbar.update(1)
                                 pd.DataFrame(model_results).to_csv('lda_tuning_results.csv', index=False, mode="a")
@@ -809,7 +818,7 @@ class Lda:
         # takes very long time
 
         i = 0
-        batch_num = 34
+        batch_num = 110
         num_of_iterations_until_saving = 100
         path_to_save_list = "full_models/cswiki/lda/preprocessed/articles_" + str(batch_num*num_of_iterations_until_saving)
         for doc in helper.generate_lines_from_corpus(corpus):
