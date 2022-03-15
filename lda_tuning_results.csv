@@ -102,3 +102,8 @@ Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
 100% Corpus,14,asymmetric,symmetric,0.5512449864340186,20,0
 100% Corpus,14,asymmetric,auto,0.5532677267007404,20,0
 100% Corpus,20,symmetric,symmetric,0.520229935540454,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,20,symmetric,symmetric,0.5178300454462688,20,0
+Validation_Set,Topics,Alpha,Eta,Coherence,Passes,Iterations
+100% Corpus,20,symmetric,symmetric,0.5178300454462688,20,0
+100% Corpus,20,symmetric,auto,0.5178300454462688,20,0
