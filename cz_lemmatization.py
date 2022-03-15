@@ -1,9 +1,13 @@
 import re, string
+import gensim
 from nltk import RegexpTokenizer
 import majka
-
+from html2text import html2text
+import content_based_algorithms.data_queries as data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
 from data_conenction import Database
+
+cz_stopwords = data_queries.load_stopwords()
 
 
 class CzLemma:
@@ -21,6 +25,15 @@ class CzLemma:
         cleanr = re.compile('<.*?>')
         cleantext = re.sub(cleanr, '', sentence)
         cleantext.translate(str.maketrans('', '', string.punctuation))  # removing punctuation
+
+        a_string = cleantext.split('=References=')[0]  # remove references and everything afterwards
+        a_string = html2text(a_string).lower()  # remove HTML tags, convert to lowercase
+        a_string = re.sub(r'https?:\/\/.*?[\s]', '', a_string)  # remove URLs
+
+        # 'ToktokTokenizer' does divide by '|' and '\n', but retaining this
+        #   statement seems to improve its speed a little
+        a_string = a_string.replace('|', ' ').replace('\n', ' ')
+
         rem_url = re.sub(r'http\S+', '', cleantext)
         rem_num = re.sub('[0-9]+', '', rem_url)
         # print("rem_num")
@@ -30,8 +43,18 @@ class CzLemma:
         # print("tokens")
         # print(tokens)
 
+        tokens = [w for w in tokens if '=' not in w]  # remove remaining tags and the like
+        string_punctuation = list(string.punctuation)
+        tokens = [w for w in tokens if not
+        all(x.isdigit() or x in string_punctuation for x in w)] # remove tokens that are all punctuation
+        tokens = [w.strip(string.punctuation) for w in tokens]  # remove stray punctuation attached to words
+        tokens = [w for w in tokens if len(w) > 1]  # remove single characters
+        tokens = [w for w in tokens if not any(x.isdigit() for x in w)]  # remove everything with a digit in it
+
         edited_words = [self.cz_lemma(w) for w in tokens]
         edited_words = list(filter(None, edited_words))  # empty strings removal
+        edited_words = [word for word in edited_words if word not in cz_stopwords]
+
         return " ".join(edited_words)
 
     def preprocess_single_post_find_by_slug(self, slug, json=False, stemming=False):
@@ -83,5 +106,6 @@ class CzLemma:
 
 def main():
     cz_lemma = CzLemma()
+
 
 if __name__ == "__main__": main()
