@@ -620,14 +620,12 @@ class Lda:
         data_words_nostops = self.remove_stopwords(processed_data)
         print("Building bigrams...")
         processed_data = self.build_bigrams_and_trigrams(data_words_nostops)
-
         print("Creating dictionary...")
         preprocessed_dictionary = corpora.Dictionary(processed_data)
         print("Saving dictionary...")
         preprocessed_dictionary.save("full_models/cswiki/lda/preprocessed/dictionary")
         print("Translating words into Doc2Bow vectors")
         preprocessed_corpus = [preprocessed_dictionary.doc2bow(token, allow_update=True) for token in processed_data]
-
         print("Piece of preprocessed_corpus:")
         print(preprocessed_corpus[:1])
 
@@ -645,7 +643,8 @@ class Lda:
         # alpha = list(np.arange(0.01, 1, 0.5))
         alpha = []
         # alpha_params = ['symmetric','asymmetric','auto']
-        alpha_params = ['symmetric','asymmetric']
+        # alpha_params = ['symmetric','asymmetric']
+        alpha_params = ['asymmetric']
         alpha.extend(alpha_params)
         eta = []
         # eta_params = ['symmetric','asymmetric','auto']
@@ -679,7 +678,6 @@ class Lda:
                          }  # Can take a long time to run
 
         pbar = tqdm.tqdm(total=540)
-
         print("----------------------")
         print("Testing model on:")
         print("-----------------------")
@@ -715,7 +713,6 @@ class Lda:
                                 model_results['Coherence'].append(cv)
                                 model_results['Passes'].append(p)
                                 model_results['Iterations'].append(i)
-
                                 pbar.update(1)
                                 pd.DataFrame(model_results).to_csv('lda_tuning_results.csv', index=False, mode="a")
                                 print("Saved training results...")
@@ -809,7 +806,7 @@ class Lda:
         # takes very long time
 
         i = 0
-        batch_num = 34
+        batch_num = 61
         num_of_iterations_until_saving = 100
         path_to_save_list = "full_models/cswiki/lda/preprocessed/articles_" + str(batch_num*num_of_iterations_until_saving)
         for doc in helper.generate_lines_from_corpus(corpus):
