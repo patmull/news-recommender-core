@@ -10,6 +10,7 @@ from gensim.utils import deaccent
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
 import cz_lemmatization
+import content_based_algorithms.data_queries as data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
 
 import gensim
@@ -321,10 +322,7 @@ class Lda:
         all_words = [word for item in list(self.df["tokenized"]) for word in item]
         print(all_words[:50])
 
-        # use nltk fdist to get a frequency distribution of all words
-        fdist = FreqDist(all_words)
-        k = 15000
-        top_k_words, _ = zip(*fdist.most_common(k))
+        top_k_words, _ = RecommenderMethods.most_common_words(all_words)
         print(top_k_words)
         print("top_k_words")
         self.top_k_words = set(top_k_words)
@@ -441,17 +439,6 @@ class Lda:
     def make_trigrams(self, trigram_mod, bigram_mod, texts):
         return [trigram_mod[bigram_mod[doc]] for doc in texts]
 
-    def remove_stopwords(self, texts):
-        stop_words = self.load_stopwords()
-        return [[word for word in gensim.utils.simple_preprocess(str(doc)) if word not in stop_words] for doc in texts]
-
-    def load_stopwords(self):
-        filename = "cz_stemmer/czech_stopwords.txt"
-        with open(filename, encoding="utf-8") as file:
-            cz_stopwords = file.readlines()
-            cz_stopwords = [line.rstrip() for line in cz_stopwords]
-            return cz_stopwords
-
     def visualise_lda(self, lda_model, corpus, dictionary, data_words_bigrams):
 
         print("Keywords and topics:")
@@ -499,7 +486,7 @@ class Lda:
         data = self.df
         print("data['tokenized']")
         print(data['tokenized'])
-        data_words_nostops = self.remove_stopwords(data['tokenized'])
+        data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
         # Term Document Frequency
 
@@ -541,7 +528,7 @@ class Lda:
                                                              eval_every=eval_every,
                                                              # callbacks=[l],
                                                              # added
-                                                             workers=7,
+                                                             workers=2,
                                                              iterations=iterations)
 
         print("mm")
@@ -611,16 +598,32 @@ class Lda:
         """
 
         # Enabling LDA logging
-        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO, filename='content_based_algorithms/training_logs/lda/logs.log')
         # self.preprocess_wiki_corpus()
-        list_of_preprocessed_files = ["full_models/cswiki/lda/preprocessed/articles_0_7000", "full_models/cswiki/lda/preprocessed/articles_7000_11000", "full_models/cswiki/lda/preprocessed/articles_11000_34000"]
+        path_to_preprocessed_files = "full_models/cswiki/lda/preprocessed/"
+        list_of_preprocessed_files = ["articles_3400_61000",
+                                        "articles_7000_11000",
+                                        "articles_15500_18500",
+                                        "articles_18500_23400"]
+        list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
         print("Loading preprocessed corpus...")
         processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
+        print("Loaded " + str(len(processed_data)) + " documents.")
+        print("Saving corpus into single file...")
+
+        single_file_name = "full_models/cswiki/lda/preprocessed/articles_" + str(len(processed_data))
+        with open(single_file_name, 'wb') as f:
+            print("Saving list to " + single_file_name)
+            pickle.dump(processed_data, f)
+
         print("Removing stopwords...")
-        data_words_nostops = self.remove_stopwords(processed_data)
+        data_words_nostops = data_queries.remove_stopwords(processed_data)
         print("Building bigrams...")
         processed_data = self.build_bigrams_and_trigrams(data_words_nostops)
         print("Creating dictionary...")
+        print("TOP WORDS (after bigrams and stopwords removal):")
+        top_k_words, _ = RecommenderMethods.most_common_words(processed_data)
+        print(top_k_words)
         preprocessed_dictionary = corpora.Dictionary(processed_data)
         print("Saving dictionary...")
         preprocessed_dictionary.save("full_models/cswiki/lda/preprocessed/dictionary")
@@ -639,7 +642,8 @@ class Lda:
         step_size = 1
         topics_range = range(min_topics, max_topics, step_size)
         """
-        topics_range = [20,40,60,80,100,200,300,400,500,600,700,800,900]
+        # topics_range = [20,40,60,80,100,200,300,400,500,600,700,800,900]
+        topics_range = [40, 60, 80, 100, 200, 300, 400, 500, 600, 700, 800, 900]
         # alpha = list(np.arange(0.01, 1, 0.5))
         alpha = []
         # alpha_params = ['symmetric','asymmetric','auto']
@@ -712,7 +716,8 @@ class Lda:
                                 model_results['Eta'].append(e)
                                 model_results['Coherence'].append(cv)
                                 model_results['Passes'].append(p)
-                                model_results['Iterations'].append(i)
+                                model_results['Iterations'].append(iterations)
+
                                 pbar.update(1)
                                 pd.DataFrame(model_results).to_csv('lda_tuning_results.csv', index=False, mode="a")
                                 print("Saved training results...")
@@ -806,13 +811,14 @@ class Lda:
         # takes very long time
 
         i = 0
-        batch_num = 61
+        batch_num = 110
         num_of_iterations_until_saving = 100
         path_to_save_list = "full_models/cswiki/lda/preprocessed/articles_" + str(batch_num*num_of_iterations_until_saving)
         for doc in helper.generate_lines_from_corpus(corpus):
             print("Processing doc. num. " + str(i) + " batch no. " + str(batch_num))
             tokens = deaccent(czlemma.preprocess(doc))
             processed_data.append(tokens.split())
+            print(processed_data)
             i = i + 1
             # saving list to pickle evey 100th document
             if i > num_of_iterations_until_saving:
@@ -833,4 +839,7 @@ class Lda:
                 preprocessed_data_from_pickles.extend(pickle.load(f))
         print("Example of 100th loaded document:")
         print(preprocessed_data_from_pickles[100:101])
+        top_k_words, _ = RecommenderMethods.most_common_words([item for sublist in preprocessed_data_from_pickles for item in sublist])
+        print("TOP WORDS:")
+        print(top_k_words[:500])
         return preprocessed_data_from_pickles

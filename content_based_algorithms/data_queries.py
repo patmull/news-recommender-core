@@ -2,15 +2,28 @@ import json
 import pickle
 
 import dropbox
+import gensim
 import numpy as np
 import pandas as pd
 import smart_open
 from gensim.utils import deaccent
+from nltk import FreqDist
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from data_conenction import Database
 
+
+def load_stopwords():
+    filename = "cz_stemmer/czech_stopwords.txt"
+    with open(filename, encoding="utf-8") as file:
+        cz_stopwords = file.readlines()
+        cz_stopwords = [line.rstrip() for line in cz_stopwords]
+        return cz_stopwords
+
+def remove_stopwords(texts):
+    stopwords = load_stopwords()
+    return [[word for word in gensim.utils.simple_preprocess(str(doc)) if word not in stopwords] for doc in texts]
 
 class RecommenderMethods:
 
@@ -39,9 +52,11 @@ class RecommenderMethods:
              'all_features_preprocessed', 'full_text']]
         return self.df
 
+
+    #### Above are data queries ####
+
     def get_fit_by_feature(self, feature_name, second_feature=None):
         fit_by_feature = self.get_tfIdfVectorizer(feature_name, second_feature)
-
         return fit_by_feature
 
     def recommend_by_keywords(self, keywords, tupple_of_fitted_matrices):
@@ -286,6 +301,13 @@ class RecommenderMethods:
         except Exception as e:
             print(e)
             return False
+
+    @staticmethod
+    def most_common_words(all_words):
+        # use nltk fdist to get a frequency distribution of all words
+        fdist = FreqDist(all_words)
+        k = 15000
+        return zip(*fdist.most_common(k))
 
 
 def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
