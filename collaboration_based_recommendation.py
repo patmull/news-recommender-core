@@ -1,5 +1,8 @@
 import json
 
+from sklearn.metrics import mean_squared_error
+
+from content_based_algorithms.data_queries import RecommenderMethods
 from data_conenction import Database
 from scipy.sparse.linalg import svds
 import numpy as np
@@ -14,6 +17,14 @@ class Svd:
         self.df_posts = None
         self.user_ratings_mean = None
         self.user_item_table = None  # = R_df_
+
+    def get_all_users_ids(self):
+        database = Database()
+        database.connect()
+        sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
+        # LOAD INTO A DATAFRAME
+        self.df_users = pd.read_sql_query(sql_select_all_users, database.get_cnx())
+        return self.df_users
 
     def get_user_item_from_db(self):
         database = Database()
@@ -140,11 +151,9 @@ class Svd:
                                .sort_values('Predictions', ascending=False)
                                .iloc[:num_recommendations, :-1])
 
-
         return user_full, recommendations
 
-
-    def rmse(self, user_id):
+    def rmse(self):
         U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
         sigma = np.diag(sigma)
         all_user_predicted_ratings = np.dot(np.dot(U, sigma), Vt) + self.user_ratings_mean.reshape(-1, 1)
@@ -160,36 +169,57 @@ class Svd:
         predictions_df['user_id'] = self.user_item_table.index.values.tolist()
         predictions_df.set_index('user_id', drop=True, inplace=True)  # inplace for making change in callable  way
         # Get and sort the user's predictions
-        user_row_number = user_id  # UserID starts at 1, not # 0
+        #sorted_users_predictions = pd.DataFrame()
+        already_rated_by_users = pd.DataFrame()
+        user_ids = self.get_all_users_ids()
+        predictions_results = pd.DataFrame()
+        print(user_ids)
+        print("predictions_df")
+        print(predictions_df)
 
+        all_users_predictions = pd.DataFrame()
+
+        # loop is inefficient better to add multiple dataframes at once using same append
+        for user_id in predictions_df.index.get_level_values('user_id'): # UserID starts at 1, not # 0
+            sorted_users_predictions = predictions_df.loc[user_id].sort_values(ascending=False).to_frame()
+            sorted_users_predictions.reset_index(inplace=True)
+            sorted_users_predictions = sorted_users_predictions.rename(columns={user_id: 'rating_value'})
+            print("sorted_users_predictions")
+            print(sorted_users_predictions)
+            print(sorted_users_predictions[['post_id']])
+            print(sorted_users_predictions[['rating_value']])
+            # print(sorted_user_predictions[["post_id"]])
+            # print(sorted_user_predictions[["rating_value"]])
+            all_users_predictions = all_users_predictions.append(sorted_users_predictions)
+            print("all_users_predictions:")
+            print(all_users_predictions)
+            already_rated, predictions = self.recommend_posts(predictions_df, user_id, self.df_posts, self.df_ratings,
+                                                              10)
+            already_rated_by_users.append(already_rated)
         # print("predictions_df:")
         # print(predictions_df.to_string())
-        sorted_user_predictions = predictions_df.loc[user_row_number].sort_values(ascending=False).to_frame()
 
-        print("sorted_user_predictions")
-        sorted_user_predictions.reset_index(inplace=True)
-        sorted_user_predictions = sorted_user_predictions.rename(columns={user_id: 'rating_value'})
-        print(sorted_user_predictions[['post_id ']])
-        print(sorted_user_predictions[['rating_value']])
-        # print(sorted_user_predictions[["post_id"]])
-        # print(sorted_user_predictions[["rating_value"]])
+        print("all_users_predictions:")
+        print(all_users_predictions)
 
-
-        already_rated, predictions = self.recommend_posts(predictions_df, user_id, self.df_posts, self.df_ratings,
-                                                          10)
-
-        already_rated = already_rated[['post_id','rating_value']]
-
+        already_rated = already_rated_by_users[['post_id', 'rating_value']]
         print("already_rated")
         print(already_rated[["post_id"]])
         print(already_rated[["rating_value"]])
 
+        dataframe_predicted_actual = pd.merge(sorted_users_prediction, already_rated, how='inner', on=['post_id'])
+        print("dataframe_predicted_actual")
+        print(dataframe_predicted_actual)
+
+        print("RMSE:")
+        print(np.sqrt(mean_squared_error(dataframe_predicted_actual[['rating_value_y']],
+                                         dataframe_predicted_actual[['rating_value_x']])))
+
 
 def main():
-
     svd = Svd()
-    #print(svd.run_svd(431))
-    print(svd.rmse(431))
+    # print(svd.run_svd(431))
+    print(svd.rmse())
 
 
 if __name__ == "__main__": main()
