@@ -1,6 +1,8 @@
 import json
 
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.model_selection import train_test_split
 
 from content_based_algorithms.data_queries import RecommenderMethods
 from data_conenction import Database
@@ -8,6 +10,8 @@ from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
 
+from surprise import Reader, Dataset, SVD, KNNBasic
+from surprise.model_selection import cross_validate
 
 class Svd:
 
@@ -25,6 +29,7 @@ class Svd:
         # LOAD INTO A DATAFRAME
         self.df_users = pd.read_sql_query(sql_select_all_users, database.get_cnx())
         return self.df_users
+
 
     def get_user_item_from_db(self):
         database = Database()
@@ -87,20 +92,10 @@ class Svd:
 
     def run_svd(self, user_id, num_of_recommendations=10):
         U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
-        # print("U:")
-        # print(U)
-        # print("----------")
-        # print("Sigma:")
-        # print(sigma)
-        # print("-----------")
-        # print("Vt:")
-        # print(Vt)
         sigma = np.diag(sigma)
         all_user_predicted_ratings = np.dot(np.dot(U, sigma), Vt) + self.user_ratings_mean.reshape(-1, 1)
-
         print("all_user_predicted_ratings")
         print(all_user_predicted_ratings)
-
         preds_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
 
         print("preds_df")
@@ -108,20 +103,15 @@ class Svd:
 
         preds_df['user_id'] = self.user_item_table.index.values.tolist()
         preds_df.set_index('user_id', drop=True, inplace=True)  # inplace for making change in callable  way
-
         already_rated, predictions = self.recommend_posts(preds_df, user_id, self.df_posts, self.df_ratings,
                                                           num_of_recommendations)
-
         print("already_rated.head(num_of_recommendations)")
         print(already_rated.head(num_of_recommendations).to_string())
 
         print("List of predictions based on already rated items:")
         print(predictions.head(num_of_recommendations).to_string())
-
         predictions_json = predictions.to_json(orient="split")
-
         predictions_json_parsed = json.loads(predictions_json)
-
         return predictions_json_parsed
 
     def recommend_posts(self, predictions_df, user_id, posts_df, original_ratings_df, num_recommendations):
@@ -153,73 +143,85 @@ class Svd:
 
         return user_full, recommendations
 
-    def rmse(self):
-        U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
-        sigma = np.diag(sigma)
-        all_user_predicted_ratings = np.dot(np.dot(U, sigma), Vt) + self.user_ratings_mean.reshape(-1, 1)
+    def rmse(self, user_id):
 
-        print("all_user_predicted_ratings")
-        print(all_user_predicted_ratings)
+        recommenderMethods = RecommenderMethods()
+        column_names = ['user_id','post_id','rating_value','slug']
+        posts_df = recommenderMethods.get_posts_dataframe() # needs to be separated - posts, users, ratings
+        users_df = recommenderMethods.get_users_dataframe()
+        ratings = recommenderMethods.get_ratings_dataframe()
+        # combined_posts_data = df[['user_id','post_id','rating_value','slug']]
+        # print(combined_posts_data.head().to_string())
 
-        predictions_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
+        X = ratings.copy()
+        y = ratings['user_id']
 
-        print("preds_df")
-        print(predictions_df)
+        # combined_posts_data = combined_posts_data[['rating_value','user_id']]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42,
+                                                            shuffle=True,
+                                                            )
+        df_ratings = X_train.pivot(index='user_id', columns='post_id', values='value')
+        print("df_user_item.head()")
+        print(df_ratings.to_string())
 
-        predictions_df['user_id'] = self.user_item_table.index.values.tolist()
-        predictions_df.set_index('user_id', drop=True, inplace=True)  # inplace for making change in callable  way
-        # Get and sort the user's predictions
-        #sorted_users_predictions = pd.DataFrame()
-        already_rated_by_users = pd.DataFrame()
-        user_ids = self.get_all_users_ids()
-        predictions_results = pd.DataFrame()
-        print(user_ids)
-        print("predictions_df")
-        print(predictions_df)
+        df_ratings_dummy = df_ratings.copy().fillna(0)
+        print("df_ratings_dummy.head()")
+        print(df_ratings_dummy.head())
 
-        all_users_predictions = pd.DataFrame()
+        similarity_matrix = cosine_similarity(df_ratings_dummy, df_ratings_dummy)
+        similarity_matrix_df = pd.DataFrame(similarity_matrix, index=df_ratings.index, columns=df_ratings.index)
 
-        # loop is inefficient better to add multiple dataframes at once using same append
-        for user_id in predictions_df.index.get_level_values('user_id'): # UserID starts at 1, not # 0
-            sorted_users_predictions = predictions_df.loc[user_id].sort_values(ascending=False).to_frame()
-            sorted_users_predictions.reset_index(inplace=True)
-            sorted_users_predictions = sorted_users_predictions.rename(columns={user_id: 'rating_value'})
-            print("sorted_users_predictions")
-            print(sorted_users_predictions)
-            print(sorted_users_predictions[['post_id']])
-            print(sorted_users_predictions[['rating_value']])
-            # print(sorted_user_predictions[["post_id"]])
-            # print(sorted_user_predictions[["rating_value"]])
-            all_users_predictions = all_users_predictions.append(sorted_users_predictions)
-            print("all_users_predictions:")
-            print(all_users_predictions)
-            already_rated, predictions = self.recommend_posts(predictions_df, user_id, self.df_posts, self.df_ratings,
-                                                              10)
-            already_rated_by_users.append(already_rated)
-        # print("predictions_df:")
-        # print(predictions_df.to_string())
+        print(self.calculate_ratings(user_id,704691,df_ratings_dummy,similarity_matrix_df))
+        test_set_score = self.score_on_test_set(X_test, df_ratings_dummy, similarity_matrix_df)
+        print(test_set_score)
+        print(self.cross_validate_dataframe(ratings, user_id))
 
-        print("all_users_predictions:")
-        print(all_users_predictions)
 
-        already_rated = already_rated_by_users[['post_id', 'rating_value']]
-        print("already_rated")
-        print(already_rated[["post_id"]])
-        print(already_rated[["rating_value"]])
+    # cosine similarity of the ratingssimilarity_matrix = cosine_similarity(df_ratings_dummy, df_ratings_dummy)similarity_matrix_df = pd.DataFrame(similarity_matrix, index=df_ratings.index, columns=df_ratings.index)#calculate ratings using weighted sum of cosine similarity#function to calculate ratings
+    def calculate_ratings(self, id_post, id_user, df_ratings, similarity_matrix_df):
+            if id_post in df_ratings:
+                cosine_scores = similarity_matrix_df[id_user]  # similarity of id_user with every other user
+                ratings_scores = df_ratings[id_post] #ratings of every other user for the post id_post won't consider users who havent rated id_post so drop similarity scores and ratings corresponsing to np.nan
+                index_not_rated = ratings_scores[ratings_scores.isnull()].index
+                ratings_scores = ratings_scores.dropna()
+                cosine_scores = cosine_scores.drop(index_not_rated) #calculating rating by weighted mean of ratings and cosine scores of the users who have rated the post
+                ratings_post = np.dot(ratings_scores, cosine_scores)/cosine_scores.sum()
+            else:
+                return 2.5
+            return ratings_post
 
-        dataframe_predicted_actual = pd.merge(sorted_users_prediction, already_rated, how='inner', on=['post_id'])
-        print("dataframe_predicted_actual")
-        print(dataframe_predicted_actual)
+    def score_on_test_set(self, X_test, df_ratings, similarity_matrix_df):
+        user_post_pairs = zip(X_test['post_id'], X_test['user_id'])
+        predicted_ratings = np.array(
+            [self.calculate_ratings(post, user, df_ratings, similarity_matrix_df) for (post, user) in user_post_pairs])
+        true_ratings = np.array(X_test['value'])
+        score = np.sqrt(mean_squared_error(true_ratings, predicted_ratings))
+        return score
 
-        print("RMSE:")
-        print(np.sqrt(mean_squared_error(dataframe_predicted_actual[['rating_value_y']],
-                                         dataframe_predicted_actual[['rating_value_x']])))
+    def cross_validate_dataframe(self, ratings, users_id):
+        print("ratings.to_string()")
+        print(ratings.to_string())
+        ratings = ratings.drop(columns='created_at')
+        ratings = ratings.drop(columns='updated_at')
+        ratings = ratings.drop(columns='id')
+        reader = Reader()  # dataset creation
+        data = Dataset.load_from_df(ratings, reader)
+        knn = KNNBasic() #Evaluating the performance in terms of RMSE
+        cross_validate(knn, data,  measures=['RMSE', 'mae'], cv=3)
+        # Define the SVD algorithm object
+        svd = SVD() #Evaluate the performance in terms of RMSE
+        cross_validate(svd, data, measures=['RMSE'], cv=3)
+        trainset = data.build_full_trainset()
+        svd.fit(trainset)
+        print("ratings[ratings['user_id'] == users_id]")
+        print(ratings[ratings['user_id'] == users_id])
 
+        print(svd.predict(users_id, 729191))
 
 def main():
     svd = Svd()
     # print(svd.run_svd(431))
-    print(svd.rmse())
+    print(svd.rmse(431))
 
 
 if __name__ == "__main__": main()

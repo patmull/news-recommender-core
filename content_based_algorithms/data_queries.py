@@ -44,11 +44,38 @@ class RecommenderMethods:
         self.database.disconnect()
         return self.posts_df
 
+    def get_users_dataframe(self):
+        self.database.connect()
+        self.posts_df = self.database.get_all_users()
+        self.database.disconnect()
+        return self.posts_df
+
+    def get_ratings_dataframe(self):
+        self.database.connect()
+        self.posts_df = self.database.get_ratings_dataframe(pd)
+        self.database.disconnect()
+        return self.posts_df
+
     def get_categories_dataframe(self):
         self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
         self.database.disconnect()
         return self.categories_df
+
+    def get_user_posts_ratings():
+        database = Database()
+        database.connect()
+        ##Step 1
+        # database.set_row_var()
+        # EXTRACT RESULTS FROM CURSOR
+
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value AS rating_value
+                            FROM posts p
+                            JOIN ratings r ON r.post_id = p.id
+                            JOIN users u ON r.user_id = u.id;"""
+        # LOAD INTO A DATAFRAME
+        df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
+        return df_ratings
 
     def join_posts_ratings_categories(self):
         self.get_categories_dataframe()
