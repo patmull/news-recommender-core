@@ -6,9 +6,10 @@ from html2text import html2text
 import content_based_algorithms.data_queries as data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
 from data_conenction import Database
+from gensim.utils import deaccent
 
-cz_stopwords = data_queries.load_stopwords()
-
+cz_stopwords = data_queries.load_cz_stopwords()
+general_stopwords = data_queries.load_general_stopwords()
 
 class CzLemma:
 
@@ -53,7 +54,10 @@ class CzLemma:
 
         edited_words = [self.cz_lemma(w) for w in tokens]
         edited_words = list(filter(None, edited_words))  # empty strings removal
+
+        # removing stopwords
         edited_words = [word for word in edited_words if word not in cz_stopwords]
+        edited_words = [word for word in edited_words if word not in general_stopwords]
 
         return " ".join(edited_words)
 

@@ -1,9 +1,12 @@
 import gc
 import logging
+import os
 import pickle
+import re
 import time
 
 import pyLDAvis
+import regex
 import tqdm
 from gensim.corpora import WikiCorpus
 from gensim.utils import deaccent
@@ -599,12 +602,9 @@ class Lda:
 
         # Enabling LDA logging
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO, filename='content_based_algorithms/training_logs/lda/logs.log')
-        # self.preprocess_wiki_corpus()
+        self.preprocess_wiki_corpus()
         path_to_preprocessed_files = "full_models/cswiki/lda/preprocessed/"
-        list_of_preprocessed_files = ["articles_3400_61000",
-                                        "articles_7000_11000",
-                                        "articles_15500_18500",
-                                        "articles_18500_23400"]
+        list_of_preprocessed_files = ["artcicles_XY"]
         list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
         print("Loading preprocessed corpus...")
         processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
@@ -810,25 +810,58 @@ class Lda:
         processed_data = []
         # takes very long time
 
+        # find files starting with "articles_"
+        list_of_preprocessed_files = []
+        for article_file in os.listdir("full_models/cswiki/lda/preprocessed"):
+            if article_file.startswith("articles_"):
+                list_of_preprocessed_files.append(article_file)
+
+        path_to_preprocessed_files = "full_models/cswiki/lda/preprocessed/"
+        list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
+        print("Loading preprocessed corpus...")
+
+        if len(list_of_preprocessed_files) > 0:
+            processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
+
+            number_of_documents = len(processed_data)
+            print("Loaded " + str(number_of_documents) + " documents.")
+
+            print("Saving corpus into single file...")
+            single_file_name = "full_models/cswiki/lda/preprocessed/articles_" + str(number_of_documents)
+            with open(single_file_name, 'wb') as f:
+                print("Saving list to " + single_file_name)
+                pickle.dump(processed_data, f)
+
+            print("Starting another preprocessing from document where it was halted.")
+        else:
+            print("No file with preprocessed articles was found. Starting from 0.")
+            number_of_documents = 0
+
         i = 0
-        batch_num = 110
-        num_of_iterations_until_saving = 100
-        path_to_save_list = "full_models/cswiki/lda/preprocessed/articles_" + str(batch_num*num_of_iterations_until_saving)
+        num_of_preprocessed_docs = number_of_documents
+        num_of_iterations_until_saving = 100 # Saving file every 100nd document
+        path_to_save_list = "full_models/cswiki/lda/preprocessed/articles_newest"
         for doc in helper.generate_lines_from_corpus(corpus):
-            print("Processing doc. num. " + str(i) + " batch no. " + str(batch_num))
+            print("Processing doc. num. " + str(num_of_preprocessed_docs))
+            print("Before:")
+            print(doc)
             tokens = deaccent(czlemma.preprocess(doc))
-            processed_data.append(tokens.split())
-            print(processed_data)
+
+            # removing words in greek, azbuka or arabian
+            # use only one of the following lines, whichever you prefer
+            tokens = [i for i in tokens.split() if regex.sub(r'[^\p{Latin}]',u'',i)]
+            processed_data.append(tokens)
+            print("After:")
+            print(tokens)
             i = i + 1
+            num_of_preprocessed_docs = num_of_preprocessed_docs + 1
             # saving list to pickle evey 100th document
             if i > num_of_iterations_until_saving:
                 with open(path_to_save_list, 'wb') as f:
                     print("Saving list to " + path_to_save_list)
                     pickle.dump(processed_data, f)
-                batch_num = batch_num + 1
                 i = 0
-
-        print("Preprocessing Wikipedia has ended. All articles were preprocessed.")
+        print("Preprocessing Wikipedia has (finally) ended. All articles were preprocessed.")
         print("processed_data")
         print(processed_data)
 
