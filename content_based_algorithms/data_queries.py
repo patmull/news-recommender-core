@@ -14,15 +14,22 @@ from sklearn.metrics.pairwise import cosine_similarity
 from data_conenction import Database
 
 
-def load_stopwords():
-    filename = "cz_stemmer/czech_stopwords.txt"
+def load_cz_stopwords():
+    filename = "cz_stemmer/stopwords/czech_stopwords.txt"
     with open(filename, encoding="utf-8") as file:
         cz_stopwords = file.readlines()
         cz_stopwords = [line.rstrip() for line in cz_stopwords]
         return cz_stopwords
 
+def load_general_stopwords():
+    filename = "cz_stemmer/stopwords/general_stopwords.txt"
+    with open(filename, encoding="utf-8") as file:
+        general_stopwords = file.readlines()
+        general_stopwords = [line.rstrip() for line in general_stopwords]
+        return general_stopwords
+
 def remove_stopwords(texts):
-    stopwords = load_stopwords()
+    stopwords = load_cz_stopwords()
     return [[word for word in gensim.utils.simple_preprocess(str(doc)) if word not in stopwords] for doc in texts]
 
 class RecommenderMethods:
@@ -144,7 +151,7 @@ class RecommenderMethods:
 
     def set_tfIdfVectorizer(self):
         # load czech stopwords from file
-        filename = "cz_stemmer/czech_stopwords.txt"
+        filename = "cz_stemmer/stopwords/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
