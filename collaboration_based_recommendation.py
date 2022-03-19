@@ -1,17 +1,15 @@
 import json
-
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
-
 from content_based_algorithms.data_queries import RecommenderMethods
 from data_conenction import Database
 from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
-
 from surprise import Reader, Dataset, SVD, KNNBasic
 from surprise.model_selection import cross_validate
+
 
 class Svd:
 
@@ -30,7 +28,6 @@ class Svd:
         self.df_users = pd.read_sql_query(sql_select_all_users, database.get_cnx())
         return self.df_users
 
-
     def get_user_item_from_db(self):
         database = Database()
         database.connect()
@@ -44,26 +41,19 @@ class Svd:
                     JOIN users u ON r.user_id = u.id;"""
         # LOAD INTO A DATAFRAME
         self.df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
-
         sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
         # LOAD INTO A DATAFRAME
         self.df_users = pd.read_sql_query(sql_select_all_users, database.get_cnx())
-
         # print("Users")
         # print(self.df_users)
-
         sql_select_all_posts = """SELECT p.id AS post_id, p.slug FROM posts p;"""
         # LOAD INTO A DATAFRAME
         self.df_posts = pd.read_sql_query(sql_select_all_posts, database.get_cnx())
-
         database.disconnect()
         # print("Posts:")
         # print(self.df_posts)
-
         user_item_table = self.combine_user_item(self.df_ratings)
-
         R_demeaned = self.convert_to_matrix(user_item_table)
-
         # print("R_demeaned:")
         # print(R_demeaned)
 
@@ -71,6 +61,8 @@ class Svd:
 
     def combine_user_item(self, df_rating):
         # self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='rating_value')
+        print("df_rating")
+        print(df_rating)
         self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='rating_value').fillna(0)
 
         # print("User item matrix:")
@@ -215,13 +207,59 @@ class Svd:
         svd.fit(trainset)
         print("ratings[ratings['user_id'] == users_id]")
         print(ratings[ratings['user_id'] == users_id])
+        print(svd.predict(users_id, 734909))
 
-        print(svd.predict(users_id, 729191))
+    def rmse_all_users(self):
+        U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
+        sigma = np.diag(sigma)
+        all_user_predicted_ratings = np.dot(np.dot(U, sigma), Vt) + self.user_ratings_mean.reshape(-1, 1)
+        print("all_user_predicted_ratings")
+        print(all_user_predicted_ratings)
+        print(all_user_predicted_ratings.size)
+
+        predictions_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
+        print("preds_df")
+        print(predictions_df)
+        predictions_df['user_id'] = self.user_item_table.index.values.tolist()
+        predictions_df.set_index('user_id', drop=True, inplace=True)  # inplace for making change in callable  way
+        # Get and sort the user's predictions
+        # sorted_users_predictions = pd.DataFrame()
+        user_ids = self.get_all_users_ids()
+        predictions_results = pd.DataFrame()
+        print(user_ids)
+        print("predictions_df")
+        print(predictions_df)
+
+        recommenderMethods = RecommenderMethods()
+        already_rated_by_users = recommenderMethods.get_ratings_dataframe()
+        print("already_rated_by_users")
+        print(already_rated_by_users)
+        # already_rated_by_users.set_index('user_id', inplace=True)
+        already_rated_by_users = already_rated_by_users.pivot(index='user_id', columns='post_id', values='value').fillna(0)
+        print("already_rated_by_users")
+        print(already_rated_by_users)
+        print("predictions_df")
+        print(predictions_df)
+
+        already_rated_matrix = already_rated_by_users.to_numpy()
+        predictions_matrix = predictions_df.to_numpy()
+
+        rmse = mean_squared_error(already_rated_matrix, predictions_matrix, squared=True)
+
+        print("RMSE with 0 on missing values:")
+        print(rmse)
+
+        # Any possibility to deal with missing  values???
+        rmse = mean_squared_error(already_rated_matrix, predictions_matrix, squared=True)
+
+        print("RMSE ignoring missing values:")
+        print(rmse)
 
 def main():
+
     svd = Svd()
     # print(svd.run_svd(431))
-    print(svd.rmse(431))
+    print(svd.rmse_all_users())
 
 
 if __name__ == "__main__": main()
