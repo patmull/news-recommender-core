@@ -225,7 +225,7 @@ class TfIdf:
     def get_cleaned_text(self, df, row):
         return row
 
-    def get_recommended_posts_for_keywords(self, keywords, data_frame, items, k=10):
+    def get_recommended_posts_for_keywords(self, keywords, data_frame, k=10):
 
         keywords_list = []
         keywords_list.append(keywords)
