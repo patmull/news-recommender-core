@@ -250,7 +250,31 @@ class Svd:
         print(rmse)
 
         # Any possibility to deal with missing  values???
-        rmse = mean_squared_error(already_rated_matrix, predictions_matrix, squared=True)
+        cols = already_rated_by_users.columns
+        bt = already_rated_by_users.apply(lambda x: x > 0)
+        bt.apply(lambda x: list(cols[x.values]), axis=1)
+        print("bt")
+        print(bt)
+
+        predicted_array = []
+        actual_array = []
+
+        for index, row in already_rated_by_users.iterrows():
+            print("index")
+            print(index)
+            print("row")
+            print(row)
+            for column, value in row.items():
+                # print(column)
+                if value != 0:
+                    print(predictions_df.at[index,column])
+                    predicted_array.append(round(predictions_df.at[index,column],1))
+                    actual_array.append(value)
+
+        print(predicted_array)
+        print(actual_array)
+
+        rmse = mean_squared_error(actual_array, predicted_array, squared=True)
 
         print("RMSE ignoring missing values:")
         print(rmse)
