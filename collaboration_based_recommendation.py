@@ -274,10 +274,10 @@ class Svd:
         print(predicted_array)
         print(actual_array)
 
-        rmse = mean_squared_error(actual_array, predicted_array, squared=True)
+        rmse_without_zero = mean_squared_error(actual_array, predicted_array, squared=True)
 
         print("RMSE ignoring missing values:")
-        print(rmse)
+        print(rmse_without_zero)
 
 def main():
 
