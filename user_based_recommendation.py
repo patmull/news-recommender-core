@@ -1,4 +1,6 @@
 import json
+
+from content_based_algorithms.data_queries import RecommenderMethods
 from data_conenction import Database
 import pandas as pd
 
@@ -35,6 +37,7 @@ class UserBasedRecommendation:
 
         return df_ratings
 
+
     def load_user_categories(self, user_id):
 
         sql_user_categories = """SELECT c.slug AS "category_slug" FROM user_categories uc JOIN categories c ON c.id = uc.category_id WHERE uc.user_id = (%(user_id)s);"""
@@ -45,7 +48,16 @@ class UserBasedRecommendation:
         print(df_user_categories)
         return df_user_categories
 
-#test_categories_slugs = ["technologie"]
+    def get_user_keywords(self, user_id):
+        self.database.connect()
+        sql_user_keywords = """SELECT t.name AS "keyword_name" FROM tag_user tu JOIN tags t ON t.id = tu.tag_id WHERE tu.user_id = (%(user_id)s);"""
+        queryParams = {'user_id': user_id}
+        df_user_categories = pd.read_sql_query(sql_user_keywords, self.get_database().get_cnx(), params=queryParams)
+        self.database.disconnect()
+        print("df_user_categories:")
+        print(df_user_categories)
+        return df_user_categories
+
 
     # loads posts for user based on his id and favourite categories
     def load_recommended_posts_for_user(self, user_id,num_of_recommendations=5):
@@ -58,6 +70,12 @@ class UserBasedRecommendation:
         print("df_sorted_results[['post_slug']]")
         print(df_sorted_results[['post_id','post_slug']])
         return self.convert_to_json(df_sorted_results.head(num_of_recommendations))
+
+    def load_user_keywords(self, user_id):
+        self.database.connect()
+        recommenderMethods = RecommenderMethods()
+        recommenderMethods.get_user_keywords(user_id)
+        self.database.disconnect()
 
     def convert_to_json(self, df):
         predictions_json = df.to_json(orient="split")

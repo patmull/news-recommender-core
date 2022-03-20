@@ -62,7 +62,7 @@ class RecommenderMethods:
         self.database.disconnect()
         return self.categories_df
 
-    def get_user_posts_ratings():
+    def get_user_posts_ratings(self):
         database = Database()
         database.connect()
         ##Step 1
@@ -111,6 +111,8 @@ class RecommenderMethods:
         json = self.convert_to_json_keyword_based(df_renamed)
 
         return json
+
+
 
     def convert_to_json_keyword_based(self, post_recommendations):
 
