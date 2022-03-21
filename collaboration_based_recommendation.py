@@ -99,7 +99,6 @@ class Svd:
                                                           num_of_recommendations)
         print("already_rated.head(num_of_recommendations)")
         print(already_rated.head(num_of_recommendations).to_string())
-
         print("List of predictions based on already rated items:")
         print(predictions.head(num_of_recommendations).to_string())
         predictions_json = predictions.to_json(orient="split")
@@ -122,17 +121,20 @@ class Svd:
         user_full = (user_data.merge(posts_df, how='left', left_on='post_id', right_on='post_id').
                      sort_values(['rating_value'], ascending=False)
                      )
-
+        print("user_full.to_string()")
+        print(user_full.to_string())
         # Recommend the highest predicted rating posts that the user hasn't rated yet.
         recommendations = (posts_df[~posts_df['post_id'].isin(user_full['post_id'])]
                                .merge(pd.DataFrame(sorted_user_predictions).reset_index(),
                                       how='left',
                                       left_on='post_id',
                                       right_on='post_id')
-                               .rename(columns={user_row_number: 'Predictions'})
-                               .sort_values('Predictions', ascending=False)
-                               .iloc[:num_recommendations, :-1])
-
+                               .rename(columns={user_row_number: 'rating_value'})
+                               .sort_values('rating_value', ascending=False)
+                               .iloc[:num_recommendations, :]
+                           )
+        print("recommendations")
+        print(recommendations.to_string())
         return user_full, recommendations
 
     def rmse(self, user_id):
@@ -163,7 +165,7 @@ class Svd:
         similarity_matrix = cosine_similarity(df_ratings_dummy, df_ratings_dummy)
         similarity_matrix_df = pd.DataFrame(similarity_matrix, index=df_ratings.index, columns=df_ratings.index)
 
-        print(self.calculate_ratings(user_id,704691,df_ratings_dummy,similarity_matrix_df))
+        print(self.calculate_ratings(user_id, 704691, df_ratings_dummy,similarity_matrix_df))
         test_set_score = self.score_on_test_set(X_test, df_ratings_dummy, similarity_matrix_df)
         print(test_set_score)
         print(self.cross_validate_dataframe(ratings, user_id))
