@@ -191,7 +191,7 @@ class RecommenderMethods:
         self.tfidf_vectorizer = tfidf_vectorizer
 
     # # @profile
-    def recommend_by_more_features(self, slug, tupple_of_fitted_matrices):
+    def recommend_by_more_features(self, slug, tupple_of_fitted_matrices, num_of_recommendations=20):
         # combining results of all feature types
         # combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices) # creating sparse matrix containing mostly zeroes from combined feature tupples
         combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
@@ -216,7 +216,7 @@ class RecommenderMethods:
 
         # getting posts with highest similarity
         combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
-                                                  self.df[['slug_x']])
+                                                  self.df[['slug_x']], k=num_of_recommendations)
 
         df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
 
@@ -224,6 +224,7 @@ class RecommenderMethods:
         json = self.convert_datframe_posts_to_json(df_renamed, slug)
 
         return json
+
 
     def recommend_by_more_features_with_full_text(self, slug, tupple_of_fitted_matrices):
         # combining results of all feature types
