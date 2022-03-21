@@ -43,8 +43,6 @@ class LearnToRank:
         print(user_preferences_posts_dict)
 
         user_collaboration_posts = svd.run_svd(user_id, num_of_recommendations=20)
-        print("user_collaboration_posts")
-        print(user_collaboration_posts)
         df = pd.DataFrame.from_dict(user_collaboration_posts, orient='index').transpose()
         user_collaboration_posts_df = pd.DataFrame(df['data'].tolist(),
                                                  columns=['post_id', 'slug', 'rating_value'])
