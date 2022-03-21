@@ -271,12 +271,10 @@ class TfIdf:
         # return pd.DataFrame(closest).merge(items).head(k)
 
     # @profile
-    def recommend_posts_by_all_features_preprocessed(self, slug):
+    def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
 
         recommenderMethods = RecommenderMethods()
-
         print("Loading posts.")
-
         recommenderMethods.get_posts_dataframe()  # load posts to dataframe
         recommenderMethods.get_categories_dataframe()  # load categories to dataframe
         recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
@@ -288,7 +286,7 @@ class TfIdf:
 
         gc.collect()
 
-        post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices)
+        post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
 
         del recommenderMethods
         return post_recommendations
