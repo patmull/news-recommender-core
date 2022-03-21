@@ -50,7 +50,7 @@ class LearnToRank:
         user_collaboration_posts_dict = user_collaboration_posts_df.to_dict('records')
 
         if len(keyword_list) > 0:
-            feature_list.append([tfidf_posts, tfidf_keywords,doc2vec_posts,lda_posts,user_preferences_posts,user_collaboration_posts])
+            feature_list.append([tfidf_posts, tfidf_keywords, doc2vec_posts, lda_posts, user_preferences_posts, user_collaboration_posts])
         else:
             feature_list.append([tfidf_posts, doc2vec_posts, lda_posts, user_preferences_posts,
                                  user_collaboration_posts])
@@ -66,12 +66,47 @@ class LearnToRank:
         print(user_preferences_posts_dict)
         print("user_collaboration_posts")
         print(user_collaboration_posts_dict)
+
         print("feature_list")
         print(feature_list)
 
+        tfidf_posts_df = pd.DataFrame(tfidf_posts)
+        tfidf_posts_df.rename(columns={'slug': 'slug_tfidf_posts','coefficient': 'coefficients_tfidf_posts'}, inplace=True)
+        print("tfidf_posts_df:")
+        print(tfidf_posts_df)
 
+        tfidf_keywords_df = pd.DataFrame(tfidf_keywords)
+        tfidf_keywords_df.rename(columns={'slug': 'slug_tfidf_keywords','coefficient': 'coefficients_tfidf_keywords'}, inplace=True)
+        print("tfidf_keywords_df:")
+        print(tfidf_keywords_df)
+
+        doc2vec_posts_df = pd.DataFrame(doc2vec_posts)
+        doc2vec_posts_df.rename(columns={'slug': 'slug_doc2vec_posts','coefficient': 'coefficients_doc2vec_posts'}, inplace=True)
+        print("tfidf_doc2vec_posts:")
+        print(doc2vec_posts_df)
+
+        lda_posts_df = pd.DataFrame(lda_posts)
+        lda_posts_df.rename(columns={'slug': 'slug_lda_posts','coefficient': 'coefficients_lda_posts'}, inplace=True)
+        print("tfidf_posts_df:")
+        print(tfidf_posts_df)
+
+        user_preferences_posts_dict_df = pd.DataFrame(user_preferences_posts_dict)
+        user_preferences_posts_dict_df.rename(columns={'slug': 'slug_tfidf_posts','coefficient': 'coefficients_tf_idf_posts'}, inplace=True)
+        print("user_preferences_posts_dict_df:")
+        print(user_preferences_posts_dict_df)
+
+        user_collaboration_posts_dict_df = pd.DataFrame(user_collaboration_posts_dict)
+        user_collaboration_posts_dict_df.rename(columns={'slug': 'slug_user_collaboration_posts_dict','coefficient': 'coefficients_user_collaboration_posts_dict'}, inplace=True)
+        print("user_collaboration_posts_dict_df:")
+        print(user_collaboration_posts_dict_df)
+
+        dictionary_intersection = self.intersect(tfidf_posts, tfidf_keywords, doc2vec_posts, lda_posts, user_preferences_posts_dict, user_collaboration_posts_dict)
+        print(dictionary_intersection)
 
         # predictions(tfidf,doc2vec,lda,wor2vec,user_rating,thumbs) = c0 + c1 * tfidf + c2 * doc2vec + c3 * lda + c4 * wor2vec + c5 * user_rating + c6 * thumbs
+
+    def intersect(self, a, b, c, d, e, f):
+        return dict(a.items() & b.items() & c.items())
 
 def main():
     user_id = 431
