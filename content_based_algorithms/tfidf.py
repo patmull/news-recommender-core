@@ -87,7 +87,7 @@ class TfIdf:
             print(i[1].sort_values(ascending=False)[:10])
         """
 
-    def keyword_based_comparison(self, keywords):
+    def keyword_based_comparison(self, keywords, number_of_recommended_posts):
 
         # print("----------------------------------")
         # print("----------------------------------")
@@ -99,17 +99,12 @@ class TfIdf:
 
         # creating dictionary of words
         wordDictA = dict.fromkeys(keywords_splitted_1, 0)
-
         for word in keywords_splitted_1:
             wordDictA[word] += 1
 
-        # keywords_df = pd.DataFrame([wordDictA])
-
         recommenderMethods = RecommenderMethods()
-
         recommenderMethods.get_posts_dataframe()
         recommenderMethods.get_categories_dataframe()
-        # tfidf.get_ratings_dataframe()
         recommenderMethods.join_posts_ratings_categories()
 
         # same as "classic" tf-idf
@@ -119,7 +114,7 @@ class TfIdf:
 
         tuple_of_fitted_matrices = (fit_by_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
 
-        post_recommendations = recommenderMethods.recommend_by_keywords(keywords, tuple_of_fitted_matrices)
+        post_recommendations = recommenderMethods.recommend_by_keywords(keywords, tuple_of_fitted_matrices, number_of_recommended_posts=number_of_recommended_posts)
 
         del recommenderMethods
         return post_recommendations

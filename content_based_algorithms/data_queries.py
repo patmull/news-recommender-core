@@ -93,7 +93,7 @@ class RecommenderMethods:
         fit_by_feature = self.get_tfIdfVectorizer(feature_name, second_feature)
         return fit_by_feature
 
-    def recommend_by_keywords(self, keywords, tupple_of_fitted_matrices):
+    def recommend_by_keywords(self, keywords, tupple_of_fitted_matrices, number_of_recommended_posts=20):
         # combining results of all feature types to sparse matrix
         combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices, dtype=np.float16)
 
@@ -101,7 +101,7 @@ class RecommenderMethods:
         print("Computing cosine similarity using matrix with combined features...")
         self.set_cosine_sim_use_own_matrix(combined_matrix1)
         combined_all = self.get_recommended_posts_for_keywords(keywords, self.cosine_sim_df,
-                                                               self.df[['keywords']])
+                                                               self.df[['keywords']], k=number_of_recommended_posts)
         # print("combined_all:")
         # print(combined_all)
         df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
