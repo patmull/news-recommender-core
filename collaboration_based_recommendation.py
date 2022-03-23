@@ -59,6 +59,68 @@ class Svd:
 
         return R_demeaned
 
+    def get_average_post_rating(self):
+        database = Database()
+        database.connect()
+        ##Step 1
+        # database.set_row_var()
+        # EXTRACT RESULTS FROM CURSOR
+
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value AS rating_value
+                           FROM posts p
+                           JOIN ratings r ON r.post_id = p.id
+                           JOIN users u ON r.user_id = u.id;"""
+        # LOAD INTO A DATAFRAME
+        recommenderMethods = RecommenderMethods()
+        all_posts_df = recommenderMethods.get_posts_dataframe()
+        df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
+        sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
+        # LOAD INTO A DATAFRAME
+        df_users = pd.read_sql_query(sql_select_all_users, database.get_cnx())
+        # print("Users")
+        # print(self.df_users)
+        sql_select_all_posts = """SELECT p.id AS post_id, p.slug FROM posts p;"""
+        # LOAD INTO A DATAFRAME
+        df_posts = pd.read_sql_query(sql_select_all_posts, database.get_cnx())
+        database.disconnect()
+        # print("Posts:")
+        # print(self.df_posts)
+        print("df_ratings")
+        print(df_ratings.to_string())
+        ratings_means = df_ratings.groupby("slug")["rating_value"].mean()
+        print("df_ratings_means")
+        print(ratings_means)
+        df_ratings_means = pd.DataFrame({'slug': ratings_means.index, 'rating_value': ratings_means.values}).set_index('slug')
+        df_ratings_means_list = []
+        print("df_ratings_means")
+        print(df_ratings_means.to_string())
+        for slug_index, row in df_ratings_means.iterrows():
+            df_ratings_means_list.append({'slug': slug_index, 'coefficient': row['rating_value']})
+        df_ratings_means_list_sorted = sorted(df_ratings_means_list, key=lambda d: d['coefficient'], reverse=True)
+
+        all_posts_df = all_posts_df.set_index("slug")
+        print("all_posts_df")
+        print(all_posts_df.head().to_string())
+        print("df_ratings_means")
+        print(df_ratings_means.to_string())
+        print(all_posts_df.columns)
+        print("all_posts_df.columns")
+        print(all_posts_df.columns)
+        all_posts_df = all_posts_df.reset_index()
+        all_posts_df = all_posts_df[['slug']]
+        all_posts_df = all_posts_df.set_index('slug')
+        all_posts_df_means = pd.merge(all_posts_df, df_ratings_means,left_index=True, right_index=True,how="left")
+        print("all_posts_df_means.columns")
+        print(all_posts_df_means.columns)
+        all_posts_df_means = all_posts_df_means[['rating_value']]
+        print(all_posts_df_means.to_string())
+        all_posts_df_means_list = []
+        for slug_index, row in all_posts_df_means.iterrows():
+            all_posts_df_means_list.append({'slug': slug_index, 'coefficient': row['rating_value']})
+        all_posts_df_means_list_sorted = sorted(all_posts_df_means_list, key=lambda d: d['coefficient'], reverse=True)
+        return df_ratings_means_list_sorted, all_posts_df_means_list_sorted
+
+
     def combine_user_item(self, df_rating):
         # self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='rating_value')
         print("df_rating")
@@ -138,7 +200,6 @@ class Svd:
         return user_full, recommendations
 
     def rmse(self, user_id):
-
         recommenderMethods = RecommenderMethods()
         column_names = ['user_id','post_id','rating_value','slug']
         posts_df = recommenderMethods.get_posts_dataframe() # needs to be separated - posts, users, ratings
@@ -285,7 +346,11 @@ def main():
 
     svd = Svd()
     # print(svd.run_svd(431))
-    print(svd.rmse_all_users())
-
+    # print(svd.rmse_all_users())
+    rated, all = svd.get_average_post_rating()
+    print("rated:")
+    print(rated)
+    print("all:")
+    print(all)
 
 if __name__ == "__main__": main()
