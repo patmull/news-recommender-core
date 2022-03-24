@@ -1,4 +1,6 @@
 import json
+import operator
+
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
@@ -109,16 +111,27 @@ class Svd:
         all_posts_df = all_posts_df.reset_index()
         all_posts_df = all_posts_df[['slug']]
         all_posts_df = all_posts_df.set_index('slug')
+        all_posts_df.to_csv("exports/all_posts_df.csv")
+        df_ratings_means.to_csv("exports/df_ratings_means.csv")
         all_posts_df_means = pd.merge(all_posts_df, df_ratings_means,left_index=True, right_index=True,how="left")
+        all_posts_df_means.to_csv("exports/all_posts_df_means.csv")
         print("all_posts_df_means.columns")
         print(all_posts_df_means.columns)
         all_posts_df_means = all_posts_df_means[['rating_value']]
+        all_posts_df_means = all_posts_df_means[['rating_value']].fillna(0)
         print(all_posts_df_means.to_string())
         all_posts_df_means_list = []
         for slug_index, row in all_posts_df_means.iterrows():
             all_posts_df_means_list.append({'slug': slug_index, 'coefficient': row['rating_value']})
-        all_posts_df_means_list_sorted = sorted(all_posts_df_means_list, key=lambda d: d['coefficient'], reverse=True)
-        return df_ratings_means_list_sorted, all_posts_df_means_list_sorted
+        print("all_posts_df_means_list")
+        print(all_posts_df_means_list)
+        with open('exports/all_posts_df_means_list.txt', 'w') as f:
+            f.write(str(all_posts_df_means_list))
+        # all_posts_df_means_list_sorted = sorted(all_posts_df_means_list, key=lambda d: d['coefficient'], reverse=True)
+        all_posts_df_means_list.sort(key=operator.itemgetter('coefficient'), reverse=True)
+        print("all_posts_df_means_list")
+        print(all_posts_df_means_list)
+        return df_ratings_means_list_sorted, all_posts_df_means_list
 
 
     def combine_user_item(self, df_rating):
