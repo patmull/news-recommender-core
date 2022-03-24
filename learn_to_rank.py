@@ -1,7 +1,6 @@
 import itertools
-
 import numpy as np
-import pandas as pd
+import databricks.koalas as ks
 
 from collaboration_based_recommendation import Svd
 from content_based_algorithms.tfidf import TfIdf
@@ -9,7 +8,6 @@ from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.lda import Lda
 from user_based_recommendation import UserBasedRecommendation
 from sklearn.linear_model import LinearRegression
-from math import sin
 
 
 class LearnToRank:
@@ -53,22 +51,11 @@ class LearnToRank:
         print("user_preferences_posts")
         print(user_preferences_posts)
 
-        user_preferences_posts = svd.get_average_post_rating()
-        user_preferences_posts_full = user_based_recommendation.load_recommended_posts_for_user(user_id,
-                                                                                           num_of_recommendations=NUM_OF_POSTS)
-        print("user_preferences_posts_full")
-        print(user_preferences_posts_full)
-        df_full = pd.DataFrame.from_dict(user_preferences_posts_full, orient='index').transpose()
-        user_preferences_posts_full_df = pd.DataFrame(df_full['data'].tolist(),
-                                                 columns=['post_id', 'slug', 'rating_actual', 'post_created_at'])
-        user_preferences_posts_full_df = user_preferences_posts_full_df[['slug', 'rating_actual']]
-        user_preferences_posts_full_dict = user_preferences_posts_full_df.to_dict('records')
-        print("user_preferences_posts_full_dict")
-        print(user_preferences_posts_full_dict)
+        user_preferences_posts, user_preferences_posts_full = svd.get_average_post_rating()
 
         user_collaboration_posts = svd.run_svd(user_id, num_of_recommendations=20)
-        df = pd.DataFrame.from_dict(user_collaboration_posts, orient='index').transpose()
-        user_collaboration_posts_df = pd.DataFrame(df['data'].tolist(),
+        df = ks.DataFrame.from_dict(user_collaboration_posts, orient='index').transpose()
+        user_collaboration_posts_df = ks.DataFrame(df['data'].tolist(),
                                                    columns=['post_id', 'slug', 'rating_predicted'])
         user_collaboration_posts_df = user_collaboration_posts_df[['slug', 'rating_predicted']]
         print("user_collaboration_posts_df")
@@ -76,8 +63,8 @@ class LearnToRank:
         user_collaboration_posts_dict = user_collaboration_posts_df.to_dict('records')
 
         user_collaboration_posts_full = svd.run_svd(user_id, num_of_recommendations=NUM_OF_POSTS)
-        df = pd.DataFrame.from_dict(user_collaboration_posts_full, orient='index').transpose()
-        user_collaboration_posts_full_df = pd.DataFrame(df['data'].tolist(),
+        df = ks.DataFrame.from_dict(user_collaboration_posts_full, orient='index').transpose()
+        user_collaboration_posts_full_df = ks.DataFrame(df['data'].tolist(),
                                                    columns=['post_id', 'slug', 'rating_predicted'])
         user_collaboration_posts_full_df = user_collaboration_posts_full_df[['slug', 'rating_predicted']]
         print("user_collaboration_posts_full_df")
@@ -106,7 +93,7 @@ class LearnToRank:
         print("feature_list")
         print(feature_list)
 
-        tfidf_posts_df = pd.DataFrame(tfidf_posts)
+        tfidf_posts_df = ks.DataFrame(tfidf_posts)
         tfidf_posts_df.rename(columns={'slug': 'slug', 'coefficient': 'score_tfidf_posts'}, inplace=True)
         print("tfidf_posts_df:")
         print(tfidf_posts_df)
@@ -114,7 +101,7 @@ class LearnToRank:
         print("tfidf_posts_df:")
         print(tfidf_posts_df)
 
-        tfidf_posts_full_df = pd.DataFrame(tfidf_posts_full)
+        tfidf_posts_full_df = ks.DataFrame(tfidf_posts_full)
         tfidf_posts_full_df.rename(columns={'slug': 'slug', 'coefficient': 'score_tfidf_posts'}, inplace=True)
         print("tfidf_posts_full_df:")
         print(tfidf_posts_full_df)
@@ -122,48 +109,50 @@ class LearnToRank:
         print("tfidf_posts_full_df:")
         print(tfidf_posts_full_df)
 
-        tfidf_keywords_df = pd.DataFrame(tfidf_keywords)
+        tfidf_keywords_df = ks.DataFrame(tfidf_keywords)
         tfidf_keywords_df.rename(columns={'slug': 'slug', 'coefficient': 'score_tfidf_keywords'}, inplace=True)
         print("tfidf_keywords_df:")
         print(tfidf_keywords_df)
 
         if len(keyword_list) > 0:
-            tfidf_keywords_full_df = pd.DataFrame(tfidf_keywords_full)
+            tfidf_keywords_full_df = ks.DataFrame(tfidf_keywords_full)
             tfidf_keywords_full_df.rename(columns={'slug': 'slug', 'coefficient': 'score_tfidf_keywords'}, inplace=True)
             print("tfidf_keywords_full_df:")
             print(tfidf_keywords_full_df)
 
-        doc2vec_posts_df = pd.DataFrame(doc2vec_posts)
+        doc2vec_posts_df = ks.DataFrame(doc2vec_posts)
         doc2vec_posts_df.rename(columns={'slug': 'slug', 'coefficient': 'score_doc2vec_posts'}, inplace=True)
         print("doc2vec_posts_df:")
         print(doc2vec_posts_df)
 
-        doc2vec_posts_full_df = pd.DataFrame(doc2vec_posts_full)
+        doc2vec_posts_full_df = ks.DataFrame(doc2vec_posts_full)
         doc2vec_posts_full_df.rename(columns={'slug': 'slug', 'coefficient': 'score_doc2vec_posts'},
                                      inplace=True)
         print("doc2vec_posts_df_full:")
         print(doc2vec_posts_full_df)
 
-        lda_posts_df = pd.DataFrame(lda_posts)
+        lda_posts_df = ks.DataFrame(lda_posts)
         lda_posts_df.rename(columns={'slug': 'slug', 'coefficient': 'score_lda_posts'}, inplace=True)
 
-        lda_posts_full_df = pd.DataFrame(lda_posts_full)
+        lda_posts_full_df = ks.DataFrame(lda_posts_full)
         lda_posts_full_df.rename(columns={'slug': 'slug', 'coefficient': 'score_lda_posts'}, inplace=True)
 
-        user_preferences_posts_df = pd.DataFrame(user_preferences_posts)
+        user_preferences_posts_df = ks.DataFrame(user_preferences_posts)
         user_preferences_posts_df.rename(columns={'slug': 'slug', 'coefficient': 'rating_actual'},
                                               inplace=True)
-        user_preferences_posts_full_df = pd.DataFrame(user_preferences_posts_full_dict)
+        user_preferences_posts_full_df = ks.DataFrame(user_preferences_posts_full)
         user_preferences_posts_full_df.rename(columns={'slug': 'slug', 'coefficient': 'rating_actual'},
                                                 inplace=True)
 
-        user_collaboration_posts_df = pd.DataFrame(user_collaboration_posts_dict)
+        user_preferences_posts_full_df = user_preferences_posts_full_df[['slug', 'rating_actual']]
+
+        user_collaboration_posts_df = ks.DataFrame(user_collaboration_posts_dict)
         user_collaboration_posts_df.rename(
             columns={'slug': 'slug', 'coefficient': 'score_user_collaboration_posts_dict'}, inplace=True)
         print("user_collaboration_posts_dict_df:")
         print(user_collaboration_posts_df)
 
-        user_collaboration_posts_full_df = pd.DataFrame(user_collaboration_posts_full_dict)
+        user_collaboration_posts_full_df = ks.DataFrame(user_collaboration_posts_full_dict)
         user_collaboration_posts_df.rename(
             columns={'slug': 'slug', 'coefficient': 'score_user_collaboration_posts_dict'}, inplace=True)
         print("user_collaboration_posts_full_df:")
@@ -188,7 +177,7 @@ class LearnToRank:
                 intersection_list.append(dictionary_intersection)
 
         intersections_df_merged = [df.set_index('slug') for df in intersection_list]
-        intersections_df_merged = pd.concat(intersections_df_merged).drop_duplicates()
+        intersections_df_merged = ks.concat(intersections_df_merged).drop_duplicates()
 
         if 'score_tfidf_posts' not in intersections_df_merged.columns:
             intersections_df_merged["score_tfidf_posts"] = np.nan
@@ -215,11 +204,13 @@ class LearnToRank:
           + intersections_df_merged['score_lda_posts'].fillna(tfidf_posts_df['score_lda_posts']) \
           + intersections_df_merged['score_doc2vec_posts'].fillna(tfidf_posts_df['score_doc2vec_posts'])
         """
-
-        tfidf_keywords_full_df = tfidf_keywords_full_df.set_index('slug')
+        if len(keywords) > 0:
+            tfidf_keywords_full_df = tfidf_keywords_full_df.set_index('slug')
         lda_posts_full_df = lda_posts_full_df.set_index('slug')
         doc2vec_posts_full_df = doc2vec_posts_full_df.set_index('slug')
         user_collaboration_posts_full_df = user_collaboration_posts_full_df.set_index('slug')
+        print("user_preferences_posts_full_df")
+        print(user_preferences_posts_full_df)
         user_preferences_posts_full_df = user_preferences_posts_full_df.set_index('slug')
         print("tfidf_posts_full_df")
         print(tfidf_posts_full_df)
@@ -235,9 +226,9 @@ class LearnToRank:
         print(user_preferences_posts_full_df)
 
         if len(keywords) > 0:
-            df_merged = pd.concat([tfidf_posts_full_df, tfidf_keywords_full_df, lda_posts_full_df, doc2vec_posts_full_df, user_collaboration_posts_full_df, user_preferences_posts_full_df], axis=1)
+            df_merged = ks.concat([tfidf_posts_full_df, tfidf_keywords_full_df, lda_posts_full_df, doc2vec_posts_full_df, user_collaboration_posts_full_df, user_preferences_posts_full_df], axis=1)
         else:
-            df_merged = pd.concat([tfidf_posts_full_df, lda_posts_full_df, doc2vec_posts_full_df, user_collaboration_posts_full_df, user_preferences_posts_full_df], axis=1)
+            df_merged = ks.concat([tfidf_posts_full_df, lda_posts_full_df, doc2vec_posts_full_df, user_collaboration_posts_full_df, user_preferences_posts_full_df], axis=1)
 
         print("Found intersections:")
         intersections_df_merged = intersections_df_merged.reset_index()
@@ -273,6 +264,7 @@ class LearnToRank:
         df_merged.to_csv("exports/df_recommender_features_merged.csv")
 
         df_merged = df_merged.dropna()
+        df_merged = df_merged.loc[~(df_merged['rating_actual'] == 0)]
 
         print("Merged dataframe withou missing values:")
         print(df_merged.to_string())
@@ -306,8 +298,10 @@ class LearnToRank:
 
         print(final_combined_results_list)
         return final_combined_results_list
+
+
     def intersect(self, a, b):
-        return pd.merge(a, b, how='inner', on=['slug'])
+        return ks.merge(a, b, how='inner', on=['slug'])
 
     # rating,thumbs) = c0 + c1 * tfidf + c2 * doc2vec + c3 * lda + c5 * rating_predicted + c6 * thumbs
     def relevance_score(self, intercept, tfidf_coeff, doc2vec_coeff, lda_coeff, rating_predicted_coeff, tfidf_score, doc2vec_score, lda_score, rating_predicted_score):
