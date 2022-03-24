@@ -1,7 +1,6 @@
 import itertools
 
 import numpy as np
-
 import pandas as pd
 
 from collaboration_based_recommendation import Svd
@@ -111,12 +110,12 @@ class LearnToRank:
         print("tfidf_posts_full_df:")
         print(tfidf_posts_full_df)
 
-        tfidf_keywords_df = pd.DataFrame(tfidf_keywords)
-        tfidf_keywords_df.rename(columns={'slug': 'slug', 'coefficient': 'score_tfidf_keywords'}, inplace=True)
-        print("tfidf_keywords_df:")
-        print(tfidf_keywords_df)
-
         if len(keyword_list) > 0:
+            tfidf_keywords_df = pd.DataFrame(tfidf_keywords)
+            tfidf_keywords_df.rename(columns={'slug': 'slug', 'coefficient': 'score_tfidf_keywords'}, inplace=True)
+            print("tfidf_keywords_df:")
+            print(tfidf_keywords_df)
+
             tfidf_keywords_full_df = pd.DataFrame(tfidf_keywords_full)
             tfidf_keywords_full_df.rename(columns={'slug': 'slug', 'coefficient': 'score_tfidf_keywords'}, inplace=True)
             print("tfidf_keywords_full_df:")
@@ -298,8 +297,8 @@ class LearnToRank:
         # sorting results by coefficient
         final_combined_results_list = sorted(final_combined_results_list, key=lambda d: d['coefficient'], reverse=True)
 
-        print(final_combined_results_list)
-        return final_combined_results_list
+        print(final_combined_results_list[0:20])
+        return final_combined_results_list[0:20]
 
 
     def intersect(self, a, b):
@@ -308,6 +307,9 @@ class LearnToRank:
     # rating,thumbs) = c0 + c1 * tfidf + c2 * doc2vec + c3 * lda + c5 * rating_predicted + c6 * thumbs
     def relevance_score(self, intercept, tfidf_coeff, doc2vec_coeff, lda_coeff, rating_predicted_coeff, tfidf_score, doc2vec_score, lda_score, rating_predicted_score):
         return intercept + (tfidf_coeff * tfidf_score) + (doc2vec_coeff * doc2vec_score) + (lda_coeff * lda_score) + (rating_predicted_coeff * rating_predicted_score)
+
+    def flatten(self, t):
+        return [item for sublist in t for item in sublist]
 
 def main():
     user_id = 431
