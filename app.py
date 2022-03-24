@@ -1,8 +1,10 @@
 import traceback
+
+from learn_to_rank import LearnToRank
 from user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
 from flask_restful import Api, Resource
-from content_based_recommendation import word2vec_embedding, load_models
+from content_based_recommendation import word2vec_embedding
 from content_based_algorithms.lda import Lda
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.tfidf import TfIdf
@@ -114,6 +116,14 @@ class GetPostsByUserPreferences(Resource):
     def post(self):
         return {"data": "Posted"}
 
+class GetPostsByLearnToRank(Resource):
+
+    def get(self, param1, param2):
+        learn_to_rank = LearnToRank()
+        return learn_to_rank.linear_regression(param1, param2)
+
+    def post(self):
+        return {"data": "Posted"}
 
 class GetWordLemma(Resource):
 
@@ -168,6 +178,9 @@ def set_global_exception_handler(app):
 api.add_resource(GetPostsByOtherUsers, "/api/user/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByUserPreferences, "/api/user-preferences/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByKeywords, "/api/user-keywords")
+
+api.add_resource(GetPostsByLearnToRank, "/api/learn-to-rank/<int:param1>/<string:param2>")
+
 api.add_resource(GetWordLemma, "/api/lemma/<string:word>")
 api.add_resource(GetWordStem, "/api/stem/<string:word>/<string:aggressive>")
 api.add_resource(Preprocess, "/api/preprocess/<string:slug>")
