@@ -289,11 +289,15 @@ class LearnToRank:
         print(butIRegress.coef_)  # boost for title, boost for overview, boost for rating
         print(butIRegress.intercept_)
 
+        print(self.relevanceScore(butIRegress.intercept_,))
+
     def intersect(self, a, b):
         return pd.merge(a, b, how='inner', on=['slug'])
 
-    def relevanceScore(self, intercept, titleCoef, overviewCoef, ratingCoef, titleScore, overviewScore, movieRating):
+    def relevanceScoreRegression(self, intercept, titleCoef, overviewCoef, ratingCoef, titleScore, overviewScore, movieRating):
         return intercept + (titleCoef * titleScore) + (overviewCoef * overviewScore) + (ratingCoef * movieRating)
+
+    def relevanceScore(self, ):
 
 def main():
     user_id = 431
