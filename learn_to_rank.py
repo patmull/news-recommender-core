@@ -2,14 +2,22 @@ import itertools
 
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot
+from sklearn import preprocessing
+from sklearn.datasets import make_regression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.inspection import permutation_importance
+from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
+from sklearn.tree import DecisionTreeRegressor
+
+from xgboost import XGBRegressor, XGBClassifier
 
 from collaboration_based_recommendation import Svd
 from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.lda import Lda
 from user_based_recommendation import UserBasedRecommendation
-from sklearn.linear_model import LinearRegression
-
+from sklearn.linear_model import LinearRegression, LogisticRegression
 
 class LearnToRank:
 
@@ -272,40 +280,163 @@ class LearnToRank:
         df_merged = df_merged.dropna()
         df_merged = df_merged.loc[~(df_merged['rating_actual'] == 0)]
 
-        print("Merged dataframe withou missing values:")
+        print("Merged dataframe without missing values:")
         print(df_merged.to_string())
         # predictions(tfidf,doc2vec,lda,wor2vec,user_r
 
         ratings = df_merged[['rating_actual']]
         signals = df_merged.loc[:, 'score_tfidf_posts':'rating_predicted']
 
-        butIRegress = LinearRegression()
-        butIRegress.fit(signals, ratings)
+        # df_merged.to_csv("exports/all_posts_merged.csv")
 
-        butIRegress.coef_ = np.ndarray.flatten(butIRegress.coef_)
+        # rating_predicted = c0 + c1 * tfidf + c2 * doc2vec + c3 * lda + c5 * rating_average + c6 * thumbs
+        if len(keyword_list) > 0:
+            y = df_merged[['rating_predicted']]
+            df_merged = df_merged.rename(columns={'rating_actual': 'score_rating_average'})
+            X = df_merged.loc[:, ['score_tfidf_posts','score_tfidf_keywords','score_doc2vec_posts','score_lda_posts','score_rating_average']]
+            print("X:")
+            print(X)
+            features_dict = {0: 'TfIdf Posts', 1: 'TfIdf Keywords', 2: 'Doc2vec', 3: 'LDA', 4: 'Rating avg'}
+        else:
+            y = df_merged[['rating_predicted']]
+            df_merged = df_merged.rename(columns={'rating_actual': 'score_rating_average'})
+            X = df_merged.loc[:, ['score_tfidf_posts','score_doc2vec_posts','score_lda_posts','score_rating_average']]
+            print("X:")
+            print(X)
+            features_dict = {0: 'TfIdf Posts', 1: 'Doc2vec', 2: 'LDA', 3: 'Rating avg'}
+
+        # Linear regression (Sklearn)
+        model = LinearRegression()
+        # fit the model
+        model.fit(X, y)
+        # get importance
+        importance = np.ndarray.flatten(model.coef_)
+        # summarize feature importance
+        print("importance:")
+        print(importance)
+        for i, v in enumerate(importance):
+            print('Feature: %0d, Score: %.5f' % (i, v))
+        # plot feature importance
+        self.plot_feature_importance(features_dict,importance,"Linear Regression")
+
+        # define the model
+        # define dataset
+        # define the model
+        model = DecisionTreeRegressor()
+        # fit the model
+        model.fit(X, y)
+        # get importance
+        importance = model.feature_importances_
+        # summarize feature importance
+        for i, v in enumerate(importance):
+            print('Feature: %0d, Score: %.5f' % (i, v))
+        # plot feature importance
+        self.plot_feature_importance(features_dict,importance,"Decision Tree Regressor")
+
+        # define the model
+        model = RandomForestRegressor()
+        # fit the model
+        model.fit(X, y)
+        # get importance
+        importance = model.feature_importances_
+        # summarize feature importance
+        for i, v in enumerate(importance):
+            print('Feature: %0d, Score: %.5f' % (i, v))
+        # plot feature importance
+        self.plot_feature_importance(features_dict,importance,"Random Forest Regressor")
+
+        # define the model
+        model = XGBRegressor()
+        # fit the model
+        model.fit(X, y)
+        # get importance
+        importance = model.feature_importances_
+        # summarize feature importance
+        for i, v in enumerate(importance):
+            print('Feature: %0d, Score: %.5f' % (i, v))
+        # plot feature importance
+        self.plot_feature_importance(features_dict,importance,"XGBRegressor")
+
+        # define the model
+        model = XGBClassifier()
+        # fit the model
+        model.fit(X, y)
+        # get importance
+        importance = model.feature_importances_
+        # summarize feature importance
+        for i, v in enumerate(importance):
+            print('Feature: %0d, Score: %.5f' % (i, v))
+        # plot feature importance
+        self.plot_feature_importance(features_dict,importance,"XGBClassifier")
+
+        # define the model
+        model = KNeighborsRegressor()
+        # fit the model
+        model.fit(X, y)
+        # perform permutation importance
+        results = permutation_importance(model, X, y, scoring='neg_mean_squared_error')
+        # get importance
+        importance = results.importances_mean
+        # summarize feature importance
+        for i, v in enumerate(importance):
+            print('Feature: %0d, Score: %.5f' % (i, v))
+        self.plot_feature_importance(features_dict,importance,"K Neighbors Regressor")
+
+        # Lin regression
+        """
+        butIRegress = LinearRegression()
+        butIRegress.fit(X, y)
+        importance = np.ndarray.flatten(butIRegress.coef_)
         print("butIRegress.coef_")
         print(butIRegress.coef_)
+        """
+
+        user_has_keywords = None
+        if len(user_keywords) > 0:
+            user_has_keywords = True
+        else:
+            user_has_keywords = False
+        self.prepare_results(df_merged, importance, user_keywords)
+
+    def prepare_results(self, df_merged, butIRegress, user_has_keywords):
 
         final_combined_results_list = []
-
-        df_merged.to_csv("exports/articles_scores.csv")
-
         print("Relevance scores:")
-        if len(keyword_list) > 0:
+        if user_has_keywords is True:
             for slug_index, row in df_merged.iterrows():
-                relevance_score = self.relevance_score(intercept=butIRegress.intercept_, tfidf_coeff=butIRegress.coef_[0], doc2vec_coeff=butIRegress.coef_[1], lda_coeff=butIRegress.coef_[2],
-                                                       rating_predicted_coeff=butIRegress.coef_[3], tfidf_score=row['score_tfidf_posts'], lda_score=row['score_lda_posts'], doc2vec_score=row['score_doc2vec_posts'], rating_predicted_score=row['rating_predicted'])
+                relevance_score = self.relevance_score_lin_combination(intercept=butIRegress.intercept_,
+                                                                       tfidf_coeff=butIRegress.coef_[0],
+                                                                       tfidf_keywords_coeff=butIRegress.coef_[1],
+                                                                       doc2vec_coeff=butIRegress.coef_[2],
+                                                                       lda_coeff=butIRegress.coef_[3],
+                                                                       rating_average_coeff=butIRegress.coef_[4],
+                                                                       tfidf_score=row['score_tfidf_posts'],
+                                                                       tfidf_keywords_score=row['score_tfidf_keywords'],
+                                                                       doc2vec_score=row['score_doc2vec_posts'],
+                                                                       lda_score=row['score_lda_posts'],
+                                                                       rating_average_score=row['score_rating_average']
+                                                                       )
                 print(slug_index)
                 print(relevance_score)
-                final_combined_results_list.append({'slug': slug_index, 'coefficient': relevance_score[0]})
         else:
+
             for slug_index, row in df_merged.iterrows():
-                relevance_score = self.relevance_score(intercept=butIRegress.intercept_, tfidf_coeff=butIRegress.coef_[0], tfidf_keywords_coeff=butIRegress.coef_[1], doc2vec_coeff=butIRegress.coef_[2], lda_coeff=butIRegress.coef_[3],
-                                                       rating_predicted_coeff=butIRegress.coef_[4], tfidf_score=row['score_tfidf_posts'], lda_score=row['score_lda_posts'],
-                                                       doc2vec_score=row['score_doc2vec_posts'], rating_predicted_score=row['rating_predicted'], tfidf_keywords_score=row['score_tfidf_keywords'])
-                print(slug_index)
-                print(relevance_score)
-                final_combined_results_list.append({'slug': slug_index, 'coefficient': relevance_score[0]})
+                    relevance_score = self.relevance_score_lin_combination(intercept=butIRegress.intercept_,
+                                                                           tfidf_coeff=butIRegress.coef_[0],
+                                                                           tfidf_keywords_coeff=butIRegress.coef_[1],
+                                                                           doc2vec_coeff=butIRegress.coef_[2],
+                                                                           lda_coeff=butIRegress.coef_[3],
+                                                                           rating_average_coeff=butIRegress.coef_[4],
+                                                                           tfidf_score=row['score_tfidf_posts'],
+                                                                           lda_score=row['score_lda_posts'],
+                                                                           doc2vec_score=row['score_doc2vec_posts'],
+                                                                           rating_average_score=row['rating_predicted'],
+                                                                           tfidf_keywords_score=row['score_tfidf_keywords'])
+                    print(slug_index)
+                    print(relevance_score)
+                    final_combined_results_list.append({'slug': slug_index, 'coefficient': relevance_score[0]})
+
+            final_combined_results_list.append({'slug': slug_index, 'coefficient': relevance_score[0]})
 
         # sorting results by coefficient
         final_combined_results_list = sorted(final_combined_results_list, key=lambda d: d['coefficient'], reverse=True)
@@ -313,16 +444,29 @@ class LearnToRank:
         print(final_combined_results_list[0:20])
         return final_combined_results_list[0:20]
 
+    def plot_feature_importance(self, features_dict, importance, title):
+        pyplot.bar([features_dict[x] for x in range(len(importance))], importance)
+        pyplot.title(title)
+        pyplot.show()
 
     def intersect(self, a, b):
         return pd.merge(a, b, how='inner', on=['slug'])
 
     # rating,thumbs) = c0 + c1 * tfidf + c2 * doc2vec + c3 * lda + c5 * rating_predicted + c6 * thumbs
-    def relevance_score(self, intercept, tfidf_coeff, doc2vec_coeff, lda_coeff, rating_predicted_coeff, tfidf_score, doc2vec_score, lda_score, rating_predicted_score, tfidf_keywords_coeff=None,tfidf_keywords_score=None):
+    def relevance_score_lin_combination(self, intercept, tfidf_coeff, doc2vec_coeff, lda_coeff, rating_average_coeff, tfidf_score, doc2vec_score, lda_score, rating_average_score, tfidf_keywords_coeff=None, tfidf_keywords_score=None, bias=0.05):
         if tfidf_keywords_coeff is None and tfidf_keywords_score is None:
-            return intercept + (tfidf_coeff * tfidf_score) + (doc2vec_coeff * doc2vec_score) + (lda_coeff * lda_score) + (rating_predicted_coeff * rating_predicted_score)
+            return intercept + (tfidf_coeff * tfidf_score) + (doc2vec_coeff * doc2vec_score) + (lda_coeff * lda_score) + (rating_average_coeff * rating_average_score) + bias
         else:
-            return intercept + (tfidf_coeff * tfidf_score) + (tfidf_keywords_coeff * tfidf_keywords_score) + (lda_coeff * lda_score) + (doc2vec_coeff * doc2vec_score)  + (rating_predicted_coeff * rating_predicted_score)
+            return intercept + (tfidf_coeff * tfidf_score) + (tfidf_keywords_coeff * tfidf_keywords_score) + (doc2vec_coeff * doc2vec_score) + (lda_coeff * lda_score) + (rating_average_coeff * rating_average_score) + bias
+
+    def relevance_score_logistic_regression(self, X, y):
+        # define dataset
+        # define the model
+        model = LogisticRegression()
+        # fit the model
+        model.fit(X, y)
+        # get importance
+        importance = model.coef_[0]
 
     def flatten(self, t):
         return [item for sublist in t for item in sublist]
