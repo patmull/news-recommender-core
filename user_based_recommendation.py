@@ -58,7 +58,6 @@ class UserBasedRecommendation:
         print(df_user_categories)
         return df_user_categories
 
-
     # loads posts for user based on his id and favourite categories
     def load_recommended_posts_for_user(self, user_id,num_of_recommendations=5):
         self.database.connect()
@@ -79,9 +78,7 @@ class UserBasedRecommendation:
 
     def convert_to_json(self, df):
         predictions_json = df.to_json(orient="split")
-
         predictions_json_parsed = json.loads(predictions_json)
-
         return predictions_json_parsed
 
 def main():
