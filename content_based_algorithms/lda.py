@@ -604,8 +604,15 @@ class Lda:
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO, filename='content_based_algorithms/training_logs/lda/logs.log')
         self.preprocess_wiki_corpus()
         path_to_preprocessed_files = "full_models/cswiki/lda/preprocessed/"
-        list_of_preprocessed_files = ["artcicles_XY"]
+
+        list_of_preprocessed_files = []
+        for i in os.listdir(path_to_preprocessed_files):
+            if os.path.isfile(os.path.join(path_to_preprocessed_files, i)) and 'articles_' in i:
+                list_of_preprocessed_files.append(i)
+
         list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
+        print("Loading data from files:")
+        print(list_of_preprocessed_files)
         print("Loading preprocessed corpus...")
         processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
         print("Loaded " + str(len(processed_data)) + " documents.")
@@ -818,6 +825,7 @@ class Lda:
 
         path_to_preprocessed_files = "full_models/cswiki/lda/preprocessed/"
         list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
+
         print("Loading preprocessed corpus...")
 
         if len(list_of_preprocessed_files) > 0:
@@ -829,6 +837,7 @@ class Lda:
             print("Saving corpus into single file...")
             single_file_name = "full_models/cswiki/lda/preprocessed/articles_" + str(number_of_documents)
             with open(single_file_name, 'wb') as f:
+
                 print("Saving list to " + single_file_name)
                 pickle.dump(processed_data, f)
 
@@ -868,8 +877,15 @@ class Lda:
     def load_preprocessed_corpus(self, list_of_preprocessed_files):
         preprocessed_data_from_pickles = []
         for file_path in list_of_preprocessed_files:
-            with open(file_path, 'rb') as f:
-                preprocessed_data_from_pickles.extend(pickle.load(f))
+            if os.path.getsize(file_path) > 0:
+                try:
+                    with open(file_path, 'rb') as f:
+                        preprocessed_data_from_pickles.extend(pickle.load(f))
+                    print("Opened file:")
+                    print(file_path)
+                except EOFError:
+                    print("Can't load file")
+                    print(file_path)
         print("Example of 100th loaded document:")
         print(preprocessed_data_from_pickles[100:101])
         top_k_words, _ = RecommenderMethods.most_common_words([item for sublist in preprocessed_data_from_pickles for item in sublist])
