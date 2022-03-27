@@ -1,7 +1,12 @@
 import itertools
+import os
 
 import numpy as np
+
 import pandas as pd
+# import modin.pandas as pd
+# from modin.config import Engine
+
 from matplotlib import pyplot
 from sklearn import preprocessing
 from sklearn.datasets import make_regression
@@ -18,6 +23,16 @@ from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.lda import Lda
 from user_based_recommendation import UserBasedRecommendation
 from sklearn.linear_model import LinearRegression, LogisticRegression
+
+"""
+from dask.distributed import Client
+
+Engine.put("dask")  # Modin will use Ray
+os.environ["MODIN_ENGINE"] = "dask"
+
+pd.DEFAULT_NPARTITIONS = 10
+"""
+
 
 class LearnToRank:
 
@@ -263,7 +278,7 @@ class LearnToRank:
 
         print(intersections_df_merged.to_string())
         intersections_df_merged['score_tfidf_posts'] = intersections_df_merged['score_tfidf_posts'].combine_first(intersections_df_merged['slug'].map(tfidf_posts_full_df.set_index('slug')['score_tfidf_posts']))
-        if len(keyword_list):
+        if len(keyword_list) > 0:
             intersections_df_merged['score_tfidf_keywords'] = intersections_df_merged['score_tfidf_keywords'].combine_first(intersections_df_merged['slug'].map(tfidf_keywords_full_df.set_index('slug')['score_tfidf_keywords']))
         intersections_df_merged['rating_predicted'] = intersections_df_merged['rating_predicted'].combine_first(intersections_df_merged['slug'].map(user_collaboration_posts_full_df.set_index('slug')['rating_predicted']))
         intersections_df_merged['rating_actual'] = intersections_df_merged['rating_actual'].combine_first(intersections_df_merged['slug'].map(user_preferences_posts_full_df.set_index('slug')['rating_actual']))
@@ -468,6 +483,8 @@ class LearnToRank:
 
 
 def main():
+    # client = Client()
+
     user_id = 431
     post_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     learn_to_rank = LearnToRank()
