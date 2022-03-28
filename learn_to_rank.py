@@ -7,7 +7,7 @@ import pandas as pd
 # import modin.pandas as pd
 # from modin.config import Engine
 
-from matplotlib import pyplot
+# from matplotlib import pyplot
 from sklearn import preprocessing
 from sklearn.datasets import make_regression
 from sklearn.ensemble import RandomForestRegressor
@@ -373,7 +373,7 @@ class LearnToRank:
         for i, v in enumerate(importance):
             print('Feature: %0d, Score: %.5f' % (i, v))
         # plot feature importance
-        self.plot_feature_importance(features_dict,importance,"XGBRegressor")
+        # self.plot_feature_importance(features_dict,importance,"XGBRegressor")
 
         """
         # define the model
@@ -456,10 +456,12 @@ class LearnToRank:
         print(final_combined_results_list[0:20])
         return final_combined_results_list[0:20]
 
+    """
     def plot_feature_importance(self, features_dict, importance, title):
         pyplot.bar([features_dict[x] for x in range(len(importance))], importance)
         pyplot.title(title)
         pyplot.show()
+    """
 
     def intersect(self, a, b):
         return pd.merge(a, b, how='inner', on=['slug'])
