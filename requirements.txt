@@ -29,7 +29,6 @@ urllib3~=1.26.8
 dropbox~=11.27.0
 redis~=4.0.2
 sklearn~=0.0
-xgboost~=1.5.2
 majka~=0.9
 html2text~=2020.1.16
 pyLDAvis~=3.3.1
