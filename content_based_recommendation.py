@@ -78,7 +78,12 @@ def main():
     # word2vec.prefilling_job(full_text=True, reverse=False)
 
     prefiller = PreFiller()
-    prefiller.prefilling_job("tfidf", "pgsql", full_text=False, reverse=False, random=True)
+    # prefiller.prefilling_job("tfidf", "pgsql", full_text=False, reverse=False, random=True)
+    # prefiller.prefilling_job("doc2vec", "pgsql", full_text=False, reverse=False, random=True)
+    # prefiller.prefilling_job("lda", "pgsql", full_text=False, reverse=False, random=True)
+    prefiller.prefilling_job("tfidf", "pgsql", full_text=True, reverse=False, random=False)
+    prefiller.prefilling_job("doc2vec", "pgsql", full_text=True, reverse=False, random=False)
+    prefiller.prefilling_job("lda", "pgsql", full_text=True, reverse=False, random=False)
     """
     h = hpy()
     print(h.heap())
