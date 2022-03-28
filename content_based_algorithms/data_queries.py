@@ -1,16 +1,20 @@
 import json
 import pickle
+import random
+import time as t
 
 import dropbox
 import gensim
 import numpy as np
 import pandas as pd
+import psycopg2
 import smart_open
 from gensim.utils import deaccent
 from nltk import FreqDist
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
 from data_conenction import Database
 
 

@@ -131,6 +131,7 @@ class CosineTransform:
 
         return ret
 
+    @DeprecationWarning
     def fill_recommended_for_all_posts(self, skip_already_filled):
         database = Database()
         database.connect()
