@@ -2,9 +2,12 @@ import gc
 import json
 import re
 import string
+import time as t
 
+import majka
 import numpy as np
 import pandas as pd
+import psycopg2
 from nltk import RegexpTokenizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -369,37 +372,6 @@ class TfIdf:
         dict = post_recommendations.to_dict('records')
         list_of_article_slugs.append(dict.copy())
         return list_of_article_slugs[0]
-
-    def fill_recommended_for_all_posts(self, skip_already_filled):
-
-        database = Database()
-        database.connect()
-        all_posts = database.get_all_posts()
-
-        number_of_inserted_rows = 0
-
-        for post in all_posts:
-
-            post_id = post[0]
-            slug = post[3]
-            current_recommended = post[15]
-
-            if skip_already_filled is True:
-                if current_recommended is None:
-                    actual_recommended_json = self.recommend_posts_by_all_features(slug)
-                    actual_recommended_json = json.dumps(actual_recommended_json)
-                    database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
-                                                     article_id=post_id)
-                    number_of_inserted_rows += 1
-                    # print(str(number_of_inserted_rows) + " rows insertd.")
-                else:
-                    print("Skipping.")
-            else:
-                actual_recommended_json = self.recommend_posts_by_all_features(slug)
-                actual_recommended_json = json.dumps(actual_recommended_json)
-                database.insert_recommended_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
-                number_of_inserted_rows += 1
-                # print(str(number_of_inserted_rows) + " rows insertd.")
 
     def preprocess_dataframe(self):
 

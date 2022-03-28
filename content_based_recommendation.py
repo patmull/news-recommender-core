@@ -1,3 +1,4 @@
+from content_based_algorithms.prefiller import PreFiller
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.lda import Lda
 from content_based_algorithms.tfidf import TfIdf
@@ -51,11 +52,11 @@ def main():
     print("--------------LDA FULL TEXT------------------")
     print(lda.get_similar_lda_full_text(searched_slug))
     """
-    lda = Lda()
+    # lda = Lda()
     # print(lda.get_similar_lda('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem', train=True, display_dominant_topics=True))
     # print(lda.get_similar_lda_full_text('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem', train=False, display_dominant_topics=False))
     # lda.display_lda_stats()
-    lda.find_optimal_model(body_text_model=True)
+    # lda.find_optimal_model(body_text_model=True)
     """
     word2vecClass = Word2VecClass()
     start = time.time()
@@ -75,6 +76,9 @@ def main():
 
     # word2vec = Word2VecClass()
     # word2vec.prefilling_job(full_text=True, reverse=False)
+
+    prefiller = PreFiller()
+    prefiller.prefilling_job("tfidf", "pgsql", full_text=False, reverse=False, random=True)
     """
     h = hpy()
     print(h.heap())

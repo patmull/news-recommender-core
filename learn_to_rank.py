@@ -2,7 +2,7 @@ import itertools
 import os
 
 import numpy as np
-
+import redis
 import pandas as pd
 # import modin.pandas as pd
 # from modin.config import Engine
@@ -33,6 +33,7 @@ os.environ["MODIN_ENGINE"] = "dask"
 pd.DEFAULT_NPARTITIONS = 10
 """
 
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
 
 class LearnToRank:
 
@@ -485,10 +486,15 @@ class LearnToRank:
 def main():
     # client = Client()
 
+    """
     user_id = 431
     post_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     learn_to_rank = LearnToRank()
     print(learn_to_rank.linear_regression(user_id, post_slug))
+    """
+    r = redis.Redis(host='redis-10115.c3.eu-west-1-2.ec2.cloud.redislabs.com', port=10115, db=0, username="admin", password=REDIS_PASSWORD)
+    r.set('foo', 'bar')
+    print(r.get('foo'))
 
 
 if __name__ == "__main__": main()
