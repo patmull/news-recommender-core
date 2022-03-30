@@ -52,11 +52,11 @@ def main():
     print("--------------LDA FULL TEXT------------------")
     print(lda.get_similar_lda_full_text(searched_slug))
     """
-    # lda = Lda()
+    lda = Lda()
     # print(lda.get_similar_lda('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem', train=True, display_dominant_topics=True))
     # print(lda.get_similar_lda_full_text('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem', train=False, display_dominant_topics=False))
     # lda.display_lda_stats()
-    # lda.find_optimal_model(body_text_model=True)
+    lda.find_optimal_model(body_text_model=True)
     """
     word2vecClass = Word2VecClass()
     start = time.time()
@@ -77,13 +77,15 @@ def main():
     # word2vec = Word2VecClass()
     # word2vec.prefilling_job(full_text=True, reverse=False)
 
-    prefiller = PreFiller()
+    # prefiller = PreFiller()
     # prefiller.prefilling_job("tfidf", "pgsql", full_text=False, reverse=False, random=True)
     # prefiller.prefilling_job("doc2vec", "pgsql", full_text=False, reverse=False, random=True)
     # prefiller.prefilling_job("lda", "pgsql", full_text=False, reverse=False, random=True)
+    """
     prefiller.prefilling_job("tfidf", "pgsql", full_text=True, reverse=False, random=False)
     prefiller.prefilling_job("doc2vec", "pgsql", full_text=True, reverse=False, random=False)
     prefiller.prefilling_job("lda", "pgsql", full_text=True, reverse=False, random=False)
+    """
     """
     h = hpy()
     print(h.heap())

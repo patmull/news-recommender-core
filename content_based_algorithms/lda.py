@@ -1,3 +1,4 @@
+import csv
 import gc
 import logging
 import os
@@ -827,17 +828,18 @@ class Lda:
         list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
 
         print("Loading preprocessed corpus...")
-
         if len(list_of_preprocessed_files) > 0:
             processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
 
+            self.save_to_csv(processed_data)
+
             number_of_documents = len(processed_data)
+
             print("Loaded " + str(number_of_documents) + " documents.")
 
             print("Saving corpus into single file...")
             single_file_name = "full_models/cswiki/lda/preprocessed/articles_" + str(number_of_documents)
             with open(single_file_name, 'wb') as f:
-
                 print("Saving list to " + single_file_name)
                 pickle.dump(processed_data, f)
 
@@ -892,3 +894,9 @@ class Lda:
         print("TOP WORDS:")
         print(top_k_words[:500])
         return preprocessed_data_from_pickles
+
+    def save_to_csv(self, list_to_save):
+        print("Saving to CSV...")
+        with open("full_models/cswiki/lda/preprocessed/articles_preprocessed.csv", 'w', newline='') as myfile:
+            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+            wr.writerow(list_to_save)
