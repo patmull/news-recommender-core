@@ -309,15 +309,21 @@ class LearnToRank:
         if len(keyword_list) > 0:
             y = df_merged[['rating_predicted']]
             df_merged = df_merged.rename(columns={'rating_actual': 'score_rating_average'})
-            X = df_merged.loc[:, ['score_tfidf_posts','score_tfidf_keywords','score_doc2vec_posts','score_lda_posts','score_rating_average']]
+            X = df_merged.loc[:, ['score_tfidf_posts', 'score_tfidf_keywords', 'score_doc2vec_posts', 'score_lda_posts', 'score_rating_average']]
             print("X:")
+            print(X)
+            X = (X - X.mean()) / X.std()
+            print("X normalised:")
             print(X)
             features_dict = {0: 'TfIdf Posts', 1: 'TfIdf Keywords', 2: 'Doc2vec', 3: 'LDA', 4: 'Rating avg'}
         else:
             y = df_merged[['rating_predicted']]
             df_merged = df_merged.rename(columns={'rating_actual': 'score_rating_average'})
-            X = df_merged.loc[:, ['score_tfidf_posts','score_doc2vec_posts','score_lda_posts','score_rating_average']]
+            X = df_merged.loc[:, ['score_tfidf_posts', 'score_doc2vec_posts', 'score_lda_posts', 'score_rating_average']]
             print("X:")
+            print(X)
+            X = (X - X.mean()) / X.std()
+            print("X normalised:")
             print(X)
             features_dict = {0: 'TfIdf Posts', 1: 'Doc2vec', 2: 'LDA', 3: 'Rating avg'}
 
@@ -427,7 +433,7 @@ class LearnToRank:
         if user_has_keywords is True:
             if user_has_keywords is True:
                 for slug_index, row in df_merged.iterrows():
-                    self.relevance_score_lin_combination(tfidf_coeff=importance[0],
+                    relevance_score = self.relevance_score_lin_combination(tfidf_coeff=importance[0],
                                                          tfidf_keywords_coeff=importance[1],
                                                          doc2vec_coeff=importance[2],
                                                          lda_coeff=importance[3],
@@ -436,20 +442,20 @@ class LearnToRank:
                                                          tfidf_keywords_score=row['score_tfidf_keywords'],
                                                          doc2vec_score=row['score_doc2vec_posts'],
                                                          lda_score=row['score_lda_posts'],
-                                                         rating_average_score=row['rating_predicted'])
+                                                         rating_average_score=row['score_rating_average'])
+                    final_combined_results_list.append({'slug': slug_index, 'coefficient': relevance_score})
         else:
             if user_has_keywords is True:
                 for slug_index, row in df_merged.iterrows():
-                    self.relevance_score_lin_combination(tfidf_coeff=importance[0],
+                    relevance_score = self.relevance_score_lin_combination(tfidf_coeff=importance[0],
                                                          doc2vec_coeff=importance[1],
                                                          lda_coeff=importance[2],
                                                          rating_average_coeff=importance[3],
                                                          tfidf_score=row['score_tfidf_posts'],
                                                          doc2vec_score=row['score_doc2vec_posts'],
                                                          lda_score=row['score_lda_posts'],
-                                                         rating_average_score=row['rating_predicted'])
-
-
+                                                         rating_average_score=row['score_rating_average'])
+                    final_combined_results_list.append({'slug': slug_index, 'coefficient': relevance_score})
         # sorting results by coefficient
         final_combined_results_list = sorted(final_combined_results_list, key=lambda d: d['coefficient'], reverse=True)
 
@@ -488,15 +494,15 @@ class LearnToRank:
 def main():
     # client = Client()
 
-    """
     user_id = 431
     post_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     learn_to_rank = LearnToRank()
     print(learn_to_rank.linear_regression(user_id, post_slug))
+
     """
     r = redis.Redis(host='redis-10115.c3.eu-west-1-2.ec2.cloud.redislabs.com', port=10115, db=0, username="admin", password=REDIS_PASSWORD)
     r.set('foo', 'bar')
     print(r.get('foo'))
-
+    """
 
 if __name__ == "__main__": main()
