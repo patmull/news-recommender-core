@@ -25,7 +25,7 @@ class PreFiller():
                     continue
                 break
 
-    def fill_recommended_for_all_posts(self, algorithm, db, skip_already_filled, full_text=True, random_order=False, reversed=False):
+    def fill_recommended_for_all_posts(self, algorithm, db, skip_already_filled, full_text, random_order=False, reversed=False):
 
         list_of_allowed_algorithms = ["word2vec", "lda", "doc2vec", "tfidf"]
 
