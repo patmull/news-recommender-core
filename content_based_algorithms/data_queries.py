@@ -347,7 +347,7 @@ class RecommenderMethods:
     def most_common_words(all_words):
         # use nltk fdist to get a frequency distribution of all words
         fdist = FreqDist(all_words)
-        k = 15000
+        k = 150
         return zip(*fdist.most_common(k))
 
 
