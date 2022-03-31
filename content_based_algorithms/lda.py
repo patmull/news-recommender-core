@@ -563,43 +563,6 @@ class Lda:
         return coherence_model_lda.get_coherence()
 
     def find_optimal_model(self, body_text_model=True):
-        """
-        self.database.connect()
-        self.get_posts_dataframe()
-        self.join_posts_ratings_categories()
-        self.database.disconnect()
-
-        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-        self.df['tokenized'] = self.df.apply(
-            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
-            axis=1)
-        if body_text_model is True:
-            self.df['tokenized_full_text'] = self.df.apply(
-                lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
-                axis=1)
-            self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(lambda x: x.split(' '))
-        gc.collect()
-        self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-
-        gc.collect()
-
-        if body_text_model is True:
-            self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + \
-                                   self.df[
-                                       'tokenized_full_text']
-        else:
-            self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed']
-
-        data = self.df
-        print("data['tokenized']")
-        print(data['tokenized'])
-        data_words_nostops = self.remove_stopwords(data['tokenized'])
-        data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
-        data_lemmatized = data_words_bigrams
-        dictionary = corpora.Dictionary(data_lemmatized)
-        dictionary.filter_extremes(no_below=20, no_above=0.5)
-        corpus = [dictionary.doc2bow(doc) for doc in data_lemmatized]
-        """
 
         # Enabling LDA logging
         logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO, filename='content_based_algorithms/training_logs/lda/logs.log')
@@ -731,7 +694,6 @@ class Lda:
                                 print("Saved training results...")
         pbar.close()
 
-
     def format_topics_sentences(self, lda_model, corpus, texts):
         # Init output
         sent_topics_df = pd.DataFrame()
@@ -819,29 +781,34 @@ class Lda:
         # takes very long time
 
         # find files starting with "articles_"
-        list_of_preprocessed_files = []
+        """
         for article_file in os.listdir("full_models/cswiki/lda/preprocessed"):
             if article_file.startswith("articles_"):
                 list_of_preprocessed_files.append(article_file)
+        """
 
+        list_of_preprocessed_files = []
         path_to_preprocessed_files = "full_models/cswiki/lda/preprocessed/"
+        for article_file in os.listdir("full_models/cswiki/lda/preprocessed"):
+            if article_file.startswith("articles_"):
+                list_of_preprocessed_files.append(article_file)
         list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
-
         print("Loading preprocessed corpus...")
+        number_of_documents = 0
         if len(list_of_preprocessed_files) > 0:
             processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
-
-            self.save_to_csv(processed_data)
 
             number_of_documents = len(processed_data)
 
             print("Loaded " + str(number_of_documents) + " documents.")
-
             print("Saving corpus into single file...")
             single_file_name = "full_models/cswiki/lda/preprocessed/articles_" + str(number_of_documents)
             with open(single_file_name, 'wb') as f:
                 print("Saving list to " + single_file_name)
                 pickle.dump(processed_data, f)
+
+            print("Saving preprocessed articles to csv")
+            self.save_list_to_csv(processed_data)
 
             print("Starting another preprocessing from document where it was halted.")
         else:
@@ -852,7 +819,13 @@ class Lda:
         num_of_preprocessed_docs = number_of_documents
         num_of_iterations_until_saving = 100 # Saving file every 100nd document
         path_to_save_list = "full_models/cswiki/lda/preprocessed/articles_newest"
+        processed_data = []
         for doc in helper.generate_lines_from_corpus(corpus):
+            if number_of_documents > 0:
+                number_of_documents -= 1
+                print("Skipping doc.")
+                print(doc[:10])
+                continue
             print("Processing doc. num. " + str(num_of_preprocessed_docs))
             print("Before:")
             print(doc)
@@ -873,8 +846,6 @@ class Lda:
                     pickle.dump(processed_data, f)
                 i = 0
         print("Preprocessing Wikipedia has (finally) ended. All articles were preprocessed.")
-        print("processed_data")
-        print(processed_data)
 
     def load_preprocessed_corpus(self, list_of_preprocessed_files):
         preprocessed_data_from_pickles = []
@@ -895,8 +866,17 @@ class Lda:
         print(top_k_words[:500])
         return preprocessed_data_from_pickles
 
-    def save_to_csv(self, list_to_save):
+    def save_list_to_csv(self, list_to_save, pandas=False):
         print("Saving to CSV...")
-        with open("full_models/cswiki/lda/preprocessed/articles_preprocessed.csv", 'w', newline='') as myfile:
-            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-            wr.writerow(list_to_save)
+        if pandas is True:
+            my_df = pd.DataFrame(list_to_save)
+            my_df.to_csv('full_models/cswiki/lda/preprocessed/preprocessed_articles.csv', index=False, header=False)
+        else:
+            with open("full_models/cswiki/lda/preprocessed/preprocessed_articles.csv", "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerows(list_to_save)
+
+    def save_list_to_txt(self, list_to_save):
+        with open('full_models/cswiki/lda/preprocessed/preprocessed_articles.txt', 'w') as f:
+            for item in list_to_save:
+                f.write("%s\n" % item)
