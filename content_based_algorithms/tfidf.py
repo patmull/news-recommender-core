@@ -1,14 +1,13 @@
 import gc
-import json
 import re
 import string
-import time as t
+from pathlib import Path
 
 import majka
 import numpy as np
 import pandas as pd
-import psycopg2
 from nltk import RegexpTokenizer
+from scipy.sparse import csr_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
@@ -197,6 +196,7 @@ class TfIdf:
     """
 
     # https://datascience.stackexchange.com/questions/18581/same-tf-idf-vectorizer-for-2-data-inputs
+    @DeprecationWarning
     def set_tfidf_vectorizer_combine_features(self):
         tfidf_vectorizer = TfidfVectorizer()
         self.df.drop_duplicates(subset=['title_x'], inplace=True)
@@ -272,17 +272,32 @@ class TfIdf:
     def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
 
         recommenderMethods = RecommenderMethods()
-        print("Loading posts.")
         recommenderMethods.get_posts_dataframe()  # load posts to dataframe
         recommenderMethods.get_categories_dataframe()  # load categories to dataframe
         recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
 
-        fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
-        fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
+        my_file = Path("models/tfidf_all_features_preprocessed.npz")
+        if my_file.exists() is False:
+            print("Loading posts.")
+            fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
+            self.save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
+        else:
+            fit_by_all_features_matrix = self.load_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz")
+
+        my_file = Path("models/tfidf_title_y.npz")
+        if my_file.exists() is False:
+            # title_y = category
+            fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
+            self.save_sparse_csr(filename="models/tfidf_title_y.npz", array=fit_by_title)
+        else:
+            fit_by_title = self.load_sparse_csr(filename="models/tfidf_title_y.npz")
 
         tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title) # join feature tuples into one matrix
 
         gc.collect()
+
+        print("tuple_of_fitted_matrices")
+        print(tuple_of_fitted_matrices)
 
         post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
 
@@ -524,3 +539,12 @@ class TfIdf:
         document_scores = [item.item() for item in cosine_similarities[1:]]
 
         return document_scores
+
+    def save_sparse_csr(self, filename, array):
+        np.savez(filename, data=array.data, indices=array.indices,
+                 indptr=array.indptr, shape=array.shape)
+
+    def load_sparse_csr(self, filename):
+        loader = np.load(filename)
+        return csr_matrix((loader['data'], loader['indices'], loader['indptr']),
+                          shape=loader['shape'])
