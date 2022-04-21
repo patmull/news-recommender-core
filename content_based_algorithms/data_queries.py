@@ -1,15 +1,11 @@
 import json
 import pickle
-import random
-import time as t
 
 import dropbox
 import gensim
 import numpy as np
 import pandas as pd
-import psycopg2
 import smart_open
-from gensim.utils import deaccent
 from nltk import FreqDist
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -167,16 +163,15 @@ class RecommenderMethods:
     def get_cleaned_text(self, df, row):
         return row
 
-    def get_tfIdfVectorizer(self, fit_by, fit_by_2=None, stemming=False):
+    def get_tfIdfVectorizer(self, fit_by, fit_by_2=None):
 
         self.set_tfIdfVectorizer()
 
         if fit_by_2 is None:
             self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[
-                                                                        fit_by])  # Metoda fit: výpočet průměru a rozptylu jednotlivých sloupců z dat. Metoda transformace: # transformuje všechny prvky pomocí příslušného průměru a rozptylu.
+                                                                        fit_by])
         else:
-            self.df[fit_by] = self.df[fit_by_2] + ". " + self.df[fit_by]
-            # # print(self.df[fit_by])
+            self.df[fit_by] = self.df[fit_by_2] + " " + self.df[fit_by]
             self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[
                                                                         fit_by])  # Metoda fit: výpočet průměru a rozptylu jednotlivých sloupců z dat. Metoda transformace: # transformuje všechny prvky pomocí příslušného průměru a rozptylu.
 
@@ -188,10 +183,19 @@ class RecommenderMethods:
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
+
+
+        filename = "cz_stemmer/stopwords/general_stopwords.txt"
+        with open(filename, encoding="utf-8") as file:
+            general_stopwords = file.readlines()
+            general_stopwords = [line.rstrip() for line in cz_stopwords]
         # print(cz_stopwords)
+        stopwords = cz_stopwords + general_stopwords
 
         tfidf_vectorizer = TfidfVectorizer(dtype=np.float32,
-                                           stop_words=cz_stopwords)  # transforms text to feature vectors that can be used as input to estimator
+                                           stop_words=stopwords)  # transforms text to feature vectors that can be used as input to estimator
+        print("tfidf_vectorizer")
+        print(tfidf_vectorizer)
         self.tfidf_vectorizer = tfidf_vectorizer
 
     # # @profile
