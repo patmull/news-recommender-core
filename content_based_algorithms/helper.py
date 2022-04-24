@@ -2,7 +2,6 @@ import json
 
 import numpy as np
 
-import cz_lemmatization
 from gensim.utils import deaccent
 
 class Helper:
@@ -28,11 +27,19 @@ class Helper:
                 if preprocess is False:
                     yield text
                 if preprocess is True:
-                    czlemma = cz_lemmatization.CzLemma()
+                    czlemma = cz_lemmatization.CzPreprocess()
                     yield czlemma.preprocess(deaccent(text))
             else:
                 break
 
+    def clear_blank_lines_from_txt(self, file_path):
+        new_filename_parts = file_path.split('.')
+        new_file_name = new_filename_parts[0] + '_blank_lines_free' + new_filename_parts[1]
+        with open(file_path, 'r', encoding='utf-8') as inFile, \
+                open(new_file_name, 'w', encoding='utf-8') as outFile:
+            for line in inFile:
+                if line.strip():
+                    outFile.write(line)
 
 class NumpyEncoder(json.JSONEncoder):
     """ Special json encoder for numpy types """

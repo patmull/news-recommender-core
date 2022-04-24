@@ -7,7 +7,7 @@ import pandas as pd
 from nltk import RegexpTokenizer
 
 from content_based_algorithms.data_queries import RecommenderMethods
-from cz_stemmer.czech_stemmer import cz_stem
+from preprocessing.czech_stemmer import cz_stem
 from gensim_native_models import corpora, models, similarities
 from scipy import sparse
 
@@ -119,7 +119,7 @@ class GenSim:
 
         print("self.documents")
         print(self.documents)
-        filename = "cz_stemmer/czech_stopwords.txt"
+        filename = "preprocessing/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]

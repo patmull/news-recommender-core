@@ -4,18 +4,17 @@ from learn_to_rank import LearnToRank
 from user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
 from flask_restful import Api, Resource
-from content_based_recommendation import word2vec_embedding
 from content_based_algorithms.lda import Lda
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.tfidf import TfIdf
-from content_based_algorithms.preprocessing import load_stopwords
+from content_based_algorithms.word2vec import Word2VecClass
 from collaboration_based_recommendation import Svd
-
 
 
 def create_app():
     app = Flask(__name__)
     return app
+
 
 app = create_app()
 api = Api(app)
@@ -31,6 +30,16 @@ class GetPostsByOtherPostTfIdf(Resource):
     def get(self, param):
         tfidf = TfIdf()
         return tfidf.recommend_posts_by_all_features_preprocessed(param)
+
+    def post(self):
+        return {"data": "Posted"}
+
+
+class GetPostsByOtherPostWord2Vec(Resource):
+
+    def get(self, param):
+        word2vecClass = Word2VecClass()
+        return word2vecClass.get_similar_word2vec(param)
 
     def post(self):
         return {"data": "Posted"}
@@ -61,6 +70,16 @@ class GetPostsByOtherPostTfIdfFullText(Resource):
     def get(self, param):
         tfidf = TfIdf()
         return tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(param)
+
+    def post(self):
+        return {"data": "Posted"}
+
+
+class GetPostsByOtherPostWord2VecFullText(Resource):
+
+    def get(self, param):
+        word2vecClass = Word2VecClass()
+        return word2vecClass.get_similar_word2vec_full_text(param)
 
     def post(self):
         return {"data": "Posted"}
@@ -116,6 +135,7 @@ class GetPostsByUserPreferences(Resource):
     def post(self):
         return {"data": "Posted"}
 
+
 class GetPostsByLearnToRank(Resource):
 
     def get(self, param1, param2):
@@ -124,6 +144,7 @@ class GetPostsByLearnToRank(Resource):
 
     def post(self):
         return {"data": "Posted"}
+
 
 class GetWordLemma(Resource):
 
@@ -187,10 +208,12 @@ api.add_resource(Preprocess, "/api/preprocess/<string:slug>")
 api.add_resource(PreprocessStemming, "/api/preprocess-stemming/<string:slug>")
 
 api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-tfidf/<string:param>")
+api.add_resource(GetPostsByOtherPostWord2Vec, "/api/post-word2vec/<string:param>")
 api.add_resource(GetPostsByOtherPostDoc2Vec, "/api/post-doc2vec/<string:param>")
 api.add_resource(GetPostsByOtherPostLda, "/api/post-lda/<string:param>")
 
 api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<string:param>")
+api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<string:param>")
 
