@@ -1,5 +1,6 @@
 import json
 import pickle
+from pathlib import Path
 
 import dropbox
 import gensim
@@ -12,25 +13,30 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from data_conenction import Database
+import os
+dirname = os.path.dirname(__file__)
 
 
 def load_cz_stopwords():
-    filename = "cz_stemmer/stopwords/czech_stopwords.txt"
+    filename = Path(dirname, "preprocessing/stopwords/czech_stopwords.txt")
     with open(filename, encoding="utf-8") as file:
         cz_stopwords = file.readlines()
         cz_stopwords = [line.rstrip() for line in cz_stopwords]
         return cz_stopwords
 
+
 def load_general_stopwords():
-    filename = "cz_stemmer/stopwords/general_stopwords.txt"
+    filename = Path(dirname, "preprocessing/stopwords/general_stopwords.txt")
     with open(filename, encoding="utf-8") as file:
         general_stopwords = file.readlines()
         general_stopwords = [line.rstrip() for line in general_stopwords]
         return general_stopwords
 
+
 def remove_stopwords(texts):
     stopwords = load_cz_stopwords()
     return [[word for word in gensim.utils.simple_preprocess(str(doc)) if word not in stopwords] for doc in texts]
+
 
 class RecommenderMethods:
 
@@ -179,16 +185,16 @@ class RecommenderMethods:
 
     def set_tfIdfVectorizer(self):
         # load czech stopwords from file
-        filename = "cz_stemmer/stopwords/czech_stopwords.txt"
+        filename = "preprocessing/stopwords/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
 
 
-        filename = "cz_stemmer/stopwords/general_stopwords.txt"
+        filename = "preprocessing/stopwords/general_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             general_stopwords = file.readlines()
-            general_stopwords = [line.rstrip() for line in cz_stopwords]
+            general_stopwords = [line.rstrip() for line in general_stopwords]
         # print(cz_stopwords)
         stopwords = cz_stopwords + general_stopwords
 
@@ -227,7 +233,6 @@ class RecommenderMethods:
                                                   self.df[['slug_x']], k=num_of_recommendations)
 
         df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
-
         # json conversion
         json = self.convert_datframe_posts_to_json(df_renamed, slug)
 

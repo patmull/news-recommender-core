@@ -2,6 +2,8 @@ import time
 
 import numpy as np
 
+from content_based_algorithms.doc2vec import Doc2VecClass
+from content_based_algorithms.helper import Helper
 from content_based_algorithms.tfidf import TfIdf
 
 
@@ -12,6 +14,7 @@ def tfidf():
 
 
 def main():
+    """
     results = []
     for i in range(0,30):
         start_time = time.time()
@@ -22,6 +25,12 @@ def main():
 
     print("Average time of execution:")
     print(np.average(results))
+    """
+
+    helper = Helper()
+    # helper.clear_blank_lines_from_txt("datasets/idnes_preprocessed.txt")
+    doc2vec = Doc2VecClass()
+    print(doc2vec.get_similar_doc2vec("chaos-v-mapach-kavkazu-proc-armenie-a-azerbajdzan-nebojuji-jen-o-karabach", train=True, limited=False))
 
 
 if __name__ == '__main__':
