@@ -3,7 +3,6 @@ import gc
 import logging
 import os
 import pickle
-import re
 import time
 
 import pyLDAvis
@@ -13,7 +12,6 @@ from gensim.corpora import WikiCorpus
 from gensim.utils import deaccent
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
-import cz_lemmatization
 import content_based_algorithms.data_queries as data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
 
@@ -459,7 +457,7 @@ class Lda:
 
         vis_data = gensimvis.prepare(lda_model, corpus, dictionary)
         pyLDAvis.display(vis_data)
-        pyLDAvis.save_html(vis_data, 'C:\Dokumenty\OSU\Diplomová práce\LDA_Visualization.html')
+        pyLDAvis.save_html(vis_data, 'research\LDA\LDA_Visualization.html')
 
     def display_lda_stats(self):
         self.database.connect()
@@ -775,7 +773,7 @@ class Lda:
         # corpus = [dct.doc2bow(line) for line in dataset]
 
         # preprocessing steps
-        czlemma = cz_lemmatization.CzLemma()
+        czlemma = cz_lemmatization.CzPreprocess()
         helper = Helper()
         processed_data = []
         # takes very long time

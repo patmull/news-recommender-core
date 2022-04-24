@@ -244,3 +244,10 @@ class Database:
 
         rs = self.cursor.fetchall()
         return rs
+
+    def get_posts_dataframe_from_database(self):
+        sql = """SELECT * FROM posts ORDER BY id;"""
+
+        # LOAD INTO A DATAFRAME
+        df = pd.read_sql_query(sql, self.get_cnx())
+        return df
