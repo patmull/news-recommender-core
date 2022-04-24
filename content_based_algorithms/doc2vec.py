@@ -1,9 +1,12 @@
+import csv
 import gc
+
+import gensim
 import pandas as pd
-from gensim.models import Doc2Vec
-from gensim.models.doc2vec import TaggedDocument
+from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.tfidf import TfIdf
+from preprocessing.cz_preprocessing import CzPreprocess
 from data_conenction import Database
 
 
@@ -36,10 +39,41 @@ class Doc2VecClass:
             ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
              'all_features_preprocessed', 'body_preprocessed']]
 
-    def train_doc2vec(self, documents_all_features_preprocessed, body_text, limited=True):
+    def train_doc2vec(self, documents_all_features_preprocessed, body_text, limited=True, create_csv=False):
+        print("documents_all_features_preprocessed")
+        print(documents_all_features_preprocessed)
 
-        tagged_data = [TaggedDocument(words=_d.split(", "), tags=[str(i)]) for i, _d in
-                       enumerate(documents_all_features_preprocessed)]
+        filename = "preprocessing/stopwords/czech_stopwords.txt"
+        with open(filename, encoding="utf-8") as file:
+            cz_stopwords = file.readlines()
+            cz_stopwords = [line.rstrip() for line in cz_stopwords]
+
+        filename = "preprocessing/stopwords/general_stopwords.txt"
+        with open(filename, encoding="utf-8") as file:
+            general_stopwords = file.readlines()
+            general_stopwords = [line.rstrip() for line in general_stopwords]
+        all_stopwords = cz_stopwords + general_stopwords
+
+        tagged_data = []
+        cz_lemma = CzPreprocess()
+        for i, doc in enumerate(documents_all_features_preprocessed):
+            selected_list = []
+            for word in doc.split(", "):
+                # if not word in all_stopwords:
+                words_preprocessed = gensim.utils.simple_preprocess(cz_lemma.preprocess(word))
+                for sublist in words_preprocessed:
+                    if len(sublist) > 0:
+                        selected_list.append(sublist)
+
+            print("Preprocessing doc. num. " + str(i))
+            print("Selected list:")
+            print(selected_list)
+            tagged_data.append(TaggedDocument(words=selected_list, tags=[str(i)]))
+            if create_csv is True:
+                # Will append to exising file! CSV needs to be removed first if needs to be up updated as a whole
+                with open("datasets/idnes_preprocessed.txt", "a+", encoding="utf-8") as fp:
+                    wr = csv.writer(fp, dialect='excel')
+                    wr.writerow(selected_list)
 
         print("tagged_data:")
         print(tagged_data)
@@ -75,29 +109,17 @@ class Doc2VecClass:
 
         documents_slugs = self.df['slug_x'].tolist()
 
-        """
-        filename = "cz_stemmer/czech_stopwords.txt"
-
-        with open(filename, encoding="utf-8") as file:
-            cz_stopwords = file.readlines()
-            cz_stopwords = [line.rstrip() for line in cz_stopwords]
-        """
-
         if train is True:
-            self.train_doc2vec(documents_all_features_preprocessed, False)
+            self.train_doc2vec(documents_all_features_preprocessed, body_text=False, limited=False, create_csv=True)
 
         del documents_all_features_preprocessed
         gc.collect()
 
-        # pickle.dump(d2v_model,open("d2v_all_in_one.model", "wb" ))
-        # global doc2vec_model
-
         if limited is True:
             doc2vec_model = Doc2Vec.load("models/d2v_limited.model")
         else:
-            doc2vec_model = Doc2Vec.load("models/d2v.model")
-        # model = pickle.load(smart_open.smart_open(self.amazon_bucket_url))
-        # to find the vector of a document which is not in training data
+            doc2vec_model = Doc2Vec.load("models/d2v.model") # or download from Dropbox / AWS bucket
+
         recommenderMethods = RecommenderMethods()
         # not necessary
         post_found = recommenderMethods.find_post_by_slug(slug)
@@ -140,12 +162,12 @@ class Doc2VecClass:
         documents_slugs = self.df['slug_x'].tolist()
 
         if train is True:
-            self.train_doc2vec(documents_all_features_preprocessed, True)
+            self.train_doc2vec(documents_all_features_preprocessed, body_text=True)
         del documents_all_features_preprocessed
         gc.collect()
 
         """
-        filename = "cz_stemmer/czech_stopwords.txt"
+        filename = "preprocessing/czech_stopwords.txt"
         
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
@@ -179,7 +201,7 @@ class Doc2VecClass:
         documents_df['keywords'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
         documents_slugs = self.df['slug_x'].tolist()
 
-        filename = "cz_stemmer/czech_stopwords.txt"
+        filename = "preprocessing/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -293,19 +315,14 @@ class Doc2VecClass:
 
         max_epochs = 20
         vec_size = 150
-        alpha = 0.025
-        minimum_alpha = 0.0025
-        reduce_alpha = 0.0002
 
         if limited is True:
             model = Doc2Vec(vector_size=vec_size,
-                            alpha=alpha,
-                            min_count=0,
+                            min_count=1,
                             dm=0, max_vocab_size=87000)
         else:
             model = Doc2Vec(vector_size=vec_size,
-                            alpha=alpha,
-                            min_count=0,
+                            min_count=1,
                             dm=0)
 
         model.build_vocab(tagged_data)

@@ -13,7 +13,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
 
 from content_based_algorithms.data_queries import RecommenderMethods
-from cz_stemmer.czech_stemmer import cz_stem
+from preprocessing.czech_stemmer import cz_stem
 from data_conenction import Database
 
 
@@ -301,7 +301,7 @@ class TfIdf:
 
         post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
 
-        del recommenderMethods
+        del recommenderMethods, tuple_of_fitted_matrices
         return post_recommendations
 
     # @profile
@@ -416,7 +416,7 @@ class TfIdf:
         tokens = tokenizer.tokenize(rem_num)
         print("tokens:")
         print(tokens)
-        filename = "cz_stemmer/czech_stopwords.txt"
+        filename = "preprocessing/czech_stopwords.txt"
 
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
@@ -526,7 +526,7 @@ class TfIdf:
         documents_df['features_combined'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
         documents = list(map(' '.join, documents_df[['features_combined']].values.tolist()))
 
-        filename = "cz_stemmer/czech_stopwords.txt"
+        filename = "preprocessing/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -548,3 +548,8 @@ class TfIdf:
         loader = np.load(filename)
         return csr_matrix((loader['data'], loader['indices'], loader['indptr']),
                           shape=loader['shape'])
+
+    def update_saved_matrix(self):
+        recommenderMethods = RecommenderMethods()
+        fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
+        self.save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
