@@ -18,7 +18,7 @@ dirname = os.path.dirname(__file__)
 
 
 def load_cz_stopwords():
-    filename = Path(dirname, "preprocessing/stopwords/czech_stopwords.txt")
+    filename = "preprocessing/stopwords/czech_stopwords.txt"
     with open(filename, encoding="utf-8") as file:
         cz_stopwords = file.readlines()
         cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -26,7 +26,7 @@ def load_cz_stopwords():
 
 
 def load_general_stopwords():
-    filename = Path(dirname, "preprocessing/stopwords/general_stopwords.txt")
+    filename = "preprocessing/stopwords/general_stopwords.txt"
     with open(filename, encoding="utf-8") as file:
         general_stopwords = file.readlines()
         general_stopwords = [line.rstrip() for line in general_stopwords]
@@ -208,7 +208,11 @@ class RecommenderMethods:
     def recommend_by_more_features(self, slug, tupple_of_fitted_matrices, num_of_recommendations=20):
         # combining results of all feature types
         # combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices) # creating sparse matrix containing mostly zeroes from combined feature tupples
+        print("tupple_of_fitted_matrices:")
+        print(tupple_of_fitted_matrices)
         combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
+        print("combined_matrix1:")
+        print(combined_matrix1)
         """
         Example 1: solving linear system A*x=b where A is 5000x5000 but is block diagonal matrix constructed of 500 5x5 blocks. Setup code:
 
@@ -276,6 +280,8 @@ class RecommenderMethods:
     def set_cosine_sim_use_own_matrix(self, own_tfidf_matrix):
         own_tfidf_matrix_csr = sparse.csr_matrix(own_tfidf_matrix.astype(dtype=np.float16)).astype(dtype=np.float16)
         cosine_sim = self.cosine_similarity_n_space(own_tfidf_matrix_csr, own_tfidf_matrix_csr)
+        print("cosine_sim:")
+        print(cosine_sim)
         # cosine_sim = cosine_similarity(own_tfidf_matrix_csr) # computing cosine similarity
         cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug_x'],
                                      columns=self.df['slug_x'])  # finding original record of post belonging to slug
@@ -303,6 +309,8 @@ class RecommenderMethods:
         return ret
 
     def get_recommended_posts(self, find_by_string, data_frame, items, k=20):
+        print("self.cosine_sim_df:")
+        print(self.cosine_sim_df)
         ix = data_frame.loc[:, find_by_string].to_numpy().argpartition(range(-1, -k, -1))
         closest = data_frame.columns[ix[-1:-(k + 2):-1]]
         # print("closest")
