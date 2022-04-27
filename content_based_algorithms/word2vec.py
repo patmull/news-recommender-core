@@ -1,10 +1,13 @@
 import json
+import os
 import random
 
 import gensim
 import psycopg2
-from gensim.models import KeyedVectors
+from gensim.models import KeyedVectors, Word2Vec
+from gensim.test.utils import common_texts
 
+from content_based_algorithms import data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.doc_sim import DocSim
 from content_based_algorithms.helper import NumpyEncoder
@@ -12,6 +15,7 @@ import pandas as pd
 import time as t
 
 from data_conenction import Database
+from preprocessing.cz_preprocessing import CzPreprocess
 
 
 class Word2VecClass:
@@ -65,10 +69,20 @@ class Word2VecClass:
         del self.categories_df
 
         documents_df = pd.DataFrame()
-        documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["title_y"] + ' ' + self.df[
+        documents_training_df = pd.DataFrame()
+
+        documents_df["features_to_use"] = self.df["title_y"] + " " + self.df["keywords"] + ' ' + self.df[
             "all_features_preprocessed"]
         documents_df["slug"] = self.df["slug_x"]
         found_post = found_post_dataframe['features_to_use'].iloc[0]
+
+        documents_training_df["features_to_use"] = self.df["title_y"] + " " + self.df["keywords"] + " " + self.df["all_features_preprocessed"]
+        documents_training_df["features_to_use"] = documents_training_df["features_to_use"].replace(",", "")
+        documents_training_df["features_to_use"] = documents_training_df["features_to_use"].str.split(" ")
+
+
+        texts = documents_training_df["features_to_use"].tolist()
+        texts = data_queries.remove_stopwords(texts)
 
         del self.df
         del found_post_dataframe
@@ -82,9 +96,10 @@ class Word2VecClass:
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
         # self.amazon_bucket_url#
 
+        word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
         # global word2vec_embedding
-        word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+        model_idnes = self.eval_word2vec(texts, word2vec_embedding)
 
         # print("Model loaded...")
         # word2vec_embedding = KeyedVectors.load_word2vec_format("w2v_model",binary=False,unicode_errors='ignore')
@@ -92,13 +107,19 @@ class Word2VecClass:
         ds = DocSim(word2vec_embedding)
         # del word2vec_embedding
         # documents_df['features_to_use'] = documents_df.replace(',','', regex=True)
+
         documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
         list_of_document_features = documents_df["features_to_use"].tolist()
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
-        most_similar_articles_with_scores = ds.calculate_similarity(found_post,
+        print("Similarities on Wikipedia.cz model:")
+        most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
                                                                     list_of_document_features)[:21]
 
+        print("Similarities on iDNES.cz model:")
+        ds = DocSim(model_idnes)
+        most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post,
+                                                                    list_of_document_features)[:21]
         # removing post itself
         del most_similar_articles_with_scores[0]  # removing post itself
 
@@ -287,6 +308,30 @@ class Word2VecClass:
         self.save_fast_text_to_w2v()
         print("Loading word2vec model...")
         self.save_full_model_to_smaller()
+
+    def eval_word2vec(self, texts, evaluated_model, force_update_model=True):
+        if os.path.isfile("models/w2v_model_idnes.model") is False or force_update_model is True:
+            print("Word2Vec for iDNES.cz doesn't exist. Started training on iDNES.cz dataset...")
+            print("common_texts:")
+            print(common_texts)
+            print("texts:")
+            print(texts)
+            model = Word2Vec(sentences=texts, vector_size=158, window=5, min_count=5, workers=7, epochs=15)
+            model.save("models/w2v_model_idnes.modell")
+        else:
+            print("Loading Word2Vec iDNES.cz model from saved model file")
+            model = Word2Vec.load("models/w2v_model_idnes.model")
+
+        searched_word = 'hokej'
+        sims = model.wv.most_similar(searched_word, topn=10)  # get other similar words
+        print("TOP 10 Similar Words from iDNES.cz for word " + searched_word + ":")
+        print(sims)
+
+        searched_word = 'hokej'
+        sims = evaluated_model.most_similar(searched_word, topn=10)  # get other similar words
+        print("TOP 10 Similar Words from Wikipedia.cz for word " + searched_word + ":")
+        print(sims)
+        return model
 
 
 def main():
