@@ -3,7 +3,6 @@ import numpy as np
 from scipy import spatial
 from sklearn.feature_extraction.text import HashingVectorizer
 
-
 class DocSim:
     def __init__(self, w2v_model, stopwords=None):
         self.w2v_model = w2v_model

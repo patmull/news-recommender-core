@@ -73,25 +73,10 @@ class Word2VecClass:
         del self.df
         del found_post_dataframe
 
-        # documents_df['features_combined'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
-        # documents = list(map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
-
-        # Uncomment for change of model
-        # self.refresh_model()
-
-        # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
-        # self.amazon_bucket_url#
-
-        # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
-        # global word2vec_embedding
         word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
 
-        # print("Model loaded...")
-        # word2vec_embedding = KeyedVectors.load_word2vec_format("w2v_model",binary=False,unicode_errors='ignore')
-        # print(test_word in word2vec_model.key_to_index))
         ds = DocSim(word2vec_embedding)
-        # del word2vec_embedding
-        # documents_df['features_to_use'] = documents_df.replace(',','', regex=True)
+
         documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
         list_of_document_features = documents_df["features_to_use"].tolist()
         del documents_df
