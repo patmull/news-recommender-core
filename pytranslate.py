@@ -4,28 +4,39 @@ from deep_translator import GoogleTranslator
 
 def translate_question_words():
     texts = []
-
-    with open('research/word2vec/analogies/questions-words.txt', 'r') as file:
+    already_processed_texts = []
+    with open('research/word2vec/analogies/questions-words.txt', 'r', encoding="utf-8") as file:
         texts.extend(file.read().split("\n"))
+
+    with open('research/word2vec/translations/questions-words-cs-translated_so_far.txt', 'r', encoding="utf-8") as file:
+        already_processed_texts.extend(file.read().split("\n"))
+
+    num_of_already_processed = len(already_processed_texts)
 
     print("TRANSLATING TEXTS...")
     translations = []
     text_batch = ""
+    i = 0
     for text in texts:
-        print("INPUT text:")
-        print(text)
-        try:
-            translation = GoogleTranslator(source='en', target='cs').translate((text))
-        except:
-            translation = "TRANSLATION ERROR"
-        print("translation:")
-        print(translation)
-        translations.append(translation)
+        if i < num_of_already_processed:
+            print("Skipping already translated.")
+            pass
+        else:
+            print("INPUT text:")
+            print(text)
+            try:
+                translation = GoogleTranslator(source='en', target='cs').translate((text))
+            except:
+                translation = "TRANSLATION ERROR"
+            print("translation:")
+            print(translation)
+            translations.append(translation)
+        i = i + 1
 
     print("translations:")
     print(translations)
 
-    with open('research/word2vec/analogies/questions-words-cs.txt', 'w+') as file:
+    with open('research/word2vec/analogies/questions-words-cs.txt', 'w+', encoding="utf-8") as file:
         file.writelines(translations)
 
 
@@ -48,14 +59,14 @@ def clean_console_output_to_file():
         if i == 4:
             print("Adding line:")
             print(line)
-            texts_cleaned.extend(line)
+            texts_cleaned.extend(line + "\n")
             i = 0
         i = i + 1
-
 
     print("Writing to file...")
     with open('research/word2vec/translations/questions-words-cs-translated_so_far.txt', 'w+', encoding="utf-8") as file:
         file.writelines(texts_cleaned)
 
 
-clean_console_output_to_file()
+# clean_console_output_to_file()
+translate_question_words()
