@@ -121,6 +121,154 @@ class TfIdf:
         del recommenderMethods
         return post_recommendations
 
+    def get_recommended_posts_for_keywords(self, keywords, data_frame, k=10):
+
+        keywords_list = []
+        keywords_list.append(keywords)
+        txt_cleaned = self.get_cleaned_text(self.df,
+                                            self.df['title_x'] + self.df['title_y'] + self.df['keywords'] + self.df[
+                                                'excerpt'])
+        tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
+        tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
+        cosine_similarities = cosine_similarity(tfidf_keywords_input, tfidf).flatten()
+        # cosine_similarities = linear_kernel(tfidf_keywords_input, tfidf).flatten()
+
+        data_frame['coefficient'] = cosine_similarities
+
+        # related_docs_indices = cosine_similarities.argsort()[:-(number+1):-1]
+        related_docs_indices = cosine_similarities.argsort()[::-1][:k]
+
+        # print('index:', related_docs_indices)
+
+        # print('similarity:', cosine_similarities[related_docs_indices])
+
+        # print('\n--- related_docs_indices ---\n')
+
+        # print(data_frame.iloc[related_docs_indices])
+
+        # print('\n--- sort_values ---\n')
+        # print(data_frame.sort_values('coefficient', ascending=False)[:k])
+
+        closest = data_frame.sort_values('coefficient', ascending=False)[:k]
+
+        closest.reset_index(inplace=True)
+        # closest = closest.set_index('index1')
+        closest['index1'] = closest.index
+        # closest.index.name = 'index1'
+        closest.columns.name = 'index'
+        # # print("closest.columns.tolist()")
+        # # print(closest.columns.tolist())
+        # print("index name:")
+        # print(closest.index.name)
+        # print("""closest["slug_x","coefficient"]""")
+        # print(closest[["slug_x","coefficient"]])
+
+        return closest[["slug_x", "coefficient"]]
+        # return pd.DataFrame(closest).merge(items).head(k)
+
+    # @profile
+    def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
+
+        recommenderMethods = RecommenderMethods()
+        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
+        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
+        recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
+
+        my_file = Path("models/tfidf_all_features_preprocessed.npz")
+        if my_file.exists() is False:
+            print("Loading posts.")
+            fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
+            print("Saving sparse matrix into file...")
+            self.save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
+        else:
+            fit_by_all_features_matrix = self.load_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz")
+
+        my_file = Path("models/tfidf_title_y.npz")
+        if my_file.exists() is False:
+            # title_y = category
+            fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
+            self.save_sparse_csr(filename="models/tfidf_title_y.npz", array=fit_by_title)
+        else:
+            fit_by_title = self.load_sparse_csr(filename="models/tfidf_title_y.npz")
+
+        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title) # join feature tuples into one matrix
+
+        gc.collect()
+
+        print("tuple_of_fitted_matrices")
+        print(tuple_of_fitted_matrices)
+
+        post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
+
+        del recommenderMethods, tuple_of_fitted_matrices
+        return post_recommendations
+
+    # @profile
+    def recommend_posts_by_all_features_preprocessed_with_full_text(self, slug):
+
+        recommenderMethods = RecommenderMethods()
+        print("Loading posts")
+        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
+        gc.collect()
+        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
+        recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
+
+        # replacing None values with empty strings
+        recommenderMethods.df['full_text'] = recommenderMethods.df['full_text'].replace([None], '')
+
+        fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
+        fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
+        fit_by_full_text = recommenderMethods.get_fit_by_feature('full_text')
+
+        # join feature tuples into one matrix
+        tuple_of_fitted_matrices = (fit_by_title, fit_by_all_features_matrix, fit_by_full_text)
+        del fit_by_title
+        del fit_by_all_features_matrix
+        del fit_by_full_text
+        gc.collect()
+
+        post_recommendations = recommenderMethods.recommend_by_more_features_with_full_text(slug,
+                                                                                            tuple_of_fitted_matrices)
+        del recommenderMethods
+        return post_recommendations
+
+    # # @profile
+    def recommend_posts_by_all_features(self, slug):
+
+        recommenderMethods = RecommenderMethods()
+        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
+        # print("posts dataframe:")
+        # print(recommenderMethods.get_posts_dataframe())
+        # print("posts categories:")
+        # print(recommenderMethods.get_categories_dataframe())
+        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
+        # tfidf.get_ratings_dataframe() # load post rating to dataframe
+
+        recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
+        print("posts ratings categories dataframe:")
+        print(recommenderMethods.join_posts_ratings_categories())
+
+        # preprocessing
+
+        # feature tuples of (document_id, token_id) and coefficient
+        fit_by_post_title_matrix = recommenderMethods.get_fit_by_feature('title_x', 'title_y')
+        print("fit_by_post_title_matrix")
+        print(fit_by_post_title_matrix)
+        # fit_by_category_matrix = recommenderMethods.get_fit_by_feature('title_y')
+        fit_by_excerpt_matrix = recommenderMethods.get_fit_by_feature('excerpt')
+        print("fit_by_excerpt_matrix")
+        print(fit_by_excerpt_matrix)
+        fit_by_keywords_matrix = recommenderMethods.get_fit_by_feature('keywords')
+        print("fit_by_keywords_matrix")
+        print(fit_by_keywords_matrix)
+
+        # join feature tuples into one matrix
+        tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
+        post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices)
+
+        del recommenderMethods
+        return post_recommendations
+
     def get_ratings_dataframe(self):
         self.ratings_df = self.database.get_ratings_dataframe(pd)
         return self.ratings_df
@@ -222,154 +370,6 @@ class TfIdf:
     # @profile
     def get_cleaned_text(self, df, row):
         return row
-
-    def get_recommended_posts_for_keywords(self, keywords, data_frame, k=10):
-
-        keywords_list = []
-        keywords_list.append(keywords)
-        txt_cleaned = self.get_cleaned_text(self.df,
-                                            self.df['title_x'] + self.df['title_y'] + self.df['keywords'] + self.df[
-                                                'excerpt'])
-        tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
-        tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
-        cosine_similarities = cosine_similarity(tfidf_keywords_input, tfidf).flatten()
-        # cosine_similarities = linear_kernel(tfidf_keywords_input, tfidf).flatten()
-
-        data_frame['coefficient'] = cosine_similarities
-
-        # related_docs_indices = cosine_similarities.argsort()[:-(number+1):-1]
-        related_docs_indices = cosine_similarities.argsort()[::-1][:k]
-
-        # print('index:', related_docs_indices)
-
-        # print('similarity:', cosine_similarities[related_docs_indices])
-
-        # print('\n--- related_docs_indices ---\n')
-
-        # print(data_frame.iloc[related_docs_indices])
-
-        # print('\n--- sort_values ---\n')
-        # print(data_frame.sort_values('coefficient', ascending=False)[:k])
-
-        closest = data_frame.sort_values('coefficient', ascending=False)[:k]
-
-        closest.reset_index(inplace=True)
-        # closest = closest.set_index('index1')
-        closest['index1'] = closest.index
-        # closest.index.name = 'index1'
-        closest.columns.name = 'index'
-        # # print("closest.columns.tolist()")
-        # # print(closest.columns.tolist())
-        # print("index name:")
-        # print(closest.index.name)
-        # print("""closest["slug_x","coefficient"]""")
-        # print(closest[["slug_x","coefficient"]])
-
-        return closest[["slug_x", "coefficient"]]
-        # return pd.DataFrame(closest).merge(items).head(k)
-
-    # @profile
-    def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
-
-        recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
-        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
-        recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
-
-        my_file = Path("models/tfidf_all_features_preprocessed.npz")
-        if my_file.exists() is False:
-            print("Loading posts.")
-            fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
-            self.save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
-        else:
-            fit_by_all_features_matrix = self.load_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz")
-
-        my_file = Path("models/tfidf_title_y.npz")
-        if my_file.exists() is False:
-            # title_y = category
-            fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
-            self.save_sparse_csr(filename="models/tfidf_title_y.npz", array=fit_by_title)
-        else:
-            fit_by_title = self.load_sparse_csr(filename="models/tfidf_title_y.npz")
-
-        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title) # join feature tuples into one matrix
-
-        gc.collect()
-
-        print("tuple_of_fitted_matrices")
-        print(tuple_of_fitted_matrices)
-
-        post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
-
-        del recommenderMethods, tuple_of_fitted_matrices
-        return post_recommendations
-
-    # @profile
-    def recommend_posts_by_all_features_preprocessed_with_full_text(self, slug):
-
-        recommenderMethods = RecommenderMethods()
-        print("Loading posts")
-        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
-        gc.collect()
-        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
-        recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
-
-        # replacing None values with empty strings
-        recommenderMethods.df['full_text'] = recommenderMethods.df['full_text'].replace([None], '')
-
-        fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
-        fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
-        fit_by_full_text = recommenderMethods.get_fit_by_feature('full_text')
-
-        # join feature tuples into one matrix
-        tuple_of_fitted_matrices = (fit_by_title, fit_by_all_features_matrix, fit_by_full_text)
-        del fit_by_title
-        del fit_by_all_features_matrix
-        del fit_by_full_text
-        gc.collect()
-
-        post_recommendations = recommenderMethods.recommend_by_more_features_with_full_text(slug,
-                                                                                            tuple_of_fitted_matrices)
-        del recommenderMethods
-        return post_recommendations
-
-    # # @profile
-    def recommend_posts_by_all_features(self, slug):
-
-        recommenderMethods = RecommenderMethods()
-
-        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
-        # print("posts dataframe:")
-        # print(recommenderMethods.get_posts_dataframe())
-        # print("posts categories:")
-        # print(recommenderMethods.get_categories_dataframe())
-        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
-        # tfidf.get_ratings_dataframe() # load post rating to dataframe
-
-        recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
-        print("posts ratings categories dataframe:")
-        print(recommenderMethods.join_posts_ratings_categories())
-
-        # preprocessing
-
-        # feature tuples of (document_id, token_id) and coefficient
-        fit_by_post_title_matrix = recommenderMethods.get_fit_by_feature('title_x', 'title_y')
-        print("fit_by_post_title_matrix")
-        print(fit_by_post_title_matrix)
-        # fit_by_category_matrix = recommenderMethods.get_fit_by_feature('title_y')
-        fit_by_excerpt_matrix = recommenderMethods.get_fit_by_feature('excerpt')
-        print("fit_by_excerpt_matrix")
-        print(fit_by_excerpt_matrix)
-        fit_by_keywords_matrix = recommenderMethods.get_fit_by_feature('keywords')
-        print("fit_by_keywords_matrix")
-        print(fit_by_keywords_matrix)
-
-        # join feature tuples into one matrix
-        tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
-        post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices)
-
-        del recommenderMethods
-        return post_recommendations
 
     def convert_to_json_one_row(self, key, value):
         list_for_json = []
