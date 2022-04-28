@@ -52,6 +52,7 @@ Counters_found = Counter(split_it)
 
 # most_common() produces k frequently encountered
 # input values and their respective counts.
-most_occur = Counters_found.most_common(10)
-print("TOP 10 WORDS:")
-print(most_occur)
+most_occur = Counters_found.most_common(100)
+print("TOP 100 WORDS:")
+for word in most_occur:
+    print(word[0])
