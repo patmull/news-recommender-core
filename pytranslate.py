@@ -8,13 +8,15 @@ def translate_question_words():
     with open('research/word2vec/analogies/questions-words.txt', 'r', encoding="utf-8") as file:
         texts.extend(file.read().split("\n"))
 
-    with open('research/word2vec/translations/questions-words-cs-translated_so_far.txt', 'r', encoding="utf-8") as file:
+    with open('research/word2vec/analogies/questions-words-cs.txt', 'r', encoding="utf-8") as file:
         already_processed_texts.extend(file.read().split("\n"))
 
     num_of_already_processed = len(already_processed_texts)
 
     print("TRANSLATING TEXTS...")
     translations = []
+    BATCH_SIZE = 100
+    batch_counter = 0
     text_batch = ""
     i = 0
     for text in texts:
@@ -26,18 +28,24 @@ def translate_question_words():
             print(text)
             try:
                 translation = GoogleTranslator(source='en', target='cs').translate((text))
+                print("translation:")
+                print(translation)
+                translations.append(translation + "\n")
+                if batch_counter == BATCH_SIZE:
+                    print("Writing to file...")
+                    with open('research/word2vec/analogies/questions-words-cs.txt', 'a', encoding="utf-8") as file:
+                        file.writelines(translations)
+                        batch_counter = 0
+                        translations = []
+                batch_counter = batch_counter + 1
+                print(batch_counter)
             except:
                 translation = "TRANSLATION ERROR"
-            print("translation:")
-            print(translation)
-            translations.append(translation)
+
         i = i + 1
 
     print("translations:")
     print(translations)
-
-    with open('research/word2vec/analogies/questions-words-cs.txt', 'w+', encoding="utf-8") as file:
-        file.writelines(translations)
 
 
 def clean_console_output_to_file():
@@ -49,7 +57,9 @@ def clean_console_output_to_file():
     print(texts)
     texts_cleaned = []
     i = 1
-    for line in texts:        # Translation occurs in every 3rd line in current output in the format:
+
+    for line in texts:
+        # Translation occurs in every 3rd line in current output in the format:
         """
         INPUT text:
         Athens Greece Baghdad Iraq
@@ -63,9 +73,9 @@ def clean_console_output_to_file():
             i = 0
         i = i + 1
 
-    print("Writing to file...")
-    with open('research/word2vec/translations/questions-words-cs-translated_so_far.txt', 'w+', encoding="utf-8") as file:
-        file.writelines(texts_cleaned)
+        with open('research/word2vec/translations/questions-words-cs-translated_so_far.txt', 'w+',
+                  encoding="utf-8") as file:
+            file.writelines(texts_cleaned)
 
 
 # clean_console_output_to_file()
