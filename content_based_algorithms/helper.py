@@ -1,3 +1,4 @@
+import csv
 import json
 
 import numpy as np
@@ -40,6 +41,7 @@ class Helper:
             for line in inFile:
                 if line.strip():
                     outFile.write(line)
+
 
 class NumpyEncoder(json.JSONEncoder):
     """ Special json encoder for numpy types """
