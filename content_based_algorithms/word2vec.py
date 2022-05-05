@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import random
@@ -12,7 +13,7 @@ from gensim.test.utils import common_texts
 from content_based_algorithms import data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.doc_sim import DocSim
-from content_based_algorithms.helper import NumpyEncoder
+from content_based_algorithms.helper import NumpyEncoder, Helper
 import pandas as pd
 import time as t
 
@@ -450,12 +451,17 @@ class Word2VecClass:
 
     def eval_wiki(self):
         print("Loading Wikipedia full model...")
-        wiki_full_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
+        wiki_full_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full", limit=100000)
 
         searched_word = 'hokej'
-        sims = wiki_full_model.most_similar(searched_word, topn=10)  # get other similar words
+        sims = wiki_full_model.most_similar(searched_word, topn=30)  # get other similar words
         print("TOP 10 Similar Words from Wikipedia.cz for word " + searched_word + ":")
         print(sims)
+
+        helper = Helper()
+        # self.save_tuple_to_csv("research/word2vec/most_similar_words/cswiki_top_10_similar_words_to_hokej.csv", sims)
+        self.save_tuple_to_csv("cswiki_top_10_similar_words_to_hokej.csv", sims)
+
 
         print("Word pairs evaluation FastText on Wikipedia.cz model:")
         print(wiki_full_model.evaluate_word_pairs('research/word2vec/similarities/WordSim353-cs-cropped.tsv'))
@@ -463,6 +469,13 @@ class Word2VecClass:
         overall_analogies_score, _ = wiki_full_model.evaluate_word_analogies("research/word2vec/analogies/questions-words-cs.txt")
         print("Analogies evaluation of FastText on Wikipedia.cz model:")
         print(overall_analogies_score)
+
+    def save_tuple_to_csv(self, path, data):
+        with open(path, 'w+') as out:
+            csv_out = csv.writer(out)
+            csv_out.writerow(['word', 'sim'])
+            for row in data:
+                csv_out.writerow(row)
 
 
 def main():
