@@ -314,7 +314,7 @@ class Word2VecClass:
             print("texts:")
             print(texts)
             model = Word2Vec(sentences=texts, vector_size=158, window=5, min_count=5, workers=7, epochs=15)
-            model.save("models/w2v_model_idnes.modell")
+            model.save("models/w2v_model_idnes.model")
         else:
             print("Loading Word2Vec iDNES.cz model from saved model file")
             model = Word2Vec.load("models/w2v_model_idnes.model")
