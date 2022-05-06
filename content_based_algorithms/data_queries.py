@@ -84,6 +84,7 @@ class RecommenderMethods:
         return df_ratings
 
     def join_posts_ratings_categories(self):
+        self.get_posts_dataframe()
         self.get_categories_dataframe()
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns

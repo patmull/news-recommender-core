@@ -93,7 +93,7 @@ class Word2VecClass:
         # self.refresh_model()
 
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
-        # self.amazon_bucket_url#
+        # self.amazon_bucket_url
 
         word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
@@ -328,6 +328,9 @@ class Word2VecClass:
         sims = evaluated_model.most_similar(searched_word, topn=10)  # get other similar words
         print("TOP 10 Similar Words from Wikipedia.cz for word " + searched_word + ":")
         print(sims)
+
+        # TODO: Doplnit změny z PC
+
         return model
 
 
