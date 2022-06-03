@@ -4,9 +4,9 @@ import os
 import psycopg2
 import pandas as pd
 
-DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
 DB_USER = os.environ.get('DB_RECOMMENDER_USER')
 DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
+DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
 DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
 
 
@@ -16,10 +16,10 @@ class Database:
     df = None
 
     def connect(self):
-        self.cnx = psycopg2.connect(user="uhtwzpohsepbah" ,
-                                    password="683a63e7bc7487bf6bc45cf85476176dbcbf0b8a19ad3bb8fda7d02cba8a1769",
-                                    host="ec2-176-34-211-0.eu-west-1.compute.amazonaws.com",
-                                    dbname="d2ghvuag6srsj5")
+        self.cnx = psycopg2.connect(user=DB_USER,
+                                    password=DB_PASSWORD,
+                                    host=DB_HOST,
+                                    dbname=DB_NAME)
 
         self.cursor = self.cnx.cursor()
 
