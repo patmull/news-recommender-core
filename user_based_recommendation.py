@@ -1,7 +1,7 @@
 import json
 
 from content_based_algorithms.data_queries import RecommenderMethods
-from data_conenction import Database
+from data_connection import Database
 import pandas as pd
 
 class UserBasedRecommendation:
