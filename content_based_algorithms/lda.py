@@ -23,7 +23,7 @@ from gensim.models import LdaModel, CoherenceModel
 from scipy.stats import entropy
 
 from content_based_algorithms.helper import Helper
-from data_conenction import Database
+from data_connection import Database
 
 
 class Lda:

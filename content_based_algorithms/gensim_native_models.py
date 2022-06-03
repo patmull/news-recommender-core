@@ -11,7 +11,7 @@ from preprocessing.czech_stemmer import cz_stem
 from gensim import corpora, models, similarities
 from scipy import sparse
 
-from data_conenction import Database
+from data_connection import Database
 
 
 class GenSim:
