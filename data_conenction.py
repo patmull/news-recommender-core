@@ -16,10 +16,10 @@ class Database:
     df = None
 
     def connect(self):
-        self.cnx = psycopg2.connect(user="azuzazlsunperc" ,
-                                    password="04f3582a0c5ea6074d9e3c4ed16d2152594b2f76f2c0768e05db2c037fb65cd3",
-                                    host="ec2-34-250-16-127.eu-west-1.compute.amazonaws.com",
-                                    dbname="dfjbkqmu3imv9u")
+        self.cnx = psycopg2.connect(user="uhtwzpohsepbah" ,
+                                    password="683a63e7bc7487bf6bc45cf85476176dbcbf0b8a19ad3bb8fda7d02cba8a1769",
+                                    host="ec2-176-34-211-0.eu-west-1.compute.amazonaws.com",
+                                    dbname="d2ghvuag6srsj5")
 
         self.cursor = self.cnx.cursor()
 

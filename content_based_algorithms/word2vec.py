@@ -90,7 +90,7 @@ class Word2VecClass:
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
         # self.amazon_bucket_url#
 
-        print("Loading Word2Vec FastText model...")
+        print("Loading Word2Vec FastText (Wikipedia) model...")
         word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
         # word2vec_embedding = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
@@ -98,7 +98,7 @@ class Word2VecClass:
         self.eval_word2vec(texts)
 
     # @profile
-    def get_similar_word2vec(self, searched_slug):
+    def get_similar_word2vec(self, searched_slug, model="idnes"):
         recommenderMethods = RecommenderMethods()
 
         self.get_posts_dataframe()
@@ -141,14 +141,13 @@ class Word2VecClass:
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
         # self.amazon_bucket_url
 
-        print("Loading Word2Vec FastText model...")
+        print("Loading Word2Vec FastText (Wikipedia) model...")
         word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
         # word2vec_embedding = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
         # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
         # global word2vec_embedding
-        model_idnes = self.eval_word2vec(texts, word2vec_embedding)
 
-        ds = DocSim(word2vec_embedding)
+        #ds = DocSim(word2vec_embedding)
 
         # del word2vec_embedding
         # documents_df['features_to_use'] = documents_df.replace(',','', regex=True)
@@ -157,14 +156,19 @@ class Word2VecClass:
         list_of_document_features = documents_df["features_to_use"].tolist()
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
-        print("Similarities on Wikipedia.cz model:")
-        most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
-                                                                    list_of_document_features)[:21]
+        model_idnes = KeyedVectors.load("models/w2v_idnes.model")
 
-        print("Similarities on iDNES.cz model:")
-        ds = DocSim(model_idnes)
-        most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post,
-                                                                    list_of_document_features)[:21]
+        if model == "wiki":
+            model_wiki = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
+            print("Similarities on Wikipedia.cz model:")
+            ds = DocSim(model_wiki)
+            most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
+                                                                        list_of_document_features)[:21]
+        elif model == "idnes":
+            print("Similarities on iDNES.cz model:")
+            ds = DocSim(model_idnes)
+            most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post,
+                                                                        list_of_document_features)[:21]
         # removing post itself
         del most_similar_articles_with_scores[0]  # removing post itself
 
@@ -223,7 +227,7 @@ class Word2VecClass:
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
 
-        most_similar_articles_with_scores = ds.calculate_similarity(found_post,
+        most_similar_articles_with_scores = ds.calculate_similarity_idnes_model(found_post,
                                                                     list_of_document_features)[:21]
         # removing post itself
         del most_similar_articles_with_scores[0]  # removing post itself
@@ -241,7 +245,7 @@ class Word2VecClass:
 
     def save_fast_text_to_w2v(self):
         print("Loading and saving FastText pretrained model to Word2Vec model")
-        word2vec_model = gensim.models.fasttext.load_facebook_vectors("full_models/cswiki/cc.cs.300.bin.gz", encoding="utf-8")
+        word2vec_model = gensim.models.fasttext.load_facebook_vectors("full_models/cswiki/word2vec/cc.cs.300.bin.gz", encoding="utf-8")
         print("FastText loaded...")
         word2vec_model.fill_norms()
         word2vec_model.save_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
@@ -354,7 +358,7 @@ class Word2VecClass:
         print("Loading word2vec model...")
         self.save_full_model_to_smaller()
 
-    def eval_word2vec(self, texts):
+    def eval_idnes(self, texts):
             model_variants = [0,1] # sg parameter: 0 = CBOW; 1 = Skip-Gram
             hs_softmax_variants = [0,1] # 1 = Hierarchical SoftMax
             negative_sampling_variants = range(5,20,5) # 0 = no negative sampling
@@ -423,18 +427,16 @@ class Word2VecClass:
 
     def compute_eval_values(self, sentences, model_variant, negative_sampling_variant, vector_size, window, min_count,
                                                                      epochs, sample, force_update_model=True):
-        if os.path.isfile("models/w2v_model_idnes.model") is False or force_update_model is True:
-
+        if os.path.isfile("models/w2v_idnes.model") is False or force_update_model is True:
             print("Started training on iDNES.cz dataset...")
             # w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant, vector_size=vector_size, window=window, min_count=min_count, epochs=epochs, sample=sample, workers=7)
             w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant, vector_size=vector_size, window=window, min_count=min_count, epochs=epochs, sample=sample, workers=7)
-
             # DEFAULT:
             # model = Word2Vec(sentences=texts, vector_size=158, window=5, min_count=5, workers=7, epochs=15)
-            w2v_model.save("models/w2v_model_idnes.model")
+            w2v_model.save("models/w2v_idnes.model")
         else:
             print("Loading Word2Vec iDNES.cz model from saved model file")
-            w2v_model = Word2Vec.load("models/w2v_model_idnes.model")
+            w2v_model = Word2Vec.load("models/w2v_idnes.model")
 
         import pandas as pd
         df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv', usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
@@ -450,9 +452,40 @@ class Word2VecClass:
 
         return word_pairs_eval, overall_score
 
+    def eval_idnes_basic(self):
+        topn = 30
+        limit = None
+
+        print("Loading iDNES.cz full model...")
+        idnes_model = KeyedVectors.load_word2vec_format("models/w2v_model_full.model", limit=limit)
+
+        searched_word = 'hokej'
+        sims = idnes_model.most_similar(searched_word, topn=topn)  # get other similar words
+        print("TOP " + str(topn) + " similar Words from iDNES.cz for word " + searched_word + ":")
+        print(sims)
+
+        searched_word = 'zimák'
+        if searched_word in idnes_model.key_to_index:
+            print(searched_word)
+            print("Exists in vocab")
+        else:
+            print(searched_word)
+            print("Doesn't exists in vocab")
+
+        helper = Helper()
+        # self.save_tuple_to_csv("research/word2vec/most_similar_words/cswiki_top_10_similar_words_to_hokej.csv", sims)
+        self.save_tuple_to_csv("idnes_top_" + str(topn) + "_similar_words_to_hokej_limit_" + str(limit) + ".csv", sims)
+
+        print("Word pairs evaluation FastText on iDNES.cz model:")
+        print(idnes_model.evaluate_word_pairs('research/word2vec/similarities/WordSim353-cs-cropped.tsv'))
+
+        overall_analogies_score, _ = idnes_model.evaluate_word_analogies("research/word2vec/analogies/questions-words-cs.txt")
+        print("Analogies evaluation of FastText on iDNES.cz model:")
+        print(overall_analogies_score)
+
     def eval_wiki(self):
         topn = 30
-        limit = 350000
+        limit = None
 
         print("Loading Wikipedia full model...")
         wiki_full_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full", limit=limit)

@@ -35,19 +35,19 @@ def main():
 
     # tfIdf = TfIdf()
     # print(tfidf.recommend_posts_by_all_features_preprocessed("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"))
-    word2vec = Word2VecClass()
+    # word2vec = Word2VecClass()
     # word2vec.get_similar_word2vec("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
-    tfidf()
+    # tfidf()
     # word2vec = Word2VecClass()
     #word2vec.get_similar_word2vec("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
     # word2vec.eval_word2vec_idnes_model()
 
+    # word2vec = Word2VecClass()
+    # word2vec.eval_wiki()
+
     word2vec = Word2VecClass()
-    word2vec.eval_wiki()
-    """
-    word2vec = Word2VecClass()
-    word2vec.get_similar_word2vec("chaos-v-mapach-kavkazu-proc-armenie-a-azerbajdzan-nebojuji-jen-o-karabach")
-    """
+    word2vec.save_fast_text_to_w2v()
+    # word2vec.get_similar_word2vec("chaos-v-mapach-kavkazu-proc-armenie-a-azerbajdzan-nebojuji-jen-o-karabach")
 
 
 if __name__ == '__main__':
