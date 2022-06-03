@@ -8,7 +8,7 @@ from nltk import RegexpTokenizer
 
 from content_based_algorithms.data_queries import RecommenderMethods
 from preprocessing.czech_stemmer import cz_stem
-from gensim_native_models import corpora, models, similarities
+from gensim import corpora, models, similarities
 from scipy import sparse
 
 from data_conenction import Database

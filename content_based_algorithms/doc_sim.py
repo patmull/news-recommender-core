@@ -138,7 +138,7 @@ class DocSim:
     def calculate_similarity_idnes_model_gensim(self, source_doc, target_docs=None, threshold=0.2):
         """Calculates & returns similarity scores between given source document & all
         the target documents."""
-        termsim_index = WordEmbeddingSimilarityIndex(self.w2v_model.wv)
+        termsim_index = WordEmbeddingSimilarityIndex(self.w2v_model)
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
         bow_corpus = pickle.load(open("precalc_vectors/corpus.pkl","rb"))
         similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary)  # construct similarity matrix
