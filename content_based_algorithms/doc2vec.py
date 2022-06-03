@@ -7,7 +7,7 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.tfidf import TfIdf
 from preprocessing.cz_preprocessing import CzPreprocess
-from data_conenction import Database
+from data_connection import Database
 
 
 class Doc2VecClass:
