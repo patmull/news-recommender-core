@@ -4,6 +4,8 @@ import json
 import nltk
 from nltk.stem.lancaster import LancasterStemmer
 import numpy as np
+
+import preprocessing.cz_preprocessing
 from preprocessing.czech_stemmer import cz_stem
 
 words = []
@@ -58,6 +60,7 @@ output = []
 # create an empty array for our output
 output_empty = [0] * len(classes)
 
+cz_lemma = preprocessing.cz_preprocessing.CzPreprocess
 # training set, bag of words for each sentence
 for doc in documents:
     # initialize our bag of words
@@ -65,7 +68,7 @@ for doc in documents:
     # list of tokenized words for the pattern
     pattern_words = doc[0]
     # finding root of each word by czech language word stemmer
-    pattern_words = [cz_stem(word.lower()) for word in pattern_words]
+    pattern_words = [cz_lemma.cz_lemma(string=word.lower()) for word in pattern_words]
     # create our bag of words array
     for w in words:
         bag.append(1) if w in pattern_words else bag.append(0)
@@ -79,7 +82,7 @@ for doc in documents:
 # sample training/output
 i = 0
 w = documents[i][0]
-print([cz_stem(word.lower()) for word in w])
+print([(cz_lemma.cz_lemma(string=word.lower())) for word in w])
 print(training[i])
 print(output[i])
 
