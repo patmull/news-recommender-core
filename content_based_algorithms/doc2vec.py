@@ -32,12 +32,30 @@ class Doc2VecClass:
         self.database.disconnect()
         return self.categories_df
 
-    def join_posts_ratings_categories(self):
-        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-        # clean up from unnecessary columns
-        self.df = self.df[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
-             'all_features_preprocessed', 'body_preprocessed']]
+    def join_posts_ratings_categories(self, include_prefilled=False):
+        if include_prefilled is False:
+            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
+            # clean up from unnecessary columns
+            self.df = self.df[
+                ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                 'all_features_preprocessed', 'body_preprocessed']]
+        else:
+            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
+            # clean up from unnecessary columns
+            try:
+                self.df = self.df[
+                    ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                     'all_features_preprocessed', 'body_preprocessed',
+                     'recommended_tfidf_full_text']]
+            except KeyError:
+                self.df = self.database.insert_posts_dataframe_to_cache()
+                self.posts_df.drop_duplicates(subset=['title'], inplace=True)
+                print(self.df.columns.values)
+                self.df = self.df[
+                    ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                     'all_features_preprocessed', 'body_preprocessed',
+                     'recommended_tfidf_full_text']]
+
 
     def train_doc2vec(self, documents_all_features_preprocessed, body_text, limited=True, create_csv=False):
         print("documents_all_features_preprocessed")
@@ -87,10 +105,14 @@ class Doc2VecClass:
 
         # to find the vector of a document which is not in training data
 
-    def get_similar_doc2vec(self, slug, train=False, limited=True, number_of_recommended_posts=21):
-        self.get_posts_dataframe()
-        self.get_categories_dataframe()
-        self.join_posts_ratings_categories()
+    def get_similar_doc2vec(self, slug, train=False, limited=True, number_of_recommended_posts=21, from_db=True):
+        recommenderMethods = RecommenderMethods()
+        recommenderMethods.get_posts_dataframe()
+        recommenderMethods.get_categories_dataframe()
+        self.df = self.join_posts_ratings_categories(include_prefilled=True)
+
+        print("self.df")
+        print(self.df.columns.values)
 
         cols = ['keywords', 'all_features_preprocessed']
         documents_df = pd.DataFrame()
@@ -107,36 +129,45 @@ class Doc2VecClass:
         del documents_df
         gc.collect()
 
-        documents_slugs = self.df['slug_x'].tolist()
+        if from_db is False:
+            documents_slugs = self.df['slug_x'].tolist()
 
-        if train is True:
-            self.train_doc2vec(documents_all_features_preprocessed, body_text=False, limited=False, create_csv=True)
+            if train is True:
+                self.train_doc2vec(documents_all_features_preprocessed, body_text=False, limited=False, create_csv=True)
 
-        del documents_all_features_preprocessed
-        gc.collect()
+            del documents_all_features_preprocessed
+            gc.collect()
 
-        if limited is True:
-            doc2vec_model = Doc2Vec.load("models/d2v_limited.model")
+            if limited is True:
+                doc2vec_model = Doc2Vec.load("models/d2v_limited.model")
+            else:
+                doc2vec_model = Doc2Vec.load("models/d2v.model") # or download from Dropbox / AWS bucket
+
+            recommenderMethods = RecommenderMethods()
+            # not necessary
+            post_found = recommenderMethods.find_post_by_slug(slug)
+            keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
+            all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
+
+            tokens = keywords_preprocessed + all_features_preprocessed
+
+            vector_source = doc2vec_model.infer_vector(tokens)
+
+            most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
+
+            return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
+
         else:
-            doc2vec_model = Doc2Vec.load("models/d2v.model") # or download from Dropbox / AWS bucket
 
-        recommenderMethods = RecommenderMethods()
-        # not necessary
-        post_found = recommenderMethods.find_post_by_slug(slug)
-        keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
-        all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
 
-        tokens = keywords_preprocessed + all_features_preprocessed
 
-        vector_source = doc2vec_model.infer_vector(tokens)
-
-        most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
-        return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
+            return
 
     def get_similar_doc2vec_with_full_text(self, slug, train=False, number_of_recommended_posts=21):
-        self.get_posts_dataframe()
-        self.get_categories_dataframe()
-        self.join_posts_ratings_categories()
+        recommenderMethods = RecommenderMethods()
+        recommenderMethods.get_posts_dataframe()
+        recommenderMethods.get_categories_dataframe()
+        self.df = self.join_posts_ratings_categories()
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
         documents_df = pd.DataFrame()
@@ -190,9 +221,10 @@ class Doc2VecClass:
         return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
     def get_similar_doc2vec_by_keywords(self, slug, number_of_recommended_posts=21):
-        self.get_posts_dataframe()
-        self.get_categories_dataframe()
-        self.join_posts_ratings_categories()
+        recommenderMethods = RecommenderMethods()
+        recommenderMethods.get_posts_dataframe()
+        recommenderMethods.get_categories_dataframe()
+        self.df = recommenderMethods.join_posts_ratings_categories()
 
         # cols = ["title_y","title_x","excerpt","keywords","slug_x"]
 

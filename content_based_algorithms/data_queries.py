@@ -83,14 +83,31 @@ class RecommenderMethods:
         df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
         return df_ratings
 
-    def join_posts_ratings_categories(self):
+    def join_posts_ratings_categories(self, include_prefilled=False):
         self.get_posts_dataframe()
         self.get_categories_dataframe()
-        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-        # clean up from unnecessary columns
-        self.df = self.df[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
-             'all_features_preprocessed', 'full_text']]
+        if include_prefilled is False:
+            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
+            # clean up from unnecessary columns
+            self.df = self.df[
+                ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                 'all_features_preprocessed', 'body_preprocessed']]
+        else:
+            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
+            # clean up from unnecessary columns
+            try:
+                self.df = self.df[
+                    ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                     'all_features_preprocessed', 'body_preprocessed',
+                     'recommended_tfidf_full_text']]
+            except KeyError:
+                self.df = self.database.insert_posts_dataframe_to_cache()
+                self.posts_df.drop_duplicates(subset=['title'], inplace=True)
+                print(self.df.columns.values)
+                self.df = self.df[
+                    ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                     'all_features_preprocessed', 'body_preprocessed',
+                     'recommended_tfidf_full_text']]
         return self.df
 
 

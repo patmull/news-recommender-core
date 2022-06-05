@@ -93,6 +93,7 @@ class Database:
     def insert_posts_dataframe_to_cache(self):
         sql = """SELECT * FROM posts ORDER BY id;"""
 
+        self.connect()
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         # df = pd.read_sql_query(results, database.get_cnx())
