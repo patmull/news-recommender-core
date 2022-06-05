@@ -1,4 +1,5 @@
 import itertools
+import json
 import os
 
 import numpy as np
@@ -49,12 +50,15 @@ class LearnToRank:
 
         NUM_OF_POSTS = 8194
 
-        tfidf_posts = tfidf.recommend_posts_by_all_features_preprocessed(post_slug)
-        print("tfidf_posts")
-        print(tfidf_posts)
-        tfidf_posts_full = tfidf.recommend_posts_by_all_features_preprocessed(post_slug, num_of_recommendations=NUM_OF_POSTS)
-        print("tfidf_posts_full")
-        print(tfidf_posts_full)
+        tfidf.prepare_dataframes()
+        tfidf_prefilled_posts = tfidf.get_prefilled_full_text()
+        print("tfidf_prefilled_posts:")
+        print(tfidf_prefilled_posts)
+        found_row = tfidf_prefilled_posts.loc[tfidf_prefilled_posts['slug_x'] == post_slug]
+        tfidf_results_json = json.loads(found_row['recommended_tfidf_full_text'].iloc[0])
+        tfidf_results_df = pd.json_normalize(tfidf_results_json)
+        print("tfidf_results_df:")
+        print(tfidf_results_df)
 
         user_keywords = user_based_recommendation.get_user_keywords(user_id)
         keyword_list = user_keywords['keyword_name'].tolist()
@@ -97,10 +101,10 @@ class LearnToRank:
         user_collaboration_posts_full_dict = user_collaboration_posts_full_df.to_dict('records')
 
         if len(keyword_list) > 0:
-            feature_list.append([tfidf_posts, tfidf_keywords, doc2vec_posts, lda_posts, user_preferences_posts,
+            feature_list.append([tfidf_posts_full, tfidf_keywords, doc2vec_posts, lda_posts, user_preferences_posts,
                                  user_collaboration_posts])
         else:
-            feature_list.append([tfidf_posts, doc2vec_posts, lda_posts, user_preferences_posts,
+            feature_list.append([tfidf_posts_full, doc2vec_posts, lda_posts, user_preferences_posts,
                                  user_collaboration_posts])
         print("tfidf_posts")
         print(tfidf_posts)
