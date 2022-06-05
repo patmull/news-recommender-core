@@ -12,7 +12,7 @@ from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from data_conenction import Database
+from data_connection import Database
 import os
 dirname = os.path.dirname(__file__)
 

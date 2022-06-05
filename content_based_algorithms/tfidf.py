@@ -14,7 +14,7 @@ from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
 
 from content_based_algorithms.data_queries import RecommenderMethods
 from preprocessing.czech_stemmer import cz_stem
-from data_conenction import Database
+from data_connection import Database
 
 
 class TfIdf:
