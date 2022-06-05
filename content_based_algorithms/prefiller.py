@@ -7,7 +7,7 @@ import psycopg2
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.lda import Lda
 from content_based_algorithms.tfidf import TfIdf
-from data_conenction import Database
+from data_connection import Database
 
 val_error_msg_db = "Not allowed DB method was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected algorithm does not correspondent with any implemented algorithm."

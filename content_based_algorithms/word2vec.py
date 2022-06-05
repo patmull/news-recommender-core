@@ -17,7 +17,7 @@ from content_based_algorithms.helper import NumpyEncoder, Helper
 import pandas as pd
 import time as t
 
-from data_conenction import Database
+from data_connection import Database
 from preprocessing.cz_preprocessing import CzPreprocess
 
 

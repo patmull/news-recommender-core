@@ -5,7 +5,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from content_based_algorithms.helper import Helper
-from data_conenction import Database
+from data_connection import Database
 
 
 class CosineTransform:
