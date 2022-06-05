@@ -166,6 +166,15 @@ class TfIdf:
         return closest[["slug_x", "coefficient"]]
         # return pd.DataFrame(closest).merge(items).head(k)
 
+    def prepare_dataframes(self):
+        recommenderMethods = RecommenderMethods()
+        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
+        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
+        self.df = recommenderMethods.join_posts_ratings_categories(include_prefilled=True)  # joining posts and categories into one table
+
+    def get_prefilled_full_text(self):
+        return self.df[['slug_x', 'recommended_tfidf_full_text']]
+
     # @profile
     def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
 
