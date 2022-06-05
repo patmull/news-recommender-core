@@ -5,7 +5,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
 from content_based_algorithms.data_queries import RecommenderMethods
-from data_conenction import Database
+from data_connection import Database
 from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
