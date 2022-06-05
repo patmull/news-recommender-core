@@ -150,7 +150,7 @@ class GetWordLemma(Resource):
 
     def get(self, word):
         tfIdf = TfIdf()
-        return tfIdf.cz_lemma(word,json=True)
+        return tfIdf.cz_lemma(word, json=True)
 
     def post(self):
         return {"data": "Posted"}
@@ -160,7 +160,7 @@ class GetWordStem(Resource):
 
     def get(self, word, aggressive):
         tfIdf = TfIdf()
-        return tfIdf.cz_stem(word, aggressive,json=True)
+        return tfIdf.cz_stem(word, aggressive, json=True)
 
     def post(self):
         return {"data": "Posted"}
