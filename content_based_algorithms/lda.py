@@ -24,7 +24,8 @@ from scipy.stats import entropy
 
 from content_based_algorithms.helper import Helper
 from data_connection import Database
-
+from preprocessing import cz_preprocessing
+from preprocessing.cz_preprocessing import cz_stopwords
 
 class Lda:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/lda_all_in_one"
@@ -96,14 +97,27 @@ class Lda:
 
         most_similar_df = self.df.iloc[most_sim_ids]
 
-        del self.df
-        gc.collect()
-
         most_similar_df = most_similar_df.iloc[1:, :]
 
         post_recommendations = pd.DataFrame()
         post_recommendations['slug'] = most_similar_df['slug_x'].iloc[:N]
-        post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
+        # post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
+        if N == 21:
+            post_recommendations['coefficient'] = most_sim_coefficients[:N-1]
+        else:
+            post_recommendations['coefficient'] = pd.Series(most_sim_coefficients[:N-1])
+
+        """
+        try:
+            post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
+        except ValueError:
+            print("Value error. Going with older version of LDA model (not updated for all articles).")
+            self.get_similar_lda(searched_slug, train=False, display_dominant_topics=False, N=number_of_df_rows)
+            post_recommendations['coefficient'] = most_sim_coefficients[:N]
+        """
+
+        del self.df
+        gc.collect()
 
         dict = post_recommendations.to_dict('records')
 
@@ -277,7 +291,7 @@ class Lda:
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
     def train_lda(self, data, display_dominant_topics=False):
-        data_words_nostops = self.remove_stopwords(data['tokenized'])
+        data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
         print("data_words_bigrams")
@@ -773,7 +787,7 @@ class Lda:
         # corpus = [dct.doc2bow(line) for line in dataset]
 
         # preprocessing steps
-        czlemma = cz_lemmatization.CzPreprocess()
+        czlemma = cz_preprocessing.CzPreprocess()
         helper = Helper()
         processed_data = []
         # takes very long time

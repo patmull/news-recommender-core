@@ -45,7 +45,10 @@ class RecommenderMethods:
 
     def get_posts_dataframe(self):
         self.database.connect()
-        self.posts_df = self.database.get_posts_dataframe_from_cache()
+        try:
+            self.posts_df = self.database.get_posts_dataframe_from_cache()
+        except:
+            self.posts_df = self.database.insert_posts_dataframe_to_cache()
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         self.database.disconnect()
         return self.posts_df
@@ -113,7 +116,7 @@ class RecommenderMethods:
 
     #### Above are data queries ####
 
-    def get_fit_by_feature(self, feature_name, second_feature=None):
+    def get_fit_by_feature_(self, feature_name, second_feature=None):
         fit_by_feature = self.get_tfIdfVectorizer(feature_name, second_feature)
         return fit_by_feature
 
@@ -135,8 +138,6 @@ class RecommenderMethods:
         json = self.convert_to_json_keyword_based(df_renamed)
 
         return json
-
-
 
     def convert_to_json_keyword_based(self, post_recommendations):
 
