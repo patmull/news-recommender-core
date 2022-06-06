@@ -252,3 +252,8 @@ class Database:
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
+
+    def get_results_dataframe(self, pd):
+        sql = """SELECT * FROM relevance_testings ORDER BY id;"""
+        df = pd.read_sql_query(sql, self.get_cnx())
+        return df
