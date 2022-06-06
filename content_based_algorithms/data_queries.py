@@ -86,6 +86,16 @@ class RecommenderMethods:
         df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
         return df_ratings
 
+    def get_results_dataframe(self):
+        self.database.connect()
+        self.results_df = self.database.get_results_dataframe(pd)
+        self.results_df.reset_index(inplace=True)
+        self.database.disconnect()
+        print("self.results_df:")
+        print(self.results_df.columns)
+        self.results_df = self.results_df[['slug', 'results_part_1', 'results_part_2', 'user_id']]
+        return self.results_df
+
     def join_posts_ratings_categories(self, include_prefilled=False):
         self.get_posts_dataframe()
         self.get_categories_dataframe()
