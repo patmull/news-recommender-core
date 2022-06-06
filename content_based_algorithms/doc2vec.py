@@ -33,6 +33,12 @@ class Doc2VecClass:
         return self.categories_df
 
     def join_posts_ratings_categories(self, include_prefilled=False):
+        self.posts_df = self.get_posts_dataframe()
+        self.categories_df = self.get_categories_dataframe()
+        print("self.posts_df:")
+        print(self.posts_df)
+        print("self.categories_df:")
+        print(self.categories_df)
         if include_prefilled is False:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
             # clean up from unnecessary columns
@@ -56,6 +62,7 @@ class Doc2VecClass:
                      'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text']]
 
+        return self.df
 
     def train_doc2vec(self, documents_all_features_preprocessed, body_text, limited=True, create_csv=False):
         print("documents_all_features_preprocessed")
@@ -105,7 +112,10 @@ class Doc2VecClass:
 
         # to find the vector of a document which is not in training data
 
-    def get_similar_doc2vec(self, slug, train=False, limited=True, number_of_recommended_posts=21, from_db=True):
+    def get_prefilled(self, slug):
+        return self.get_similar_doc2vec(slug=slug, from_db=True)
+
+    def get_similar_doc2vec(self, slug, train=False, limited=True, number_of_recommended_posts=21, from_db=False):
         recommenderMethods = RecommenderMethods()
         recommenderMethods.get_posts_dataframe()
         recommenderMethods.get_categories_dataframe()
@@ -158,7 +168,6 @@ class Doc2VecClass:
             return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
         else:
-
 
 
             return
