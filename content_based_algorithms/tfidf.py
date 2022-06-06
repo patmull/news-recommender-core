@@ -89,7 +89,7 @@ class TfIdf:
             print(i[1].sort_values(ascending=False)[:10])
         """
 
-    def keyword_based_comparison(self, keywords, number_of_recommended_posts):
+    def keyword_based_comparison(self, keywords, number_of_recommended_posts, all_posts=False):
 
         # print("----------------------------------")
         # print("----------------------------------")
@@ -110,14 +110,17 @@ class TfIdf:
         recommenderMethods.join_posts_ratings_categories()
 
         # same as "classic" tf-idf
-        fit_by_title_matrix = recommenderMethods.get_fit_by_feature('title_x', 'title_y')  # prepended by category
-        fit_by_excerpt_matrix = recommenderMethods.get_fit_by_feature('excerpt')
-        fit_by_keywords_matrix = recommenderMethods.get_fit_by_feature('keywords')
+        fit_by_title_matrix = recommenderMethods.get_fit_by_feature_('title_x', 'title_y')  # prepended by category
+        fit_by_excerpt_matrix = recommenderMethods.get_fit_by_feature_('excerpt')
+        fit_by_keywords_matrix = recommenderMethods.get_fit_by_feature_('keywords')
 
         tuple_of_fitted_matrices = (fit_by_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
 
-        post_recommendations = recommenderMethods.recommend_by_keywords(keywords, tuple_of_fitted_matrices, number_of_recommended_posts=number_of_recommended_posts)
-
+        if all_posts is False:
+            post_recommendations = recommenderMethods.recommend_by_keywords(keywords, tuple_of_fitted_matrices, number_of_recommended_posts=number_of_recommended_posts)
+        if all_posts is True:
+            post_recommendations = recommenderMethods.recommend_by_keywords(keywords, tuple_of_fitted_matrices,
+                                                                            number_of_recommended_posts=len(recommenderMethods.posts_df.index))
         del recommenderMethods
         return post_recommendations
 
@@ -175,6 +178,13 @@ class TfIdf:
     def get_prefilled_full_text(self):
         return self.df[['slug_x', 'recommended_tfidf_full_text']]
 
+    def save_sparse_matrix(self, recommenderMethods):
+        print("Loading posts.")
+        fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature_('all_features_preprocessed')
+        print("Saving sparse matrix into file...")
+        self.save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
+        return fit_by_all_features_matrix
+
     # @profile
     def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
 
@@ -185,17 +195,14 @@ class TfIdf:
 
         my_file = Path("models/tfidf_all_features_preprocessed.npz")
         if my_file.exists() is False:
-            print("Loading posts.")
-            fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
-            print("Saving sparse matrix into file...")
-            self.save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
+            fit_by_all_features_matrix = self.save_sparse_matrix(recommenderMethods)
         else:
             fit_by_all_features_matrix = self.load_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz")
 
         my_file = Path("models/tfidf_title_y.npz")
         if my_file.exists() is False:
             # title_y = category
-            fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
+            fit_by_title = recommenderMethods.get_fit_by_feature_('title_y')
             self.save_sparse_csr(filename="models/tfidf_title_y.npz", array=fit_by_title)
         else:
             fit_by_title = self.load_sparse_csr(filename="models/tfidf_title_y.npz")
@@ -207,7 +214,15 @@ class TfIdf:
         print("tuple_of_fitted_matrices")
         print(tuple_of_fitted_matrices)
 
-        post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
+        try:
+            post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
+        except ValueError:
+            fit_by_all_features_matrix = self.save_sparse_matrix(recommenderMethods)
+            fit_by_title = recommenderMethods.get_fit_by_feature_('title_y')
+            self.save_sparse_csr(filename="models/tfidf_title_y.npz", array=fit_by_title)
+            fit_by_title = self.load_sparse_csr(filename="models/tfidf_title_y.npz")
+            tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
+            post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
 
         del recommenderMethods, tuple_of_fitted_matrices
         return post_recommendations
@@ -225,9 +240,9 @@ class TfIdf:
         # replacing None values with empty strings
         recommenderMethods.df['full_text'] = recommenderMethods.df['full_text'].replace([None], '')
 
-        fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
-        fit_by_title = recommenderMethods.get_fit_by_feature('title_y')
-        fit_by_full_text = recommenderMethods.get_fit_by_feature('full_text')
+        fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature_('all_features_preprocessed')
+        fit_by_title = recommenderMethods.get_fit_by_feature_('title_y')
+        fit_by_full_text = recommenderMethods.get_fit_by_feature_('full_text')
 
         # join feature tuples into one matrix
         tuple_of_fitted_matrices = (fit_by_title, fit_by_all_features_matrix, fit_by_full_text)
@@ -260,14 +275,14 @@ class TfIdf:
         # preprocessing
 
         # feature tuples of (document_id, token_id) and coefficient
-        fit_by_post_title_matrix = recommenderMethods.get_fit_by_feature('title_x', 'title_y')
+        fit_by_post_title_matrix = recommenderMethods.get_fit_by_feature_('title_x', 'title_y')
         print("fit_by_post_title_matrix")
         print(fit_by_post_title_matrix)
-        # fit_by_category_matrix = recommenderMethods.get_fit_by_feature('title_y')
-        fit_by_excerpt_matrix = recommenderMethods.get_fit_by_feature('excerpt')
+        # fit_by_category_matrix = recommenderMethods.get_fit_by_feature_('title_y')
+        fit_by_excerpt_matrix = recommenderMethods.get_fit_by_feature_('excerpt')
         print("fit_by_excerpt_matrix")
         print(fit_by_excerpt_matrix)
-        fit_by_keywords_matrix = recommenderMethods.get_fit_by_feature('keywords')
+        fit_by_keywords_matrix = recommenderMethods.get_fit_by_feature_('keywords')
         print("fit_by_keywords_matrix")
         print(fit_by_keywords_matrix)
 
@@ -560,5 +575,5 @@ class TfIdf:
 
     def update_saved_matrix(self):
         recommenderMethods = RecommenderMethods()
-        fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature('all_features_preprocessed')
+        fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature_('all_features_preprocessed')
         self.save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
