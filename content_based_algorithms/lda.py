@@ -24,6 +24,7 @@ from scipy.stats import entropy
 
 from content_based_algorithms.helper import Helper
 from data_connection import Database
+import preprocessing.cz_preprocessing
 from preprocessing import cz_preprocessing
 from preprocessing.cz_preprocessing import cz_stopwords
 
