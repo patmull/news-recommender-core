@@ -88,13 +88,13 @@ class RecommenderMethods:
 
     def get_results_dataframe(self):
         self.database.connect()
-        self.results_df = self.database.get_results_dataframe(pd)
-        self.results_df.reset_index(inplace=True)
+        results_df = self.database.get_results_dataframe(pd)
+        results_df.reset_index(inplace=True)
         self.database.disconnect()
         print("self.results_df:")
-        print(self.results_df.columns)
-        self.results_df = self.results_df[['slug', 'results_part_1', 'results_part_2', 'user_id']]
-        return self.results_df
+        print(results_df)
+        results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id']]
+        return results_df_
 
     def join_posts_ratings_categories(self, include_prefilled=False):
         self.get_posts_dataframe()
