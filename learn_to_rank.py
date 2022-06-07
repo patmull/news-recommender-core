@@ -19,7 +19,7 @@ from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.tree import DecisionTreeRegressor
 
 from xgboost import XGBRegressor, XGBClassifier
-
+from lightgbm import LGBMRanker
 import evaluation_results
 from collaboration_based_recommendation import Svd
 from content_based_algorithms.tfidf import TfIdf
@@ -61,26 +61,38 @@ class LightGBM:
 
         return tfidf_keywords
 
-    def get_results(self):
+    def get_results_one_coefficient(self):
         evaluation_results_df = evaluation_results.get_results_dataframe()
         print("evaluation_results_df:")
         print(evaluation_results_df)
-        list_of_jsons = []
+        dict_of_jsons = {}
         for index, row in evaluation_results_df.iterrows():
-            list_of_jsons.append(row['results_part_2'])
+            dict_of_jsons[row['id']] = row['results_part_2']
 
-        print("list_of_jsons:")
-        print(list_of_jsons)
+        print("dict_of_jsons:")
+        print(dict_of_jsons)
         dataframes = []
-        for json_dict in list_of_jsons:
+        for id, json_dict in dict_of_jsons.items():
             df_from_json = pd.DataFrame.from_dict(json_dict)
             print("df_from_json:")
             print(df_from_json.to_string())
+            df_from_json['query_id'] = id
             dataframes.append(df_from_json)
         df_merged = pd.concat(dataframes, ignore_index=True)
-        df_merged = df_merged[['k', 'slug', 'relevance', 'coefficient']]
+
+        print("df_merged columns")
+        print(df_merged.columns)
+
+        df_merged = df_merged[['query_id', 'slug', 'coefficient', 'relevance']]
+        # converting indexes to columns
+        # df_merged.reset_index(level=['coefficient', 'relevance'], inplace=True)
         print("df_merged:")
         print(df_merged.to_string())
+        print("cols:")
+        print(df_merged.columns)
+        print("index:")
+        print(df_merged.index)
+        return df_merged
 
     def get_tfidf(self, tfidf, post_slug):
         tfidf.get_prefilled_full_text()
@@ -99,9 +111,74 @@ class LightGBM:
         doc2vec_posts_full = doc2vec.get_similar_doc2vec(post_slug, number_of_recommended_posts=NUM_OF_POSTS)
         return doc2vec_posts_full
 
-    def calculate_lighgbm(self, post_slug):
-        # TODO: Repeated trial for avg execution time
+    def make_post_feature(self, df):
+        # convert object to a numeric type, replacing Unknown with nan.
+        df['coefficient'] = df['coefficient'].apply(lambda x: np.nan if x == 'Unknown' else float(x))
 
+        # add genre ctegory columns
+        # df = genre_to_category(df)
+
+        return df
+
+    def train_lightgbm(self, slug, k=20):
+
+        df_results = self.get_results_one_coefficient()
+        dataframe_length = len(df_results.index)
+        post_features = ["slug"]
+        features = ["coefficient", "relevance"]
+        col_use = [c for c in df_results.columns if c not in features]
+        split_train = int(dataframe_length * 0.8)
+        split_validation = int(dataframe_length - split_train)
+        train_df = df_results[:split_train]  # first 80%
+        train_df = train_df[["query_id", "coefficient", "relevance"]]
+        validation_df = df_results[split_validation:]  # remaining 20%
+        validation_df = validation_df[["query_id", "coefficient", "relevance"]]
+
+        print("train_df")
+        print(train_df)
+
+        query_train = train_df.groupby("query_id")["query_id"].count().to_numpy()
+        query_val = validation_df.groupby("query_id")["query_id"].count().to_numpy()
+        # query_test = [test_df.shape[0] / 2000] * 2000
+
+        model = LGBMRanker(n_estimators=15000,
+                                  random_state=42,
+                                  num_leaves=41,
+                                  learning_rate=0.002,
+                                  # max_bin =20,
+                                  # subsample_for_bin=20000,
+                                  colsample_bytree=0.7,
+                                  n_jobs=2)
+
+        model.fit(train_df[['coefficient']], train_df[['relevance']],
+                             group=query_train,
+                             verbose=k,
+                             early_stopping_rounds=200,
+                             eval_set=[(validation_df[['coefficient']], validation_df[['relevance']])],
+                             eval_group=[query_val],
+                             eval_at=1  # Make evaluation for target=1 ranking, I choosed arbitrarily
+                         )
+
+
+        evaluation_results_df = evaluation_results.get_results_dataframe()
+        evaluation_results_df = evaluation_results_df.rename(columns={'id': 'query_id'})
+        print("evaluation_results_df:")
+
+        consider_only_top_limit = 1000
+        df_results_merged = pd.merge(df_results, evaluation_results_df, on='query_id', how='right')
+        pred_df = self.make_post_feature(df_results_merged)
+        preds = model.predict(validation_df['coefficient'].values.reshape(-1,1))
+        topk_idx = np.argsort(preds)[::-1][:consider_only_top_limit]
+        recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
+        print(evaluation_results_df.to_string())
+        print("recommend_df:")
+        print(recommend_df.to_string())
+        recommend_df = recommend_df.loc[recommend_df['query_slug'] == slug]
+        print('---------- Recommend ----------')
+        print(recommend_df.to_string())
+
+        """
+        # TODO: Repeated trial for avg execution time
         start_time = time.time()
         tfidf_posts_full = self.get_tfidf(self.tfidf, post_slug)
         print("--- %s seconds ---" % (time.time() - start_time))
@@ -113,6 +190,7 @@ class LightGBM:
         start_time = time.time()
         doc2vec_posts = self.get_doc2vec(self.doc2vec, post_slug)
         print("--- %s seconds ---" % (time.time() - start_time))
+        """
 
 
 class LearnToRank:
@@ -144,7 +222,6 @@ class LearnToRank:
         doc2vec_posts = doc2vec.get_prefilled_full_text(post_slug)
         doc2vec_posts_full = doc2vec.get_similar_doc2vec(post_slug, number_of_recommended_posts=NUM_OF_POSTS)
         return doc2vec_posts_full
-
 
     def linear_regression(self, user_id, post_slug):
 
@@ -636,7 +713,7 @@ def main():
     print(learn_to_rank.linear_regression(user_id, post_slug))
     """
     lighGBM = LightGBM()
-    lighGBM.get_results()
+    lighGBM.train_lightgbm('plzen-po-tesnych-vyhrach-spustila-kanonadu-sparta-se-stestim-slavia-ztratila')
     print("--- %s seconds ---" % (time.time() - start_time))
 
     """
