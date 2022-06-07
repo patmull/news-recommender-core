@@ -61,7 +61,40 @@ class LightGBM:
 
         return tfidf_keywords
 
-    def get_results_one_coefficient(self):
+    def get_results_single_coeff_user_as_query(self):
+        evaluation_results_df = evaluation_results.get_results_dataframe()
+        print("evaluation_results_df:")
+        print(evaluation_results_df)
+        dict_of_jsons = {}
+        for index, row in evaluation_results_df.iterrows():
+            dict_of_jsons[row['user_id']] = row['results_part_2']
+
+        print("dict_of_jsons:")
+        print(dict_of_jsons)
+        dataframes = []
+        for id, json_dict in dict_of_jsons.items():
+            df_from_json = pd.DataFrame.from_dict(json_dict)
+            print("df_from_json:")
+            print(df_from_json.to_string())
+            df_from_json['user_id'] = id
+            dataframes.append(df_from_json)
+        df_merged = pd.concat(dataframes, ignore_index=True)
+
+        print("df_merged columns")
+        print(df_merged.columns)
+
+        df_merged = df_merged[['user_id', 'slug', 'coefficient', 'relevance']]
+        # converting indexes to columns
+        # df_merged.reset_index(level=['coefficient', 'relevance'], inplace=True)
+        print("df_merged:")
+        print(df_merged.to_string())
+        print("cols:")
+        print(df_merged.columns)
+        print("index:")
+        print(df_merged.index)
+        return df_merged
+
+    def get_results_single_coeff_searched_doc_as_query(self):
         evaluation_results_df = evaluation_results.get_results_dataframe()
         print("evaluation_results_df:")
         print(evaluation_results_df)
@@ -120,9 +153,81 @@ class LightGBM:
 
         return df
 
-    def train_lightgbm(self, slug, k=20):
+    def train_lightgbm_user_based(self, user_id, slug, k=20):
 
-        df_results = self.get_results_one_coefficient()
+        df_results = self.get_results_single_coeff_user_as_query()
+        dataframe_length = len(df_results.index)
+        post_features = ["slug"]
+        features = ["coefficient", "relevance"]
+        col_use = [c for c in df_results.columns if c not in features]
+        split_train = int(dataframe_length * 0.8)
+        split_validation = int(dataframe_length - split_train)
+        train_df = df_results[:split_train]  # first 80%
+        train_df = train_df[["user_id", "coefficient", "relevance"]]
+        validation_df = df_results[split_validation:]  # remaining 20%
+        validation_df = validation_df[["user_id", "coefficient", "relevance"]]
+
+        print("train_df")
+        print(train_df)
+
+        query_train = train_df.groupby("user_id")["user_id"].count().to_numpy()
+        query_validation = validation_df.groupby("user_id")["user_id"].count().to_numpy()
+        # query_test = [test_df.shape[0] / 2000] * 2000
+
+        model = LGBMRanker(
+            objective="lambdarank",
+            metric="ndcg",
+            min_child_samples=1
+        )
+
+        model.fit(train_df[['coefficient']], train_df[['relevance']],
+                             group=query_train,
+                             verbose=10,
+                             eval_set=[(validation_df[['coefficient']], validation_df[['relevance']])],
+                             eval_group=[query_validation],
+                             eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
+                         )
+
+
+        evaluation_results_df = evaluation_results.get_results_dataframe()
+        print("evaluation_results_df:")
+
+        consider_only_top_limit = 1000
+        df_results_merged = pd.merge(df_results, evaluation_results_df, on='user_id', how='right')
+        pred_df = self.make_post_feature(df_results_merged)
+        predictions = model.predict(validation_df['coefficient'].values.reshape(-1,1))
+        print("predictions:")
+        print(predictions)
+        topk_idx = np.argsort(predictions)[::-1][:consider_only_top_limit]
+        recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
+        recommend_df['predictions'] = predictions
+        print(evaluation_results_df.to_string())
+        print("recommend_df:")
+        print(recommend_df.to_string())
+        recommend_df = recommend_df.loc[recommend_df['user_id'].isin([user_id])]
+        recommend_df = recommend_df.loc[recommend_df['query_slug'].isin([slug])]
+        print('---------- Recommend ----------')
+        print(recommend_df.to_string())
+
+        """
+        # TODO: Repeated trial for avg execution time
+        start_time = time.time()
+        tfidf_posts_full = self.get_tfidf(self.tfidf, post_slug)
+        print("--- %s seconds ---" % (time.time() - start_time))
+
+        start_time = time.time()
+        tfidf_keywords = self.get_user_keywords_based(self.tfidf, self.user_based_recommendation, self.user_id)
+        print("--- %s seconds ---" % (time.time() - start_time))
+
+        start_time = time.time()
+        doc2vec_posts = self.get_doc2vec(self.doc2vec, post_slug)
+        print("--- %s seconds ---" % (time.time() - start_time))
+        """
+
+
+    def train_lightgbm_document_based(self, slug, k=20):
+
+        df_results = self.get_results_single_coeff_searched_doc_as_query()
         dataframe_length = len(df_results.index)
         post_features = ["slug"]
         features = ["coefficient", "relevance"]
@@ -141,22 +246,17 @@ class LightGBM:
         query_val = validation_df.groupby("query_id")["query_id"].count().to_numpy()
         # query_test = [test_df.shape[0] / 2000] * 2000
 
-        model = LGBMRanker(n_estimators=15000,
-                                  random_state=42,
-                                  num_leaves=41,
-                                  learning_rate=0.002,
-                                  # max_bin =20,
-                                  # subsample_for_bin=20000,
-                                  colsample_bytree=0.7,
-                                  n_jobs=2)
+        model = LGBMRanker(
+            objective="lambdarank",
+            metric="ndcg"
+        )
 
         model.fit(train_df[['coefficient']], train_df[['relevance']],
                              group=query_train,
-                             verbose=k,
-                             early_stopping_rounds=200,
+                             verbose=10,
                              eval_set=[(validation_df[['coefficient']], validation_df[['relevance']])],
                              eval_group=[query_val],
-                             eval_at=1  # Make evaluation for target=1 ranking, I choosed arbitrarily
+                             eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
                          )
 
 
@@ -173,7 +273,7 @@ class LightGBM:
         print(evaluation_results_df.to_string())
         print("recommend_df:")
         print(recommend_df.to_string())
-        recommend_df = recommend_df.loc[recommend_df['query_slug'] == slug]
+        recommend_df = recommend_df.loc[recommend_df['query_slug'].isin([slug])]
         print('---------- Recommend ----------')
         print(recommend_df.to_string())
 
@@ -713,7 +813,8 @@ def main():
     print(learn_to_rank.linear_regression(user_id, post_slug))
     """
     lighGBM = LightGBM()
-    lighGBM.train_lightgbm('plzen-po-tesnych-vyhrach-spustila-kanonadu-sparta-se-stestim-slavia-ztratila')
+    lighGBM.train_lightgbm_document_based('tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
+    lighGBM.train_lightgbm_user_based(2, 'tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
     print("--- %s seconds ---" % (time.time() - start_time))
 
     """
@@ -721,5 +822,6 @@ def main():
     r.set('foo', 'bar')
     print(r.get('foo'))
     """
+
 
 if __name__ == "__main__": main()
