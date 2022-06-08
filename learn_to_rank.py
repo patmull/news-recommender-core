@@ -11,10 +11,12 @@ import pandas as pd
 # from modin.config import Engine
 
 # from matplotlib import pyplot
+from matplotlib import pyplot as plt
 from sklearn import preprocessing
 from sklearn.datasets import make_regression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.inspection import permutation_importance
+from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.tree import DecisionTreeRegressor
 
@@ -25,8 +27,12 @@ from collaboration_based_recommendation import Svd
 from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.lda import Lda
+from data_connection import Database
 from user_based_recommendation import UserBasedRecommendation
 from sklearn.linear_model import LinearRegression, LogisticRegression
+
+import optuna
+import seaborn
 
 """
 from dask.distributed import Client
@@ -39,6 +45,8 @@ pd.DEFAULT_NPARTITIONS = 10
 
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
 NUM_OF_POSTS = 8194
+
+SEED = 2021
 
 
 class LightGBM:
@@ -100,23 +108,25 @@ class LightGBM:
         print(evaluation_results_df)
         dict_of_jsons = {}
         for index, row in evaluation_results_df.iterrows():
-            dict_of_jsons[row['id']] = row['results_part_2']
+            dict_of_jsons[row['id']] = [row['results_part_2'],row['user_id'],row['query_slug']]
 
         print("dict_of_jsons:")
         print(dict_of_jsons)
         dataframes = []
         for id, json_dict in dict_of_jsons.items():
-            df_from_json = pd.DataFrame.from_dict(json_dict)
+            df_from_json = pd.DataFrame.from_dict(json_dict[0])
             print("df_from_json:")
             print(df_from_json.to_string())
             df_from_json['query_id'] = id
+            df_from_json['user_id'] = json_dict[1]
+            df_from_json['query_slug'] = json_dict[2]
             dataframes.append(df_from_json)
         df_merged = pd.concat(dataframes, ignore_index=True)
 
         print("df_merged columns")
         print(df_merged.columns)
 
-        df_merged = df_merged[['query_id', 'slug', 'coefficient', 'relevance']]
+        df_merged = df_merged[['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance']]
         # converting indexes to columns
         # df_merged.reset_index(level=['coefficient', 'relevance'], inplace=True)
         print("df_merged:")
@@ -153,9 +163,136 @@ class LightGBM:
 
         return df
 
-    def train_lightgbm_user_based(self, user_id, slug, k=20):
+    def make_user_feature(self, df):
+        df['rating_count'] = df.groupby('user_id')['slug'].transform('count')
+        df['rating_mean'] = df.groupby('user_id')['relevance'].transform('mean')
+        return df
+
+    # try parameter tuning
+    def objective(self, trial):
+        # search param
+        param = {
+            'reg_alpha': trial.suggest_loguniform('lambda_l1', 1e-8, 10.0),
+            'reg_lambda': trial.suggest_loguniform('lambda_l2', 1e-8, 10.0),
+            'max_depth': trial.suggest_int('max_depth', 3, 8),
+            'num_leaves': trial.suggest_int('num_leaves', 2, 256),
+            'colsample_bytree': trial.suggest_uniform('colsample_bytree', 0.1, 1),
+            # 'subsample': trial.suggest_uniform('subsample', 1e-8, 1),
+            'min_child_samples': trial.suggest_int('min_child_samples', 5, 100),
+        }
+
+        # train model
+        model = LGBMRanker(n_estimators=1000, **param, random_state=SEED, )
+        model.fit(
+            self.train['coefficient'],
+            self.train[self.target_col],
+            group=self.train_query,
+            eval_set=[(self.test['coefficient'], self.test[self.target_col])],
+            eval_group=[list(self.test_query)],
+            eval_at=[1, 3, 5, 10, 20],  # calc validation ndcg@1,3,5,10,20
+            early_stopping_rounds=50,
+            verbose=10
+        )
+
+        # maximize mean ndcg
+        scores = []
+        for name, score in model.best_score_['valid_0'].items():
+            scores.append(score)
+        return np.mean(scores)
+
+    def preprocess(self, df):
+        df = self.make_post_feature(df)
+        merged_df = self.make_user_feature(df)
+        return merged_df
+
+    def recommend_for_user(self, user, k, sample_anime_num):
+        database = Database()
+        database.connect()
+        posts_df = database.get_posts_dataframe_from_sql(pd)
+        database.disconnect()
+        pred_df = posts_df.sample(sample_anime_num).reset_index(drop=True)  # sample recommend candidates
+        results_df = self.get_results_single_coeff_user_as_query()
+
+        # preprocess for model prediction
+        user_df = results_df.query('user_id==@user')
+        user_df = self.make_user_feature(user_df)
+        for col in user_df.columns:
+            if col in self.features:
+                pred_df[col] = user_df[col].values[0]
+        pred_df = self.make_post_feature(pred_df)
+
+        # recommend
+        model = self.recommend_posts()
+        preds = model.predict(pred_df[self.features])
+        topk_idx = np.argsort(preds)[::-1][:k]
+        recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
+
+        # check recommend
+        print('---------- Recommend ----------')
+        for i, row in recommend_df.iterrows():
+            print(f'{i + 1}: {row["slug"]}:{row["title"]}')
+
+        print('---------- Actual ----------')
+        user_df = user_df.merge(posts_df, left_on='slug', how='inner')
+        for i, row in user_df.sort_values('relevance', ascending=False).iterrows():
+            print(f'relevance:{row["relevance"]}: {row["slug"]}:{row["title"]}')
+
+        return recommend_df
+
+
+    def recommend_posts(self):
+        self.features = ['coefficient', 'rating_count', 'rating_mean']
 
         df_results = self.get_results_single_coeff_user_as_query()
+
+        train, test = train_test_split(df_results, test_size=0.2, random_state=SEED)
+        print('train shape: ', train.shape)
+        print('test shape: ', test.shape)
+        user_col = 'user_id'
+        item_col = 'slug'
+        self.target_col = 'relevance'
+        self.train = train.sort_values('user_id').reset_index(drop=True)
+        self.test = test.sort_values('user_id').reset_index(drop=True)
+        # model query data
+        self.train_query = train[user_col].value_counts().sort_index()
+        self.test_query = test[user_col].value_counts().sort_index()
+
+        study = optuna.create_study(direction='maximize',
+                                    sampler=optuna.samplers.TPESampler(seed=SEED)  # fix random seed
+                                    )
+        study.optimize(self.objective, n_trials=10)
+
+        print('Number of finished trials:', len(study.trials))
+        print('Best trial:', study.best_trial.params)
+
+        best_params = study.best_trial.params
+        model = LGBMRanker(n_estimators=1000, **best_params, random_state=SEED, )
+        model.fit(
+            train[self.features],
+            train[self.target_col],
+            group=self.train_query,
+            eval_set=[(test[self.features], test[self.target_col])],
+            eval_group=[list(self.test_query)],
+            eval_at=[1, 3, 5, 10, 20],
+            early_stopping_rounds=50,
+            verbose=10
+        )
+
+        TOP_N = 20
+        model.predict(test.iloc[:TOP_N][self.features])
+
+        # feature imporance
+        plt.figure(figsize=(10, 7))
+        df_plt = pd.DataFrame({'feature_name': self.features, 'feature_importance': model.feature_importances_})
+        df_plt.sort_values('feature_importance', ascending=False, inplace=True)
+        seaborn.barplot(x="feature_importance", y="feature_name", data=df_plt)
+        plt.title('feature importance')
+
+        return model
+
+    def train_lightgbm_user_based(self, user_id, slug, k=20):
+        # TODO: Remove user id if it's needed
+        df_results = self.get_results_single_coeff_searched_doc_as_query()
         dataframe_length = len(df_results.index)
         post_features = ["slug"]
         features = ["coefficient", "relevance"]
@@ -190,26 +327,33 @@ class LightGBM:
 
 
         evaluation_results_df = evaluation_results.get_results_dataframe()
+        print("df_results:")
+        print(df_results.to_string())
+
         print("evaluation_results_df:")
+        print(evaluation_results_df.to_string())
 
         consider_only_top_limit = 1000
-        df_results_merged = pd.merge(df_results, evaluation_results_df, on='user_id', how='right')
-        pred_df = self.make_post_feature(df_results_merged)
+        # df_results_merged = pd.merge(df_results, evaluation_results_df, on='query_slug', how='left')
+        # print("df_results_merged")
+        # print(df_results_merged)
+        pred_df = self.make_post_feature(df_results)
         predictions = model.predict(validation_df['coefficient'].values.reshape(-1,1))
         print("predictions:")
         print(predictions)
         topk_idx = np.argsort(predictions)[::-1][:consider_only_top_limit]
         recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
         recommend_df['predictions'] = predictions
-        print(evaluation_results_df.to_string())
+
         print("recommend_df:")
         print(recommend_df.to_string())
-        recommend_df = recommend_df.loc[recommend_df['user_id'].isin([user_id])]
+        # recommend_df = recommend_df.loc[recommend_df['user_id'].isin([user_id])]
         recommend_df = recommend_df.loc[recommend_df['query_slug'].isin([slug])]
+        recommend_df.sort_values(by=['predictions'], inplace=True, ascending=False)
         print('---------- Recommend ----------')
         print(recommend_df.to_string())
 
-        """
+        """-
         # TODO: Repeated trial for avg execution time
         start_time = time.time()
         tfidf_posts_full = self.get_tfidf(self.tfidf, post_slug)
@@ -223,6 +367,7 @@ class LightGBM:
         doc2vec_posts = self.get_doc2vec(self.doc2vec, post_slug)
         print("--- %s seconds ---" % (time.time() - start_time))
         """
+
 
 
     def train_lightgbm_document_based(self, slug, k=20):
@@ -259,10 +404,8 @@ class LightGBM:
                              eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
                          )
 
-
         evaluation_results_df = evaluation_results.get_results_dataframe()
         evaluation_results_df = evaluation_results_df.rename(columns={'id': 'query_id'})
-        print("evaluation_results_df:")
 
         consider_only_top_limit = 1000
         df_results_merged = pd.merge(df_results, evaluation_results_df, on='query_id', how='right')
@@ -270,6 +413,7 @@ class LightGBM:
         preds = model.predict(validation_df['coefficient'].values.reshape(-1,1))
         topk_idx = np.argsort(preds)[::-1][:consider_only_top_limit]
         recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
+        print("evaluation_results_df:")
         print(evaluation_results_df.to_string())
         print("recommend_df:")
         print(recommend_df.to_string())
@@ -537,11 +681,11 @@ class LearnToRank:
         print(user_preferences_posts_full_df)
         user_preferences_posts_full_df = user_preferences_posts_full_df.set_index('slug')
         print("tfidf_all_posts_df")
-        print(tfidf_all_posts_df)
+        print(tfidf_all_posts_df.head(20))
         print("lda_all_posts_df")
-        print(lda_all_posts_df)
+        print(lda_all_posts_df.head(20))
         print("doc2vec_all_posts_df")
-        print(doc2vec_all_posts_df)
+        print(doc2vec_all_posts_df.head(20))
         print("user_collaboration_posts_full_df")
         print(user_collaboration_posts_full_df)
         print("user_preferences_posts_full_df")
@@ -812,11 +956,20 @@ def main():
     learn_to_rank = LearnToRank()
     print(learn_to_rank.linear_regression(user_id, post_slug))
     """
+
     lighGBM = LightGBM()
-    lighGBM.train_lightgbm_document_based('tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
-    lighGBM.train_lightgbm_user_based(2, 'tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
+    # lighGBM.train_lightgbm_document_based('tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
+    lighGBM.train_lightgbm_user_based(471, 'zbavte-se-domacich-alergenu-sest-praktickych-rad-jak-na-to')
     print("--- %s seconds ---" % (time.time() - start_time))
 
+    """
+    user = 2  # user_id
+    k = 20  # num of recommend items
+    sample_anime_num = 1000  # num of recommend candidates
+    recommend_df = lighGBM.recommend_for_user(user, k, sample_anime_num)
+    
+    print(recommend_df)
+    """
     """
     r = redis.Redis(host='redis-10115.c3.eu-west-1-2.ec2.cloud.redislabs.com', port=10115, db=0, username="admin", password=REDIS_PASSWORD)
     r.set('foo', 'bar')
