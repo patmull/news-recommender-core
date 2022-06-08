@@ -347,6 +347,9 @@ class LightGBM:
             df_results_merged['query_slug'] = df_results_merged_old['query_slug']
             df_results_merged['slug'] = df_results_merged_old['slug']
 
+        df_unseen = df_results_merged.iloc[:20,:]
+        df_results_merged = df_results_merged.iloc[20:,:]
+
         train_df = df_results_merged[:split_train]  # first 80%
         all_columns_after_encoding = train_df.columns.values.tolist()
         if use_categorical_columns is True:
@@ -405,18 +408,20 @@ class LightGBM:
         # df_results_merged = pd.merge(df_results_merged, evaluation_results_df, on='query_slug', how='left')
         # print("df_results_merged")
         # print(df_results_merged)
-        pred_df = self.make_post_feature(df_results_merged)
-        predictions = model.predict(validation_df[features_X]) # .values.reshape(-1,1) when single feature is used
+        # pred_df = self.make_post_feature(df_results_merged)
+        pred_df = self.make_post_feature(df_unseen)
+        predictions = model.predict(df_unseen[features_X]) # .values.reshape(-1,1) when single feature is used
         print("predictions:")
         print(predictions)
         topk_idx = np.argsort(predictions)[::-1][:consider_only_top_limit]
         recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
         recommend_df['predictions'] = predictions
+        # df_unseen['predictions'] = predictions
 
-        print("recommend_df:")
-        print(recommend_df.to_string())
+        print("df_unseen:")
+        print(df_unseen.to_string())
         # recommend_df = recommend_df.loc[recommend_df['user_id'].isin([user_id])]
-        recommend_df = recommend_df.loc[recommend_df['query_slug'].isin([slug])]
+        # recommend_df = df_unseen.loc[df_unseen['query_slug'].isin([slug])]
         recommend_df.sort_values(by=['predictions'], inplace=True, ascending=False)
         print('---------- Recommend ----------')
         print(recommend_df.to_string())
