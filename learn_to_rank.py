@@ -18,12 +18,14 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.tree import DecisionTreeRegressor
 
 from xgboost import XGBRegressor, XGBClassifier
 from lightgbm import LGBMRanker
 import evaluation_results
 from collaboration_based_recommendation import Svd
+from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.lda import Lda
@@ -290,22 +292,84 @@ class LightGBM:
 
         return model
 
-    def train_lightgbm_user_based(self, user_id, slug, k=20):
+    def preprocess_one_hot(self, df, one_hot_encoder, num_cols, cat_cols):
+        df = df.copy()
+
+        cat_one_hot_cols = one_hot_encoder.get_feature_names(cat_cols)
+
+        df_one_hot = pd.DataFrame(
+            one_hot_encoder.transform(df[cat_cols]),
+            columns=cat_one_hot_cols
+        )
+        df_preprocessed = pd.concat([
+            df[num_cols],
+            df_one_hot
+        ], axis=1)
+        return df_preprocessed
+
+    def train_lightgbm_user_based(self, slug, use_categorical_columns=True, k=20):
         # TODO: Remove user id if it's needed
         df_results = self.get_results_single_coeff_searched_doc_as_query()
-        dataframe_length = len(df_results.index)
+        recommenderMethods = RecommenderMethods()
+
+        post_category_df = recommenderMethods.join_posts_ratings_categories()
+
+        post_category_df = post_category_df.rename(columns={'slug_x': 'slug'})
+        post_category_df = post_category_df.rename(columns={'title_y': 'category'})
+
+        print(df_results.columns)
+        print(post_category_df.columns)
+
+        categorical_columns = [
+            'category'
+        ]
+
+        numerical_columns = [
+            "user_id", "coefficient", "relevance", "views"
+        ]
+
+        df_results_merged = df_results.merge(post_category_df, on='slug')
+        df_results_merged_old = df_results_merged
+
+        dataframe_length = len(df_results_merged.index)
         post_features = ["slug"]
-        features = ["coefficient", "relevance"]
-        col_use = [c for c in df_results.columns if c not in features]
+
+        features = ["user_id", "coefficient", "relevance", "views"]
         split_train = int(dataframe_length * 0.8)
         split_validation = int(dataframe_length - split_train)
-        train_df = df_results[:split_train]  # first 80%
-        train_df = train_df[["user_id", "coefficient", "relevance"]]
-        validation_df = df_results[split_validation:]  # remaining 20%
-        validation_df = validation_df[["user_id", "coefficient", "relevance"]]
+
+        if use_categorical_columns is True:
+            one_hot_encoder = OneHotEncoder(sparse=False, dtype=np.int32)
+            one_hot_encoder.fit(df_results_merged[categorical_columns])
+
+            df_results_merged = self.preprocess_one_hot(df_results_merged, one_hot_encoder, numerical_columns, categorical_columns)
+
+            df_results_merged['query_slug'] = df_results_merged_old['query_slug']
+            df_results_merged['slug'] = df_results_merged_old['slug']
+
+        train_df = df_results_merged[:split_train]  # first 80%
+        all_columns_after_encoding = train_df.columns.values.tolist()
+        if use_categorical_columns is True:
+            categorical_columns_after_encoding = [x for x in all_columns_after_encoding if x.startswith("category_")]
+            features.extend(categorical_columns_after_encoding)
+
+            print('number of one hot encoded categorical columns: ',
+                  len(one_hot_encoder.get_feature_names(categorical_columns)))
 
         print("train_df")
         print(train_df)
+        train_df = train_df[features]
+        validation_df = df_results_merged[split_validation:]  # remaining 20%
+        validation_df = validation_df[features]
+
+        print("train_df")
+        print(train_df)
+
+        print("train_df after hot encoding")
+        print(train_df.to_string())
+
+        print("validation_df after hot encoding")
+        print(validation_df.to_string())
 
         query_train = train_df.groupby("user_id")["user_id"].count().to_numpy()
         query_validation = validation_df.groupby("user_id")["user_id"].count().to_numpy()
@@ -317,28 +381,32 @@ class LightGBM:
             min_child_samples=1
         )
 
-        model.fit(train_df[['coefficient']], train_df[['relevance']],
+        features_X = ['coefficient', 'views']
+        if use_categorical_columns is True:
+            features_X.extend(categorical_columns_after_encoding)
+        print("features_X")
+        print(features_X)
+        model.fit(train_df[features_X], train_df[['relevance']],
                              group=query_train,
                              verbose=10,
-                             eval_set=[(validation_df[['coefficient']], validation_df[['relevance']])],
+                             eval_set=[(validation_df[features_X], validation_df[['relevance']])],
                              eval_group=[query_validation],
                              eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
-                         )
-
+                  )
 
         evaluation_results_df = evaluation_results.get_results_dataframe()
-        print("df_results:")
-        print(df_results.to_string())
+        print("df_results_merged:")
+        print(df_results_merged.to_string())
 
         print("evaluation_results_df:")
         print(evaluation_results_df.to_string())
 
         consider_only_top_limit = 1000
-        # df_results_merged = pd.merge(df_results, evaluation_results_df, on='query_slug', how='left')
+        # df_results_merged = pd.merge(df_results_merged, evaluation_results_df, on='query_slug', how='left')
         # print("df_results_merged")
         # print(df_results_merged)
-        pred_df = self.make_post_feature(df_results)
-        predictions = model.predict(validation_df['coefficient'].values.reshape(-1,1))
+        pred_df = self.make_post_feature(df_results_merged)
+        predictions = model.predict(validation_df[features_X]) # .values.reshape(-1,1) when single feature is used
         print("predictions:")
         print(predictions)
         topk_idx = np.argsort(predictions)[::-1][:consider_only_top_limit]
@@ -435,6 +503,20 @@ class LightGBM:
         doc2vec_posts = self.get_doc2vec(self.doc2vec, post_slug)
         print("--- %s seconds ---" % (time.time() - start_time))
         """
+
+    def get_posts_df(self):
+        database = Database()
+        database.connect()
+        posts_df = database.get_posts_dataframe()
+        database.disconnect()
+        return posts_df
+
+    def get_categories_df(self):
+        database = Database()
+        database.connect()
+        posts_df = database.get_categories_dataframe()
+        database.disconnect()
+        return posts_df
 
 
 class LearnToRank:
@@ -959,7 +1041,7 @@ def main():
 
     lighGBM = LightGBM()
     # lighGBM.train_lightgbm_document_based('tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
-    lighGBM.train_lightgbm_user_based(471, 'zbavte-se-domacich-alergenu-sest-praktickych-rad-jak-na-to')
+    lighGBM.train_lightgbm_user_based('zbavte-se-domacich-alergenu-sest-praktickych-rad-jak-na-to', False)
     print("--- %s seconds ---" % (time.time() - start_time))
 
     """
