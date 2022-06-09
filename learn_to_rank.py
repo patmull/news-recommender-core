@@ -296,12 +296,14 @@ class LightGBM:
         dataframe_length = len(df_results.index)
         post_features = ["slug"]
         features = ["coefficient", "relevance"]
-        col_use = [c for c in df_results.columns if c not in features]
+        """
         split_train = int(dataframe_length * 0.8)
         split_validation = int(dataframe_length - split_train)
         train_df = df_results[:split_train]  # first 80%
-        train_df = train_df[["user_id", "coefficient", "relevance"]]
         validation_df = df_results[split_validation:]  # remaining 20%
+        """
+        train_df, validation_df = df_results
+        train_df = train_df[["user_id", "coefficient", "relevance"]]
         validation_df = validation_df[["user_id", "coefficient", "relevance"]]
 
         print("train_df")
