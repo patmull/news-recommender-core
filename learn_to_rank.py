@@ -308,6 +308,7 @@ class LightGBM:
         return df_preprocessed
 
     def train_lightgbm_user_based(self, slug, use_categorical_columns=True, k=20):
+
         # TODO: Remove user id if it's needed
         df_results = self.get_results_single_coeff_searched_doc_as_query()
         recommenderMethods = RecommenderMethods()
@@ -355,14 +356,15 @@ class LightGBM:
             df_results_merged['query_slug'] = df_results_merged_old['query_slug']
             df_results_merged['slug'] = df_results_merged_old['slug']
 
-        df_unseen = df_results_merged.iloc[:20,:]
+        # df_unseen = df_results_merged.iloc[:20,:]
         df_results_merged = df_results_merged.iloc[20:,:]
 
-        all_columns_after_encoding = train_df.columns.values.tolist()
+        all_columns_of_train_df = train_df.columns.values.tolist()
+        print("Columns values:")
+        print(train_df.columns.values.tolist())
         if use_categorical_columns is True:
-            categorical_columns_after_encoding = [x for x in all_columns_after_encoding if x.startswith("category_")]
+            categorical_columns_after_encoding = [x for x in all_columns_of_train_df if x.startswith("category_")]
             features.extend(categorical_columns_after_encoding)
-
             print('number of one hot encoded categorical columns: ',
                   len(one_hot_encoder.get_feature_names(categorical_columns)))
 
@@ -415,22 +417,6 @@ class LightGBM:
         # print("df_results_merged")
         # print(df_results_merged)
         # pred_df = self.make_post_feature(df_results_merged)
-        pred_df = self.make_post_feature(df_unseen)
-        predictions = model.predict(df_unseen[features_X]) # .values.reshape(-1,1) when single feature is used
-        print("predictions:")
-        print(predictions)
-        topk_idx = np.argsort(predictions)[::-1][:consider_only_top_limit]
-        recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
-        recommend_df['predictions'] = predictions
-        # df_unseen['predictions'] = predictions
-
-        print("df_unseen:")
-        print(df_unseen.to_string())
-        # recommend_df = recommend_df.loc[recommend_df['user_id'].isin([user_id])]
-        # recommend_df = df_unseen.loc[df_unseen['query_slug'].isin([slug])]
-        recommend_df.sort_values(by=['predictions'], inplace=True, ascending=False)
-        print('---------- Recommend ----------')
-        print(recommend_df.to_string())
 
         """
         # TODO: Repeated trial for avg execution time
@@ -446,6 +432,72 @@ class LightGBM:
         doc2vec_posts = self.get_doc2vec(self.doc2vec, post_slug)
         print("--- %s seconds ---" % (time.time() - start_time))
         """
+
+    def get_posts_lighgbm(self, slug, use_categorical_columns=True):
+        consider_only_top_limit = 20
+        if use_categorical_columns is True:
+            one_hot_encoder = OneHotEncoder(sparse=False, dtype=np.int32)
+
+        features = ["user_id", "coefficient", "relevance", "views"]
+        categorical_columns = [
+            'category'
+        ]
+
+        numerical_columns = [
+            "user_id", "coefficient", "relevance", "views"
+        ]
+
+        tfidf = TfIdf()
+        tf_idf_results = tfidf.recommend_posts_by_all_features_preprocessed(slug)
+        json_data = json.loads(json.dumps(tf_idf_results))
+        tf_idf_results = pd.json_normalize(json_data)
+        print(tf_idf_results)
+
+        recommenderMethods = RecommenderMethods()
+        post_category_df = recommenderMethods.join_posts_ratings_categories()
+
+        post_category_df = post_category_df.rename(columns={'slug_x': 'slug'})
+        post_category_df = post_category_df.rename(columns={'title_y': 'category'})
+
+        tf_idf_results = tf_idf_results.merge(post_category_df, on='slug')
+
+        print("tf_idf_results")
+        print(tf_idf_results.to_string())
+
+        tf_idf_results_old = tf_idf_results
+        if use_categorical_columns is True:
+            numerical_columns = [
+                "coefficient", "views"
+            ]
+            tf_idf_results = self.preprocess_one_hot(tf_idf_results, one_hot_encoder, numerical_columns,
+                                                     categorical_columns)
+            tf_idf_results['slug'] = tf_idf_results_old['slug']
+
+        features_X = ['coefficient', 'views']
+        all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'title_x', 'excerpt', 'body', 'views', 'keywords', 'category', 'description', 'all_features_preprocessed', 'body_preprocessed']
+        if use_categorical_columns is True:
+            categorical_columns_after_encoding = [x for x in all_columns if x.startswith("category_")]
+            features.extend(categorical_columns_after_encoding)
+            print('number of one hot encoded categorical columns: ',
+                  len(one_hot_encoder.get_feature_names(categorical_columns)))
+        if use_categorical_columns is True:
+            features_X.extend(categorical_columns_after_encoding)
+
+        pred_df = self.make_post_feature(tf_idf_results)
+        predictions = model.predict(tf_idf_results[features_X])  # .values.reshape(-1,1) when single feature is used
+        print("predictions:")
+        print(predictions)
+        topk_idx = np.argsort(predictions)[::-1][:consider_only_top_limit]
+        recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
+        recommend_df['predictions'] = predictions
+        # df_unseen['predictions'] = predictions
+        # print("df_unseen:")
+        # print(df_unseen.to_string())
+        # recommend_df = recommend_df.loc[recommend_df['user_id'].isin([user_id])]
+        # recommend_df = df_unseen.loc[df_unseen['query_slug'].isin([slug])]
+        recommend_df.sort_values(by=['predictions'], inplace=True, ascending=False)
+        print('---------- Recommend ----------')
+        print(recommend_df.to_string())
 
     def train_lightgbm_document_based(self, slug, k=20):
 
@@ -1050,7 +1102,7 @@ def main():
 
     lighGBM = LightGBM()
     # lighGBM.train_lightgbm_document_based('tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
-    lighGBM.train_lightgbm_user_based('zbavte-se-domacich-alergenu-sest-praktickych-rad-jak-na-to', False)
+    lighGBM.train_lightgbm_user_based('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy', True)
     print("--- %s seconds ---" % (time.time() - start_time))
 
     """
