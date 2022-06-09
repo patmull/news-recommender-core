@@ -2,7 +2,9 @@ import functools
 import itertools
 import json
 import os
+import pickle
 import time
+from pathlib import Path
 
 import numpy as np
 import redis
@@ -307,7 +309,7 @@ class LightGBM:
         ], axis=1)
         return df_preprocessed
 
-    def train_lightgbm_user_based(self, slug, use_categorical_columns=True, k=20):
+    def train_lightgbm_user_based(self, use_categorical_columns=True, k=20):
 
         # TODO: Remove user id if it's needed
         df_results = self.get_results_single_coeff_searched_doc_as_query()
@@ -405,12 +407,7 @@ class LightGBM:
                              eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
                   )
 
-        evaluation_results_df = evaluation_results.get_results_dataframe()
-        print("df_results_merged:")
-        print(df_results_merged)
-
-        print("evaluation_results_df:")
-        print(evaluation_results_df)
+        pickle.dump(model, open('models/lightgbm.pkl', 'wb'))
 
         consider_only_top_limit = 1000
         # df_results_merged = pd.merge(df_results_merged, evaluation_results_df, on='query_slug', how='left')
@@ -433,7 +430,7 @@ class LightGBM:
         print("--- %s seconds ---" % (time.time() - start_time))
         """
 
-    def get_posts_lighgbm(self, slug, use_categorical_columns=True):
+    def get_posts_lightgbm(self, slug, use_categorical_columns=True):
         consider_only_top_limit = 20
         if use_categorical_columns is True:
             one_hot_encoder = OneHotEncoder(sparse=False, dtype=np.int32)
@@ -469,6 +466,7 @@ class LightGBM:
             numerical_columns = [
                 "coefficient", "views"
             ]
+            one_hot_encoder.fit(post_category_df[categorical_columns])
             tf_idf_results = self.preprocess_one_hot(tf_idf_results, one_hot_encoder, numerical_columns,
                                                      categorical_columns)
             tf_idf_results['slug'] = tf_idf_results_old['slug']
@@ -484,6 +482,13 @@ class LightGBM:
             features_X.extend(categorical_columns_after_encoding)
 
         pred_df = self.make_post_feature(tf_idf_results)
+        lightgbm_model_file = Path("models/lightgbm.pkl")
+        if lightgbm_model_file.exists():
+            model = pickle.load(open('models/lightgbm.pkl', 'rb'))
+        else:
+            print("LightGBM model not found. Training from available relevance testing results datasets...")
+            self.train_lightgbm_user_based()
+            model = pickle.load(open('models/lightgbm.pkl', 'rb'))
         predictions = model.predict(tf_idf_results[features_X])  # .values.reshape(-1,1) when single feature is used
         print("predictions:")
         print(predictions)
@@ -1102,7 +1107,7 @@ def main():
 
     lighGBM = LightGBM()
     # lighGBM.train_lightgbm_document_based('tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
-    lighGBM.train_lightgbm_user_based('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy', True)
+    lighGBM.get_posts_lightgbm('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy', True)
     print("--- %s seconds ---" % (time.time() - start_time))
 
     """
