@@ -1,6 +1,6 @@
 import traceback
 
-from learn_to_rank import LearnToRank
+from learn_to_rank import LearnToRank, LightGBM
 from user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
 from flask_restful import Api, Resource
@@ -24,6 +24,14 @@ api = Api(app)
 def home():
     return '''<h1>Moje články</h1><p>API pro doporučovací algoritmy.</p>'''
 
+class GetPostsLearnToRank(Resource):
+
+    def get(self, param):
+        lightgbm = LightGBM()
+        return lightgbm.train_lightgbm_user_based(param)
+
+    def post(self):
+        return {"data": "Posted"}
 
 class GetPostsByOtherPostTfIdf(Resource):
 
@@ -216,6 +224,8 @@ api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<s
 api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<string:param>")
+
+api.add_resource()
 
 if __name__ == "__main__":
     app.run(debug=True)
