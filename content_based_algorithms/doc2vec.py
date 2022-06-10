@@ -103,7 +103,7 @@ class Doc2VecClass:
         print("tagged_data:")
         print(tagged_data)
 
-        self.train_full_text(tagged_data, body_text, limited)
+        self.train(tagged_data)
 
         # amazon loading
         # amazon_bucket_url = "..."
@@ -143,7 +143,7 @@ class Doc2VecClass:
             documents_slugs = self.df['slug_x'].tolist()
 
             if train is True:
-                self.train_doc2vec(documents_all_features_preprocessed, body_text=False, limited=False, create_csv=True)
+                self.train_doc2vec(documents_all_features_preprocessed, body_text=False, limited=False, create_csv=False)
 
             del documents_all_features_preprocessed
             gc.collect()
@@ -166,10 +166,7 @@ class Doc2VecClass:
             most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
             return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
-
         else:
-
-
             return
 
     def get_similar_doc2vec_with_full_text(self, slug, train=False, number_of_recommended_posts=21):
@@ -319,7 +316,7 @@ class Doc2VecClass:
     def train(self, tagged_data):
 
         max_epochs = 20
-        vec_size = 150
+        vec_size = 8
         alpha = 0.025
         minimum_alpha = 0.0025
         reduce_alpha = 0.0002
@@ -349,7 +346,7 @@ class Doc2VecClass:
         # fix the learning rate, no decay
         model.min_alpha = model.alpha
 
-        model.save("models/d2v.model")
+        model.save("models/d2v_mini_vectors.model")
         print("LDA model Saved")
 
     def train_full_text(self, tagged_data, full_body, limited):
