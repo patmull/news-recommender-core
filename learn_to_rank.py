@@ -352,20 +352,44 @@ class LightGBM:
         print("df_results_merged.columns")
         print(df_results_merged.columns)
 
+        print("Loading Dov2Vec model...")
         doc2vec_model = Doc2Vec.load("models/d2v_mini_vectors.model")  # or download from Dropbox / AWS bucket
-
+        print("Dov2Vec model loaded...")
+        df1 = pd.DataFrame(df_results_merged)
         # converting title and excerpt to doc2vec vector
-        for df_results_merged_row in df_results_merged.rows:
+        print("Computing Doc2Vec for articles in testing results.")
 
-            recommenderMethods = RecommenderMethods()
+        recommender_methods = RecommenderMethods()
+        print("Appending Doc2Vec columns.")
+        """
+        for index, df_results_merged_row in df_results_merged.iterrows():
+            df_results_merged.apply(lambda row: recommenderMethods.find_post_by_slug(row['D'], row['p'], ck, ch), axis=1)
+
             # not necessary
             post_found = recommenderMethods.find_post_by_slug(df_results_merged_row['slug'])
             keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
             all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
-
             tokens = keywords_preprocessed + all_features_preprocessed
-
             vector_source = doc2vec_model.infer_vector(tokens)
+            df_results_merged_row['doc2vec'] = vector_source
+        """
+        df_results_merged['doc2vec'] = df_results_merged.apply(lambda row : doc2vec_model.infer_vector(recommender_methods.find_post_by_slug(row['slug']).iloc[0]['all_features_preprocessed'].split(" ")), axis=1) # axis=1 for rows!!!
+        df2 = pd.DataFrame(df_results_merged)
+        doc2vec_column_name_base = "doc2vec_col_"
+
+        print("df_results_merged.to_list()")
+        print(df_results_merged.to_string())
+        print("df2:")
+        print(df2.to_string())
+        print("Sizes:")
+        print(df2.doc2vec.tolist())
+        print("df2")
+        print(df2)
+        df2 = pd.DataFrame(df2.doc2vec.values.tolist(), index=df2.index).add_prefix(doc2vec_column_name_base)
+        print("df2")
+        print(df2.to_string())
+        df_results_merged = pd.concat([df_results_merged, df2], axis=1)
+        # df_results_merged = df_results_merged.columns.drop("doc2vec")
 
         df_results_merged_old = df_results_merged
 
@@ -378,10 +402,11 @@ class LightGBM:
         train_df = df_results[:split_train]  # first 80%
         validation_df = df_results[split_validation:]  # remaining 20%
         """
-
+        print("Splitting dataset.")
         features = ["user_id", "coefficient", "relevance_val", "views"]
         train_df, validation_df = train_test_split(df_results_merged, test_size=0.2)
 
+        print("Normalizing coeffficient and views")
         train_df[['coefficient', 'views']] = train_df[['coefficient', 'views']].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 
         if use_categorical_columns is True:
@@ -394,12 +419,15 @@ class LightGBM:
             df_results_merged['slug'] = df_results_merged_old['slug']
 
         # df_unseen = df_results_merged.iloc[:20,:]
-        df_results_merged = df_results_merged.iloc[20:,:]
+        # df_results_merged = df_results_merged.iloc[20:,:]
 
         all_columns_of_train_df = train_df.columns.values.tolist()
         print("Columns values:")
         print(train_df.columns.values.tolist())
         if use_categorical_columns is True:
+            # title, excerpt --> doc2vec
+            features.extend(['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5', 'doc2vec_col_6', 'doc2vec_col_7'])
+            # category --> OneHotEncoding (each category its own column, binary values)
             categorical_columns_after_encoding = [x for x in all_columns_of_train_df if x.startswith("category_")]
             features.extend(categorical_columns_after_encoding)
             print('number of one hot encoded categorical columns: ',
@@ -430,8 +458,10 @@ class LightGBM:
         )
 
         features_X = ['coefficient', 'views']
+
         if use_categorical_columns is True:
             features_X.extend(categorical_columns_after_encoding)
+            features_X.extend(['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5', 'doc2vec_col_6', 'doc2vec_col_7'])
         print("features_X")
         print(features_X)
         model.fit(train_df[features_X], train_df[['relevance_val']],
