@@ -377,17 +377,7 @@ class LightGBM:
         df2 = pd.DataFrame(df_results_merged)
         doc2vec_column_name_base = "doc2vec_col_"
 
-        print("df_results_merged.to_list()")
-        print(df_results_merged.to_string())
-        print("df2:")
-        print(df2.to_string())
-        print("Sizes:")
-        print(df2.doc2vec.tolist())
-        print("df2")
-        print(df2)
         df2 = pd.DataFrame(df2.doc2vec.values.tolist(), index=df2.index).add_prefix(doc2vec_column_name_base)
-        print("df2")
-        print(df2.to_string())
         df_results_merged = pd.concat([df_results_merged, df2], axis=1)
         # df_results_merged = df_results_merged.columns.drop("doc2vec")
 
@@ -519,13 +509,36 @@ class LightGBM:
 
         tf_idf_results = tf_idf_results.merge(post_category_df, on='slug')
 
+        # DOC2VEC
+
+        doc2vec_model = Doc2Vec.load("models/d2v_mini_vectors.model")
+        tf_idf_results['doc2vec'] = tf_idf_results.apply(lambda row : doc2vec_model.infer_vector(recommenderMethods.find_post_by_slug(row['slug']).iloc[0]['all_features_preprocessed'].split(" ")), axis=1) # axis=1 for rows!!!
+        df2 = pd.DataFrame(tf_idf_results)
+        doc2vec_column_name_base = "doc2vec_col_"
+
+        print("df_results_merged.to_list()")
+        print(tf_idf_results.to_string())
+        print("df2:")
+        print(df2.to_string())
+        print("Sizes:")
+        print(df2.doc2vec.tolist())
+        print("df2")
+        print(df2)
+        df2 = pd.DataFrame(df2.doc2vec.values.tolist(), index=df2.index).add_prefix(doc2vec_column_name_base)
+        print("df2")
+        print(df2.to_string())
+        tf_idf_results = pd.concat([tf_idf_results, df2], axis=1)
+
+        #####
+
         print("tf_idf_results")
         print(tf_idf_results.to_string())
 
         tf_idf_results_old = tf_idf_results
         if use_categorical_columns is True:
             numerical_columns = [
-                "coefficient", "views"
+                "coefficient", "views", 'doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5',
+                 'doc2vec_col_6', 'doc2vec_col_7'
             ]
             one_hot_encoder.fit(post_category_df[categorical_columns])
             tf_idf_results = self.preprocess_one_hot(tf_idf_results, one_hot_encoder, numerical_columns,
@@ -533,6 +546,7 @@ class LightGBM:
             tf_idf_results['slug'] = tf_idf_results_old['slug']
 
         features_X = ['coefficient', 'views']
+
         all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'title_x', 'excerpt', 'body', 'views', 'keywords', 'category', 'description', 'all_features_preprocessed', 'body_preprocessed']
         if use_categorical_columns is True:
             categorical_columns_after_encoding = [x for x in all_columns if x.startswith("category_")]
@@ -541,6 +555,9 @@ class LightGBM:
                   len(one_hot_encoder.get_feature_names(categorical_columns)))
         if use_categorical_columns is True:
             features_X.extend(categorical_columns_after_encoding)
+            features_X.extend(
+                ['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5',
+                 'doc2vec_col_6', 'doc2vec_col_7'])
 
         pred_df = self.make_post_feature(tf_idf_results)
         lightgbm_model_file = Path("models/lightgbm.pkl")
