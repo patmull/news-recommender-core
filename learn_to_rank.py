@@ -13,6 +13,7 @@ import pandas as pd
 # from modin.config import Engine
 
 # from matplotlib import pyplot
+from gensim.models import Doc2Vec
 from matplotlib import pyplot as plt
 from sklearn import preprocessing
 from sklearn.datasets import make_regression
@@ -119,18 +120,34 @@ class LightGBM:
         dataframes = []
         for id, json_dict in dict_of_jsons.items():
             df_from_json = pd.DataFrame.from_dict(json_dict[0])
-            print("df_from_json:")
-            print(df_from_json.to_string())
+
             df_from_json['query_id'] = id
             df_from_json['user_id'] = json_dict[1]
             df_from_json['query_slug'] = json_dict[2]
+
+            # converting binary relevance to 0-7 relevance and sorting by relevance
+            df_from_json.sort_values(by=['relevance', 'coefficient'], inplace=True, ascending=False)
+            df_from_json.reset_index(inplace=True)
+            df_from_json['relevance_val'] = 0
+            df_from_json.loc[0, ['relevance_val']] = 7
+            df_from_json.loc[1, ['relevance_val']] = 6
+            df_from_json.loc[2, ['relevance_val']] = 5
+            df_from_json.loc[3:4, ['relevance_val']] = 4
+            df_from_json.loc[5:6, ['relevance_val']] = 3
+            df_from_json.loc[7:9, ['relevance_val']] = 2
+            df_from_json.loc[10:13, ['relevance_val']] = 1
+            df_from_json.loc[14:19, ['relevance_val']] = 0
+
+            print("df_from_json:")
+            print(df_from_json.to_string())
+
             dataframes.append(df_from_json)
         df_merged = pd.concat(dataframes, ignore_index=True)
 
         print("df_merged columns")
         print(df_merged.columns)
 
-        df_merged = df_merged[['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance']]
+        df_merged = df_merged[['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'relevance_val']]
         # converting indexes to columns
         # df_merged.reset_index(level=['coefficient', 'relevance'], inplace=True)
         print("df_merged:")
@@ -328,10 +345,28 @@ class LightGBM:
         ]
 
         numerical_columns = [
-            "user_id", "coefficient", "relevance", "views"
+            "user_id", "coefficient", "relevance_val", "views"
         ]
 
         df_results_merged = df_results.merge(post_category_df, on='slug')
+        print("df_results_merged.columns")
+        print(df_results_merged.columns)
+
+        doc2vec_model = Doc2Vec.load("models/d2v_mini_vectors.model")  # or download from Dropbox / AWS bucket
+
+        # converting title and excerpt to doc2vec vector
+        for df_results_merged_row in df_results_merged.rows:
+
+            recommenderMethods = RecommenderMethods()
+            # not necessary
+            post_found = recommenderMethods.find_post_by_slug(df_results_merged_row['slug'])
+            keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
+            all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
+
+            tokens = keywords_preprocessed + all_features_preprocessed
+
+            vector_source = doc2vec_model.infer_vector(tokens)
+
         df_results_merged_old = df_results_merged
 
         dataframe_length = len(df_results_merged.index)
@@ -344,7 +379,7 @@ class LightGBM:
         validation_df = df_results[split_validation:]  # remaining 20%
         """
 
-        features = ["user_id", "coefficient", "relevance", "views"]
+        features = ["user_id", "coefficient", "relevance_val", "views"]
         train_df, validation_df = train_test_split(df_results_merged, test_size=0.2)
 
         train_df[['coefficient', 'views']] = train_df[['coefficient', 'views']].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
@@ -399,10 +434,10 @@ class LightGBM:
             features_X.extend(categorical_columns_after_encoding)
         print("features_X")
         print(features_X)
-        model.fit(train_df[features_X], train_df[['relevance']],
+        model.fit(train_df[features_X], train_df[['relevance_val']],
                              group=query_train,
                              verbose=10,
-                             eval_set=[(validation_df[features_X], validation_df[['relevance']])],
+                             eval_set=[(validation_df[features_X], validation_df[['relevance_val']])],
                              eval_group=[query_validation],
                              eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
                   )
@@ -435,13 +470,9 @@ class LightGBM:
         if use_categorical_columns is True:
             one_hot_encoder = OneHotEncoder(sparse=False, dtype=np.int32)
 
-        features = ["user_id", "coefficient", "relevance", "views"]
+        features = ["user_id", "coefficient", "relevance", "relevance_val", "views"]
         categorical_columns = [
             'category'
-        ]
-
-        numerical_columns = [
-            "user_id", "coefficient", "relevance", "views"
         ]
 
         tfidf = TfIdf()
