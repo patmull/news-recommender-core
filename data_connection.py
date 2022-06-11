@@ -205,6 +205,13 @@ class Database:
         else:
             raise ValueError("Not allowed DB method passed.")
 
+    def insert_doc2vec_vector(self, doc2vec_vector, article_id):
+        query = """UPDATE posts SET doc2vec_representation=%s WHERE id=%s;"""
+        inserted_values = (str(doc2vec_vector), article_id)
+        self.cursor.execute(query, inserted_values)
+        self.cnx.commit()
+        print("Inserted")
+
     def insert_preprocessed_combined(self, preprocessed_all_features, post_id):
         try:
             query = """UPDATE posts SET all_features_preprocessed=%s WHERE id=%s;"""
@@ -230,6 +237,8 @@ class Database:
                 sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
             elif algorithm == "lda":
                 sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
+            elif algorithm == "doc2vec_vectors":
+                sql = """SELECT * FROM posts WHERE doc2vec_representation IS NULL ORDER BY id;"""
             else:
                 raise ValueError("Selected algorithm not implemented.")
         else:
