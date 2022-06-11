@@ -19,6 +19,7 @@ class Doc2VecClass:
         self.posts_df = None
         self.categories_df = None
         self.database = Database()
+        self.doc2vec_model = None
 
     def get_posts_dataframe(self):
         # self.database.insert_post_dataframe_to_cache() # uncomment for UPDATE of DB records
@@ -313,6 +314,14 @@ class Doc2VecClass:
         # print(list_of_article_slugs[0])
         return self.flatten(list_of_articles)
 
+    def load_model(self):
+        print("Loading Doc2Vec vectors...")
+        self.doc2vec_model = Doc2Vec.load("models/d2v_mini_vectors.model")
+
+    def get_vector_representation(self, slug):
+        recommender_methods = RecommenderMethods()
+        return self.doc2vec_model.infer_vector(recommender_methods.find_post_by_slug(slug))
+
     def train(self, tagged_data):
 
         max_epochs = 20
@@ -401,7 +410,6 @@ class Doc2VecClass:
     def most_similar(self, model, search_term):
 
         inferred_vector = model.infer_vector(search_term)
-
         sims = model.docvecs.most_similar([inferred_vector], topn=20)
 
         res = []
@@ -412,3 +420,5 @@ class Doc2VecClass:
             res.append(inner)
 
         return (res[:20])
+
+
