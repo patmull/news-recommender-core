@@ -3,11 +3,14 @@ import random
 import time as t
 
 import psycopg2
+from gensim.models import Doc2Vec
 
+from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.lda import Lda
 from content_based_algorithms.tfidf import TfIdf
 from data_connection import Database
+from learn_to_rank import LightGBM
 
 val_error_msg_db = "Not allowed DB method was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected algorithm does not correspondent with any implemented algorithm."
@@ -27,7 +30,7 @@ class PreFiller():
 
     def fill_recommended_for_all_posts(self, algorithm, db, skip_already_filled, full_text, random_order=False, reversed=False):
 
-        list_of_allowed_algorithms = ["word2vec", "lda", "doc2vec", "tfidf"]
+        list_of_allowed_algorithms = ["word2vec", "lda", "doc2vec", "tfidf", "doc2vec_vectors"]
 
         if algorithm not in list_of_allowed_algorithms:
             ValueError(val_error_msg_algorithm)
@@ -57,69 +60,79 @@ class PreFiller():
             slug = post[3]
             if algorithm == "word2vec":
                 if full_text is False:
-                    current_recommended = post[22]
+                    current = post[22]
                 else:
-                    current_recommended = post[23]
+                    current = post[23]
             elif algorithm == "tfidf":
                 if full_text is False:
-                    current_recommended = post[24]
+                    current = post[24]
                 else:
-                    current_recommended = post[25]
+                    current = post[25]
             elif algorithm == "doc2vec":
                 if full_text is False:
-                    current_recommended = post[26]
+                    current = post[26]
                 else:
-                    current_recommended = post[27]
+                    current = post[27]
             elif algorithm == "lda":
                 if full_text is False:
-                    current_recommended = post[28]
+                    current = post[28]
                 else:
-                    current_recommended = post[29]
+                    current = post[29]
+            elif algorithm == "doc2vec_vectors":
+                current = post[30]
 
             print("Finding similar articles for article: " + slug)
 
             if skip_already_filled is True:
-                if current_recommended is None:
-                    if full_text is False:
-                        if algorithm == "tfidf":
-                            tfidf = TfIdf()
-                            actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
-                        elif algorithm == "doc2vec":
-                            doc2vec = Doc2VecClass()
-                            actual_recommended_json = doc2vec.get_similar_doc2vec(slug)
-                        elif algorithm == "lda":
-                            lda = Lda()
-                            actual_recommended_json = lda.get_similar_lda(slug)
-                    else:
-                        if algorithm == "tfidf":
-                            tfidf = TfIdf()
-                            actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(slug)
-                        elif algorithm == "doc2vec":
-                            doc2vec = Doc2VecClass()
-                            actual_recommended_json = doc2vec.get_similar_doc2vec_with_full_text(slug)
-                        elif algorithm == "lda":
-                            lda = Lda()
-                            actual_recommended_json = lda.get_similar_lda_full_text(slug)
+                if current is None:
+                    if algorithm != "doc2vec_vectors":
+                        if full_text is False:
+                            if algorithm == "tfidf":
+                                tfidf = TfIdf()
+                                actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
+                            elif algorithm == "doc2vec":
+                                doc2vec = Doc2VecClass()
+                                actual_recommended_json = doc2vec.get_similar_doc2vec(slug)
+                            elif algorithm == "lda":
+                                lda = Lda()
+                                actual_recommended_json = lda.get_similar_lda(slug)
                         else:
-                            raise ValueError(val_error_msg_algorithm)
-                    actual_recommended_json = json.dumps(actual_recommended_json)
+                            if algorithm == "tfidf":
+                                tfidf = TfIdf()
+                                actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(slug)
+                            elif algorithm == "doc2vec":
+                                doc2vec = Doc2VecClass()
+                                actual_recommended_json = doc2vec.get_similar_doc2vec_with_full_text(slug)
+                            elif algorithm == "lda":
+                                lda = Lda()
+                                actual_recommended_json = lda.get_similar_lda_full_text(slug)
+                            else:
+                                raise ValueError(val_error_msg_algorithm)
+                        actual_recommended_json = json.dumps(actual_recommended_json)
+                    elif algorithm == "doc2vec_vectors":
+                        doc2vec = Doc2VecClass()
+                        doc2vec.load_model()
+                        doc2vec_vector = doc2vec.get_vector_representation(slug)
 
                     # inserts
                     if full_text is False:
-                        try:
-                            if db == "redis":
-                                database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
-                                                                 articles_recommended_json=actual_recommended_json,
-                                                                 article_id=post_id, db="redis")
-                            elif db == "pgsql":
-                                database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
-                                                                 articles_recommended_json=actual_recommended_json,
-                                                                 article_id=post_id, db="pgsql")
-                            else:
-                                raise ValueError(val_error_msg_db)
-                        except Exception as e:
-                            print("Error in DB insert. Skipping." + str(e))
-                            pass
+                        if algorithm == "doc2vec_vectors":
+                            database.insert_doc2vec_vector(doc2vec_vector, post_id)
+                        else:
+                            try:
+                                if db == "redis":
+                                    database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
+                                                                     articles_recommended_json=actual_recommended_json,
+                                                                     article_id=post_id, db="redis")
+                                elif db == "pgsql":
+                                    database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
+                                                                     articles_recommended_json=actual_recommended_json,
+                                                                     article_id=post_id, db="pgsql")
+                                else:
+                                    raise ValueError(val_error_msg_db)
+                            except Exception as e:
+                                print("Error in DB insert. Skipping." + str(e))
+                                pass
                     else:
                         try:
                             if db == "redis":
