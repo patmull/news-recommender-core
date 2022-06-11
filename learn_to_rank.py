@@ -373,7 +373,10 @@ class LightGBM:
             vector_source = doc2vec_model.infer_vector(tokens)
             df_results_merged_row['doc2vec'] = vector_source
         """
-        df_results_merged['doc2vec'] = df_results_merged.apply(lambda row : doc2vec_model.infer_vector(recommender_methods.find_post_by_slug(row['slug']).iloc[0]['all_features_preprocessed'].split(" ")), axis=1) # axis=1 for rows!!!
+        doc2vec = Doc2VecClass()
+        doc2vec.load_model()
+
+        df_results_merged['doc2vec'] = df_results_merged.apply(lambda row : doc2vec.get_vector_representation(row['slug']).iloc[0]['all_features_preprocessed'].split(" "), axis=1) # axis=1 for rows!!!
         df2 = pd.DataFrame(df_results_merged)
         doc2vec_column_name_base = "doc2vec_col_"
 
