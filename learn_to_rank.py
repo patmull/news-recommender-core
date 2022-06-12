@@ -386,9 +386,11 @@ class LightGBM:
         print(df2.to_string())
         # df2[['slug','doc2vec']].fillna(lambda x : json.dumps(doc2vec.get_vector_representation(x['slug']).tolist()), inplace=True)
         # df2.apply(lambda x: json.dumps(doc2vec.get_vector_representation(x['slug']) if (np.all(pd.notnull(x['']))) else x, axis=1))
+        print("Searching for Doc2Vec missing values...")
         df2['doc2vec'] = df2.apply(lambda row: json.dumps(doc2vec.get_vector_representation(row['slug']).tolist()) if pd.isnull(row['doc2vec']) else row['doc2vec'], axis=1)
         print("doc2vec:")
         print(df2['doc2vec'])
+        print("Removing rows with Doc2Vec still set to None")
         df2.dropna(subset=['doc2vec'], inplace=True)
         print("df2 after dropna:")
         print(df2)
@@ -551,6 +553,8 @@ class LightGBM:
         tf_idf_results = pd.concat([tf_idf_results, df2], axis=1)
 
         #####
+
+        # TODO: Find and fill missing Doc2Vec values (like in the training phase)
 
         print("tf_idf_results")
         print(tf_idf_results.to_string())
