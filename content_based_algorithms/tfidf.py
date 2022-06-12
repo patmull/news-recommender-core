@@ -189,7 +189,7 @@ class TfIdf:
     def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
 
         recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
+        recommenderMethods.get_posts_dataframe(force_update=True)  # load posts to dataframe
         recommenderMethods.get_categories_dataframe()  # load categories to dataframe
         recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
 
