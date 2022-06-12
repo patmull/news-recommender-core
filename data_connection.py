@@ -207,7 +207,7 @@ class Database:
 
     def insert_doc2vec_vector(self, doc2vec_vector, article_id):
         query = """UPDATE posts SET doc2vec_representation=%s WHERE id=%s;"""
-        inserted_values = (str(doc2vec_vector), article_id)
+        inserted_values = (doc2vec_vector, article_id)
         self.cursor.execute(query, inserted_values)
         self.cnx.commit()
         print("Inserted")

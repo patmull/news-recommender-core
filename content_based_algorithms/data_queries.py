@@ -100,7 +100,7 @@ class RecommenderMethods:
         return results_df_
 
     def join_posts_ratings_categories(self, include_prefilled=False):
-        self.get_posts_dataframe()
+        self.get_posts_dataframe(force_update=True)
         self.get_categories_dataframe()
         if include_prefilled is False:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
