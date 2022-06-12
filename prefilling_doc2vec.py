@@ -9,4 +9,5 @@ while True:
         prefiller = PreFiller()
         prefiller.prefilling_job("doc2vec_vectors", "pgsql", full_text=False, reverse=False, random=True)
     except Exception as e:
-        print("Exception occured" + str(e))
+        print("Exception occured " + str(e))
+        print(e.with_traceback())
