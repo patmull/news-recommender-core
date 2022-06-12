@@ -2,6 +2,7 @@ import json
 import random
 import time as t
 
+import numpy as np
 import psycopg2
 from gensim.models import Doc2Vec
 
@@ -21,7 +22,7 @@ class PreFiller():
         for i in range(100):
             while True:
                 try:
-                    self.fill_recommended_for_all_posts(algorithm, db, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
+                    self.fill_recommended_for_all_posts(algorithm, db, skip_already_filled=False, full_text=full_text, reversed=reverse, random_order=random)
                 except psycopg2.OperationalError:
                     print("DB operational error. Waiting few seconds before trying again...")
                     t.sleep(30)  # wait 30 seconds then try again
@@ -117,7 +118,7 @@ class PreFiller():
                     # inserts
                     if full_text is False:
                         if algorithm == "doc2vec_vectors":
-                            database.insert_doc2vec_vector(doc2vec_vector, post_id)
+                            database.insert_doc2vec_vector(doc2vec_vector.tostring(), post_id)
                         else:
                             try:
                                 if db == "redis":
@@ -159,97 +160,125 @@ class PreFiller():
                 else:
                     print("Skipping.")
             else:
-                if full_text is False:
-                    if algorithm == "tfidf":
-                        tfidf = TfIdf()
-                        actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
-                    elif algorithm == "doc2vec":
+                if algorithm == "doc2vec_vectors":
                         doc2vec = Doc2VecClass()
-                        actual_recommended_json = doc2vec.get_similar_doc2vec(slug)
-                    elif algorithm == "lda":
-                        lda = Lda()
-                        actual_recommended_json = lda.get_similar_lda(slug)
+                        doc2vec.load_model()
+                        doc2vec_vector = doc2vec.get_vector_representation(slug)
                 else:
-                    if algorithm == "tfidf":
-                        tfidf = TfIdf()
-                        actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(slug)
-                    elif algorithm == "doc2vec":
-                        doc2vec = Doc2VecClass()
-                        actual_recommended_json = doc2vec.get_similar_doc2vec_with_full_text(slug)
-                    elif algorithm == "lda":
-                        lda = Lda()
-                        actual_recommended_json = lda.get_similar_lda_full_text(slug)
-                    else:
-                        raise ValueError(val_error_msg_algorithm)
-                actual_recommended_json = json.dumps(actual_recommended_json)
-                if full_text is False:
-                    try:
-                        if db == "redis":
-                            database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
-                                articles_recommended_json=actual_recommended_json,
-                                                                   article_id=post_id, db="redis")
-                        elif db == "pgsql":
-                            database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
-                                articles_recommended_json=actual_recommended_json,
-                                article_id=post_id, db="pgsql")
-                        else:
-                            raise ValueError(val_error_msg_db)
-                    except:
-                        print("Error in DB insert. Skipping.")
-                        pass
-                else:
-                    if algorithm == "tfidf":
-                        try:
-                            if db == "redis":
-                                database.insert_recommended_json(
-                                    articles_recommended_json=actual_recommended_json,
-                                    article_id=post_id, db="redis")
-                            elif db == "pgsql":
-                                database.insert_recommended_json(
-                                    articles_recommended_json=actual_recommended_json,
-                                    article_id=post_id, db="pgsql")
-                            else:
-                                raise ValueError(val_error_msg_db)
-                        except:
-                            print("Error in DB insert. Skipping.")
-                            pass
-                    elif algorithm == "doc2vec":
-                        try:
-                            if db == "redis":
-                                database.insert_recommended_doc2vec_full_json(
-                                    articles_recommended_json=actual_recommended_json,
-                                    article_id=post_id, db="redis")
-                            elif db == "pgsql":
-                                database.insert_recommended_doc2vec_full_json(
-                                    articles_recommended_json=actual_recommended_json,
-                                    article_id=post_id, db="pgsql")
-                            else:
-                                raise ValueError(val_error_msg_db)
-                        except:
-                            print("Error in DB insert. Skipping.")
-                            pass
-                    elif algorithm == "lda":
-                        try:
-                            if db == "redis":
-                                database.insert_recommended_lda_full_json(
-                                    articles_recommended_json=actual_recommended_json,
-                                    article_id=post_id, db="redis")
-                            elif db == "pgsql":
-                                database.insert_recommended_lda_full_json(
-                                    articles_recommended_json=actual_recommended_json,
-                                    article_id=post_id, db="pgsql")
-                            else:
-                                raise ValueError(val_error_msg_db)
-                        except:
-                            print("Error in DB insert. Skipping.")
-                            pass
-                    else:
-                        raise ValueError(val_error_msg_algorithm)
-                number_of_inserted_rows += 1
-                if number_of_inserted_rows > 20:
-                    print("Refreshing list of posts for finding only not prefilled posts.")
                     if full_text is False:
-                        self.fill_recommended_for_all_posts(algorithm, db, skip_already_filled=True,
-                                                            full_text=full_text, reversed=reversed,
-                                                            random_order=random_order)
-                # print(str(number_of_inserted_rows) + " rows insertd.")
+                        if algorithm == "tfidf":
+                            tfidf = TfIdf()
+                            actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
+                        elif algorithm == "doc2vec":
+                            doc2vec = Doc2VecClass()
+                            actual_recommended_json = doc2vec.get_similar_doc2vec(slug)
+                        elif algorithm == "lda":
+                            lda = Lda()
+                            actual_recommended_json = lda.get_similar_lda(slug)
+                        elif algorithm == "doc2vec_vectors":
+                            doc2vec = Doc2VecClass()
+                            doc2vec.load_model()
+                            doc2vec_vector = doc2vec.get_vector_representation(slug)
+                    else:
+                        if algorithm == "tfidf":
+                            tfidf = TfIdf()
+                            actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(slug)
+                        elif algorithm == "doc2vec":
+                            doc2vec = Doc2VecClass()
+                            actual_recommended_json = doc2vec.get_similar_doc2vec_with_full_text(slug)
+                        elif algorithm == "lda":
+                            lda = Lda()
+                            actual_recommended_json = lda.get_similar_lda_full_text(slug)
+                        elif algorithm == "doc2vec_vectors":
+                            doc2vec = Doc2VecClass()
+                            doc2vec.load_model()
+                            doc2vec_vector = doc2vec.get_vector_representation(slug)
+                        else:
+                            raise ValueError(val_error_msg_algorithm)
+                    actual_recommended_json = json.dumps(actual_recommended_json)
+                    if full_text is False:
+                        try:
+                            if db == "redis":
+                                database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
+                                    articles_recommended_json=actual_recommended_json,
+                                                                       article_id=post_id, db="redis")
+                            elif db == "pgsql":
+                                database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
+                                    articles_recommended_json=actual_recommended_json,
+                                    article_id=post_id, db="pgsql")
+                            else:
+                                raise ValueError(val_error_msg_db)
+                        except:
+                            print("Error in DB insert. Skipping.")
+                            pass
+                    else:
+                        if algorithm == "tfidf":
+                            try:
+                                if db == "redis":
+                                    database.insert_recommended_json(
+                                        articles_recommended_json=actual_recommended_json,
+                                        article_id=post_id, db="redis")
+                                elif db == "pgsql":
+                                    database.insert_recommended_json(
+                                        articles_recommended_json=actual_recommended_json,
+                                        article_id=post_id, db="pgsql")
+                                else:
+                                    raise ValueError(val_error_msg_db)
+                            except:
+                                print("Error in DB insert. Skipping.")
+                                pass
+                        elif algorithm == "doc2vec":
+                            try:
+                                if db == "redis":
+                                    database.insert_recommended_doc2vec_full_json(
+                                        articles_recommended_json=actual_recommended_json,
+                                        article_id=post_id, db="redis")
+                                elif db == "pgsql":
+                                    database.insert_recommended_doc2vec_full_json(
+                                        articles_recommended_json=actual_recommended_json,
+                                        article_id=post_id, db="pgsql")
+                                else:
+                                    raise ValueError(val_error_msg_db)
+                            except:
+                                print("Error in DB insert. Skipping.")
+                                pass
+                        elif algorithm == "doc2vec_vectors":
+                            try:
+                                if db == "redis":
+                                    database.insert_doc2vec_vector(
+                                        doc2vec_vector.tostring(),
+                                        article_id=post_id, db="redis")
+                                elif db == "pgsql":
+                                    database.insert_doc2vec_vector(
+                                        doc2vec_vector.tostring(),
+                                        article_id=post_id, db="pgsql")
+                                else:
+                                    raise ValueError(val_error_msg_db)
+                            except:
+                                print("Error in DB insert. Skipping.")
+                                pass
+                        elif algorithm == "lda":
+                            try:
+                                if db == "redis":
+                                    database.insert_recommended_lda_full_json(
+                                        articles_recommended_json=actual_recommended_json,
+                                        article_id=post_id, db="redis")
+                                elif db == "pgsql":
+                                    database.insert_recommended_lda_full_json(
+                                        articles_recommended_json=actual_recommended_json,
+                                        article_id=post_id, db="pgsql")
+                                else:
+                                    raise ValueError(val_error_msg_db)
+                            except:
+                                print("Error in DB insert. Skipping.")
+                                pass
+                        else:
+                            raise ValueError(val_error_msg_algorithm)
+                    number_of_inserted_rows += 1
+                    if number_of_inserted_rows > 20:
+                        print("Refreshing list of posts for finding only not prefilled posts.")
+                        if full_text is False:
+                            self.fill_recommended_for_all_posts(algorithm, db, skip_already_filled=True,
+                                                                full_text=full_text, reversed=reversed,
+                                                                random_order=random_order)
+                    # print(str(number_of_inserted_rows) + " rows insertd.")

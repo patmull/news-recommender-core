@@ -43,10 +43,13 @@ class RecommenderMethods:
     def __init__(self):
         self.database = Database()
 
-    def get_posts_dataframe(self):
+    def get_posts_dataframe(self, force_update=False):
         self.database.connect()
         try:
-            self.posts_df = self.database.get_posts_dataframe_from_cache()
+            if force_update is True:
+                self.posts_df = self.database.insert_posts_dataframe_to_cache()
+            else:
+                self.posts_df = self.database.get_posts_dataframe_from_cache()
         except:
             self.posts_df = self.database.insert_posts_dataframe_to_cache()
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
@@ -104,7 +107,7 @@ class RecommenderMethods:
             # clean up from unnecessary columns
             self.df = self.df[
                 ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
-                 'all_features_preprocessed', 'body_preprocessed']]
+                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation']]
         else:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
             # clean up from unnecessary columns
