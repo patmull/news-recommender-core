@@ -374,14 +374,27 @@ class LightGBM:
             vector_source = doc2vec_model.infer_vector(tokens)
             df_results_merged_row['doc2vec'] = vector_source
         """
+        print("Loading Doc2Vec model...")
         doc2vec = Doc2VecClass()
         doc2vec.load_model()
-
+        df_results_merged = df_results_merged.rename({"doc2vec_representation": "doc2vec"}, axis=1)
         # df_results_merged['doc2vec'] = df_results_merged.apply(lambda row : doc2vec.get_vector_representation(row['slug']).iloc[0]['all_features_preprocessed'].split(" "), axis=1) # axis=1 for rows!!!
+        print("df_results_merged:")
+        print(df_results_merged.to_string())
         df2 = pd.DataFrame(df_results_merged)
+        print("df2:")
+        print(df2.to_string())
+        # df2[['slug','doc2vec']].fillna(lambda x : json.dumps(doc2vec.get_vector_representation(x['slug']).tolist()), inplace=True)
+        # df2.apply(lambda x: json.dumps(doc2vec.get_vector_representation(x['slug']) if (np.all(pd.notnull(x['']))) else x, axis=1))
+        df2['doc2vec'] = df2.apply(lambda row: json.dumps(doc2vec.get_vector_representation(row['slug']).tolist()) if pd.isnull(row['doc2vec']) else row['doc2vec'], axis=1)
+        print("doc2vec:")
+        print(df2['doc2vec'])
+        df2.dropna(subset=['doc2vec'], inplace=True)
+        print("df2 after dropna:")
+        print(df2)
+        df2['doc2vec'] = df2['doc2vec'].apply(lambda x: json.loads(x))
         doc2vec_column_name_base = "doc2vec_col_"
-
-        df2 = pd.DataFrame(df2.doc2vec_representation.values.tolist(), index=df2.index).add_prefix(doc2vec_column_name_base)
+        df2 = pd.DataFrame(df2['doc2vec'].to_list(), index=df2.index).add_prefix(doc2vec_column_name_base)
         df_results_merged = pd.concat([df_results_merged, df2], axis=1)
         # df_results_merged = df_results_merged.columns.drop("doc2vec")
 
@@ -515,7 +528,6 @@ class LightGBM:
 
         # DOC2VEC
 
-        doc2vec_model = Doc2Vec.load("models/d2v_mini_vectors.model")
         tf_idf_results = tf_idf_results.rename({"doc2vec_representation": "doc2vec"}, axis=1)
         df2 = pd.DataFrame(tf_idf_results)
         doc2vec_column_name_base = "doc2vec_col_"
@@ -528,10 +540,10 @@ class LightGBM:
         print(df2.doc2vec.tolist())
         print("df2")
         print(df2)
-        df2.dropna(axis=0, subset=['doc2vec'], inplace=True)
+        df2.dropna(subset=['doc2vec'], inplace=True)
         print("df2 after dropna")
         print(df2)
-        df2 = df2['doc2vec'].apply(lambda x: np.fromstring(x))
+        df2['doc2vec'] = df2['doc2vec'].apply(lambda x: json.loads(x))
         df2 = pd.DataFrame(df2['doc2vec'].to_list(), index=df2.index).add_prefix(doc2vec_column_name_base)
 
         print("df2 after convert to list")
