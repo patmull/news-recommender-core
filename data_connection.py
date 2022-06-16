@@ -95,10 +95,13 @@ class Database:
         sql = """SELECT * FROM posts ORDER BY id;"""
 
         self.connect()
+        folder_name = 'db_cache/'
+        p = Path(folder_name)
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         # df = pd.read_sql_query(results, database.get_cnx())
-        df.to_pickle('db_cache/cached_posts_dataframe.pkl')  # will be stored in current directory
+        p.mkdir(exist_ok=True)
+        df.to_pickle(folder_name + 'cached_posts_dataframe.pkl')  # will be stored in current directory
         return df
 
     def get_posts_dataframe_from_cache(self):
