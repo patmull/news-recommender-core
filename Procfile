@@ -1,2 +1,2 @@
 web: gunicorn app:app
-web: python rabbitmq_recieve.py
+worker: python content_based_recommendation.py
