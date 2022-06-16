@@ -125,12 +125,10 @@ class PreFiller():
                                     database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
                                                                      articles_recommended_json=actual_recommended_json,
                                                                      article_id=post_id, db="redis")
-                                    database.disconnect()
                                 elif db == "pgsql":
                                     database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
                                                                      articles_recommended_json=actual_recommended_json,
                                                                      article_id=post_id, db="pgsql")
-                                    database.disconnect()
                                 else:
                                     raise ValueError(val_error_msg_db)
                             except Exception as e:
@@ -142,13 +140,12 @@ class PreFiller():
                                 database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
                                     articles_recommended_json=actual_recommended_json,
                                     article_id=post_id, db="redis")
-                                database.disconnect()
                             elif db == "pgsql":
                                 database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
                                     articles_recommended_json=actual_recommended_json,
                                     article_id=post_id, db="pgsql")
-                                database.disconnect()
                             else:
+                                database.disconnect()
                                 raise ValueError(val_error_msg_db)
                         except Exception as e:
                             print("Error in DB insert. Skipping." + str(e))
@@ -165,7 +162,7 @@ class PreFiller():
                     print("Skipping.")
             else:
                 if algorithm == "doc2vec_vectors":
-                        doc2vec_vector = doc2vec.get_vector_representation(slug)
+                    doc2vec_vector = doc2vec.get_vector_representation(slug)
                 else:
                     if full_text is False:
                         if algorithm == "tfidf":
@@ -290,3 +287,6 @@ class PreFiller():
                                                                 full_text=full_text, reversed=reversed,
                                                                 random_order=random_order)
                     # print(str(number_of_inserted_rows) + " rows insertd.")
+
+        database.disconnect()
+
