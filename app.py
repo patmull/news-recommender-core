@@ -224,7 +224,5 @@ api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-t
 api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<string:param>")
 
-api.add_resource()
-
 if __name__ == "__main__":
     app.run(debug=True)
