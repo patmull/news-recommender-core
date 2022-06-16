@@ -19,7 +19,6 @@ def create_app():
 app = create_app()
 api = Api(app)
 
-
 @app.route('/', methods=['GET'])
 def home():
     return '''<h1>Moje články</h1><p>API pro doporučovací algoritmy.</p>'''
