@@ -19,13 +19,18 @@ val_error_msg_algorithm = "Selected algorithm does not correspondent with any im
 class PreFiller():
 
     def prefilling_job(self, algorithm, db, full_text, reverse, random=False):
-
-        doc2vec = Doc2VecClass()
-        doc2vec.load_model()
+        if algorithm == "doc2vec" or algorithm == "doc2vec_vectors":
+            doc2vec = Doc2VecClass()
+            doc2vec.load_model()
+        else:
+            doc2vec = None
         for i in range(100):
             while True:
                 try:
-                    self.fill_recommended_for_all_posts(algorithm, db, doc2vec, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
+                    if algorithm == "doc2vec" or "doc2vec_vectors":
+                        self.fill_recommended_for_all_posts(algorithm, db, doc2vec=doc2vec, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
+                    else:
+                        self.fill_recommended_for_all_posts(algorithm, db, doc2vec=doc2vec, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
                 except psycopg2.OperationalError:
                     print("DB operational error. Waiting few seconds before trying again...")
                     t.sleep(30)  # wait 30 seconds then try again
