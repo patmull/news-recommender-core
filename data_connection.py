@@ -1,5 +1,6 @@
 # import psycopg2.connector
 import os
+from pathlib import Path
 
 import psycopg2
 import pandas as pd
@@ -101,7 +102,11 @@ class Database:
         return df
 
     def get_posts_dataframe_from_cache(self):
-        df = pd.read_pickle('db_cache/cached_posts_dataframe.pkl')  # read from current directory
+        cached_file = Path("db_cache/cached_posts_dataframe.pkl")
+        if cached_file.is_file():
+            df = pd.read_pickle('db_cache/cached_posts_dataframe.pkl')  # read from current directory
+        else:
+            df = self.insert_posts_dataframe_to_cache()
         return df
 
     def get_categories_dataframe(self, pd):
