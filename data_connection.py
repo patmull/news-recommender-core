@@ -247,22 +247,22 @@ class Database:
     def get_not_prefilled_posts(self, full_text, algorithm):
         if full_text is False:
             if algorithm == "tfidf":
-                sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
+                sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id DESC;"""
             elif algorithm == "doc2vec":
-                sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
+                sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id DESC;"""
             elif algorithm == "lda":
-                sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
+                sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id DESC;"""
             elif algorithm == "doc2vec_vectors":
-                sql = """SELECT * FROM posts WHERE doc2vec_representation IS NULL ORDER BY id;"""
+                sql = """SELECT * FROM posts WHERE doc2vec_representation IS NULL ORDER BY id DESC;"""
             else:
                 raise ValueError("Selected algorithm not implemented.")
         else:
             if algorithm == "tfidf":
-                sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id;"""
+                sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id DESC;"""
             elif algorithm == "doc2vec":
-                sql = """SELECT * FROM posts WHERE recommended_doc2vec_full_text IS NULL ORDER BY id;"""
+                sql = """SELECT * FROM posts WHERE recommended_doc2vec_full_text IS NULL ORDER BY id DESC;"""
             elif algorithm == "lda":
-                sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id;"""
+                sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id DESC;"""
 
         query = (sql)
         self.cursor.execute(query)
