@@ -403,8 +403,6 @@ class LightGBM:
         df_results_merged_old = df_results_merged
 
         dataframe_length = len(df_results_merged.index)
-        post_features = ["slug"]
-        features = ["coefficient", "relevance"]
         """
         split_train = int(dataframe_length * 0.8)
         split_validation = int(dataframe_length - split_train)

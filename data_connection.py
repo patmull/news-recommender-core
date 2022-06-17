@@ -97,7 +97,14 @@ class Database:
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         # df = pd.read_sql_query(results, database.get_cnx())
-        df.to_pickle('db_cache/cached_posts_dataframe.pkl')  # will be stored in current directory
+        outfile = 'cached_posts_dataframe.pkl'
+
+        outdir = './db_cache'
+        if not os.path.exists(outdir):
+            os.mkdir(outdir)
+
+        fullpath = os.path.join(outdir, outfile)
+        df.to_pickle(fullpath)  # will be stored in current directory
         return df
 
     def get_posts_dataframe_from_cache(self):
