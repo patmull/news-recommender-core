@@ -316,7 +316,7 @@ class Doc2VecClass:
 
     def load_model(self):
         print("Loading Doc2Vec vectors...")
-        self.doc2vec_model = Doc2Vec.load("models/d2v_mini_vectors.model")
+        self.doc2vec_model = Doc2Vec.load("models/d2v.model")
 
     def get_vector_representation(self, slug):
         recommender_methods = RecommenderMethods()
