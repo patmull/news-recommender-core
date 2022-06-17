@@ -1,2 +1,1 @@
-web: gunicorn app:app
-web: python rabbitmq_recieve.py
+worker: python prefilling_all.py
