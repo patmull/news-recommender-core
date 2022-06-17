@@ -235,8 +235,9 @@ class TfIdf:
         recommenderMethods.get_posts_dataframe()  # load posts to dataframe
         gc.collect()
         recommenderMethods.get_categories_dataframe()  # load categories to dataframe
-        recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
-
+        recommenderMethods.join_posts_ratings_categories(full_text=True)  # joining posts and categories into one table
+        print("recommenderMethods.df.columns:")
+        print(recommenderMethods.df.columns)
         # replacing None values with empty strings
         recommenderMethods.df['full_text'] = recommenderMethods.df['full_text'].replace([None], '')
 
