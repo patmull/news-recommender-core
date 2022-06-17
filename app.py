@@ -19,7 +19,6 @@ def create_app():
 app = create_app()
 api = Api(app)
 
-
 @app.route('/', methods=['GET'])
 def home():
     return '''<h1>Moje články</h1><p>API pro doporučovací algoritmy.</p>'''
@@ -224,8 +223,6 @@ api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<s
 api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<string:param>")
-
-api.add_resource()
 
 if __name__ == "__main__":
     app.run(debug=True)
