@@ -1,5 +1,6 @@
 import json
 import random
+import sys
 import time as t
 
 import numpy as np
@@ -31,9 +32,9 @@ class PreFiller():
                         self.fill_recommended_for_all_posts(algorithm, db, doc2vec=doc2vec, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
                     else:
                         self.fill_recommended_for_all_posts(algorithm, db, doc2vec=doc2vec, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
-                except psycopg2.OperationalError:
+                except psycopg2.OperationalError as e:
+                    print(e)
                     print("DB operational error. Waiting few seconds before trying again...")
-                    print(psycopg2.OperationalError)
                     t.sleep(30)  # wait 30 seconds then try again
                     continue
                 break
