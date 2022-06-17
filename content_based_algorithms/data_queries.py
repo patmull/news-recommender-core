@@ -99,15 +99,12 @@ class RecommenderMethods:
         results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id']]
         return results_df_
 
-    def join_posts_ratings_categories(self, include_prefilled=False):
+    def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
         self.get_posts_dataframe(force_update=True)
         self.get_categories_dataframe()
         if include_prefilled is False:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
             # clean up from unnecessary columns
-            self.df = self.df[
-                ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
-                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation']]
         else:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
             # clean up from unnecessary columns
@@ -124,6 +121,15 @@ class RecommenderMethods:
                     ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
                      'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text']]
+
+        if full_text is True:
+            self.df = self.df[
+                ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text']]
+        else:
+            self.df = self.df[
+                ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation']]
         return self.df
 
 
