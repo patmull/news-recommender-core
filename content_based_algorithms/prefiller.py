@@ -17,6 +17,7 @@ from learn_to_rank import LightGBM
 val_error_msg_db = "Not allowed DB method was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected algorithm does not correspondent with any implemented algorithm."
 
+
 class PreFiller():
 
     def prefilling_job(self, algorithm, db, full_text, reverse, random=False):
