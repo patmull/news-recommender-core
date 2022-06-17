@@ -19,13 +19,18 @@ val_error_msg_algorithm = "Selected algorithm does not correspondent with any im
 class PreFiller():
 
     def prefilling_job(self, algorithm, db, full_text, reverse, random=False):
-
-        doc2vec = Doc2VecClass()
-        doc2vec.load_model()
+        if algorithm == "doc2vec" or algorithm == "doc2vec_vectors":
+            doc2vec = Doc2VecClass()
+            doc2vec.load_model()
+        else:
+            doc2vec = None
         for i in range(100):
             while True:
                 try:
-                    self.fill_recommended_for_all_posts(algorithm, db, doc2vec, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
+                    if algorithm == "doc2vec" or "doc2vec_vectors":
+                        self.fill_recommended_for_all_posts(algorithm, db, doc2vec=doc2vec, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
+                    else:
+                        self.fill_recommended_for_all_posts(algorithm, db, doc2vec=doc2vec, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
                 except psycopg2.OperationalError:
                     print("DB operational error. Waiting few seconds before trying again...")
                     print(psycopg2.OperationalError)
@@ -126,12 +131,10 @@ class PreFiller():
                                     database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
                                                                      articles_recommended_json=actual_recommended_json,
                                                                      article_id=post_id, db="redis")
-                                    database.disconnect()
                                 elif db == "pgsql":
                                     database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
                                                                      articles_recommended_json=actual_recommended_json,
                                                                      article_id=post_id, db="pgsql")
-                                    database.disconnect()
                                 else:
                                     raise ValueError(val_error_msg_db)
                             except Exception as e:
@@ -143,13 +146,12 @@ class PreFiller():
                                 database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
                                     articles_recommended_json=actual_recommended_json,
                                     article_id=post_id, db="redis")
-                                database.disconnect()
                             elif db == "pgsql":
                                 database.insert_recommended_json(algorithm=algorithm, full_text=full_text,
                                     articles_recommended_json=actual_recommended_json,
                                     article_id=post_id, db="pgsql")
-                                database.disconnect()
                             else:
+                                database.disconnect()
                                 raise ValueError(val_error_msg_db)
                         except Exception as e:
                             print("Error in DB insert. Skipping." + str(e))
@@ -166,7 +168,7 @@ class PreFiller():
                     print("Skipping.")
             else:
                 if algorithm == "doc2vec_vectors":
-                        doc2vec_vector = doc2vec.get_vector_representation(slug)
+                    doc2vec_vector = doc2vec.get_vector_representation(slug)
                 else:
                     if full_text is False:
                         if algorithm == "tfidf":
@@ -291,3 +293,6 @@ class PreFiller():
                                                                 full_text=full_text, reversed=reversed,
                                                                 random_order=random_order)
                     # print(str(number_of_inserted_rows) + " rows insertd.")
+
+        database.disconnect()
+
