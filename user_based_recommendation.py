@@ -84,6 +84,6 @@ class UserBasedRecommendation:
 def main():
     #Testing
     user_based_recommendation = UserBasedRecommendation()
-    #print(user_based_recommendation.load_recommended_posts_for_user(211,4))
+    print(user_based_recommendation.load_recommended_posts_for_user(211,4))
 
 if __name__ == "__main__": main()
