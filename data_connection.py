@@ -113,10 +113,12 @@ class Database:
 
     def get_posts_dataframe_from_cache(self):
         cached_file = Path("db_cache/cached_posts_dataframe.pkl")
+        print("Reading cache file...")
         if cached_file.is_file():
             df = pd.read_pickle('db_cache/cached_posts_dataframe.pkl')  # read from current directory
         else:
             df = self.insert_posts_dataframe_to_cache()
+        print("Cache file read...")
         return df
 
     def get_categories_dataframe(self, pd):
