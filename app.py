@@ -1,6 +1,6 @@
 import traceback
 
-from learn_to_rank import LearnToRank, LightGBM
+#from learn_to_rank import LearnToRank, LightGBM
 from user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
 from flask_restful import Api, Resource
