@@ -31,15 +31,15 @@ def main():
     # gensim.get_recommended_by_slug("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
 
     """
-    tfidf = TfIdf()
+    
     print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
     print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
     """
     # print(tfidf.recommend_posts_by_all_features('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
     # print(tfidf.recommend_posts_by_all_features_preprocessed('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
-
-    # keywords = "fotbal hokej sport slavia"
-    # # print(tfidf.keyword_based_comparison(keywords))
+    tfidf = TfIdf()
+    keywords = "fotbal hokej"
+    print(tfidf.keyword_based_comparison(keywords))
 
     """
     doc2vecClass = Doc2VecClass()
@@ -52,11 +52,11 @@ def main():
     print("--------------LDA FULL TEXT------------------")
     print(lda.get_similar_lda_full_text(searched_slug))
     """
-    lda = Lda()
+    # lda = Lda()
     # print(lda.get_similar_lda('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem', train=True, display_dominant_topics=True))
     # print(lda.get_similar_lda_full_text('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem', train=False, display_dominant_topics=False))
     # lda.display_lda_stats()
-    lda.find_optimal_model(body_text_model=True)
+    # lda.find_optimal_model(body_text_model=True)
     """
     word2vecClass = Word2VecClass()
     start = time.time()

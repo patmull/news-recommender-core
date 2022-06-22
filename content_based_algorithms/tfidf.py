@@ -89,13 +89,10 @@ class TfIdf:
             print(i[1].sort_values(ascending=False)[:10])
         """
 
-    def keyword_based_comparison(self, keywords, number_of_recommended_posts, all_posts=False):
+    def keyword_based_comparison(self, keywords, number_of_recommended_posts=20, all_posts=False):
 
-        # print("----------------------------------")
-        # print("----------------------------------")
-        # print("Keyword based comparison")
-        # print("----------------------------------")
-        # print("----------------------------------")
+        if keywords == "":
+            return {}
 
         keywords_splitted_1 = keywords.split(" ")  # splitting sentence into list of keywords by space
 
@@ -104,20 +101,31 @@ class TfIdf:
         for word in keywords_splitted_1:
             wordDictA[word] += 1
 
+        print("1")
         recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe()
-        recommenderMethods.get_categories_dataframe()
+        print("4")
         recommenderMethods.join_posts_ratings_categories()
+        print("5")
 
         # same as "classic" tf-idf
         fit_by_title_matrix = recommenderMethods.get_fit_by_feature_('title_x', 'title_y')  # prepended by category
+        print("6")
+
         fit_by_excerpt_matrix = recommenderMethods.get_fit_by_feature_('excerpt')
+        print("7")
+
         fit_by_keywords_matrix = recommenderMethods.get_fit_by_feature_('keywords')
+        print("8")
+
 
         tuple_of_fitted_matrices = (fit_by_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
+        print("9")
+
 
         if all_posts is False:
             post_recommendations = recommenderMethods.recommend_by_keywords(keywords, tuple_of_fitted_matrices, number_of_recommended_posts=number_of_recommended_posts)
+            print("10")
+
         if all_posts is True:
             post_recommendations = recommenderMethods.recommend_by_keywords(keywords, tuple_of_fitted_matrices,
                                                                             number_of_recommended_posts=len(recommenderMethods.posts_df.index))
