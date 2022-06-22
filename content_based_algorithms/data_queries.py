@@ -45,15 +45,23 @@ class RecommenderMethods:
 
     def get_posts_dataframe(self, force_update=False):
         self.database.connect()
+        print("4.1.1")
+        print("Trying reading from cache...")
         try:
             if force_update is True:
+                print("Force update is true, will update cache file anyway.")
                 self.posts_df = self.database.insert_posts_dataframe_to_cache()
             else:
+                print("Reading from cache...")
                 self.posts_df = self.database.get_posts_dataframe_from_cache()
         except:
+            print("Posts not found on cache. Inserting file to cache...")
             self.posts_df = self.database.insert_posts_dataframe_to_cache()
+        print("4.1.2")
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
+        print("4.1.3")
         self.database.disconnect()
+        print("4.1.4")
         return self.posts_df
 
     def get_users_dataframe(self):
@@ -100,8 +108,10 @@ class RecommenderMethods:
         return results_df_
 
     def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
-        self.get_posts_dataframe(force_update=True)
+        self.get_posts_dataframe()
+        print("4.1")
         self.get_categories_dataframe()
+        print("4.2")
         if include_prefilled is False:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
             # clean up from unnecessary columns
@@ -121,6 +131,7 @@ class RecommenderMethods:
                     ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
                      'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text']]
+        print("4.3")
 
         if full_text is True:
             self.df = self.df[
