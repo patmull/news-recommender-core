@@ -77,6 +77,7 @@ class Database:
         return rs
 
     def get_posts_dataframe_from_sql(self, pd):
+        print("Getting posts from SQL...")
         sql = """SELECT * FROM posts ORDER BY id;"""
 
         # LOAD INTO A DATAFRAME
@@ -84,9 +85,12 @@ class Database:
         # df = pd.read_sql_query(results, database.get_cnx())
         return df
 
-    def get_posts_dataframe(self):
+    def get_posts_dataframe(self, from_cache=True):
         # self.database.insert_posts_dataframe_to_cache() # uncomment for UPDATE of DB records
-        self.posts_df = Database().get_posts_dataframe_from_cache()
+        if from_cache is True:
+            self.posts_df = Database().get_posts_dataframe_from_cache()
+        else:
+            self.posts_df = self.get_posts_dataframe_from_sql(pd)
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         return self.posts_df
 
@@ -112,14 +116,13 @@ class Database:
         return df
 
     def get_posts_dataframe_from_cache(self):
-        cached_file = Path("db_cache/cached_posts_dataframe.pkl")
         print("Reading cache file...")
-        if cached_file.is_file():
+        try:
             df = pd.read_pickle('db_cache/cached_posts_dataframe.pkl')  # read from current directory
-        else:
-            df = self.insert_posts_dataframe_to_cache()
-        print("Cache file read...")
-        return df
+            return df
+        except Exception as e:
+            print("Exception occured when reading file:")
+            print(e)
 
     def get_categories_dataframe(self, pd):
         sql = """SELECT * FROM categories ORDER BY id;"""
