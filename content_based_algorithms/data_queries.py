@@ -1,6 +1,7 @@
 import json
 import pickle
 from pathlib import Path
+from threading import Thread
 
 import dropbox
 import gensim
@@ -46,23 +47,38 @@ class RecommenderMethods:
     def get_posts_dataframe(self, force_update=False):
         self.database.connect()
         print("4.1.1")
-        print("Trying reading from cache...")
-        try:
-            if force_update is True:
-                print("Force update is true, will update cache file anyway.")
-                self.posts_df = self.database.insert_posts_dataframe_to_cache()
-            else:
-                print("Reading from cache...")
-                self.posts_df = self.database.get_posts_dataframe_from_cache()
-        except:
-            print("Posts not found on cache. Inserting file to cache...")
+        if force_update is True:
+            print("Force update is true, will update cache file anyway.")
             self.posts_df = self.database.insert_posts_dataframe_to_cache()
+        else:
+            print("Trying reading from cache as default...")
+            cached_file_path = "db_cache/cached_posts_dataframe.pkl"
+            if os.path.isfile(cached_file_path):
+                try:
+                    print("Reading from cache...")
+                    self.posts_df = self.database.get_posts_dataframe_from_cache()
+                except:
+                    self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
+            else:
+                self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
+
         print("4.1.2")
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         print("4.1.3")
         self.database.disconnect()
         print("4.1.4")
         return self.posts_df
+
+    def get_df_from_sql_meanwhile_insert_cache(self):
+        def update_cache(self):
+            print("Inserting file to cache in the background...")
+            self.database.insert_posts_dataframe_to_cache()
+
+        print("Posts not found on cache. Will use PgSQL command.")
+        posts_df = self.database.get_posts_dataframe_from_sql(pd)
+        thread = Thread(target=update_cache, kwargs={'self': self})
+        thread.start()
+        return posts_df
 
     def get_users_dataframe(self):
         self.database.connect()
@@ -106,6 +122,13 @@ class RecommenderMethods:
         print(results_df)
         results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id']]
         return results_df_
+
+    def refresh_cached_db_file(self):
+        print("Refreshing DB cache...")
+        self.database.connect()
+        self.database.insert_posts_dataframe_to_cache()
+        print("New DB cache file saved to local storage.")
+        self.database.disconnect()
 
     def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
         self.get_posts_dataframe()
