@@ -1,6 +1,9 @@
 import traceback
 
 #from learn_to_rank import LearnToRank, LightGBM
+from threading import Thread
+
+from content_based_algorithms.data_queries import RecommenderMethods
 from user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
 from flask_restful import Api, Resource
@@ -10,11 +13,16 @@ from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.word2vec import Word2VecClass
 from collaboration_based_recommendation import Svd
 
-
 def create_app():
+    # initializing files needed for the start of application
+    # checking needed parts...
+    print("Creating posts cache file...")
+    recommenderMethods = RecommenderMethods()
+    recommenderMethods.refresh_cached_db_file()
+    print("Crating flask app...")
     app = Flask(__name__)
+    print("FLASK APP READY TO START!")
     return app
-
 
 app = create_app()
 api = Api(app)
@@ -201,6 +209,20 @@ def set_global_exception_handler(app):
         app.logger.error("Caught Exception: {}".format(error_message)) # or whatever logger you use
         response["errorMessage"] = error_message
         return response, 500
+
+
+@app.route("/api/refresh-cache")
+def refresh_cache():
+    def do_update_cache_work():
+        # do something that takes a long time
+        print("Calling cache refreshing method. This will take some time...")
+        recommenderMethods = RecommenderMethods()
+        recommenderMethods.refresh_cached_db_file()
+
+    # thread = Thread(target=do_work, kwargs={'value': request.args.get('value', 20)})
+    thread = Thread(target=do_update_cache_work)
+    thread.start()
+    return 'Request for cache refresh recieved. Started refreshing', 200
 
 
 api.add_resource(GetPostsByOtherUsers, "/api/user/<int:param1>/<int:param2>")
