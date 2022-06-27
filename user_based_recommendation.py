@@ -59,8 +59,7 @@ class UserBasedRecommendation:
         return df_user_categories
 
     # loads posts for user based on his id and favourite categories
-    @profile
-    def load_recommended_posts_for_user(self, user_id,num_of_recommendations=5):
+    def load_recommended_posts_for_user(self, user_id, num_of_recommendations=5):
         self.database.connect()
         df_posts_users_of_categories = self.load_ratings()[self.load_ratings().category_slug.isin(self.load_user_categories(user_id)['category_slug'].tolist())]
         df_filter_current_user = df_posts_users_of_categories[df_posts_users_of_categories.rating_id != self.get_user_id()]

@@ -357,7 +357,6 @@ class SvdClass:
         print(rmse_without_zero)
 
 def main():
-
     # svd_class = SvdClass()
     # print(svd_class.run_svd(431))
     # print(svd.rmse_all_users())
