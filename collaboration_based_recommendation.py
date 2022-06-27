@@ -157,7 +157,7 @@ class SvdClass:
 
         return R_demeaned
 
-    @profile
+    # @profile
     def run_svd(self, user_id, num_of_recommendations=10):
         U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
         sigma = np.diag(sigma)
@@ -356,6 +356,7 @@ class SvdClass:
         print("RMSE ignoring missing values:")
         print(rmse_without_zero)
 
+
 def main():
     # svd_class = SvdClass()
     # print(svd_class.run_svd(431))
@@ -367,4 +368,6 @@ def main():
     print("all:")
     print(all)
     """
+
+
 if __name__ == "__main__": main()
