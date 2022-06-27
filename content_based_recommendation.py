@@ -1,6 +1,3 @@
-from content_based_algorithms.prefiller import PreFiller
-from content_based_algorithms.doc2vec import Doc2VecClass
-from content_based_algorithms.lda import Lda
 from content_based_algorithms.tfidf import TfIdf
 
 word2vec_embedding = None
@@ -30,16 +27,20 @@ def main():
     # gensim = GenSim()
     # gensim.get_recommended_by_slug("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
 
+    tfidf = TfIdf()
+    # print(tfidf.recommend_posts_by_all_features_preprocessed('zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik'))
+    tfidf.analyze('zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik')
     """
-    
     print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
     print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
     """
     # print(tfidf.recommend_posts_by_all_features('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
     # print(tfidf.recommend_posts_by_all_features_preprocessed('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
+    """
     tfidf = TfIdf()
     keywords = "fotbal hokej"
     print(tfidf.keyword_based_comparison(keywords))
+    """
 
     """
     doc2vecClass = Doc2VecClass()

@@ -358,7 +358,7 @@ class Svd:
 def main():
 
     svd = Svd()
-    # print(svd.run_svd(431))
+    print(svd.run_svd(431))
     # print(svd.rmse_all_users())
     rated, all = svd.get_average_post_rating()
     print("rated:")

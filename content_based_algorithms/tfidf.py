@@ -1,4 +1,6 @@
 import gc
+import os
+import pickle
 import re
 import string
 from pathlib import Path
@@ -8,7 +10,7 @@ import numpy as np
 import pandas as pd
 from nltk import RegexpTokenizer
 from scipy.sparse import csr_matrix
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
 
@@ -197,7 +199,7 @@ class TfIdf:
     def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
 
         recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe(force_update=True)  # load posts to dataframe
+        recommenderMethods.get_posts_dataframe(force_update=False)  # load posts to dataframe
         recommenderMethods.get_categories_dataframe()  # load categories to dataframe
         recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
 
@@ -586,3 +588,40 @@ class TfIdf:
         recommenderMethods = RecommenderMethods()
         fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature_('all_features_preprocessed')
         self.save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
+
+    def analyze(self, slug):
+        recommenderMethods = RecommenderMethods()
+        found_posts = []
+
+        path_to_saved_results = "research/tfidf/presaved_results.pkl"
+        if os.path.exists(path_to_saved_results):
+            print("Results found. Loading...")
+            with open(path_to_saved_results, 'rb') as opened_file:
+                found_posts = pickle.load(opened_file)
+        else:
+            recommended_posts = self.recommend_posts_by_all_features_preprocessed(slug)
+            # queried doc
+            print("Results not found. Querying results...")
+            post_found = recommenderMethods.find_post_by_slug(slug)
+            found_posts.append(post_found.iloc[0]['all_features_preprocessed'])
+            for post in recommended_posts:
+                post_found = recommenderMethods.find_post_by_slug(post['slug'])
+                found_posts.append(post_found.iloc[0]['all_features_preprocessed'])
+                print("found_posts")
+                print(found_posts)
+
+            with open(path_to_saved_results, 'wb') as opened_file:
+                pickle.dump(found_posts, opened_file)
+
+        # TODO: Save to pickle
+        cv = CountVectorizer()
+        for found_post in found_posts:
+            cv_fit = cv.fit_transform([found_post])
+            word_list = cv.get_feature_names()
+            count_list = cv_fit.toarray().sum(axis=0)
+            print("found_post")
+            print(found_post)
+            print("word_list:")
+            print(word_list)
+            print("dict:")
+            print(dict(zip(word_list, count_list)))
