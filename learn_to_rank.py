@@ -28,7 +28,7 @@ from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBRegressor, XGBClassifier
 from lightgbm import LGBMRanker
 import evaluation_results
-from collaboration_based_recommendation import Svd
+from collaboration_based_recommendation import SvdClass
 from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.doc2vec import Doc2VecClass
@@ -60,7 +60,7 @@ class LightGBM:
     doc2vec = Doc2VecClass()
     lda = Lda()
     user_based_recommendation = UserBasedRecommendation()
-    svd = Svd()
+    svd = SvdClass()
 
     feature_list = []
 
@@ -722,7 +722,7 @@ class LearnToRank:
         doc2vec = Doc2VecClass()
         lda = Lda()
         user_based_recommendation = UserBasedRecommendation()
-        svd = Svd()
+        svd = SvdClass()
 
         feature_list = []
 
