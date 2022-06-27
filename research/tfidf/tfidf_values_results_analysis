@@ -171,12 +171,12 @@ Simple example:
  [0 0 0 ... 0 2 0]
  [2 0 0 ... 0 2 0]
  [0 1 0 ... 0 0 0]]
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
+   
+
+   
+
             idf_weights
 se             1.146603
 být            1.318454
@@ -546,10 +546,10 @@ IDF values:
 nikdy nemít dobře situace co nerozumět nic co hledat možnost partners ondřej ochránit peníze rostoucí inflace neinvestovat do nic co nerozumět říkat odborník řada člověk dnes hledat možnost jak investovat a ochránit peníze před rostoucí inflace pokud by mít hodnotit současný situace jen na základ vývoj cena akcie tak být se nikdy nemít dobře říkat o aktuální situace na finanční trh portfolio manažer skupina partners ondřej koňák
 ----------------
 Simple example:
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
+   
+
 (21, 558)
   (0, 44)	4
   (0, 77)	2
@@ -657,8 +657,8 @@ IDF values:
 mnoho lid vzdalovat cena napříč cela republika lze byt pořídit zajímavý zpomalení růst cena najít místo zajímavý cena cena byt letět vzhůru rychle než kdykoliv předtím vlastní bydlení se mnoho lid vzdalovat cena rezidenční nemovitost totiž opět trhat rekord napříč cela republika a obrat v tento trend realitní odborník neočekávat jen zpomalení růst cena přesto se stále ještě najít místo kde lze byt pořídit za zajímavý cena
 ----------------
 Simple example:
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
 (21, 558)
   (0, 44)	4
   (0, 77)	2
@@ -825,12 +825,12 @@ Simple example:
  [0 0 0 ... 0 2 0]
  [2 0 0 ... 0 2 0]
  [0 1 0 ... 0 0 0]]
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
+   
+
+   
+
             idf_weights
 se             1.146603
 být            1.318454
@@ -1152,12 +1152,12 @@ Simple example:
  [0 0 0 ... 0 2 0]
  [2 0 0 ... 0 2 0]
  [0 1 0 ... 0 0 0]]
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
+   
+
+   
+
             idf_weights
 se             1.146603
 být            1.318454
@@ -1420,12 +1420,12 @@ IDF values:
 možnost podstatně málo veterán cena dost vysoký vysoký úměrná vzácnost úměrná vzácnost vůz cena veterán problém sjednat povinný ručení povinný ručení pro veterán být levný havarijní se prodražit povinný ručení nebýt pro veterán problém sjednat u havarijní pojištění být možnost podstatně málo a cena dost vysoký úměrná vzácnost vůz
 ----------------
 Simple example:
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
+   
+
+   
+
 (21, 558)
   (0, 44)	4
   (0, 77)	2
@@ -1747,8 +1747,8 @@ IDF values:
 mimořádný okamžitý pomoc vědět pomoct zcela nový dávka všechen možnost náš dnešní kvíz pandemie všechen možnost vyznat stát pomoct kvíz vědět jak vy stát pomoct v době pandemie krizový ošetřovné mimořádný okamžitý pomoc nebo zcela nový dávka takzvaný izolačka to být cesta který vy pomoct současný pandemie finančně zvládnout ověřit se v náš dnešní kvíz jak se v všechen možnost vyznat
 ----------------
 Simple example:
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
 (21, 558)
   (0, 44)	4
   (0, 77)	2
@@ -1856,8 +1856,8 @@ IDF values:
 prodat firemní majetek firemní majetek nebýt finančně dobře nápad svědčit konkrétní tržní cena dobrý nápad konkrétní případ prodat firemní majetek svůj dceř být to chyba se svůj majetek moct libovolně nakládat jiná situace ovšem nastávat pokud na ten nebýt finančně dobře například prodat majetek firma pod tržní cena když mít faktura po splatnost rozhodně nebýt dobrý nápad svědčit o ten konkrétní případ
 ----------------
 Simple example:
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
 (21, 558)
   (0, 44)	4
   (0, 77)	2
@@ -2024,12 +2024,12 @@ Simple example:
  [0 0 0 ... 0 2 0]
  [2 0 0 ... 0 2 0]
  [0 1 0 ... 0 0 0]]
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
+   
+
+   
+
             idf_weights
 se             1.146603
 být            1.318454
@@ -2287,8 +2287,8 @@ dodavatel      2.704748
 my             2.704748
 ---------------
 From whole dataset:
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
 (9365, 42735)
   (0, 27765)	4
   (0, 37869)	2
@@ -2348,8 +2348,8 @@ C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\
  [0 0 0 ... 0 0 0]
  [0 0 0 ... 0 0 0]
  [0 0 0 ... 0 0 0]]
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
         idf_weights
 se         1.341117
 na         1.454872
@@ -2443,10 +2443,10 @@ rozhovor   0.000000
 rychle     0.000000
 ---------------
 From whole dataset:
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
+   
+
               tfidf
 dodavatel  0.444276
 vy         0.280300
@@ -2493,8 +2493,8 @@ roland     0.000000
 rohlík     0.000000
 rohlik     0.000000
 rokytské   0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                tfidf
 dodavatel   0.343693
 rozpočtu    0.297519
@@ -2541,8 +2541,8 @@ to          0.040140
 rohan       0.000000
 rogue       0.000000
 rogéria     0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                      tfidf
 dodavatel         0.348770
 dodavatele        0.315446
@@ -2589,8 +2589,8 @@ mít               0.041152
 být               0.025130
 na                0.024278
 se                0.022380
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                tfidf
 situace     0.355444
 zavřený     0.293351
@@ -2637,8 +2637,8 @@ tak         0.051473
 moct        0.047777
 být         0.046629
 od          0.045526
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                    tfidf
 koronaviru      0.365045
 zdražit         0.329798
@@ -2685,8 +2685,8 @@ rogner          0.000000
 rolbař          0.000000
 role            0.000000
 roku            0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                  tfidf
 nerozumět     0.293288
 partners      0.271144
@@ -2733,8 +2733,8 @@ na            0.052043
 mít           0.044107
 do            0.041268
 být           0.026935
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                tfidf
 cena        0.489481
 zajímavý    0.265612
@@ -2781,8 +2781,8 @@ za          0.039753
 romana      0.000000
 rojit       0.000000
 romea       0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                 tfidf
 nedoplatek   0.506332
 energie      0.383431
@@ -2829,8 +2829,8 @@ rohožka      0.000000
 rohrbacher   0.000000
 roj          0.000000
 rok          0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                 tfidf
 zboží        0.400597
 naštvat      0.364023
@@ -2877,8 +2877,8 @@ tak          0.039501
 svůj         0.033882
 to           0.029000
 se           0.015933
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                tfidf
 ušetřit     0.368881
 energie     0.317705
@@ -2925,8 +2925,8 @@ role        0.000000
 rolf        0.000000
 rohrbacher  0.000000
 rohlíček    0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                tfidf
 zdražování  0.357385
 inflace     0.332480
@@ -2973,8 +2973,8 @@ rolbař      0.000000
 role        0.000000
 rolf        0.000000
 roli        0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                  tfidf
 nechtěný      0.491374
 mail          0.473588
@@ -3021,8 +3021,8 @@ rohlik        0.000000
 rolinkem      0.000000
 rohlík        0.000000
 rohlíček      0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                 tfidf
 vzdělávání   0.549323
 odehrávat    0.333074
@@ -3069,8 +3069,8 @@ rolf         0.000000
 roli         0.000000
 rolinek      0.000000
 roll         0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                tfidf
 veterán     0.398183
 vzácnost    0.372397
@@ -3117,8 +3117,8 @@ rokycanský  0.000000
 rokycanech  0.000000
 roky        0.000000
 roku        0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                 tfidf
 pojišťovna   0.385377
 klient       0.355754
@@ -3165,8 +3165,8 @@ jenž         0.060140
 případ       0.059483
 nyní         0.058666
 jejich       0.056341
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                tfidf
 valorizace  0.576275
 oznámení    0.221154
@@ -3213,8 +3213,8 @@ se          0.040884
 on          0.038876
 do          0.035169
 který       0.031665
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
               tfidf
 pomoct     0.336551
 kvíz       0.324202
@@ -3261,8 +3261,8 @@ rohlíček   0.000000
 rohojnila  0.000000
 rohozci    0.000000
 rolbař     0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
               tfidf
 majetek    0.493225
 firemní    0.324313
@@ -3309,8 +3309,8 @@ rohojnila  0.000000
 role       0.000000
 rolbař     0.000000
 rolanda    0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                 tfidf
 pojištění    0.362937
 fous         0.322086
@@ -3357,8 +3357,8 @@ dnes         0.070683
 ani          0.068092
 hodně        0.061777
 jen          0.060611
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                 tfidf
 majetkový    0.718010
 majetek      0.272051
@@ -3405,8 +3405,8 @@ rolanda      0.000000
 rokycanech   0.000000
 rolbař       0.000000
 role         0.000000
-C:\ProgramData\Anaconda3\envs\moje-clanky-api-3\lib\site-packages\sklearn\utils\deprecation.py:87: FutureWarning: Function get_feature_names is deprecated; get_feature_names is deprecated in 1.0 and will be removed in 1.2. Please use get_feature_names_out instead.
-  warnings.warn(msg, category=FutureWarning)
+   
+
                   tfidf
 zákoník        0.431154
 bpv            0.365895
