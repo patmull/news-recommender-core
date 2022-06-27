@@ -595,12 +595,17 @@ class TfIdf:
         found_posts = []
         queried_post = recommenderMethods.find_post_by_slug(slug)
         path_to_saved_results = "research/tfidf/presaved_results.pkl"
+        path_to_saved_ids = "research/tfidf/presaved_ids.pkl"
+        ids = []
+        print("Index of queried:")
+        print(queried_post.index[0])
+        ids.append(queried_post.index[0])
+
         if os.path.exists(path_to_saved_results):
             print("Results found. Loading...")
             with open(path_to_saved_results, 'rb') as opened_file:
                 found_posts = pickle.load(opened_file)
         else:
-            # TODO: save also post id's or slugs from df
             recommended_posts = self.recommend_posts_by_all_features_preprocessed(slug)
             # queried doc
             print("Results not found. Querying results...")
@@ -608,11 +613,15 @@ class TfIdf:
             for post in recommended_posts:
                 found_post = recommenderMethods.find_post_by_slug(post['slug'])
                 found_posts.append(found_post.iloc[0]['all_features_preprocessed'])
+                ids.append(found_post.index[0])
                 print("found_posts")
                 print(found_posts)
 
             with open(path_to_saved_results, 'wb') as opened_file:
                 pickle.dump(found_posts, opened_file)
+
+            with open(path_to_saved_ids, 'wb') as opened_file:
+                pickle.dump(ids, opened_file)
 
         # TODO: Save to pickle
         cv = CountVectorizer()
@@ -655,37 +664,38 @@ class TfIdf:
             df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
             print(df_idf.sort_values(by=['idf_weights']).head(40))
 
-            print("---------------")
-            print("From whole dataset:")
-            word_count = cv.fit_transform(posts['all_features_preprocessed'])
-            print(word_count.shape)
-            print(word_count)
-            print(word_count.toarray())
-            tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
-            tfidf_transformer.fit(word_count)
-            df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
-            print(df_idf.sort_values(by=['idf_weights']).head(40))
+        print("---------------")
+        print("From whole dataset:")
+        word_count = cv.fit_transform(posts['all_features_preprocessed'])
+        print(word_count.shape)
+        print(word_count)
+        print(word_count.toarray())
+        tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
+        tfidf_transformer.fit(word_count)
+        df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
+        print(df_idf.sort_values(by=['idf_weights']).head(40))
 
-            print("----------------")
-            print("TF-IDF values:")
-            # dataframe_number =
-            print("----------------")
-            print("Simple example:")
-            tfidf_vectorizer = TfidfVectorizer(use_idf=True)
-            tfidf_vectorizer_vectors = tfidf_vectorizer.fit_transform(found_posts)
-            # dataframe number
-            first_vector_tfidfvectorizer = tfidf_vectorizer_vectors[0]
-            df = pd.DataFrame(first_vector_tfidfvectorizer.T.todense(), index=tfidf_vectorizer.get_feature_names(),
-                              columns=["tfidf"])
-            print(df.sort_values(by=["tfidf"], ascending=False).head(45))
+        print("----------------")
+        print("TF-IDF values:")
+        # dataframe_number =
+        print("----------------")
+        print("Simple example:")
+        tfidf_vectorizer = TfidfVectorizer(use_idf=True)
+        tfidf_vectorizer_vectors = tfidf_vectorizer.fit_transform(found_posts)
+        # dataframe number
+        first_vector_tfidfvectorizer = tfidf_vectorizer_vectors[0]
+        df = pd.DataFrame(first_vector_tfidfvectorizer.T.todense(), index=tfidf_vectorizer.get_feature_names(),
+                          columns=["tfidf"])
+        print(df.sort_values(by=["tfidf"], ascending=False).head(45))
 
-            print("---------------")
-            print("From whole dataset:")
-            tfidf_vectorizer = TfidfVectorizer(use_idf=True)
-            tfidf_vectorizer_vectors = tfidf_vectorizer.fit_transform(posts['all_features_preprocessed'])
-            # dataframe number
-            # TODO: loop through recommended posts
-            first_vector_tfidfvectorizer = tfidf_vectorizer_vectors[0]
+        print("---------------")
+        print("From whole dataset:")
+        tfidf_vectorizer = TfidfVectorizer(use_idf=True)
+        tfidf_vectorizer_vectors = tfidf_vectorizer.fit_transform(posts['all_features_preprocessed'])
+        # dataframe number
+        # TODO: loop through recommended posts
+        for id in ids:
+            first_vector_tfidfvectorizer = tfidf_vectorizer_vectors[id]
             df = pd.DataFrame(first_vector_tfidfvectorizer.T.todense(), index=tfidf_vectorizer.get_feature_names(),
                               columns=["tfidf"])
             print(df.sort_values(by=["tfidf"], ascending=False).head(45))
