@@ -11,7 +11,7 @@ from content_based_algorithms.lda import Lda
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.word2vec import Word2VecClass
-from collaboration_based_recommendation import Svd
+from collaboration_based_recommendation import SvdClass
 
 def create_app():
     # initializing files needed for the start of application
@@ -134,7 +134,7 @@ class GetPostsByKeywords(Resource):
 class GetPostsByOtherUsers(Resource):
 
     def get(self, param1, param2):
-        svd = Svd()
+        svd = SvdClass()
         return svd.run_svd(param1, param2)
 
     def post(self):

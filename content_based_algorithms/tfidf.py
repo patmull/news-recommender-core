@@ -89,6 +89,7 @@ class TfIdf:
             print(i[1].sort_values(ascending=False)[:10])
         """
 
+    @profile
     def keyword_based_comparison(self, keywords, number_of_recommended_posts=20, all_posts=False):
 
         if keywords == "":

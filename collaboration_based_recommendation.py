@@ -13,7 +13,7 @@ from surprise import Reader, Dataset, SVD, KNNBasic
 from surprise.model_selection import cross_validate
 
 
-class Svd:
+class SvdClass:
 
     def __init__(self):
         self.df_ratings = None
@@ -157,6 +157,7 @@ class Svd:
 
         return R_demeaned
 
+    @profile
     def run_svd(self, user_id, num_of_recommendations=10):
         U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
         sigma = np.diag(sigma)
@@ -357,13 +358,14 @@ class Svd:
 
 def main():
 
-    svd = Svd()
-    # print(svd.run_svd(431))
+    # svd_class = SvdClass()
+    # print(svd_class.run_svd(431))
     # print(svd.rmse_all_users())
+    """
     rated, all = svd.get_average_post_rating()
     print("rated:")
     print(rated)
     print("all:")
     print(all)
-
+    """
 if __name__ == "__main__": main()
