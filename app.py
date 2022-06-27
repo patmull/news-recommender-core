@@ -24,12 +24,15 @@ def create_app():
     print("FLASK APP READY TO START!")
     return app
 
+
 app = create_app()
 api = Api(app)
+
 
 @app.route('/', methods=['GET'])
 def home():
     return '''<h1>Moje články</h1><p>API pro doporučovací algoritmy.</p>'''
+
 
 class GetPostsLearnToRank(Resource):
 
