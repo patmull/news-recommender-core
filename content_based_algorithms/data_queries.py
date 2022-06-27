@@ -35,7 +35,9 @@ def load_general_stopwords():
 
 
 def remove_stopwords(texts):
-    stopwords = load_cz_stopwords()
+    stopwords_cz = load_cz_stopwords()
+    stopwords_general = load_general_stopwords()
+    stopwords = stopwords_cz + stopwords_general
     return [[word for word in gensim.utils.simple_preprocess(str(doc)) if word not in stopwords] for doc in texts]
 
 
@@ -311,7 +313,6 @@ class RecommenderMethods:
         df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
         # json conversion
         json = self.convert_datframe_posts_to_json(df_renamed, slug)
-
         return json
 
 
