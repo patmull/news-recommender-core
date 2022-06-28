@@ -143,6 +143,7 @@ class LightGBM:
             print(df_from_json.to_string())
 
             dataframes.append(df_from_json)
+
         df_merged = pd.concat(dataframes, ignore_index=True)
 
         print("df_merged columns")
@@ -327,7 +328,7 @@ class LightGBM:
         ], axis=1)
         return df_preprocessed
 
-    def train_lightgbm_user_based(self, use_categorical_columns=True, k=20):
+    def train_lightgbm_user_based(self):
 
         # TODO: Remove user id if it's needed
         df_results = self.get_results_single_coeff_searched_doc_as_query()
@@ -342,7 +343,7 @@ class LightGBM:
         print(post_category_df.columns)
 
         categorical_columns = [
-            'category'
+            "category", "model_name"
         ]
 
         numerical_columns = [
@@ -353,39 +354,15 @@ class LightGBM:
         print("df_results_merged.columns")
         print(df_results_merged.columns)
 
-        print("Loading Dov2Vec model...")
-        doc2vec_model = Doc2Vec.load("models/d2v_mini_vectors.model")  # or download from Dropbox / AWS bucket
-        print("Dov2Vec model loaded...")
-        df1 = pd.DataFrame(df_results_merged)
-        # converting title and excerpt to doc2vec vector
-        print("Computing Doc2Vec for articles in testing results.")
-
-        recommender_methods = RecommenderMethods()
-        print("Appending Doc2Vec columns.")
-        """
-        for index, df_results_merged_row in df_results_merged.iterrows():
-            df_results_merged.apply(lambda row: recommenderMethods.find_post_by_slug(row['D'], row['p'], ck, ch), axis=1)
-
-            # not necessary
-            post_found = recommenderMethods.find_post_by_slug(df_results_merged_row['slug'])
-            keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
-            all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
-            tokens = keywords_preprocessed + all_features_preprocessed
-            vector_source = doc2vec_model.infer_vector(tokens)
-            df_results_merged_row['doc2vec'] = vector_source
-        """
         print("Loading Doc2Vec model...")
         doc2vec = Doc2VecClass()
         doc2vec.load_model()
         df_results_merged = df_results_merged.rename({"doc2vec_representation": "doc2vec"}, axis=1)
-        # df_results_merged['doc2vec'] = df_results_merged.apply(lambda row : doc2vec.get_vector_representation(row['slug']).iloc[0]['all_features_preprocessed'].split(" "), axis=1) # axis=1 for rows!!!
         print("df_results_merged:")
         print(df_results_merged.to_string())
         df2 = pd.DataFrame(df_results_merged)
         print("df2:")
         print(df2.to_string())
-        # df2[['slug','doc2vec']].fillna(lambda x : json.dumps(doc2vec.get_vector_representation(x['slug']).tolist()), inplace=True)
-        # df2.apply(lambda x: json.dumps(doc2vec.get_vector_representation(x['slug']) if (np.all(pd.notnull(x['']))) else x, axis=1))
         print("Searching for Doc2Vec missing values...")
         df2['doc2vec'] = df2.apply(lambda row: json.dumps(doc2vec.get_vector_representation(row['slug']).tolist()) if pd.isnull(row['doc2vec']) else row['doc2vec'], axis=1)
         print("doc2vec:")
@@ -402,13 +379,6 @@ class LightGBM:
 
         df_results_merged_old = df_results_merged
 
-        dataframe_length = len(df_results_merged.index)
-        """
-        split_train = int(dataframe_length * 0.8)
-        split_validation = int(dataframe_length - split_train)
-        train_df = df_results[:split_train]  # first 80%
-        validation_df = df_results[split_validation:]  # remaining 20%
-        """
         print("Splitting dataset.")
         features = ["user_id", "coefficient", "relevance_val", "views"]
         train_df, validation_df = train_test_split(df_results_merged, test_size=0.2)
@@ -416,14 +386,13 @@ class LightGBM:
         print("Normalizing coeffficient and views")
         train_df[['coefficient', 'views']] = train_df[['coefficient', 'views']].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 
-        if use_categorical_columns is True:
-            one_hot_encoder = OneHotEncoder(sparse=False, dtype=np.int32)
-            one_hot_encoder.fit(df_results_merged[categorical_columns])
+        one_hot_encoder = OneHotEncoder(sparse=False, dtype=np.int32)
+        one_hot_encoder.fit(df_results_merged[categorical_columns])
 
-            df_results_merged = self.preprocess_one_hot(df_results_merged, one_hot_encoder, numerical_columns, categorical_columns)
+        df_results_merged = self.preprocess_one_hot(df_results_merged, one_hot_encoder, numerical_columns, categorical_columns)
 
-            df_results_merged['query_slug'] = df_results_merged_old['query_slug']
-            df_results_merged['slug'] = df_results_merged_old['slug']
+        df_results_merged['query_slug'] = df_results_merged_old['query_slug']
+        df_results_merged['slug'] = df_results_merged_old['slug']
 
         # df_unseen = df_results_merged.iloc[:20,:]
         # df_results_merged = df_results_merged.iloc[20:,:]
@@ -431,14 +400,14 @@ class LightGBM:
         all_columns_of_train_df = train_df.columns.values.tolist()
         print("Columns values:")
         print(train_df.columns.values.tolist())
-        if use_categorical_columns is True:
-            # title, excerpt --> doc2vec
-            features.extend(['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5', 'doc2vec_col_6', 'doc2vec_col_7'])
-            # category --> OneHotEncoding (each category its own column, binary values)
-            categorical_columns_after_encoding = [x for x in all_columns_of_train_df if x.startswith("category_")]
-            features.extend(categorical_columns_after_encoding)
-            print('number of one hot encoded categorical columns: ',
-                  len(one_hot_encoder.get_feature_names(categorical_columns)))
+
+        # title, excerpt --> doc2vec
+        features.extend(['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5', 'doc2vec_col_6', 'doc2vec_col_7'])
+        # category --> OneHotEncoding (each category its own column, binary values)
+        categorical_columns_after_encoding = [x for x in all_columns_of_train_df if x.startswith("category_")]
+        features.extend(categorical_columns_after_encoding)
+        print('number of one hot encoded categorical columns: ',
+              len(one_hot_encoder.get_feature_names(categorical_columns)))
 
         print("train_df")
         print(train_df)
@@ -465,12 +434,12 @@ class LightGBM:
         )
 
         features_X = ['coefficient', 'views']
+        features_X.extend(categorical_columns_after_encoding)
+        features_X.extend(['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5', 'doc2vec_col_6', 'doc2vec_col_7'])
 
-        if use_categorical_columns is True:
-            features_X.extend(categorical_columns_after_encoding)
-            features_X.extend(['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5', 'doc2vec_col_6', 'doc2vec_col_7'])
         print("features_X")
         print(features_X)
+
         model.fit(train_df[features_X], train_df[['relevance_val']],
                              group=query_train,
                              verbose=10,
@@ -481,37 +450,18 @@ class LightGBM:
 
         pickle.dump(model, open('models/lightgbm.pkl', 'wb'))
 
-        consider_only_top_limit = 1000
-        # df_results_merged = pd.merge(df_results_merged, evaluation_results_df, on='query_slug', how='left')
-        # print("df_results_merged")
-        # print(df_results_merged)
-        # pred_df = self.make_post_feature(df_results_merged)
-
-        """
-        # TODO: Repeated trial for avg execution time
-        start_time = time.time()
-        tfidf_posts_full = self.get_tfidf(self.tfidf, post_slug)
-        print("--- %s seconds ---" % (time.time() - start_time))
-
-        start_time = time.time()
-        tfidf_keywords = self.get_user_keywords_based(self.tfidf, self.user_based_recommendation, self.user_id)
-        print("--- %s seconds ---" % (time.time() - start_time))
-
-        start_time = time.time()
-        doc2vec_posts = self.get_doc2vec(self.doc2vec, post_slug)
-        print("--- %s seconds ---" % (time.time() - start_time))
-        """
 
     def get_posts_lightgbm(self, slug, use_categorical_columns=True):
         consider_only_top_limit = 20
         if use_categorical_columns is True:
             one_hot_encoder = OneHotEncoder(sparse=False, dtype=np.int32)
 
-        features = ["user_id", "coefficient", "relevance", "relevance_val", "views"]
+        features = ["user_id", "coefficient", "relevance", "relevance_val", "views", "model_name"]
         categorical_columns = [
-            'category'
+            'category', 'model_name'
         ]
 
+        # Loading TfIdf results
         tfidf = TfIdf()
         tf_idf_results = tfidf.recommend_posts_by_all_features_preprocessed(slug)
         json_data = json.loads(json.dumps(tf_idf_results))
@@ -526,9 +476,8 @@ class LightGBM:
 
         tf_idf_results = tf_idf_results.merge(post_category_df, on='slug')
 
-        # DOC2VEC
-
         tf_idf_results = tf_idf_results.rename({"doc2vec_representation": "doc2vec"}, axis=1)
+        tf_idf_results['model_name'] = 'tfidf'
         df2 = pd.DataFrame(tf_idf_results)
         doc2vec_column_name_base = "doc2vec_col_"
 
@@ -551,9 +500,7 @@ class LightGBM:
         tf_idf_results = pd.concat([tf_idf_results, df2], axis=1)
 
         #####
-
         # TODO: Find and fill missing Doc2Vec values (like in the training phase)
-
         print("tf_idf_results")
         print(tf_idf_results.to_string())
 
@@ -605,6 +552,7 @@ class LightGBM:
         print('---------- Recommend ----------')
         print(recommend_df.to_string())
 
+    @DeprecationWarning
     def train_lightgbm_document_based(self, slug, k=20):
 
         df_results = self.get_results_single_coeff_searched_doc_as_query()
@@ -1034,46 +982,6 @@ class LearnToRank:
             print(X)
             features_dict = {0: 'TfIdf Posts', 1: 'Doc2vec', 2: 'LDA', 3: 'Rating avg'}
 
-        """
-        # Linear regression (Sklearn)
-        model = LinearRegression()
-        # fit the model
-        model.fit(X, y)
-        # get importance
-        importance = np.ndarray.flatten(model.coef_)
-        # summarize feature importance
-        print("importance:")
-        print(importance)
-        for i, v in enumerate(importance):
-            print('Feature: %0d, Score: %.5f' % (i, v))
-        # plot feature importance
-        self.plot_feature_importance(features_dict,importance,"Linear Regression")
-        # define the model
-        # define dataset
-        # define the model
-        model = DecisionTreeRegressor()
-        # fit the model
-        model.fit(X, y)
-        # get importance
-        importance = model.feature_importances_
-        # summarize feature importance
-        for i, v in enumerate(importance):
-            print('Feature: %0d, Score: %.5f' % (i, v))
-        # plot feature importance
-        self.plot_feature_importance(features_dict,importance,"Decision Tree Regressor")
-        # define the model
-        model = RandomForestRegressor()
-        # fit the model
-        model.fit(X, y)
-        # get importance
-        importance = model.feature_importances_
-        # summarize feature importance
-        for i, v in enumerate(importance):
-            print('Feature: %0d, Score: %.5f' % (i, v))
-        # plot feature importance
-        self.plot_feature_importance(features_dict,importance,"Random Forest Regressor")
-        """
-
         # define the model
         model = XGBRegressor()
         # fit the model
@@ -1083,43 +991,6 @@ class LearnToRank:
         # summarize feature importance
         for i, v in enumerate(importance):
             print('Feature: %0d, Score: %.5f' % (i, v))
-        # plot feature importance
-        # self.plot_feature_importance(features_dict,importance,"XGBRegressor")
-
-        """
-        # define the model
-        model = XGBClassifier()
-        # fit the model
-        model.fit(X, y)
-        # get importance
-        importance = model.feature_importances_
-        # summarize feature importance
-        for i, v in enumerate(importance):
-            print('Feature: %0d, Score: %.5f' % (i, v))
-        # plot feature importance
-        self.plot_feature_importance(features_dict,importance,"XGBClassifier")
-        # define the model
-        model = KNeighborsRegressor()
-        # fit the model
-        model.fit(X, y)
-        # perform permutation importance
-        results = permutation_importance(model, X, y, scoring='neg_mean_squared_error')
-        # get importance
-        importance = results.importances_mean
-        # summarize feature importance
-        for i, v in enumerate(importance):
-            print('Feature: %0d, Score: %.5f' % (i, v))
-        self.plot_feature_importance(features_dict,importance,"K Neighbors Regressor")
-        """
-
-        # Lin regression
-        """
-        butIRegress = LinearRegression()
-        butIRegress.fit(X, y)
-        importance = np.ndarray.flatten(butIRegress.coef_)
-        print("butIRegress.coef_")
-        print(butIRegress.coef_)
-        """
 
         user_has_keywords = None
         if len(user_keywords) > 0:
@@ -1194,6 +1065,11 @@ class LearnToRank:
     def flatten(self, t):
         return [item for sublist in t for item in sublist]
 
+    def redis_test(self):
+        r = redis.Redis(host='redis-10115.c3.eu-west-1-2.ec2.cloud.redislabs.com', port=10115, db=0, username="admin",
+                        password=REDIS_PASSWORD)
+        r.set('foo', 'bar')
+        print(r.get('foo'))
 
 def main():
     # client = Client()
@@ -1210,20 +1086,6 @@ def main():
     # lighGBM.train_lightgbm_document_based('tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
     lighGBM.get_posts_lightgbm('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy', True)
     print("--- %s seconds ---" % (time.time() - start_time))
-
-    """
-    user = 2  # user_id
-    k = 20  # num of recommend items
-    sample_anime_num = 1000  # num of recommend candidates
-    recommend_df = lighGBM.recommend_for_user(user, k, sample_anime_num)
-    
-    print(recommend_df)
-    """
-    """
-    r = redis.Redis(host='redis-10115.c3.eu-west-1-2.ec2.cloud.redislabs.com', port=10115, db=0, username="admin", password=REDIS_PASSWORD)
-    r.set('foo', 'bar')
-    print(r.get('foo'))
-    """
 
 
 if __name__ == "__main__": main()
