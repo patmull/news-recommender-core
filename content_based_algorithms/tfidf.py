@@ -624,7 +624,19 @@ class TfIdf:
                 pickle.dump(ids, opened_file)
 
         # TODO: Save to pickle
-        cv = CountVectorizer()
+        filename = "preprocessing/stopwords/general_stopwords.txt"
+        with open(filename, encoding="utf-8") as file:
+            general_stopwords = file.readlines()
+            general_stopwords = [line.rstrip() for line in general_stopwords]
+
+        filename = "preprocessing/stopwords/cz_stopwords.txt"
+        with open(filename, encoding="utf-8") as file:
+            cz_stopwords = file.readlines()
+            cz_stopwords = [line.rstrip() for line in general_stopwords]
+        # print(cz_stopwords)
+        stopwords = cz_stopwords + general_stopwords
+
+        cv = CountVectorizer(stop_words=stopwords)
         for found_post in found_posts:
             cv_fit = cv.fit_transform([found_post])
             word_list = cv.get_feature_names()
