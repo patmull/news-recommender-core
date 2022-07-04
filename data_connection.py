@@ -205,6 +205,10 @@ class Database:
                     query = """UPDATE posts SET recommended_lda=%s WHERE id=%s;"""
                 elif algorithm == "lda" and full_text is True:
                     query = """UPDATE posts SET recommended_lda_full_text=%s WHERE id=%s;"""
+                elif algorithm == "word2vec" and full_text is False:
+                    query = """UPDATE posts SET recommended_word2vec=%s WHERE id=%s;"""
+                elif algorithm == "word2vec" and full_text is True:
+                    query = """UPDATE posts SET recommended_word2vec_full_text=%s WHERE id=%s;"""
                 inserted_values = (articles_recommended_json, article_id)
                 self.cursor.execute(query, inserted_values)
                 self.cnx.commit()

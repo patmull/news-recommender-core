@@ -114,7 +114,7 @@ class LightGBM:
         print(evaluation_results_df)
         dict_of_jsons = {}
         for index, row in evaluation_results_df.iterrows():
-            dict_of_jsons[row['id']] = [row['results_part_2'],row['user_id'],row['query_slug']]
+            dict_of_jsons[row['id']] = [row['results_part_2'],row['user_id'],row['query_slug'], row['model_name']]
 
         print("dict_of_jsons:")
         print(dict_of_jsons)
@@ -125,6 +125,7 @@ class LightGBM:
             df_from_json['query_id'] = id
             df_from_json['user_id'] = json_dict[1]
             df_from_json['query_slug'] = json_dict[2]
+            df_from_json['model_name'] = json_dict[3]
 
             # converting binary relevance to 0-7 relevance and sorting by relevance
             df_from_json.sort_values(by=['relevance', 'coefficient'], inplace=True, ascending=False)
@@ -149,7 +150,7 @@ class LightGBM:
         print("df_merged columns")
         print(df_merged.columns)
 
-        df_merged = df_merged[['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'relevance_val']]
+        df_merged = df_merged[['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'relevance_val', 'model_name']]
         # converting indexes to columns
         # df_merged.reset_index(level=['coefficient', 'relevance'], inplace=True)
         print("df_merged:")
@@ -335,7 +336,6 @@ class LightGBM:
         recommenderMethods = RecommenderMethods()
 
         post_category_df = recommenderMethods.join_posts_ratings_categories()
-
         post_category_df = post_category_df.rename(columns={'slug_x': 'slug'})
         post_category_df = post_category_df.rename(columns={'title_y': 'category'})
 
@@ -353,6 +353,7 @@ class LightGBM:
         df_results_merged = df_results.merge(post_category_df, on='slug')
         print("df_results_merged.columns")
         print(df_results_merged.columns)
+        time.sleep(60)
 
         print("Loading Doc2Vec model...")
         doc2vec = Doc2VecClass()
@@ -464,7 +465,15 @@ class LightGBM:
         # Loading TfIdf results
         tfidf = TfIdf()
         tf_idf_results = tfidf.recommend_posts_by_all_features_preprocessed(slug)
+        print("tf_idf_results")
+        print(tf_idf_results)
+        print("type(tf_idf_results)")
+        print(type(tf_idf_results))
         json_data = json.loads(json.dumps(tf_idf_results))
+        print("json_data")
+        print(json_data)
+        print("type(json_data)")
+        print(type(json_data))
         tf_idf_results = pd.json_normalize(json_data)
         print(tf_idf_results)
 
@@ -473,11 +482,11 @@ class LightGBM:
 
         post_category_df = post_category_df.rename(columns={'slug_x': 'slug'})
         post_category_df = post_category_df.rename(columns={'title_y': 'category'})
+        post_category_df['model_name'] = 'tfidf'
 
         tf_idf_results = tf_idf_results.merge(post_category_df, on='slug')
 
         tf_idf_results = tf_idf_results.rename({"doc2vec_representation": "doc2vec"}, axis=1)
-        tf_idf_results['model_name'] = 'tfidf'
         df2 = pd.DataFrame(tf_idf_results)
         doc2vec_column_name_base = "doc2vec_col_"
 
