@@ -69,14 +69,7 @@ class Lda:
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
-        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
 
-        gc.collect()
-
-        self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-
-        self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed']
 
         gc.collect()
 

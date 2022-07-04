@@ -62,6 +62,8 @@ class MyCorpus(object):
             yield self.dictionary.doc2bow(doc.get('text'))
             i = i + 1
 
+
+@DeprecationWarning
 class CzLemma:
 
     def __init__(self):
@@ -112,6 +114,7 @@ class CzLemma:
 
         return " ".join(edited_words)
 
+    @DeprecationWarning
     def preprocess_single_post_find_by_slug(self, slug, json=False, stemming=False):
         recommenderMethods = RecommenderMethods()
         post_dataframe = recommenderMethods.find_post_by_slug(slug)
@@ -122,10 +125,12 @@ class CzLemma:
         else:
             return recommenderMethods.convert_df_to_json(post_dataframe)
 
+    @DeprecationWarning
     def preprocess_feature(self, feature_text, stemming=False):
         post_excerpt_preprocessed = self.preprocess(feature_text, stemming)
         return post_excerpt_preprocessed
 
+    @DeprecationWarning
     def cz_lemma(self, string, json=False):
         morph = majka.Majka('morphological_database/majka.w-lt')
 
@@ -162,10 +167,11 @@ class CzLemma:
 class Reader(object):
     ''' Source reader object feeds other objects to iterate through a source. '''
     def __init__(self):
+
         ''' init '''
         # exclude_stops = set(('.', '(', ')'))
         # self.stop = set(stopwords.words('english')) - exclude_stops
-        self.wn_lemmatizer = CzLemma()
+        self.wn_lemmatizer = CzPreprocess()
 
     def prepare_words(self, text):
         ''' Prepare text
@@ -324,7 +330,7 @@ class Word2VecClass:
 
         print("Loading Word2Vec FastText (Wikipedia) model...")
         # word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
-        self.find_optimal_model(texts)
+        self.find_optimal_model_idnes(texts)
 
     # @profile
     def get_similar_word2vec(self, searched_slug, model="idnes"):
@@ -587,7 +593,7 @@ class Word2VecClass:
 
     # TODO: texts by generator
     # TODO: create bigrams
-    def find_optimal_model(self):
+    def find_optimal_model_idnes(self):
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
         # Enabling Word2Vec logging
@@ -842,34 +848,6 @@ class Word2VecClass:
                               mongo_collection=mongo_collection_bigrams)
                 i = i + 1
 
-            """
-            # https://stackoverflow.com/questions/54318701/how-to-train-a-phrases-model-from-a-huge-corpus-of-articles-wikipedia
-            max_vocab_size = 20000000
-            phrases = gensim.models.Phrases(sentences=sentences, max_vocab_size=max_vocab_size, min_count=1, threshold=1)
-            chunks_size = 10000
-            bigrams_list, i = [], 0
-            cursor = mongo_collection_stopwords_free.find({})
-            for doc in cursor:
-                print("...............")
-                bigrams_list.append(doc['text'])
-                i += 1
-                if i % chunks_size == 0:
-                    print("bigrams_list")
-                    print(bigrams_list)
-                    phrases.add_vocab(reduce(operator.add, bigrams_list))
-                    bigrams_list = []
-            frozen_phrases = phrases.freeze()
-            cursor = mongo_collection_stopwords_free.find({})
-            i = 1
-            for doc in cursor:
-                docs_bigrams = []
-                bigram_word = frozen_phrases[doc['text']]
-                docs_bigrams.append(bigram_word)
-                print("Building bigrams for document number " + str(i))
-                save_to_mongo(number_of_processed_files=i, data=docs_bigrams[0], mongo_collection=mongo_collection_bigrams)
-                i = i + 1
-            """
-
     def keep_top_k_words(self, text):
         return [word for word in text if word in self.top_k_words]
 
@@ -973,18 +951,25 @@ class Word2VecClass:
 
     def create_dictionary_from_dataframe(self, force_update=True, filter_extremes=False):
         recommenderMethods = RecommenderMethods()
+        cz_preprocess = CzPreprocess()
         post_df = recommenderMethods.join_posts_ratings_categories()
         post_df['full_text'] = post_df['full_text'].replace([None], '')
 
         post_df['all_features_preprocessed'] = post_df['all_features_preprocessed'] + ' ' + post_df['full_text']
-        all_features_preprocessed_list = post_df['all_features_preprocessed'].to_list()
-        print("list:")
-        print(all_features_preprocessed_list[:1000])
-        stoplist = set('for a of the and to in'.split())
-        texts = [
-            [word for word in document.lower().split() if word not in stoplist]
-            for document in all_features_preprocessed_list
-        ]
+
+        gc.collect()
+
+        # Preprocessing to small to calling
+        # post_df['all_features_preprocessed'] = post_df['all_features_preprocessed'].map(cz_preprocess.preprocess)
+        post_df['all_features_preprocessed'] = post_df.all_features_preprocessed.apply(lambda x: x.split(' '))
+        post_df['all_features_preprocessed'] = post_df[['all_features_preprocessed']]
+        print("post_df")
+        print(post_df['all_features_preprocessed'][:100])
+        all_features_preprocessed_list = post_df['A'].to_numpy()
+        print("all_features_preprocessed_list:")
+        print(all_features_preprocessed_list[:100])
+        time.sleep(60)
+        texts = [document for document in all_features_preprocessed_list]
 
         # remove words that appear only once
         frequency = defaultdict(int)
@@ -1004,7 +989,7 @@ class Word2VecClass:
         dictionary.save('full_models/idnes/unprocessed/idnes.dict')
         corpus = [dictionary.doc2bow(text) for text in texts]
         corpora.MmCorpus.serialize('full_models/idnes/unprocessed/idnes.mm', corpus)  # store to disk, for later use
-        print("Dictionary and  Corpus succesfuly saved on disk")
+        print("Dictionary and  Corpus successfully saved on disk")
 
     def test_with_and_without_extremes(self):
         # TODO: Test this
@@ -1042,6 +1027,7 @@ class Word2VecClass:
             corpus = corpora.MmCorpus("full_models/idnes/lda/preprocessed/corpus")
         return corpus
 
+
 @DeprecationWarning
 def run():
     searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"  # print(doc2vecClass.get_similar_doc2vec(slug))
@@ -1059,7 +1045,7 @@ def run():
     print("Elapsed time: " + str(end - start))
     """
 
-    # word2vecClass.find_optimal_model()
+    # word2vecClass.find_optimal_model_idnes()
 
     # 1. Create and save Dictionary
     # 2. Create and save Corpus from Dictionary

@@ -57,7 +57,7 @@ def main():
     # print(lda.get_similar_lda('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem', train=True, display_dominant_topics=True))
     # print(lda.get_similar_lda_full_text('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem', train=False, display_dominant_topics=False))
     # lda.display_lda_stats()
-    # lda.find_optimal_model(body_text_model=True)
+    # lda.find_optimal_model_idnes(body_text_model=True)
     """
     word2vecClass = Word2VecClass()
     start = time.time()
