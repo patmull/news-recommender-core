@@ -11,6 +11,7 @@ from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.lda import Lda
 from content_based_algorithms.tfidf import TfIdf
+from content_based_algorithms.word2vec import Word2VecClass
 from data_connection import Database
 from learn_to_rank import LightGBM
 
@@ -39,6 +40,10 @@ class PreFiller():
                     t.sleep(30)  # wait 30 seconds then try again
                     continue
                 break
+
+        if algorithm == "word2vec":
+            word2vec = Word2VecClass()
+            word2vec.fill_recommended_for_all_posts(skip_already_filled=False, random_order=False, reversed=True)
 
     def fill_recommended_for_all_posts(self, algorithm, db, doc2vec, skip_already_filled, full_text, random_order=False, reversed=False):
 

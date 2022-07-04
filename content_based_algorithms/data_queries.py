@@ -18,11 +18,14 @@ import os
 dirname = os.path.dirname(__file__)
 
 
-def load_cz_stopwords():
+def load_cz_stopwords(remove_punct=True):
     filename = "preprocessing/stopwords/czech_stopwords.txt"
     with open(filename, encoding="utf-8") as file:
         cz_stopwords = file.readlines()
-        cz_stopwords = [line.rstrip() for line in cz_stopwords]
+        if remove_punct is False:
+            cz_stopwords = [line.rstrip() for line in cz_stopwords]
+        else:
+            cz_stopwords = [gensim.utils.simple_preprocess(line.rstrip()) for line in cz_stopwords]
         return cz_stopwords
 
 
@@ -122,7 +125,7 @@ class RecommenderMethods:
         self.database.disconnect()
         print("self.results_df:")
         print(results_df)
-        results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id']]
+        results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name']]
         return results_df_
 
     def refresh_cached_db_file(self):
