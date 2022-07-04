@@ -7,6 +7,7 @@ import pandas as pd
 from nltk import RegexpTokenizer
 
 from content_based_algorithms.data_queries import RecommenderMethods
+from preprocessing.cz_preprocessing import CzPreprocess
 from preprocessing.czech_stemmer import cz_stem
 from gensim import corpora, models, similarities
 from scipy import sparse
@@ -196,6 +197,7 @@ class GenSim:
     # pre-worked
     def preprocess(self, sentence, stemming=False, lemma=True):
         # print(sentence)
+        cz_preprocess = CzPreprocess()
         sentence = str(sentence)
         sentence = sentence.lower()
         sentence = sentence.replace('{html}', "")
@@ -216,7 +218,7 @@ class GenSim:
             return " ".join(edited_words)
 
         elif lemma is True:
-            edited_words = [self.cz_lemma(w) for w in tokens if len(w) > 1]
+            edited_words = [cz_preprocess.cz_lemma(w) for w in tokens if len(w) > 1]
             edited_words_list = list(filter(None, edited_words))  # empty strings removal
             return " ".join(edited_words_list)
         else:
