@@ -52,7 +52,7 @@ def main():
     word2vecClass = Word2VecClass()
     # 1. Create Dictionary
     word2vecClass.create_dictionary_from_dataframe(force_update=True, filter_extremes=False)
-
+    # word2vecClass.eval_idnes_basic()
 
 if __name__ == '__main__':
     main()
