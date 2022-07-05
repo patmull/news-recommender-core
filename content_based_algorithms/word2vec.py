@@ -886,8 +886,10 @@ class Word2VecClass:
             print("There are already records in MongoDB. Skipping Idnes preprocessing (1st phase)")
             pass
         else:
-            corpus = gensim.corpora.MmCorpus('full_models/idnes/unprocessed/idnes.xml.bz2')
-
+            corpus = gensim.corpora.TextCorpus('full_models/idnes/unprocessed/idnes.mm')
+            print("Corpus length:")
+            print(len(corpus))
+            time.sleep(120)
             # preprocessing steps
             czlemma = CzPreprocess()
             helper = Helper()
@@ -923,7 +925,7 @@ class Word2VecClass:
             num_of_preprocessed_docs = number_of_documents
             # clearing collection from all documents
             mongo_collection.delete_many({})
-            for doc in helper.generate_lines_from_corpus(corpus):
+            for doc in helper.generate_lines_from_mmcorpus(corpus):
                 if number_of_documents > 0:
                     number_of_documents -= 1
                     print("Skipping doc.")
@@ -949,47 +951,57 @@ class Word2VecClass:
 
             print("Preprocessing Idnes has (finally) ended. All articles were preprocessed.")
 
-    def create_dictionary_from_dataframe(self, force_update=True, filter_extremes=False):
-        recommenderMethods = RecommenderMethods()
-        cz_preprocess = CzPreprocess()
-        post_df = recommenderMethods.join_posts_ratings_categories()
-        post_df['full_text'] = post_df['full_text'].replace([None], '')
+    def create_dictionary_from_dataframe(self, force_update=False, filter_extremes=False):
+        path_to_dict = "full_models/idnes/unprocessed/idnes.dict"
+        path_to_corpus = "full_models/idnes/unprocessed/idnes.mm"
+        if os.path.exists(path_to_dict) is False or os.path.exists(path_to_corpus) is False or force_update is True:
+            recommenderMethods = RecommenderMethods()
+            cz_preprocess = CzPreprocess()
+            post_df = recommenderMethods.join_posts_ratings_categories()
+            post_df['full_text'] = post_df['full_text'].replace([None], '')
 
-        post_df['all_features_preprocessed'] = post_df['all_features_preprocessed'] + ' ' + post_df['full_text']
+            post_df['all_features_preprocessed'] = post_df['all_features_preprocessed'] + ' ' + post_df['full_text']
 
-        gc.collect()
+            gc.collect()
 
-        # Preprocessing to small to calling
-        # post_df['all_features_preprocessed'] = post_df['all_features_preprocessed'].map(cz_preprocess.preprocess)
-        post_df['all_features_preprocessed'] = post_df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        post_df['all_features_preprocessed'] = post_df[['all_features_preprocessed']]
-        print("post_df")
-        print(post_df['all_features_preprocessed'][:100])
-        all_features_preprocessed_list = post_df['A'].to_numpy()
-        print("all_features_preprocessed_list:")
-        print(all_features_preprocessed_list[:100])
-        time.sleep(60)
-        texts = [document for document in all_features_preprocessed_list]
+            # Preprocessing to small to calling
+            # post_df['all_features_preprocessed'] = post_df['all_features_preprocessed'].map(cz_preprocess.preprocess)
+            post_df['all_features_preprocessed'] = post_df.all_features_preprocessed.apply(lambda x: x.split(' '))
+            post_df['all_features_preprocessed'] = post_df[['all_features_preprocessed']]
+            print("post_df")
+            print(post_df['all_features_preprocessed'][:100])
+            all_features_preprocessed_list = post_df['all_features_preprocessed'].to_numpy()
+            print("all_features_preprocessed_list:")
+            print(all_features_preprocessed_list[:100])
+            time.sleep(60)
+            texts = [document for document in all_features_preprocessed_list]
 
-        # remove words that appear only once
-        frequency = defaultdict(int)
-        for text in texts:
-            for token in text:
-                frequency[token] += 1
+            # remove words that appear only once
+            frequency = defaultdict(int)
+            for text in texts:
+                for token in text:
+                    frequency[token] += 1
 
-        texts = [
-            [token for token in text if frequency[token] > 1]
-            for text in texts
-        ]
-        # all_features_preprocessed_list_of_lists = [[i] for i in all_features_preprocessed_list]
-        print("list of lists:")
-        print(texts[:1000])
-        time.sleep(50)
-        dictionary = corpora.Dictionary(line for line in texts)
-        dictionary.save('full_models/idnes/unprocessed/idnes.dict')
-        corpus = [dictionary.doc2bow(text) for text in texts]
-        corpora.MmCorpus.serialize('full_models/idnes/unprocessed/idnes.mm', corpus)  # store to disk, for later use
-        print("Dictionary and  Corpus successfully saved on disk")
+            texts = [
+                [token for token in text if frequency[token] > 1]
+                for text in texts
+            ]
+            # all_features_preprocessed_list_of_lists = [[i] for i in all_features_preprocessed_list]
+            print("list of lists:")
+            print(texts[:1000])
+            time.sleep(50)
+            dictionary = corpora.Dictionary(line for line in texts)
+            path_to_dict = 'full_models/idnes/unprocessed/idnes.dict'
+            path_to_dict_folder = 'full_models/idnes/unprocessed/'
+            if not os.path.isfile(path_to_dict):
+                os.makedirs(path_to_dict_folder)
+            dictionary.save(path_to_dict)
+            corpus = [dictionary.doc2bow(text) for text in texts]
+            corpora.MmCorpus.serialize(path_to_corpus, corpus)  # store to disk, for later use
+            print("Dictionary and  Corpus successfully saved on disk")
+        else:
+            print("Dictionary and corpus already exists")
+
 
     def test_with_and_without_extremes(self):
         # TODO: Test this
@@ -1015,16 +1027,22 @@ class Word2VecClass:
             loaded_dict = corpora.Dictionary.load("full_models/idnes/lda/preprocessed/dictionary")
             return loaded_dict
 
-    def create_corpus_from_mongo_idnes(self, dictionary, sentences=None, force_update=False):
-        if os.path.isfile("full_models/idnes/lda/preprocessed/corpus") is False or force_update is True:
+    def create_corpus_from_mongo_idnes(self, dictionary, sentences=None, force_update=False, preprocessed=False):
+        path_part_1 = "full_models/idnes/"
+        path_part_2 = "/idnes.mm"
+        if preprocessed is True:
+            path_to_corpus = path_part_1 + "preprocessed" + path_part_2
+        else:
+            path_to_corpus = path_part_1 + "unpreprocessed" + path_part_2
+        if os.path.isfile(path_to_corpus) is False or force_update is True:
             corpus = MyCorpus(dictionary)
             del sentences
             gc.collect()
             print("Saving preprocessed corpus...")
-            corpora.MmCorpus.serialize("full_models/idnes/lda/preprocessed/corpus", corpus)
+            corpora.MmCorpus.serialize(path_to_corpus, corpus)
         else:
             print("Corpus already exists. Loading...")
-            corpus = corpora.MmCorpus("full_models/idnes/lda/preprocessed/corpus")
+            corpus = corpora.MmCorpus(path_to_corpus)
         return corpus
 
 
