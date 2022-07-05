@@ -5,6 +5,9 @@ import numpy as np
 
 from gensim.utils import deaccent
 
+from preprocessing.cz_preprocessing import CzPreprocess
+
+
 class Helper:
     # helper functions
 
@@ -28,10 +31,19 @@ class Helper:
                 if preprocess is False:
                     yield text
                 if preprocess is True:
-                    czlemma = cz_lemmatization.CzPreprocess()
+                    czlemma = CzPreprocess()
                     yield czlemma.preprocess(deaccent(text))
             else:
                 break
+
+    # https://www.machinelearningplus.com/nlp/gensim-tutorial/
+    def generate_lines_from_mmcorpus(self, corpus, max_sentence=-1, preprocess=False):
+        for text in corpus:
+            if preprocess is False:
+                yield text
+            if preprocess is True:
+                czlemma = CzPreprocess()
+                yield czlemma.preprocess(deaccent(text))
 
     def clear_blank_lines_from_txt(self, file_path):
         new_filename_parts = file_path.split('.')
