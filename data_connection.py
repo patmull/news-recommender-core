@@ -151,10 +151,12 @@ class Database:
     def insert_keywords(self,keyword_all_types_splitted,article_id):
         # PREPROCESSING
         try:
+            self.connect()
             query = """UPDATE posts SET keywords=%s WHERE id=%s;"""
             inserted_values = (keyword_all_types_splitted, article_id)
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
+            self.disconnect()
 
         except psycopg2.connector.Error as e:
             print("NOT INSERTED")
@@ -167,6 +169,7 @@ class Database:
             self.cnx.rollback()
 
     def insert_recommended_tfidf_json(self, articles_recommended_json, article_id, db):
+        self.connect()
         if db == "pgsql":
             try:
                 query = """UPDATE posts SET recommended_tfidf=%s WHERE id=%s;"""
@@ -174,7 +177,7 @@ class Database:
                 self.cursor.execute(query, inserted_values)
                 self.cnx.commit()
                 print("Inserted")
-
+                self.disconnect()
             except psycopg2.connector.Error as e:
                 print("NOT INSERTED")
                 print("Error code:", e.errno)  # error number
@@ -191,6 +194,7 @@ class Database:
             raise ValueError("Not allowed DB method passed.")
 
     def insert_recommended_json(self, algorithm, full_text, articles_recommended_json, article_id, db):
+        self.connect()
         if db == "pgsql":
             try:
                 if algorithm == "tfidf" and full_text is False:
@@ -213,7 +217,7 @@ class Database:
                 self.cursor.execute(query, inserted_values)
                 self.cnx.commit()
                 print("Inserted")
-
+                self.disconnect()
             except psycopg2.connector.Error as e:
                 print("NOT INSERTED")
                 print("Error code:", e.errno)  # error number
@@ -254,11 +258,15 @@ class Database:
             self.cnx.rollback()
 
     def get_not_prefilled_posts(self, full_text, algorithm):
+        self.connect()
         if full_text is False:
             if algorithm == "tfidf":
+                print("Here in TF-IDF")
                 sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id DESC;"""
             elif algorithm == "doc2vec":
                 sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id DESC;"""
+            elif algorithm == "word2vec":
+                sql = """SELECT * FROM posts WHERE recommended_wordvec IS NULL ORDER BY id DESC;"""
             elif algorithm == "lda":
                 sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id DESC;"""
             elif algorithm == "doc2vec_vectors":
@@ -270,13 +278,15 @@ class Database:
                 sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id DESC;"""
             elif algorithm == "doc2vec":
                 sql = """SELECT * FROM posts WHERE recommended_doc2vec_full_text IS NULL ORDER BY id DESC;"""
+            elif algorithm == "word2vec":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_full_text IS NULL ORDER BY id DESC;"""
             elif algorithm == "lda":
                 sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id DESC;"""
 
         query = (sql)
         self.cursor.execute(query)
-
         rs = self.cursor.fetchall()
+        self.disconnect()
         return rs
 
     def get_posts_dataframe_from_database(self):
