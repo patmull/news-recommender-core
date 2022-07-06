@@ -69,8 +69,6 @@ class Lda:
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
-
-
         gc.collect()
 
         print(self.df.head(10).to_string())
@@ -82,7 +80,10 @@ class Lda:
 
         searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
-        new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
+        print("self.df.iloc[searched_doc_id]")
+        selected_by_index = self.df.iloc[searched_doc_id]
+        selected_by_column = selected_by_index['all_features_preprocessed']
+        new_bow = dictionary.doc2bow([selected_by_column])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
         doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist.npy')
