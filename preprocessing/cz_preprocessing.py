@@ -21,8 +21,11 @@ class CzPreprocess:
     # pre-worked
     def preprocess(self, sentence, stemming=False, lemma=True):
         # print(sentence)
+        sentence = sentence
         sentence = str(sentence)
         sentence = sentence.lower()
+        sentence = sentence.replace('\r\n', ' ')
+        print(sentence)
         sentence = sentence.replace('{html}', "")
         cleanr = re.compile('<.*?>')
         cleantext = re.sub(cleanr, '', sentence)
