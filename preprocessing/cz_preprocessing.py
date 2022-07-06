@@ -3,10 +3,9 @@ import gensim
 from nltk import RegexpTokenizer
 import majka
 from html2text import html2text
-import content_based_algorithms.data_queries as data_queries
+
+from content_based_algorithms import data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
-from data_connection import Database
-from gensim.utils import deaccent
 
 cz_stopwords = data_queries.load_cz_stopwords()
 general_stopwords = data_queries.load_general_stopwords()
