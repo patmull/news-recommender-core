@@ -8,6 +8,7 @@ import gensim
 import numpy as np
 import pandas as pd
 import smart_open
+from gensim.utils import deaccent
 from nltk import FreqDist
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -41,8 +42,15 @@ def remove_stopwords(texts):
     stopwords_cz = load_cz_stopwords()
     stopwords_general = load_general_stopwords()
     stopwords = stopwords_cz + stopwords_general
-    return [[word for word in gensim.utils.simple_preprocess(str(doc)) if word not in stopwords] for doc in texts]
+    stopwords = flatten(stopwords)
+    joined_stopwords = ' '.join(str(x) for x in stopwords)
+    stopwords = deaccent(joined_stopwords)
+    stopwords = stopwords.split(' ')
+    return [[word for word in gensim.utils.simple_preprocess(doc) if word not in stopwords] for doc in texts]
 
+
+def flatten(t):
+    return [item for sublist in t for item in sublist]
 
 class RecommenderMethods:
 
@@ -442,6 +450,9 @@ class RecommenderMethods:
         fdist = FreqDist(all_words)
         k = 150
         return zip(*fdist.most_common(k))
+
+    def flatten(self, t):
+        return [item for sublist in t for item in sublist]
 
 
 def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
