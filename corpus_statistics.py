@@ -5,6 +5,7 @@ import pandas as pd
 
 from content_based_algorithms.data_queries import RecommenderMethods
 
+
 def most_common_words():
     texts = []
 
