@@ -1082,4 +1082,6 @@ def run():
 
     # 1. Create and save Dictionary
     # 2. Create and save Corpus from Dictionary
-    # 3. Prepreocess both
+    # 3. Preprocessing
+    # 4. Preprocessing + stopwords free
+    # 5. Preprocessing + bigrams

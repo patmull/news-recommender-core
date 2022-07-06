@@ -60,7 +60,7 @@ def main():
     doc_string = ' '.join(list)
     print(deaccent(czpreprocessing.preprocess(doc_string)))
     """
-    # word2vecClass = Word2VecClass()
+    word2vecClass = Word2VecClass()
     # 1. Create Dictionary
     # word2vecClass.create_dictionary_from_dataframe(force_update=False, filter_extremes=False)
     # preprocess corpus and save it to mongo
@@ -69,7 +69,7 @@ def main():
 
     # word2vecClass.preprocess_idnes_corpus()
     # word2vecClass.eval_idnes_basic()
-
+    word2vecClass.remove_stopwords_mongodb()
     # lda = Lda()
     # print(lda.get_similar_lda('chaos-v-mapach-kavkazu-proc-armenie-a-azerbajdzan-nebojuji-jen-o-karabach'))
 
