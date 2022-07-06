@@ -1,11 +1,9 @@
+# publish.py
 import ssl
-import traceback
-
 import pika, os
 
-from content_based_algorithms.prefiller import PreFiller
-from content_based_algorithms.tfidf import TfIdf
-from prefilling_all import run_prefilling
+# This file is there for the purposes of manual invocation of prefilling by notify_prefillers.py file
+# Normally, this is used in news-parser module for notification of this module (rabbitmq_recieve.py file)
 
 ssl_enabled = os.environ.get("ssl", False)
 
@@ -38,28 +36,22 @@ connection_params = pika.ConnectionParameters(
     blocked_connection_timeout=300
 )
 
-rabbit_connection = pika.BlockingConnection(connection_params)
 
-channel = rabbit_connection.channel()
+def notify_prefiller():
+    rabbit_connection = pika.BlockingConnection(connection_params)
+    channel = rabbit_connection.channel()
 
-channel.queue_declare(queue='new_articles_alert', durable=True)
-print('[*] Waiting for messages. To exit press CTRL+C')
+    channel.queue_declare(queue='new_articles_alert', durable=True)
 
+    message = b"new_articles_scrapped"
+    channel.basic_publish(
+        exchange='',
+        routing_key='new_articles_alert',
+        body=message,
+        properties=pika.BasicProperties(
+            delivery_mode=2  # make message persistent
+        )
+    )
 
-def callback(ch, method, properties, body):
-    print("[x] Received %r" % body.decode())
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-    if body.decode() == "new_articles_scrapped":
-        print("Recieved message that new posts were scrapped.")
-        print("I'm calling prefilling methods...")
-        try:
-            run_prefilling()
-        except Exception as e:
-            print("Exception occured" + str(e))
-            print(traceback.print_exception(type(e), e, e.__traceback__))
-
-
-channel.basic_qos(prefetch_count=1)
-channel.basic_consume(queue='new_articles_alert', on_message_callback=callback)
-
-channel.start_consuming()
+    print("[x] Sent %r" % message)
+    rabbit_connection.close()
