@@ -875,8 +875,12 @@ class Word2VecClass:
             # clearing collection from all documents
             mongo_collection_stopwords_free.delete_many({})
             for doc in cursor:
+                print("Before:")
+                print(doc['text'])
                 removed_stopwords = data_queries.remove_stopwords(doc['text'])
-                print("Removing stopwords. Processing doc. num" + str(number))
+                removed_stopwords = self.flatten(removed_stopwords)
+                print("After removal:")
+                print(removed_stopwords)
                 save_to_mongo(number_of_processed_files=number, data=removed_stopwords, mongo_collection=mongo_collection_stopwords_free)
                 number = number + 1
 
@@ -1059,7 +1063,6 @@ class Word2VecClass:
             print("Corpus already exists. Loading...")
             corpus = corpora.MmCorpus(path_to_corpus)
         return corpus
-
 
 @DeprecationWarning
 def run():
