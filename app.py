@@ -13,6 +13,7 @@ from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.word2vec import Word2VecClass
 from collaboration_based_recommendation import SvdClass
 
+
 def create_app():
     # initializing files needed for the start of application
     # checking needed parts...
@@ -25,10 +26,10 @@ def create_app():
     return app
 
 
-
+"""
 app = create_app()
 api = Api(app)
-
+"""
 
 @app.route('/', methods=['GET'])
 def home():
