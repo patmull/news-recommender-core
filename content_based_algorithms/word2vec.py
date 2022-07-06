@@ -881,17 +881,21 @@ class Word2VecClass:
                 number = number + 1
 
     def preprocess_idnes_corpus(self, force_update=False):
+
+        print("Corpus lines are above")
         cursor_any_record = mongo_collection.find_one()
         if cursor_any_record is not None and force_update is False:
             print("There are already records in MongoDB. Skipping Idnes preprocessing (1st phase)")
             pass
         else:
-            corpus = gensim.corpora.TextCorpus('full_models/idnes/unprocessed/idnes.mm')
+            path_to_corpus = 'full_models/idnes/unprocessed/idnes.mm'
+            path_to_pickle = 'full_models/idnes/unprocessed/idnes.pkl'
+            corpus = pickle.load(open(path_to_pickle, 'rb'))
             print("Corpus length:")
             print(len(corpus))
             time.sleep(120)
             # preprocessing steps
-            czlemma = CzPreprocess()
+            czpreprocessing = CzPreprocess()
             helper = Helper()
             processed_data = []
 
@@ -934,11 +938,13 @@ class Word2VecClass:
                 print("Processing doc. num. " + str(num_of_preprocessed_docs))
                 print("Before:")
                 print(doc)
-                tokens = deaccent(czlemma.preprocess(doc))
+                doc_string = ' '.join(doc)
+                doc_string_preprocessed = deaccent(czpreprocessing.preprocess(doc_string))
+                # tokens = doc_string_preprocessed.split(' ')
 
                 # removing words in greek, azbuka or arabian
                 # use only one of the following lines, whichever you prefer
-                tokens = [i for i in tokens.split() if regex.sub(r'[^\p{Latin}]', u'', i)]
+                tokens = [i for i in doc_string_preprocessed.split(' ') if regex.sub(r'[^\p{Latin}]', u'', i)]
                 # processed_data.append(tokens)
                 print("After:")
                 print(tokens)
@@ -970,35 +976,44 @@ class Word2VecClass:
             post_df['all_features_preprocessed'] = post_df[['all_features_preprocessed']]
             print("post_df")
             print(post_df['all_features_preprocessed'][:100])
+
             all_features_preprocessed_list = post_df['all_features_preprocessed'].to_numpy()
+
+            path_to_pickle = 'full_models/idnes/unprocessed/idnes.pkl'
+            pickle.dump(all_features_preprocessed_list, open(path_to_pickle, 'wb'))
             print("all_features_preprocessed_list:")
             print(all_features_preprocessed_list[:100])
             time.sleep(60)
-            texts = [document for document in all_features_preprocessed_list]
+            tokenzized_texts = [document for document in all_features_preprocessed_list]
 
             # remove words that appear only once
             frequency = defaultdict(int)
-            for text in texts:
+            for text in tokenzized_texts:
                 for token in text:
                     frequency[token] += 1
 
-            texts = [
+            tokenzized_texts = [
                 [token for token in text if frequency[token] > 1]
-                for text in texts
+                for text in tokenzized_texts
             ]
             # all_features_preprocessed_list_of_lists = [[i] for i in all_features_preprocessed_list]
             print("list of lists:")
-            print(texts[:1000])
+            print(tokenzized_texts[:1000])
             time.sleep(50)
-            dictionary = corpora.Dictionary(line for line in texts)
+            dictionary = corpora.Dictionary(line for line in tokenzized_texts)
             path_to_dict = 'full_models/idnes/unprocessed/idnes.dict'
             path_to_dict_folder = 'full_models/idnes/unprocessed/'
             if not os.path.isfile(path_to_dict):
                 os.makedirs(path_to_dict_folder)
             dictionary.save(path_to_dict)
-            corpus = [dictionary.doc2bow(text) for text in texts]
+            corpus = [dictionary.doc2bow(text, allow_update=True) for text in tokenzized_texts]
+            print(corpus[:100])
+            word_counts = [[(dictionary[id], count) for id, count in line] for line in corpus]
+            print(word_counts[:100])
+            print("Serializing...")
             corpora.MmCorpus.serialize(path_to_corpus, corpus)  # store to disk, for later use
             print("Dictionary and  Corpus successfully saved on disk")
+
         else:
             print("Dictionary and corpus already exists")
 
