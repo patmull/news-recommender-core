@@ -22,16 +22,20 @@ val_error_msg_algorithm = "Selected algorithm does not correspondent with any im
 class PreFiller():
 
     def prefilling_job(self, algorithm, db, full_text, reverse, random=False):
+        print("Running " + algorithm + ", full text is set to " + str(full_text))
         if algorithm == "doc2vec" or algorithm == "doc2vec_vectors":
             doc2vec = Doc2VecClass()
             doc2vec.load_model()
         else:
             doc2vec = None
-        for i in range(100):
-            while True:
+            database = Database()
+            not_prefilled_posts = database.get_not_prefilled_posts(algorithm=algorithm, full_text=full_text)
+            while len(not_prefilled_posts) > 0:
+                print(str(len(not_prefilled_posts)) + " not prefilled posts left.")
                 try:
                     if algorithm == "doc2vec" or "doc2vec_vectors":
                         self.fill_recommended_for_all_posts(algorithm, db, doc2vec=doc2vec, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
+                        not_prefilled_posts = database.get_not_prefilled_posts(algorithm=algorithm, full_text=full_text)
                     else:
                         self.fill_recommended_for_all_posts(algorithm, db, doc2vec=doc2vec, skip_already_filled=True, full_text=full_text, reversed=reverse, random_order=random)
                 except psycopg2.OperationalError as e:
@@ -39,7 +43,6 @@ class PreFiller():
                     print("DB operational error. Waiting few seconds before trying again...")
                     t.sleep(30)  # wait 30 seconds then try again
                     continue
-                break
 
         if algorithm == "word2vec":
             word2vec = Word2VecClass()
@@ -113,6 +116,9 @@ class PreFiller():
                             elif algorithm == "lda":
                                 lda = Lda()
                                 actual_recommended_json = lda.get_similar_lda(slug)
+                            elif algorithm == "word2vec":
+                                word2vec = Word2VecClass()
+                                actual_recommended_json = word2vec.get_similar_word2vec(slug)
                         else:
                             if algorithm == "tfidf":
                                 tfidf = TfIdf()
@@ -123,6 +129,9 @@ class PreFiller():
                             elif algorithm == "lda":
                                 lda = Lda()
                                 actual_recommended_json = lda.get_similar_lda_full_text(slug)
+                            elif algorithm == "word2vec":
+                                word2vec = Word2VecClass()
+                                actual_recommended_json = word2vec.get_similar_word2vec(slug)
                             else:
                                 raise ValueError(val_error_msg_algorithm)
                         actual_recommended_json = json.dumps(actual_recommended_json)

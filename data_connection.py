@@ -262,15 +262,15 @@ class Database:
         if full_text is False:
             if algorithm == "tfidf":
                 print("Here in TF-IDF")
-                sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id DESC;"""
+                sql = """SELECT * FROM posts AS p WHERE p.recommended_tfidf IS NULL ORDER BY id DESC;"""
             elif algorithm == "doc2vec":
-                sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id DESC;"""
+                sql = """SELECT * FROM posts AS p WHERE p.recommended_doc2vec IS NULL ORDER BY id DESC;"""
             elif algorithm == "word2vec":
-                sql = """SELECT * FROM posts WHERE recommended_wordvec IS NULL ORDER BY id DESC;"""
+                sql = """SELECT * FROM posts AS p WHERE p.recommended_word2vec IS NULL ORDER BY id DESC;"""
             elif algorithm == "lda":
-                sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id DESC;"""
+                sql = """SELECT * FROM posts AS p WHERE p.recommended_lda IS NULL ORDER BY id DESC;"""
             elif algorithm == "doc2vec_vectors":
-                sql = """SELECT * FROM posts WHERE doc2vec_representation IS NULL ORDER BY id DESC;"""
+                sql = """SELECT * FROM posts AS p WHERE p.doc2vec_representation IS NULL ORDER BY id DESC;"""
             else:
                 raise ValueError("Selected algorithm not implemented.")
         else:

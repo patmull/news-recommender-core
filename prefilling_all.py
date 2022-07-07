@@ -9,117 +9,52 @@ prefiller = PreFiller()
 # while True:
 def run_prefilling():
     print("Running Tfidf short text")
+
+    # TODO: Check needed columns
+    # TODO: 'all_features_preprocessed' (probably every method relies on this)
+    # TODO: 'keywords' (LDA but probably also other columns relies on this)
+    # TODO: 'body_preprocessed' (LDA relies on this)
+
     database = Database()
+    reverse = True
+    random = False
+
+    full_text = False
+
     method = "tfidf"
-    full_text = False
-    not_prefilled_posts = database.get_not_prefilled_posts(algorithm=method, full_text=full_text)
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts")
-    if len(not_prefilled_posts) > 0:
-        try:
-            prefiller.prefilling_job("tfidf", "pgsql", full_text=False, reverse=True, random=True)
-        except Exception as e:
-            print("Exception occured " + str(e))
-            print(traceback.print_exception(type(e), e, e.__traceback__))
-    else:
-        print("No not prefilled posts found")
-        print("Skipping " + method + " short text.")
-
-    method = "doc2vec"
-    full_text = False
-    not_prefilled_posts = database.get_not_prefilled_posts(algorithm=method, full_text=full_text)
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts")
-    if len(not_prefilled_posts) > 0:
-        try:
-            print("Running Doc2Vec short text")
-            prefiller.prefilling_job("doc2vec", "pgsql", full_text=False, reverse=True, random=True)
-        except Exception as e:
-            print("Exception occured " + str(e))
-            print(traceback.print_exception(type(e), e, e.__traceback__))
-    else:
-        print("No not prefilled posts found")
-        print("Skipping " + method + " short text")
-
-    method = "lda"
-    full_text = False
-    not_prefilled_posts = database.get_not_prefilled_posts(algorithm=method, full_text=full_text)
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts")
-    if len(not_prefilled_posts) > 0:
-        try:
-            print("Running LDA short text prefilling")
-            prefiller.prefilling_job("lda", "pgsql", full_text=False, reverse=True, random=True)
-        except Exception as e:
-            print("Exception occured " + str(e))
-            print(traceback.print_exception(type(e), e, e.__traceback__))
-    else:
-        print("No not prefilled posts found")
-        print("Skipping " + method + " short text")
-
-    method = "doc2vec"
-    full_text = True
-    not_prefilled_posts = database.get_not_prefilled_posts(algorithm=method, full_text=full_text)
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts")
-    if len(not_prefilled_posts) > 0:
-        try:
-            print("Running TfIdf full text")
-            prefiller.prefilling_job("tfidf", "pgsql", full_text=True, reverse=True, random=True)
-        except Exception as e:
-            print("Exception occured " + str(e))
-            print(traceback.print_exception(type(e), e, e.__traceback__))
-    else:
-        print("No not prefilled posts found")
-        print("Skipping " + method + " full text")
-
-    method = "doc2vec"
-    full_text = True
-    not_prefilled_posts = database.get_not_prefilled_posts(algorithm=method, full_text=full_text)
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts")
-    if len(not_prefilled_posts) > 0:
-        try:
-            print("Running Doc2Vec full text")
-            prefiller.prefilling_job("doc2vec", "pgsql", full_text=True, reverse=True, random=True)
-        except Exception as e:
-            print("Exception occured " + str(e))
-            print(traceback.print_exception(type(e), e, e.__traceback__))
-    else:
-        print("No not prefilled posts found")
-        print("Skipping " + method + " full text")
-
-    method = "lda"
-    full_text = True
-    not_prefilled_posts = database.get_not_prefilled_posts(algorithm=method, full_text=full_text)
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts")
-    if len(not_prefilled_posts) > 0:
-        try:
-            print("Running LDA full text")
-            prefiller.prefilling_job("lda", "pgsql", full_text=True, reverse=True, random=True)
-        except Exception as e:
-            print("Exception occured " + str(e))
-            print(traceback.print_exception(type(e), e, e.__traceback__))
-    else:
-        print("No not prefilled posts found")
-        print("Skipping " + method + " full text")
+    prepare_and_run(database, method, full_text, reverse, random)
 
     method = "word2vec"
-    full_text = False
-    not_prefilled_posts = database.get_not_prefilled_posts(algorithm=method, full_text=full_text)
-    if len(not_prefilled_posts) > 0:
-        try:
-            print("Running Word2Vec short text")
-            prefiller.prefilling_job("word2vec", "pgsql", full_text=False, reverse=True, random=True)
-        except Exception as e:
-            print("Exception occured " + str(e))
-            print(traceback.print_exception(type(e), e, e.__traceback__))
-    else:
-        print("No not prefilled posts found")
-        print("Skipping " + method + " short text")
+    prepare_and_run(database, method, full_text, reverse, random)
+
+    method = "doc2vec"
+    prepare_and_run(database, method, full_text, reverse, random)
+
+    method = "lda"
+    prepare_and_run(database, method, full_text, reverse, random)
+
+    full_text = True
+
+    method = "tfidf"
+    prepare_and_run(database, method, full_text, reverse, random)
 
     method = "word2vec"
-    full_text = True
+    prepare_and_run(database, method, full_text, reverse, random)
+
+    method = "doc2vec"
+    prepare_and_run(database, method, full_text, reverse, random)
+
+    method = "lda"
+    prepare_and_run(database, method, full_text, reverse, random)
+
+
+def prepare_and_run(database, method, full_text, reverse, random):
     not_prefilled_posts = database.get_not_prefilled_posts(algorithm=method, full_text=full_text)
+    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts")
     if len(not_prefilled_posts) > 0:
         try:
-            print("Running Word2Vec full text")
-            prefiller.prefilling_job("word2vec", "pgsql", full_text=True, reverse=True, random=True)
+            print("Running " + method + ", full text: " + str(full_text))
+            prefiller.prefilling_job(method, "pgsql", full_text=full_text, reverse=reverse, random=random)
         except Exception as e:
             print("Exception occured " + str(e))
             print(traceback.print_exception(type(e), e, e.__traceback__))
