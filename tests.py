@@ -6,8 +6,10 @@ from gensim.utils import deaccent
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.helper import Helper
 from content_based_algorithms.lda import Lda
+from content_based_algorithms.prefiller import PreFiller
 from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.word2vec import Word2VecClass
+from prefilling_all import run_prefilling
 from preprocessing.cz_preprocessing import CzPreprocess
 
 
@@ -69,7 +71,8 @@ def main():
 
     # word2vecClass.preprocess_idnes_corpus()
     # word2vecClass.eval_idnes_basic()
-    word2vecClass.remove_stopwords_mongodb()
+    # word2vecClass.remove_stopwords_mongodb()
+    run_prefilling()
     # lda = Lda()
     # print(lda.get_similar_lda('chaos-v-mapach-kavkazu-proc-armenie-a-azerbajdzan-nebojuji-jen-o-karabach'))
 

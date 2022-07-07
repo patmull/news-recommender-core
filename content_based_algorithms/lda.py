@@ -128,6 +128,9 @@ class Lda:
         self.join_posts_ratings_categories()
         self.database.disconnect()
 
+        print("get_similar_lda_full_text dataframe:")
+        print(self.df.to_string())
+
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
         self.df['tokenized'] = self.df.apply(
             lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
