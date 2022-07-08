@@ -53,7 +53,6 @@ def prepare_and_run(database, method, full_text, reverse, random):
     print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts")
     if len(not_prefilled_posts) > 0:
         try:
-            print("Running " + method + ", full text: " + str(full_text))
             prefiller.prefilling_job(method, "pgsql", full_text=full_text, reverse=reverse, random=random)
         except Exception as e:
             print("Exception occured " + str(e))
