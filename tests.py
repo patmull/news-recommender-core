@@ -1,3 +1,5 @@
+import json
+import string
 import time
 
 import numpy as np
@@ -11,12 +13,36 @@ from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.word2vec import Word2VecClass
 from prefilling_all import run_prefilling
 from preprocessing.cz_preprocessing import CzPreprocess
-
+from data_connection import Database
 
 def tfidf():
     tf_idf = TfIdf()
     print(tf_idf.recommend_posts_by_all_features_preprocessed(
         "chaos-v-mapach-kavkazu-proc-armenie-a-azerbajdzan-nebojuji-jen-o-karabach"))
+
+
+def word2vec_method():
+    word2vec = Word2VecClass()
+    # random article
+    database = Database()
+    posts = database.get_posts_dataframe()
+    random_post = posts.sample()
+    random_post_slug = random_post['slug'].iloc[0]
+    print("random_post slug:")
+    print(random_post_slug)
+    similar_posts = word2vec.get_similar_word2vec(random_post_slug)
+    print("similar_posts")
+    print(similar_posts)
+    print("similar_posts type:")
+    print(type(similar_posts))
+
+    assert len(random_post.index) == 1
+    assert type(similar_posts) is list
+    assert len(similar_posts) > 0
+    print(type(similar_posts[0]['slug']))
+    assert type(similar_posts[0]['slug']) is str
+    assert type(similar_posts[0]['coefficient']) is float
+    assert len(similar_posts) > 0
 
 
 def main():
@@ -62,7 +88,8 @@ def main():
     doc_string = ' '.join(list)
     print(deaccent(czpreprocessing.preprocess(doc_string)))
     """
-    word2vecClass = Word2VecClass()
+    # word2vecClass = Word2VecClass()
+    word2vec_method()
     # 1. Create Dictionary
     # word2vecClass.create_dictionary_from_dataframe(force_update=False, filter_extremes=False)
     # preprocess corpus and save it to mongo
@@ -72,7 +99,7 @@ def main():
     # word2vecClass.preprocess_idnes_corpus()
     # word2vecClass.eval_idnes_basic()
     # word2vecClass.remove_stopwords_mongodb()
-    run_prefilling()
+    # run_prefilling()
     # lda = Lda()
     # print(lda.get_similar_lda('chaos-v-mapach-kavkazu-proc-armenie-a-azerbajdzan-nebojuji-jen-o-karabach'))
 
