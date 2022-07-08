@@ -181,8 +181,8 @@ class TfIdf:
 
     def prepare_dataframes(self):
         recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
-        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
+        recommenderMethods.get_posts_dataframe()  # load_texts posts to dataframe
+        recommenderMethods.get_categories_dataframe()  # load_texts categories to dataframe
         self.df = recommenderMethods.join_posts_ratings_categories(include_prefilled=True)  # joining posts and categories into one table
 
     def get_prefilled_full_text(self):
@@ -200,8 +200,8 @@ class TfIdf:
     def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
 
         recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe(force_update=False)  # load posts to dataframe
-        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
+        recommenderMethods.get_posts_dataframe(force_update=False)  # load_texts posts to dataframe
+        recommenderMethods.get_categories_dataframe()  # load_texts categories to dataframe
         recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
 
         my_file = Path("models/tfidf_all_features_preprocessed.npz")
@@ -243,9 +243,9 @@ class TfIdf:
 
         recommenderMethods = RecommenderMethods()
         print("Loading posts")
-        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
+        recommenderMethods.get_posts_dataframe()  # load_texts posts to dataframe
         gc.collect()
-        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
+        recommenderMethods.get_categories_dataframe()  # load_texts categories to dataframe
         recommenderMethods.join_posts_ratings_categories(full_text=True)  # joining posts and categories into one table
         print("recommenderMethods.df.columns:")
         print(recommenderMethods.df.columns)
@@ -272,13 +272,13 @@ class TfIdf:
     def recommend_posts_by_all_features(self, slug):
 
         recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe()  # load posts to dataframe
+        recommenderMethods.get_posts_dataframe()  # load_texts posts to dataframe
         # print("posts dataframe:")
         # print(recommenderMethods.get_posts_dataframe())
         # print("posts categories:")
         # print(recommenderMethods.get_categories_dataframe())
-        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
-        # tfidf.get_ratings_dataframe() # load post rating to dataframe
+        recommenderMethods.get_categories_dataframe()  # load_texts categories to dataframe
+        # tfidf.get_ratings_dataframe() # load_texts post rating to dataframe
 
         recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
         print("posts ratings categories dataframe:")

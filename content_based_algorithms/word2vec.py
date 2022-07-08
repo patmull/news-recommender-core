@@ -325,71 +325,64 @@ class Word2VecClass:
         # Uncomment for change of model
         # self.refresh_model()
 
-        # word2vec_embedding = KeyedVectors.load(self.amazon_bucket_url)
+        # word2vec_embedding = KeyedVectors.load_texts(self.amazon_bucket_url)
         # self.amazon_bucket_url#
 
         print("Loading Word2Vec FastText (Wikipedia) model...")
-        # word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+        # word2vec_embedding = KeyedVectors.load_texts("models/w2v_model_limited")
         self.find_optimal_model_idnes(texts)
 
     # @profile
     def get_similar_word2vec(self, searched_slug, model="idnes"):
         recommenderMethods = RecommenderMethods()
 
-        self.get_posts_dataframe()
-        self.get_categories_dataframe()
-        self.join_posts_ratings_categories()
+        self.posts_df = recommenderMethods.get_posts_dataframe()
+        self.categories_df = recommenderMethods.get_categories_dataframe()
+        self.df = recommenderMethods.join_posts_ratings_categories()
+
+        print(self.posts_df)
 
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
                                                   found_post_dataframe.iloc[0]['title_y'] + " " + \
                                                   found_post_dataframe.iloc[0]['all_features_preprocessed']
-
         del self.posts_df
         del self.categories_df
 
         documents_df = pd.DataFrame()
-        documents_training_df = pd.DataFrame()
 
         documents_df["features_to_use"] = self.df["title_y"] + " " + self.df["keywords"] + ' ' + self.df[
             "all_features_preprocessed"]
         documents_df["slug"] = self.df["slug_x"]
         found_post = found_post_dataframe['features_to_use'].iloc[0]
 
-        documents_training_df["features_to_use"] = self.df["title_y"] + " " + self.df["keywords"] + " " + self.df[
-            "all_features_preprocessed"]
-        documents_training_df["features_to_use"] = documents_training_df["features_to_use"].replace(",", "")
-        documents_training_df["features_to_use"] = documents_training_df["features_to_use"].str.split(" ")
-
-        texts = documents_training_df["features_to_use"].tolist()
-        texts = data_queries.remove_stopwords(texts)
-
         del self.df
         del found_post_dataframe
 
-        print("Loading Word2Vec FastText (Wikipedia) model...")
-        word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
-
         documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
         list_of_document_features = documents_df["features_to_use"].tolist()
+        print("list_of_document_features")
+        print(list_of_document_features)
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
-        model_idnes = KeyedVectors.load("models/w2v_idnes.model")
 
         if model == "wiki":
             model_wiki = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
             print("Similarities on Wikipedia.cz model:")
             ds = DocSim(model_wiki)
             most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
-                                                                                          list_of_document_features)[
-                                                :21]
+                                                                                          list_of_document_features)[:21]
         elif model == "idnes":
+            model_idnes = KeyedVectors.load("models/w2v_idnes.model")
             print("Similarities on iDNES.cz model:")
             ds = DocSim(model_idnes)
+            print("found_post")
+            print(found_post)
+            print("list_of_document_features")
+            print(list_of_document_features)
             most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post,
-                                                                                           list_of_document_features)[
-                                                :21]
+                                                                                           list_of_document_features)[:21]
         # removing post itself
         del most_similar_articles_with_scores[0]  # removing post itself
 
@@ -400,9 +393,9 @@ class Word2VecClass:
     def get_similar_word2vec_full_text(self, searched_slug):
         recommenderMethods = RecommenderMethods()
 
-        self.get_posts_dataframe()
-        self.get_categories_dataframe()
-        self.join_posts_ratings_categories_full_text()
+        self.posts_df = recommenderMethods.get_posts_dataframe()
+        self.categories_df = recommenderMethods.get_categories_dataframe()
+        self.df = recommenderMethods.join_posts_ratings_categories_full_text()
         # post_found = self.(search_slug)
 
         # search_terms = 'Domácí. Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.'

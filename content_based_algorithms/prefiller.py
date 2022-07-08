@@ -22,7 +22,7 @@ val_error_msg_algorithm = "Selected algorithm does not correspondent with any im
 class PreFiller():
 
     def prefilling_job(self, algorithm, db, full_text, reverse, random=False):
-        print("Running " + algorithm + ", full text is set to " + str(full_text))
+        print("Running " + algorithm + ", full text: " + str(full_text))
         if algorithm == "doc2vec" or algorithm == "doc2vec_vectors":
             doc2vec = Doc2VecClass()
             doc2vec.load_model()

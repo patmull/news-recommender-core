@@ -71,7 +71,6 @@ def prepare_and_run(database, method, full_text, reverse, random):
     print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts")
     if len(not_prefilled_posts) > 0:
         try:
-            print("Running " + method + ", full text: " + str(full_text))
             prefiller.prefilling_job(method, "pgsql", full_text=full_text, reverse=reverse, random=random)
         except Exception as e:
             print("Exception occured " + str(e))
@@ -87,9 +86,11 @@ def check_needed_columns(database):
     # TODO: 'keywords' (LDA but probably also other columns relies on this)
     # TODO: 'body_preprocessed' (LDA relies on this)
     needed_checks = []
-    number_of_nans_in_all_features_preprocessed = database.df['all_features_preprocessed'].isna().sum()
-    number_of_nans_in_keywords = database.df['keywords'].isna().sum()
-    number_of_nans_in_body_preprocessed = database.df['body_preprocessed'].isna().sum()
+    database.connect()
+    number_of_nans_in_all_features_preprocessed = len(database.get_posts_with_no_all_features_preprocessed())
+    number_of_nans_in_keywords = len(database.get_posts_with_no_keywords())
+    number_of_nans_in_body_preprocessed = len(database.get_posts_with_no_body_preprocessed())
+    database.disconnect()
 
     if number_of_nans_in_all_features_preprocessed:
         needed_checks.extend("all_features_preprocessed")
