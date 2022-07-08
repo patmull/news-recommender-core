@@ -97,7 +97,7 @@ class PreFillerAdditional():
                     self.fill_all_features_preprocessed(db=db, skip_already_filled=True, reversed=reversed,
                                                         random_order=random_order)
 
-    def fill_preprocessed_body(self, skip_already_filled, reversed, random_order, db="pgsql"):
+    def fill_body_preprocessed(self, skip_already_filled, reversed, random_order, db="pgsql"):
         database = Database()
         database.connect()
         if skip_already_filled is False:
