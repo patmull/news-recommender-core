@@ -228,6 +228,3 @@ class PreFillerAdditional():
                     print("Refreshing list of posts for finding only not prefilled posts.")
                     self.fill_all_features_preprocessed(db=db, skip_already_filled=True, reversed=reversed,
                                                         random_order=random_order)
-
-
-
