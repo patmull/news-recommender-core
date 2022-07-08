@@ -72,7 +72,7 @@ class Lda:
         gc.collect()
 
         print(self.df.head(10).to_string())
-        # if there is no LDA model, training will run anyway due to load method handle
+        # if there is no LDA model, training will run anyway due to load_texts method handle
         if train is True:
             self.train_lda(self.df, display_dominant_topics=display_dominant_topics)
 
@@ -227,14 +227,14 @@ class Lda:
             dropbox_file_download(dropbox_access_token, "models/lda_model.state", "/lda_model.state")
             dropbox_file_download(dropbox_access_token, "models/lda_model.state.sstats.npy", "/lda_model.state.sstats.npy")
 
-            lda_model = LdaModel.load("models/lda_model")
+            lda_model = LdaModel.load_texts("models/lda_model")
         """
         try:
             lda_model = LdaModel.load("models/lda_model")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus.pkl', 'rb'))
         except Exception as e:
-            print("Could not load LDA models or precalculated vectors. Reason:")
+            print("Could not load_texts LDA models or precalculated vectors. Reason:")
             print(e)
             self.train_lda(data)
 
@@ -254,7 +254,7 @@ class Lda:
 
         """
         try:
-            lda_model = LdaModel.load("models/lda_model_full_text")
+            lda_model = LdaModel.load_texts("models/lda_model_full_text")
         except FileNotFoundError:
             print("Downloading LDA model files...")
             dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
@@ -265,14 +265,14 @@ class Lda:
             dropbox_file_download(dropbox_access_token, "models/lda_model_full_text.state.sstats.npy", "/lda_model_full_text.state.sstats.npy")
             print("LDA Model files downloaded")
 
-            lda_model = LdaModel.load("models/lda_model_full_text")
+            lda_model = LdaModel.load_texts("models/lda_model_full_text")
         """
         try:
             lda_model = LdaModel.load("models/lda_model_full_text")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
         except Exception as e:
-            print("Could not load LDA models or precalculated vectors. Reason:")
+            print("Could not load_texts LDA models or precalculated vectors. Reason:")
             print(e)
             self.train_lda_full_text(data, display_dominant_topics)
 
@@ -322,8 +322,8 @@ class Lda:
         lda_model.save("models/lda_model")
         # pickle.dump(lda_model_local, open("lda_all_in_one", "wb"))
         print("Model Saved")
-        # lda_model = LdaModel.load("models/lda_model")
-        # lda_model_local = pickle.load(smart_open.smart_open("lda_all_in_one"))
+        # lda_model = LdaModel.load_texts("models/lda_model")
+        # lda_model_local = pickle.load_texts(smart_open.smart_open("lda_all_in_one"))
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
 
@@ -520,7 +520,7 @@ class Lda:
         print("LDA loading...")
         lda_model = LdaModel.load("models/lda_model_full_text")
         t2 = time.time()
-        print("Time to load LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
+        print("Time to load_texts LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
 
         self.visualise_lda(lda_model, corpus, dictionary, data_words_bigrams)
 
@@ -550,12 +550,12 @@ class Lda:
 
         """
         lda_model.save("full_models/cswiki/lda/lda_model")
-        lda_model_loaded = LdaMulticore.load("full_models/cswiki/lda/lda_model")
+        lda_model_loaded = LdaMulticore.load_texts("full_models/cswiki/lda/lda_model")
         
         print(lda_model.print_topics(20))
 
         meta_file = open("full_models/cswiki/cswiki_bow.mm.metadata.cpickle", 'rb')
-        docno2metadata = pickle.load(meta_file)
+        docno2metadata = pickle.load_texts(meta_file)
         meta_file.close()
 
         doc_num = 0
@@ -867,7 +867,7 @@ class Lda:
                     print("Opened file:")
                     print(file_path)
                 except EOFError:
-                    print("Can't load file")
+                    print("Can't load_texts file")
                     print(file_path)
         print("Example of 100th loaded document:")
         print(preprocessed_data_from_pickles[100:101])
