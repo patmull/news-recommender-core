@@ -52,6 +52,7 @@ def remove_stopwords(texts):
 def flatten(t):
     return [item for sublist in t for item in sublist]
 
+
 class RecommenderMethods:
 
     def __init__(self):
@@ -179,6 +180,13 @@ class RecommenderMethods:
                  'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation']]
         return self.df
 
+    def join_posts_ratings_categories_full_text(self):
+        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
+        # clean up from unnecessary columns
+        self.df = self.df[
+            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+             'all_features_preprocessed', 'body_preprocessed', 'full_text']]
+
 
     #### Above are data queries ####
 
@@ -249,6 +257,10 @@ class RecommenderMethods:
 
     def find_post_by_slug(self, slug):
         recommenderMethods = RecommenderMethods()
+        print("recommenderMethods.get_posts_dataframe():")
+        print(recommenderMethods.get_posts_dataframe()['slug'])
+        print("slug:")
+        print(slug)
         return recommenderMethods.get_posts_dataframe().loc[recommenderMethods.get_posts_dataframe()['slug'] == slug]
 
     def get_cleaned_text(self, df, row):
@@ -269,7 +281,7 @@ class RecommenderMethods:
         return self.tfidf_tuples  # tuples of (document_id, token_id) and tf-idf score for it
 
     def set_tfIdfVectorizer(self):
-        # load czech stopwords from file
+        # load_texts czech stopwords from file
         filename = "preprocessing/stopwords/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
