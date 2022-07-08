@@ -45,6 +45,24 @@ class Database:
         rs = self.cursor.fetchall()
         return rs
 
+    def get_all_categories(self):
+        sql = """SELECT * FROM categories ORDER BY id;"""
+
+        query = (sql)
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
+
+    def get_all_posts_and_categories(self):
+        sql = """SELECT * FROM categories ORDER BY id;"""
+
+        query = (sql)
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
+
     def join_posts_ratings_categories(self):
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
@@ -52,7 +70,7 @@ class Database:
 
     def get_posts_join_categories(self):
 
-        sql = """SELECT posts.id, posts.title, posts.slug, posts.excerpt, posts.keywords, categories.title, categories.description, posts.all_features_preprocessed, posts."excerptPreprocessed", posts."titlePreprocessed" FROM posts JOIN categories ON posts.category_id=categories.id;"""
+        sql = """SELECT posts.slug, posts.title, categories.title, posts.excerpt, body, keywords, all_features_preprocessed, full_text, body_preprocessed, posts.recommended_tfidf, posts.recommended_word2vec, posts.recommended_doc2vec, posts.recommended_lda, posts.recommended_tfidf_full_text, posts.recommended_word2vec_full_text, posts.recommended_doc2vec_full_text, posts.recommended_lda_full_text FROM posts JOIN categories ON posts.category_id = categories.id;;"""
 
         query = (sql)
         self.cursor.execute(query)
@@ -158,11 +176,8 @@ class Database:
             self.cnx.commit()
             self.disconnect()
 
-        except psycopg2.connector.Error as e:
+        except psycopg2.OperationalError as e:
             print("NOT INSERTED")
-            print("Error code:", e.errno)  # error number
-            print("SQLSTATE value:", e.sqlstate)  # SQLSTATE value
-            print("Error message:", e.msg)  # error message
             print("Error:", e)  # errno, sqlstate, msg values
             s = str(e)
             print("Error:", s)  # errno, sqlstate, msg values
@@ -289,6 +304,15 @@ class Database:
         self.disconnect()
         return rs
 
+    def get_not_preprocessed_posts(self):
+        sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
+        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in Parser module
+        query = (sql)
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
+
     def get_posts_dataframe_from_database(self):
         sql = """SELECT * FROM posts ORDER BY id;"""
 
@@ -300,3 +324,22 @@ class Database:
         sql = """SELECT * FROM relevance_testings ORDER BY id;"""
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
+
+    def insert_preprocessed_body(self, preprocessed_body, article_id):
+        try:
+            query = """UPDATE posts SET body_preprocessed=%s WHERE id=%s;"""
+            inserted_values = (preprocessed_body, article_id)
+            self.cursor.execute(query, inserted_values)
+            self.cnx.commit()
+
+        except psycopg2.Error as e:
+            print("NOT INSERTED")
+            print("Error code:", e.pgcode)  # error number
+            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
+            print("Error:", e)  # errno, sqlstate, msg values
+            s = str(e)
+            print("Error:", s)  # errno, sqlstate, msg values
+            self.cnx.rollback()
+
+
+
