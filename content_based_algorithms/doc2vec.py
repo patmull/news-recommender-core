@@ -264,7 +264,7 @@ class Doc2VecClass:
         self.train()
         """
 
-        # model = Doc2Vec.load()
+        # model = Doc2Vec.load_texts()
         # to find the vector of a document which is not in training data
         tfidf = TfIdf()
         # post_preprocessed = word_tokenize("Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.".lower())

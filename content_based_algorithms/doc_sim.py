@@ -4,9 +4,15 @@ import re
 import gensim
 import numpy as np
 from gensim.corpora import Dictionary
+from gensim.models import TfidfModel, KeyedVectors
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix, SoftCosineSimilarity
+from gensim.similarities.annoy import AnnoyIndexer
 from scipy import spatial
 from sklearn.feature_extraction.text import HashingVectorizer
+
+from content_based_algorithms import gensim_native_models
+from content_based_algorithms.gensim_native_models import GenSimMethods
+
 
 class DocSim:
     def __init__(self, w2v_model, stopwords=None):
@@ -138,13 +144,24 @@ class DocSim:
     def calculate_similarity_idnes_model_gensim(self, source_doc, target_docs=None, threshold=0.2):
         """Calculates & returns similarity scores between given source document & all
         the target documents."""
-        termsim_index = WordEmbeddingSimilarityIndex(self.w2v_model)
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
-        bow_corpus = pickle.load(open("precalc_vectors/corpus.pkl","rb"))
-        similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary)  # construct similarity matrix
+        gensim_methods = GenSimMethods()
+        common_texts = gensim_methods.load_texts()
+        # bow_corpus = pickle.load(open("precalc_vectors/corpus.pkl","rb"))
 
-        docsim_index = SoftCosineSimilarity(bow_corpus, similarity_matrix, num_best=21)
-        print("source_doc:")
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
+        tfidf = TfidfModel(dictionary=dictionary)
+        words = [word for word, count in dictionary.most_common()]
+        word_vectors = self.w2v_model.wv.vectors_for_all(words, allow_inference=False)  # produce vectors for words in corpus
+
+
+        indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
+        termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})
+        similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary, tfidf)  # compute word similarities
+
+        tfidf_corpus = tfidf[[dictionary.doc2bow(document) for document in common_texts]]
+        docsim_index = SoftCosineSimilarity(tfidf_corpus, similarity_matrix,
+                                            num_best=10)  # index tfidf_corpus        print("source_doc:")
+
         print(source_doc)
         source_doc = source_doc.replace(",","")
         source_doc = source_doc.replace("||", " ")

@@ -276,7 +276,6 @@ class Database:
         self.connect()
         if full_text is False:
             if algorithm == "tfidf":
-                print("Here in TF-IDF")
                 sql = """SELECT * FROM posts AS p WHERE p.recommended_tfidf IS NULL ORDER BY id DESC;"""
             elif algorithm == "doc2vec":
                 sql = """SELECT * FROM posts AS p WHERE p.recommended_doc2vec IS NULL ORDER BY id DESC;"""
@@ -325,6 +324,7 @@ class Database:
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
+
     def insert_preprocessed_body(self, preprocessed_body, article_id):
         try:
             query = """UPDATE posts SET body_preprocessed=%s WHERE id=%s;"""
@@ -341,5 +341,26 @@ class Database:
             print("Error:", s)  # errno, sqlstate, msg values
             self.cnx.rollback()
 
+    def get_posts_with_no_body_preprocessed(self):
+        sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
+        query = (sql)
+        self.cursor.execute(query)
 
+        rs = self.cursor.fetchall()
+        return rs
 
+    def get_posts_with_no_all_features_preprocessed(self):
+        sql = """SELECT * FROM posts WHERE all_features_preprocessed IS NULL ORDER BY id;"""
+        query = (sql)
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
+
+    def get_posts_with_no_keywords(self):
+        sql = """SELECT * FROM posts WHERE keywords IS NULL ORDER BY id;"""
+        query = (sql)
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
