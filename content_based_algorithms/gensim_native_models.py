@@ -15,7 +15,7 @@ from scipy import sparse
 from data_connection import Database
 
 
-class GenSim:
+class GenSimMethods:
 
     def __init__(self):
         self.posts_df = None
@@ -44,16 +44,18 @@ class GenSim:
         # return str(self.df['title_y','title_x','excerpt','keywords','slug'].loc[self.df['slug'] == slug].values[0])
 
     def get_categories_dataframe(self):
+        self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
+        self.database.disconnect()
         return self.categories_df
 
     def recommend_posts_by_all_features(self, slug):
 
-        gensimClass = GenSim()
+        gensimClass = GenSimMethods()
 
-        gensimClass.get_posts_dataframe()  # load posts do dataframe
-        gensimClass.get_categories_dataframe()  # load categories to dataframe
-        # tfidf.get_ratings_dataframe() # load post rating do dataframe
+        gensimClass.get_posts_dataframe()  # load_texts posts do dataframe
+        gensimClass.get_categories_dataframe()  # load_texts categories to dataframe
+        # tfidf.get_ratings_dataframe() # load_texts post rating do dataframe
 
         gensimClass.join_posts_ratings_categories()  # joining posts and categories into one table
         fit_by_title_matrix = gensimClass.get_fit_by_feature('title_x', 'title_y')  # prepended by category
@@ -109,8 +111,10 @@ class GenSim:
 
         return json
 
-    def load(self):
-
+    def load_texts(self):
+        self.get_posts_dataframe()
+        self.get_categories_dataframe()
+        self.join_posts_ratings_categories()
         # preprocessing
         # self.df["title_x"] = self.df["title_x"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
         # self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
@@ -118,9 +122,7 @@ class GenSim:
         # converting pandas columns to list of lists and through map to list of string joined by space ' '
         self.documents = list(map(' '.join, self.df[["keywords", "title_y", "title_x", "excerpt"]].values.tolist()))
 
-        print("self.documents")
-        print(self.documents)
-        filename = "preprocessing/czech_stopwords.txt"
+        filename = "preprocessing/stopwords/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -130,7 +132,6 @@ class GenSim:
             for document in self.documents
         ]
 
-        print("texts")
         # print(texts)
 
         # remove words that appear only once
@@ -144,18 +145,16 @@ class GenSim:
             for text in texts
         ]
 
-        print("texts")
-        print(texts)
-
         return texts
 
+    @DeprecationWarning
     def get_recommended_by_slug(self, slug):
 
         self.get_posts_dataframe()
         self.get_categories_dataframe()
         self.join_posts_ratings_categories()
 
-        texts = self.load()
+        texts = self.load_texts()
 
         # does it support czech language?
         dictionary = corpora.Dictionary(texts)
@@ -169,9 +168,6 @@ class GenSim:
 
         doc = ''.join(doc)
         doc = str(doc)
-        print("doc")
-        print(type(doc))
-        print(doc)
 
         vec_bow = dictionary.doc2bow(doc.lower().split())
 
