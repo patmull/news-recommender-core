@@ -2,9 +2,6 @@ import ssl
 import traceback
 
 import pika, os
-
-from content_based_algorithms.prefiller import PreFiller
-from content_based_algorithms.tfidf import TfIdf
 from prefilling_all import run_prefilling
 
 ssl_enabled = os.environ.get("ssl", False)
