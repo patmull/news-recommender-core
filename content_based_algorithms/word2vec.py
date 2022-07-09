@@ -408,17 +408,19 @@ class Word2VecClass:
         self.df = recommenderMethods.join_posts_ratings_categories_full_text()
 
         print("self.posts_df")
-        print(self.df.to_string())
+        print(self.df.head(10).to_string())
         print("self.categories_df")
-        print(self.df.to_string())
+        print(self.df.head(10).to_string())
         print("self.df")
-        print(self.df.to_string())
+        print(self.df.head(10).to_string())
 
         # search_terms = 'Domácí. Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.'
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug, force_update=True)
 
         print("found_post_dataframe")
         print(found_post_dataframe)
+
+        # TODO: If this works well on production, add also to short text version
         if found_post_dataframe is None:
             return []
         else:
