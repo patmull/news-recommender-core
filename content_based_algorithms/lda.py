@@ -72,7 +72,6 @@ class Lda:
 
         gc.collect()
 
-        print(self.df.head(10).to_string())
         # if there is no LDA model, training will run anyway due to load_texts method handle
         if train is True:
             self.train_lda(self.df, display_dominant_topics=display_dominant_topics)
@@ -81,7 +80,6 @@ class Lda:
 
         searched_doc_id_list = self.df.index[self.df['post_slug'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
-        print("self.df.iloc[searched_doc_id]")
         selected_by_index = self.df.iloc[searched_doc_id]
         selected_by_column = selected_by_index['all_features_preprocessed']
         new_bow = dictionary.doc2bow([selected_by_column])
@@ -128,9 +126,6 @@ class Lda:
         self.get_posts_dataframe()
         self.join_posts_ratings_categories()
         self.database.disconnect()
-
-        print("get_similar_lda_full_text dataframe:")
-        print(self.df.to_string())
 
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
         self.df['tokenized'] = self.df.apply(
@@ -293,12 +288,8 @@ class Lda:
         data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
-        print("data_words_bigrams")
-        print(data_words_bigrams)
-
         self.df.assign(tokenized=data_words_bigrams)
-        print("data['tokenized']")
-        print(data['tokenized'])
+
         dictionary = corpora.Dictionary(data['tokenized'])
         dictionary.filter_extremes()
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
@@ -335,11 +326,9 @@ class Lda:
         self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized']
         all_words = [word for item in list(self.df["tokenized"]) for word in item]
-        print(all_words[:50])
 
         top_k_words, _ = RecommenderMethods.most_common_words(all_words)
-        print(top_k_words)
-        print("top_k_words")
+
         self.top_k_words = set(top_k_words)
 
         self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
@@ -350,8 +339,6 @@ class Lda:
         self.df = self.df[self.df['tokenized'].map(type) == list]
         self.df.reset_index(drop=True, inplace=True)
         print("After cleaning and excluding short aticles, the dataframe now has:", len(self.df), "articles")
-        print("df head:")
-        print(self.df.head)
 
         self.save_corpus_dict(corpus, dictionary)
 
@@ -441,7 +428,6 @@ class Lda:
         trigram_mod = gensim.models.phrases.Phraser(trigram)
 
         # See trigram example
-        print(trigram_mod[bigram_mod[data_words[0]]])
 
         # Form Bigrams
         data_words_bigrams = self.make_bigrams(bigram_mod, data_words)
@@ -456,8 +442,6 @@ class Lda:
 
     def visualise_lda(self, lda_model, corpus, dictionary, data_words_bigrams):
 
-        print("Keywords and topics:")
-        print(lda_model.print_topics())
         # Compute Perplexity
         print('\nLog perplexity: ', lda_model.log_perplexity(corpus))
         # a measure of how good the model is. lower the better.
@@ -499,8 +483,7 @@ class Lda:
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
             'tokenized_full_text']
         data = self.df
-        print("data['tokenized']")
-        print(data['tokenized'])
+
         data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
         # Term Document Frequency
@@ -511,10 +494,7 @@ class Lda:
         corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
 
         t1 = time.time()
-        print("corpus[:1]")
-        print(corpus[:1])
-        print("words:")
-        print([[(dictionary[id], freq) for id, freq in cp] for cp in corpus[:1]])
+
         # low alpha means each document is only represented by a small number of topics, and vice versa
         # low eta means each topic is only represented by a small number of words, and vice versa
 
@@ -545,9 +525,6 @@ class Lda:
                                                              # added
                                                              workers=2,
                                                              iterations=iterations)
-
-        print("mm")
-        print(corpus)
 
         """
         lda_model.save("full_models/cswiki/lda/lda_model")
@@ -586,8 +563,7 @@ class Lda:
                 list_of_preprocessed_files.append(i)
 
         list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
-        print("Loading data from files:")
-        print(list_of_preprocessed_files)
+
         print("Loading preprocessed corpus...")
         processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
         print("Loaded " + str(len(processed_data)) + " documents.")
@@ -605,14 +581,12 @@ class Lda:
         print("Creating dictionary...")
         print("TOP WORDS (after bigrams and stopwords removal):")
         top_k_words, _ = RecommenderMethods.most_common_words(processed_data)
-        print(top_k_words)
         preprocessed_dictionary = corpora.Dictionary(processed_data)
         print("Saving dictionary...")
         preprocessed_dictionary.save("full_models/cswiki/lda/preprocessed/dictionary")
         print("Translating words into Doc2Bow vectors")
         preprocessed_corpus = [preprocessed_dictionary.doc2bow(token, allow_update=True) for token in processed_data]
         print("Piece of preprocessed_corpus:")
-        print(preprocessed_corpus[:1])
 
         limit = 1500
         start = 10
@@ -839,15 +813,13 @@ class Lda:
                 continue
             print("Processing doc. num. " + str(num_of_preprocessed_docs))
             print("Before:")
-            print(doc)
             tokens = deaccent(czlemma.preprocess(doc))
 
             # removing words in greek, azbuka or arabian
             # use only one of the following lines, whichever you prefer
             tokens = [i for i in tokens.split() if regex.sub(r'[^\p{Latin}]',u'',i)]
             processed_data.append(tokens)
-            print("After:")
-            print(tokens)
+
             i = i + 1
             num_of_preprocessed_docs = num_of_preprocessed_docs + 1
             # saving list to pickle evey 100th document

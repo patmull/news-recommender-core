@@ -338,14 +338,8 @@ class Word2VecClass:
 
         self.posts_df = recommenderMethods.get_posts_dataframe()
         self.categories_df = recommenderMethods.get_categories_dataframe()
-        self.df = recommenderMethods.join_posts_ratings_categories()
 
-        print("self.posts_df")
-        print(self.posts_df)
-        print("self.categories_df")
-        print(self.categories_df)
-        print("self.df")
-        print(self.df)
+        self.df = recommenderMethods.join_posts_ratings_categories()
 
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
@@ -359,7 +353,7 @@ class Word2VecClass:
 
         documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
             "all_features_preprocessed"]
-        documents_df["slug"] = self.df["slug"]
+        documents_df["slug"] = self.df["post_slug"]
         found_post = found_post_dataframe['features_to_use'].iloc[0]
 
         del self.df
@@ -367,8 +361,7 @@ class Word2VecClass:
 
         documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
         list_of_document_features = documents_df["features_to_use"].tolist()
-        print("list_of_document_features")
-        print(list_of_document_features)
+
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
 
@@ -384,12 +377,9 @@ class Word2VecClass:
             ds = DocSim(model_idnes)
             print("found_post")
             print(found_post)
-            print("list_of_document_features")
-            print(list_of_document_features)
             most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post,
                                                                                            list_of_document_features)[:21]
-        print("most_similar_articles_with_scores:")
-        print(most_similar_articles_with_scores)
+
         # removing post itself
         if len(most_similar_articles_with_scores) > 0:
             del most_similar_articles_with_scores[0]  # removing post itself
@@ -406,13 +396,6 @@ class Word2VecClass:
         self.posts_df = recommenderMethods.get_posts_dataframe()
         self.categories_df = recommenderMethods.get_categories_dataframe(rename_title=True)
         self.df = recommenderMethods.join_posts_ratings_categories_full_text()
-
-        print("self.posts_df")
-        print(self.df.head(10).to_string())
-        print("self.categories_df")
-        print(self.df.head(10).to_string())
-        print("self.df")
-        print(self.df.head(10).to_string())
 
         # search_terms = 'Domácí. Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.'
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug, force_update=True)

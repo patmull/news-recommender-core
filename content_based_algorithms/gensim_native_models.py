@@ -30,6 +30,7 @@ class GenSimMethods:
         return self.posts_df
 
     def join_posts_ratings_categories(self):
+
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         self.df = self.df[
@@ -56,8 +57,8 @@ class GenSimMethods:
         gensimClass.get_posts_dataframe()  # load_texts posts do dataframe
         gensimClass.get_categories_dataframe()  # load_texts categories to dataframe
         # tfidf.get_ratings_dataframe() # load_texts post rating do dataframe
-
-        gensimClass.join_posts_ratings_categories()  # joining posts and categories into one table
+        recommendeMethods = RecommenderMethods()
+        self.df = recommendeMethods.join_posts_ratings_categories()  # joining posts and categories into one table
         fit_by_title_matrix = gensimClass.get_fit_by_feature('post_title', 'category_title')  # prepended by category
         fit_by_excerpt_matrix = gensimClass.get_fit_by_feature('excerpt')
         fit_by_keywords_matrix = gensimClass.get_fit_by_feature('keywords')
@@ -112,9 +113,10 @@ class GenSimMethods:
         return json
 
     def load_texts(self):
-        self.get_posts_dataframe()
-        self.get_categories_dataframe()
-        self.join_posts_ratings_categories()
+        recommender_methods = RecommenderMethods()
+        self.posts_df = recommender_methods.get_posts_dataframe()
+        self.categories_df = recommender_methods.get_categories_dataframe()
+        self.df = recommender_methods.join_posts_ratings_categories()
         # preprocessing
         # self.df["post_title"] = self.df["post_title"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
         # self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
