@@ -62,7 +62,6 @@ class RecommenderMethods:
         self.database.connect()
         print("4.1.1")
         if force_update is True:
-            print("Force update is true, will update cache file anyway.")
             self.posts_df = self.database.insert_posts_dataframe_to_cache()
         else:
             print("Trying reading from cache as default...")
@@ -81,7 +80,6 @@ class RecommenderMethods:
         print("4.1.3")
         self.database.disconnect()
         print("4.1.4")
-        self.posts_df.rename(columns={'title': 'post_title'})
         return self.posts_df
 
     def get_df_from_sql_meanwhile_insert_cache(self):
@@ -113,8 +111,6 @@ class RecommenderMethods:
         self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
         self.database.disconnect()
-        if rename_title is True:
-            self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
         return self.categories_df
 
     def get_user_posts_ratings(self):
@@ -193,17 +189,20 @@ class RecommenderMethods:
 
     def join_posts_ratings_categories_full_text(self):
         self.posts_df = self.posts_df.rename(columns = {'title': 'post_title'})
+        print("self.posts_df.columns")
         print(self.posts_df.columns)
         self.posts_df = self.posts_df.rename(columns= {'slug': 'post_slug'})
+        print("self.posts_df.columns")
         print(self.posts_df.columns)
         self.categories_df = self.categories_df.rename(columns = {'title': 'category_title'})
 
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
+        print("self.df.columns")
         print(self.df.columns)
         self.df = self.df[
             ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-             'all_features_preprocessed', 'body_preprocessed', 'full_text']]
+             'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
         return self.df
 
 

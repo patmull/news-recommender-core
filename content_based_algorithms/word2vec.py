@@ -393,7 +393,7 @@ class Word2VecClass:
     def get_similar_word2vec_full_text(self, searched_slug):
         recommenderMethods = RecommenderMethods()
 
-        self.posts_df = recommenderMethods.get_posts_dataframe(force_update=True)
+        self.posts_df = recommenderMethods.get_posts_dataframe()
         self.categories_df = recommenderMethods.get_categories_dataframe(rename_title=True)
         self.df = recommenderMethods.join_posts_ratings_categories_full_text()
 
@@ -407,20 +407,9 @@ class Word2VecClass:
         if found_post_dataframe is None:
             return []
         else:
-            print("found_post_dataframe.iloc[0]")
-            print(found_post_dataframe.iloc[0])
-            print("Keywords:")
-            print(found_post_dataframe.iloc[0]['keywords'])
-            print("category_title:")
-            print(found_post_dataframe.iloc[0]['category_title'])
-            print("all_features_preprocessed:")
-            print(found_post_dataframe.iloc[0]['all_features_preprocessed'])
-            print("body_preprocessed:")
-            print(found_post_dataframe.iloc[0]['body_preprocessed'])
-            print(found_post_dataframe.iloc.columns)
+            # TODO: include category title
             found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
             found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
-                                                      found_post_dataframe.iloc[0]['category_title'] + " " + \
                                                       found_post_dataframe.iloc[0]['all_features_preprocessed'] + " " + \
                                                       found_post_dataframe.iloc[0]['body_preprocessed']
 
