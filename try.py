@@ -1,3 +1,5 @@
+import warnings
+
 from data_connection import Database
 from prefilling_all import prepare_and_run, run_prefilling
 
@@ -14,5 +16,10 @@ def try_prefillers():
     try_word2vec_recommendation_prefiller(database=database, method=method, full_text=False, reverse=reverse, random=random)
 
 
-# try_prefillers()
-run_prefilling()
+def fxn():
+    warnings.warn("deprecated", DeprecationWarning)
+
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    run_prefilling()
