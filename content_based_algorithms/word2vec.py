@@ -404,7 +404,7 @@ class Word2VecClass:
         recommenderMethods = RecommenderMethods()
 
         self.posts_df = recommenderMethods.get_posts_dataframe()
-        self.categories_df = recommenderMethods.get_categories_dataframe()
+        self.categories_df = recommenderMethods.get_categories_dataframe(rename_title=True)
         self.df = recommenderMethods.join_posts_ratings_categories_full_text()
 
         print("self.posts_df")
@@ -428,7 +428,7 @@ class Word2VecClass:
             print(found_post_dataframe.iloc[0])
             found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
             found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
-                                                      found_post_dataframe.iloc[0]['title_y'] + " " + \
+                                                      found_post_dataframe.iloc[0]['category_title'] + " " + \
                                                       found_post_dataframe.iloc[0]['all_features_preprocessed'] + " " + \
                                                       found_post_dataframe.iloc[0]['body_preprocessed']
 
