@@ -208,25 +208,25 @@ class Database:
         else:
             raise ValueError("Not allowed DB method passed.")
 
-    def insert_recommended_json(self, algorithm, full_text, articles_recommended_json, article_id, db):
+    def insert_recommended_json(self, method, full_text, articles_recommended_json, article_id, db):
         self.connect()
         if db == "pgsql":
             try:
-                if algorithm == "tfidf" and full_text is False:
+                if method == "tfidf" and full_text is False:
                     query = """UPDATE posts SET recommended_tfidf=%s WHERE id=%s;"""
-                elif algorithm == "tfidf" and full_text is True:
+                elif method == "tfidf" and full_text is True:
                     query = """UPDATE posts SET recommended_tfidf_full_text=%s WHERE id=%s;"""
-                elif algorithm == "doc2vec" and full_text is False:
+                elif method == "doc2vec" and full_text is False:
                     query = """UPDATE posts SET recommended_doc2vec=%s WHERE id=%s;"""
-                elif algorithm == "doc2vec" and full_text is True:
+                elif method == "doc2vec" and full_text is True:
                     query = """UPDATE posts SET recommended_doc2vec_full_text=%s WHERE id=%s;"""
-                elif algorithm == "lda" and full_text is False:
+                elif method == "lda" and full_text is False:
                     query = """UPDATE posts SET recommended_lda=%s WHERE id=%s;"""
-                elif algorithm == "lda" and full_text is True:
+                elif method == "lda" and full_text is True:
                     query = """UPDATE posts SET recommended_lda_full_text=%s WHERE id=%s;"""
-                elif algorithm == "word2vec" and full_text is False:
+                elif method == "word2vec" and full_text is False:
                     query = """UPDATE posts SET recommended_word2vec=%s WHERE id=%s;"""
-                elif algorithm == "word2vec" and full_text is True:
+                elif method == "word2vec" and full_text is True:
                     query = """UPDATE posts SET recommended_word2vec_full_text=%s WHERE id=%s;"""
                 inserted_values = (articles_recommended_json, article_id)
                 self.cursor.execute(query, inserted_values)
@@ -272,29 +272,29 @@ class Database:
             print("Error:", s)  # errno, sqlstate, msg values
             self.cnx.rollback()
 
-    def get_not_prefilled_posts(self, full_text, algorithm):
+    def get_not_prefilled_posts(self, full_text, method):
         self.connect()
         if full_text is False:
-            if algorithm == "tfidf":
+            if method == "tfidf":
                 sql = """SELECT * FROM posts AS p WHERE p.recommended_tfidf IS NULL ORDER BY id DESC;"""
-            elif algorithm == "doc2vec":
+            elif method == "doc2vec":
                 sql = """SELECT * FROM posts AS p WHERE p.recommended_doc2vec IS NULL ORDER BY id DESC;"""
-            elif algorithm == "word2vec":
+            elif method == "word2vec":
                 sql = """SELECT * FROM posts AS p WHERE p.recommended_word2vec IS NULL ORDER BY id DESC;"""
-            elif algorithm == "lda":
+            elif method == "lda":
                 sql = """SELECT * FROM posts AS p WHERE p.recommended_lda IS NULL ORDER BY id DESC;"""
-            elif algorithm == "doc2vec_vectors":
+            elif method == "doc2vec_vectors":
                 sql = """SELECT * FROM posts AS p WHERE p.doc2vec_representation IS NULL ORDER BY id DESC;"""
             else:
-                raise ValueError("Selected algorithm not implemented.")
+                raise ValueError("Selected method not implemented.")
         else:
-            if algorithm == "tfidf":
+            if method == "tfidf":
                 sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id DESC;"""
-            elif algorithm == "doc2vec":
+            elif method == "doc2vec":
                 sql = """SELECT * FROM posts WHERE recommended_doc2vec_full_text IS NULL ORDER BY id DESC;"""
-            elif algorithm == "word2vec":
+            elif method == "word2vec":
                 sql = """SELECT * FROM posts WHERE recommended_word2vec_full_text IS NULL ORDER BY id DESC;"""
-            elif algorithm == "lda":
+            elif method == "lda":
                 sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id DESC;"""
 
         query = (sql)
@@ -359,6 +359,50 @@ class Database:
 
     def get_posts_with_no_keywords(self):
         sql = """SELECT * FROM posts WHERE keywords IS NULL ORDER BY id;"""
+        query = (sql)
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
+
+    def get_posts_with_no_prefilled_tfidf(self, full_text):
+        if full_text is False:
+            sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
+        else:
+            sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id;"""
+        query = (sql)
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
+
+    def get_posts_with_no_prefilled_word2vec(self, full_text):
+        if full_text is False:
+            sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
+        else:
+            sql = """SELECT * FROM posts WHERE recommended_word2vec_full_text IS NULL ORDER BY id;"""
+        query = (sql)
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
+
+    def get_posts_with_no_prefilled_doc2vec(self, full_text):
+        if full_text is False:
+            sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
+        else:
+            sql = """SELECT * FROM posts WHERE recommended_doc2vec_full_text IS NULL ORDER BY id;"""
+        query = (sql)
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
+
+    def get_posts_with_no_prefilled_lda(self, full_text):
+        if full_text is False:
+            sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
+        else:
+            sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id;"""
         query = (sql)
         self.cursor.execute(query)
 
