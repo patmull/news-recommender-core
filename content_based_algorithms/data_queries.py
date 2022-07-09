@@ -186,6 +186,7 @@ class RecommenderMethods:
         self.df = self.df[
             ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
              'all_features_preprocessed', 'body_preprocessed', 'full_text']]
+        return self.df
 
 
     #### Above are data queries ####
