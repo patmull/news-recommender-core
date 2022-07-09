@@ -150,14 +150,15 @@ class RecommenderMethods:
         self.database.disconnect()
 
     def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
-        self.posts_df = self.posts_df.rename(columns = {'title': 'post_title'})
-        self.posts_df = self.posts_df.rename(columns= {'slug': 'post_slug'})
-        self.categories_df = self.categories_df.rename(columns = {'title': 'category_title'})
 
         self.get_posts_dataframe()
         print("4.1")
         self.get_categories_dataframe()
         print("4.2")
+        print(self.posts_df.columns)
+        self.posts_df = self.posts_df.rename(columns={'title': 'post_title', 'slug': 'post_slug'})
+        self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
+
         if include_prefilled is False:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
             # clean up from unnecessary columns
@@ -178,6 +179,7 @@ class RecommenderMethods:
                      'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text']]
         print("4.3")
+        print(self.df.columns)
 
         if full_text is True:
             self.df = self.df[
