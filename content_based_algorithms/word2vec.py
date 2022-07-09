@@ -383,11 +383,16 @@ class Word2VecClass:
             print(list_of_document_features)
             most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post,
                                                                                            list_of_document_features)[:21]
+        print("most_similar_articles_with_scores:")
+        print(most_similar_articles_with_scores)
         # removing post itself
-        del most_similar_articles_with_scores[0]  # removing post itself
+        if len(most_similar_articles_with_scores) > 0:
+            del most_similar_articles_with_scores[0]  # removing post itself
 
-        # workaround due to float32 error in while converting to JSON
-        return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
+            # workaround due to float32 error in while converting to JSON
+            return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
+        else:
+            return None
 
     # @profile
     def get_similar_word2vec_full_text(self, searched_slug):
@@ -480,7 +485,7 @@ class Word2VecClass:
         if skip_already_filled is False:
             posts = database.get_all_posts()
         else:
-            posts = database.get_not_prefilled_posts(full_text, algorithm="tfidf")
+            posts = database.get_not_prefilled_posts(full_text, method="tfidf")
 
         number_of_inserted_rows = 0
 
@@ -513,12 +518,15 @@ class Word2VecClass:
                         actual_recommended_json = self.get_similar_word2vec(slug)
                     else:
                         actual_recommended_json = self.get_similar_word2vec_full_text(slug)
+                    if actual_recommended_json is None:
+                        print("No recommended post found. Skipping.")
+                        continue
                     actual_recommended_json = json.dumps(actual_recommended_json)
                     if full_text is False:
                         try:
                             database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
                                                              article_id=post_id, full_text=False, db="pgsql",
-                                                             algorithm="word2vec")
+                                                             method="word2vec")
                         except:
                             print("Error in DB insert. Skipping.")
                             pass
@@ -526,7 +534,7 @@ class Word2VecClass:
                         try:
                             database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
                                                              article_id=post_id, full_text=True, db="pgsql",
-                                                             algorithm="word2vec")
+                                                             method="word2vec")
                         except:
                             print("Error in DB insert. Skipping.")
                             pass
@@ -537,7 +545,6 @@ class Word2VecClass:
                             self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False)
                         else:
                             self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=True)
-                    # print(str(number_of_inserted_rows) + " rows inserted.")
                 else:
                     print("Skipping.")
             else:
@@ -549,13 +556,12 @@ class Word2VecClass:
                 if full_text is False:
                     database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
                                                      article_id=post_id, full_text=False, db="pgsql",
-                                                     algorithm="word2vec")
+                                                     method="word2vec")
                 else:
                     database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
                                                      article_id=post_id, full_text=True, db="pgsql",
-                                                     algorithm="word2vec")
+                                                     method="word2vec")
                 number_of_inserted_rows += 1
-                # print(str(number_of_inserted_rows) + " rows insertd.")
 
     def prefilling_job(self, full_text, reverse, random=False):
         if full_text is False:

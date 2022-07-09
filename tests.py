@@ -11,7 +11,7 @@ from content_based_algorithms.lda import Lda
 from content_based_algorithms.prefiller import PreFiller
 from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.word2vec import Word2VecClass
-from prefilling_all import run_prefilling
+from prefilling_all import run_prefilling, prepare_and_run
 from preprocessing.cz_preprocessing import CzPreprocess
 from data_connection import Database
 
@@ -43,6 +43,18 @@ def word2vec_method():
     assert type(similar_posts[0]['slug']) is str
     assert type(similar_posts[0]['coefficient']) is float
     assert len(similar_posts) > 0
+
+
+def test_word2vec_recommendation_prefiller(database, method, full_text, reverse, random):
+    prepare_and_run(database, method, full_text, reverse, random)
+
+
+def try_prefillers():
+    database = Database()
+    method = "word2vec"
+    reverse = True
+    random = False
+    test_word2vec_recommendation_prefiller(database=database, method=method, full_text=False, reverse=reverse, random=random)
 
 
 def main():
@@ -90,6 +102,7 @@ def main():
     """
     # word2vecClass = Word2VecClass()
     word2vec_method()
+    try_prefillers()
     # 1. Create Dictionary
     # word2vecClass.create_dictionary_from_dataframe(force_update=False, filter_extremes=False)
     # preprocess corpus and save it to mongo
