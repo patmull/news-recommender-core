@@ -26,7 +26,6 @@ class PreFiller:
                 continue
             break
 
-
     def fill_recommended(self, method, skip_already_filled, full_text=True, random_order=False, reversed=False):
 
         database = Database()
