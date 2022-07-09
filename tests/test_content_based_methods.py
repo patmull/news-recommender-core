@@ -10,7 +10,7 @@ def test_word2vec_method():
     database = Database()
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
-    random_post_slug = random_post['slug'].iloc[0]
+    random_post_slug = random_post['post_slug'].iloc[0]
     print("random_post slug:")
     print(random_post_slug)
     similar_posts = word2vec.get_similar_word2vec(random_post_slug)
