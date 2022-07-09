@@ -340,7 +340,12 @@ class Word2VecClass:
         self.categories_df = recommenderMethods.get_categories_dataframe()
         self.df = recommenderMethods.join_posts_ratings_categories()
 
+        print("self.posts_df")
         print(self.posts_df)
+        print("self.categories_df")
+        print(self.categories_df)
+        print("self.df")
+        print(self.df)
 
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
