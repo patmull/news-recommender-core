@@ -25,10 +25,8 @@ def create_app():
     print("FLASK APP READY TO START!")
     return app
 
-"""
 app = create_app()
 api = Api(app)
-"""
 
 @app.route('/', methods=['GET'])
 def home():
