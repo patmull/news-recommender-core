@@ -424,6 +424,8 @@ class Word2VecClass:
         if found_post_dataframe is None:
             return []
         else:
+            print("found_post_dataframe.iloc[0]")
+            print(found_post_dataframe.iloc[0])
             found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
             found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
                                                       found_post_dataframe.iloc[0]['title_y'] + " " + \
