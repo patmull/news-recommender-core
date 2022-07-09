@@ -38,12 +38,13 @@ class Lda:
         self.categories_df = None
         self.database = Database()
 
+    @DeprecationWarning
     def join_posts_ratings_categories(self):
         self.get_categories_dataframe()
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         self.df = self.df[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+            ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed', 'body_preprocessed']]
         return self.df
 
@@ -78,7 +79,7 @@ class Lda:
 
         dictionary, corpus, lda = self.load_lda(self.df)
 
-        searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
+        searched_doc_id_list = self.df.index[self.df['post_slug'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
         print("self.df.iloc[searched_doc_id]")
         selected_by_index = self.df.iloc[searched_doc_id]
@@ -95,7 +96,7 @@ class Lda:
         most_similar_df = most_similar_df.iloc[1:, :]
 
         post_recommendations = pd.DataFrame()
-        post_recommendations['slug'] = most_similar_df['slug_x'].iloc[:N]
+        post_recommendations['slug'] = most_similar_df['slug'].iloc[:N]
         # post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
         if N == 21:
             post_recommendations['coefficient'] = most_sim_coefficients[:N-1]
@@ -153,7 +154,7 @@ class Lda:
 
         dictionary, corpus, lda = self.load_lda_full_text(self.df, retrain=train, display_dominant_topics=display_dominant_topics)
 
-        searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
+        searched_doc_id_list = self.df.index[self.df['slug'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
         new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
@@ -167,7 +168,7 @@ class Lda:
         gc.collect()
         most_similar_df = most_similar_df.iloc[1:, :]
         post_recommendations = pd.DataFrame()
-        post_recommendations['slug'] = most_similar_df['slug_x'].iloc[:N]
+        post_recommendations['slug'] = most_similar_df['slug'].iloc[:N]
         post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
 
         dict = post_recommendations.to_dict('records')
@@ -740,7 +741,7 @@ class Lda:
         print(self.df.head(10).to_string())
         df_dominant_topic_merged = df_dominant_topic.merge(self.df, how='outer', left_index=True, right_index=True)
         print("After join")
-        df_dominant_topic_filtered_columns = df_dominant_topic_merged[['Document_No', 'slug_x', 'title_x', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords']]
+        df_dominant_topic_filtered_columns = df_dominant_topic_merged[['Document_No', 'slug', 'post_title', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords']]
         print(df_dominant_topic_filtered_columns.head(10).to_string())
         # saving dominant topics with corresponding documents
         df_dominant_topic_filtered_columns.to_csv("exports/dominant_topics_and_documents.csv", sep=';', encoding='iso8859_2', errors='replace')

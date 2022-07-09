@@ -281,7 +281,7 @@ class Word2VecClass:
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         self.df = self.df[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+            ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed']]
 
     @DeprecationWarning
@@ -289,7 +289,7 @@ class Word2VecClass:
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         self.df = self.df[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+            ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed', 'body_preprocessed', 'full_text']]
 
     def prepare_word2vec_eval(self):
@@ -305,11 +305,11 @@ class Word2VecClass:
         documents_df = pd.DataFrame()
         documents_training_df = pd.DataFrame()
 
-        documents_df["features_to_use"] = self.df["title_y"] + " " + self.df["keywords"] + ' ' + self.df[
+        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
             "all_features_preprocessed"]
-        documents_df["slug"] = self.df["slug_x"]
+        documents_df["slug"] = self.df["slug"]
 
-        documents_training_df["features_to_use"] = self.df["title_y"] + " " + self.df["keywords"] + " " + self.df[
+        documents_training_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + " " + self.df[
             "all_features_preprocessed"]
         documents_training_df["features_to_use"] = documents_training_df["features_to_use"].replace(",", "")
         documents_training_df["features_to_use"] = documents_training_df["features_to_use"].str.split(" ")
@@ -350,16 +350,16 @@ class Word2VecClass:
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
-                                                  found_post_dataframe.iloc[0]['title_y'] + " " + \
+                                                  found_post_dataframe.iloc[0]['category_title'] + " " + \
                                                   found_post_dataframe.iloc[0]['all_features_preprocessed']
         del self.posts_df
         del self.categories_df
 
         documents_df = pd.DataFrame()
 
-        documents_df["features_to_use"] = self.df["title_y"] + " " + self.df["keywords"] + ' ' + self.df[
+        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
             "all_features_preprocessed"]
-        documents_df["slug"] = self.df["slug_x"]
+        documents_df["slug"] = self.df["slug"]
         found_post = found_post_dataframe['features_to_use'].iloc[0]
 
         del self.df
@@ -435,12 +435,12 @@ class Word2VecClass:
             del self.posts_df
             del self.categories_df
 
-            # cols = ["title_y", "title_x", "excerpt", "keywords", "slug_x", "all_features_preprocessed"]
+            # cols = ["category_title", "post_title", "excerpt", "keywords", "slug", "all_features_preprocessed"]
             documents_df = pd.DataFrame()
 
-            documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["title_y"] + ' ' + self.df[
+            documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["category_title"] + ' ' + self.df[
                 "all_features_preprocessed"] + ' ' + self.df["body_preprocessed"]
-            documents_df["slug"] = self.df["slug_x"]
+            documents_df["slug"] = self.df["post_slug"]
 
             found_post = found_post_dataframe['features_to_use'].iloc[0]
 

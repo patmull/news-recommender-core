@@ -66,7 +66,7 @@ class Database:
     def join_posts_ratings_categories(self):
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
-        self.df = self.df[['id_x','title_x','slug_x','excerpt','body','views','keywords','title_y','description','all_features_preprocessed']]
+        self.df = self.df[['id_x','post_title','slug','excerpt','body','views','keywords','category_title','description','all_features_preprocessed']]
 
     def get_posts_join_categories(self):
 
