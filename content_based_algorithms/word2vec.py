@@ -393,7 +393,7 @@ class Word2VecClass:
     def get_similar_word2vec_full_text(self, searched_slug):
         recommenderMethods = RecommenderMethods()
 
-        self.posts_df = recommenderMethods.get_posts_dataframe(force_update=True)
+        self.posts_df = recommenderMethods.get_posts_dataframe()
         self.categories_df = recommenderMethods.get_categories_dataframe(rename_title=True)
         self.df = recommenderMethods.join_posts_ratings_categories_full_text()
 
