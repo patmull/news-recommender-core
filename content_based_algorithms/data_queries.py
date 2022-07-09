@@ -106,10 +106,14 @@ class RecommenderMethods:
         self.database.disconnect()
         return self.posts_df
 
-    def get_categories_dataframe(self):
+    def get_categories_dataframe(self, rename_title=False):
+        # rename_title (defaul=False): for ensuring that category title does not collide with post title
+
         self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
         self.database.disconnect()
+        if rename_title is True:
+            self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
         return self.categories_df
 
     def get_user_posts_ratings(self):
