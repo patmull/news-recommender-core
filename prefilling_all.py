@@ -68,7 +68,7 @@ def run_prefilling():
 
 def prepare_and_run(database, method, full_text, reverse, random):
     not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts in " + method)
+    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts in " + method + " full text: " + str(full_text))
     if len(not_prefilled_posts) > 0:
         try:
             prefiller.prefilling_job(method=method, full_text=full_text)
