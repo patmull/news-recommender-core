@@ -1,5 +1,6 @@
 import warnings
 
+from content_based_algorithms.data_queries import RecommenderMethods
 from data_connection import Database
 from prefilling_all import prepare_and_run, run_prefilling
 
@@ -22,4 +23,6 @@ def fxn():
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
+    recommender_methods = RecommenderMethods()
+    recommender_methods.database.insert_posts_dataframe_to_cache()
     run_prefilling()
