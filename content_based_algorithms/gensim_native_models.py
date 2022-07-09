@@ -33,15 +33,15 @@ class GenSimMethods:
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         self.df = self.df[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description']]
+            ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description']]
 
     def find_post_by_slug(self, slug):
-        post_dataframe = self.df.loc[self.df['slug_x'] == slug]
-        doc = post_dataframe["title_y"] + " " + post_dataframe["keywords"] + " " + post_dataframe["title_x"] + " " + \
+        post_dataframe = self.df.loc[self.df['post_slug'] == slug]
+        doc = post_dataframe["category_title"] + " " + post_dataframe["keywords"] + " " + post_dataframe["post_title"] + " " + \
               post_dataframe["excerpt"]
         return str(doc.tolist())
         # return self.get_posts_dataframe().loc[self.get_posts_dataframe()['slug'] == slug]
-        # return str(self.df['title_y','title_x','excerpt','keywords','slug'].loc[self.df['slug'] == slug].values[0])
+        # return str(self.df['category_title','post_title','excerpt','keywords','slug'].loc[self.df['slug'] == slug].values[0])
 
     def get_categories_dataframe(self):
         self.database.connect()
@@ -58,7 +58,7 @@ class GenSimMethods:
         # tfidf.get_ratings_dataframe() # load_texts post rating do dataframe
 
         gensimClass.join_posts_ratings_categories()  # joining posts and categories into one table
-        fit_by_title_matrix = gensimClass.get_fit_by_feature('title_x', 'title_y')  # prepended by category
+        fit_by_title_matrix = gensimClass.get_fit_by_feature('post_title', 'category_title')  # prepended by category
         fit_by_excerpt_matrix = gensimClass.get_fit_by_feature('excerpt')
         fit_by_keywords_matrix = gensimClass.get_fit_by_feature('keywords')
 
@@ -99,10 +99,10 @@ class GenSimMethods:
 
         # getting posts with highest similarity
         combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
-                                                  self.df[['slug_x']])
+                                                  self.df[['slug']])
         # print("combined_all:")
         # print(combined_all)
-        df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
+        df_renamed = combined_all.rename(columns={'slug': 'slug'})
         # print("df_renamed:")
         # print(df_renamed)
 
@@ -116,11 +116,11 @@ class GenSimMethods:
         self.get_categories_dataframe()
         self.join_posts_ratings_categories()
         # preprocessing
-        # self.df["title_x"] = self.df["title_x"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
+        # self.df["post_title"] = self.df["post_title"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
         # self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
 
         # converting pandas columns to list of lists and through map to list of string joined by space ' '
-        self.documents = list(map(' '.join, self.df[["keywords", "title_y", "title_x", "excerpt"]].values.tolist()))
+        self.documents = list(map(' '.join, self.df[["keywords", "category_title", "post_title", "excerpt"]].values.tolist()))
 
         filename = "preprocessing/stopwords/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
@@ -163,7 +163,7 @@ class GenSimMethods:
         lsi = models.LsiModel(corpus, id2word=dictionary, num_topics=2)
 
         doc = self.find_post_by_slug(slug)
-        # post_dataframe["title_x"] = post_dataframe["title_x"].map(lambda s: self.preprocess(s))
+        # post_dataframe["post_title"] = post_dataframe["post_title"].map(lambda s: self.preprocess(s))
         # post_dataframe["excerpt"] = post_dataframe["excerpt"].map(lambda s: self.preprocess(s))
 
         doc = ''.join(doc)
