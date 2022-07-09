@@ -81,6 +81,7 @@ class RecommenderMethods:
         print("4.1.3")
         self.database.disconnect()
         print("4.1.4")
+        self.posts_df.rename(columns={'title': 'post_title'})
         return self.posts_df
 
     def get_df_from_sql_meanwhile_insert_cache(self):
@@ -106,7 +107,7 @@ class RecommenderMethods:
         self.database.disconnect()
         return self.posts_df
 
-    def get_categories_dataframe(self, rename_title=False):
+    def get_categories_dataframe(self, rename_title=True):
         # rename_title (defaul=False): for ensuring that category title does not collide with post title
 
         self.database.connect()
@@ -149,6 +150,10 @@ class RecommenderMethods:
         self.database.disconnect()
 
     def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
+        self.posts_df = self.posts_df.rename(columns = {'title': 'post_title'})
+        self.posts_df = self.posts_df.rename(columns= {'slug': 'post_slug'})
+        self.categories_df = self.categories_df.rename(columns = {'title': 'category_title'})
+
         self.get_posts_dataframe()
         print("4.1")
         self.get_categories_dataframe()
@@ -161,7 +166,7 @@ class RecommenderMethods:
             # clean up from unnecessary columns
             try:
                 self.df = self.df[
-                    ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                      'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text']]
             except KeyError:
@@ -169,26 +174,33 @@ class RecommenderMethods:
                 self.posts_df.drop_duplicates(subset=['title'], inplace=True)
                 print(self.df.columns.values)
                 self.df = self.df[
-                    ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                      'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text']]
         print("4.3")
 
         if full_text is True:
             self.df = self.df[
-                ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                  'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text']]
         else:
             self.df = self.df[
-                ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                  'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation']]
         return self.df
 
     def join_posts_ratings_categories_full_text(self):
+        self.posts_df = self.posts_df.rename(columns = {'title': 'post_title'})
+        print(self.posts_df.columns)
+        self.posts_df = self.posts_df.rename(columns= {'slug': 'post_slug'})
+        print(self.posts_df.columns)
+        self.categories_df = self.categories_df.rename(columns = {'title': 'category_title'})
+
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
+        print(self.df.columns)
         self.df = self.df[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+            ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed', 'body_preprocessed', 'full_text']]
         return self.df
 
@@ -210,7 +222,7 @@ class RecommenderMethods:
                                                                self.df[['keywords']], k=number_of_recommended_posts)
         # print("combined_all:")
         # print(combined_all)
-        df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
+        df_renamed = combined_all.rename(columns={'post_slug': 'slug'})
         # print("DF RENAMED:")
         # print(df_renamed)
 
@@ -237,7 +249,7 @@ class RecommenderMethods:
 
         keywords_list = [keywords]
         txt_cleaned = self.get_cleaned_text(self.df,
-                                            self.df['title_x'] + self.df['title_y'] + self.df['keywords'] + self.df[
+                                            self.df['post_title'] + self.df['category_title'] + self.df['keywords'] + self.df[
                                                 'excerpt'])
         tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
         tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
@@ -257,7 +269,7 @@ class RecommenderMethods:
         # closest.index.name = 'index1'
         closest.columns.name = 'index'
 
-        return closest[["slug_x", "coefficient"]]
+        return closest[["slug", "coefficient"]]
         # return pd.DataFrame(closest).merge(items).head(k)
 
     def find_post_by_slug(self, slug, force_update=False):
@@ -336,9 +348,9 @@ class RecommenderMethods:
 
         # getting posts with highest similarity
         combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
-                                                  self.df[['slug_x']], k=num_of_recommendations)
+                                                  self.df[['post_slug']], k=num_of_recommendations)
 
-        df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
+        df_renamed = combined_all.rename(columns={'post_slug': 'slug'})
         # json conversion
         json = self.convert_datframe_posts_to_json(df_renamed, slug)
         return json
@@ -369,9 +381,9 @@ class RecommenderMethods:
 
         # getting posts with highest similarity
         combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
-                                                  self.df[['slug_x']])
+                                                  self.df[['post_slug']])
 
-        df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
+        df_renamed = combined_all.rename(columns={'slug': 'slug'})
 
         # json conversion
         json = self.convert_datframe_posts_to_json(df_renamed, slug)
@@ -384,8 +396,8 @@ class RecommenderMethods:
         print("cosine_sim:")
         print(cosine_sim)
         # cosine_sim = cosine_similarity(own_tfidf_matrix_csr) # computing cosine similarity
-        cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug_x'],
-                                     columns=self.df['slug_x'])  # finding original record of post belonging to slug
+        cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug'],
+                                     columns=self.df['slug'])  # finding original record of post belonging to slug
         del cosine_sim
         self.cosine_sim_df = cosine_sim_df
 

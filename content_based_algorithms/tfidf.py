@@ -110,7 +110,7 @@ class TfIdf:
         print("5")
 
         # same as "classic" tf-idf
-        fit_by_title_matrix = recommenderMethods.get_fit_by_feature_('title_x', 'title_y')  # prepended by category
+        fit_by_title_matrix = recommenderMethods.get_fit_by_feature_('post_title', 'category_title')  # prepended by category
         print("6")
 
         fit_by_excerpt_matrix = recommenderMethods.get_fit_by_feature_('excerpt')
@@ -139,7 +139,7 @@ class TfIdf:
         keywords_list = []
         keywords_list.append(keywords)
         txt_cleaned = self.get_cleaned_text(self.df,
-                                            self.df['title_x'] + self.df['title_y'] + self.df['keywords'] + self.df[
+                                            self.df['post_title'] + self.df['category_title'] + self.df['keywords'] + self.df[
                                                 'excerpt'])
         tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
         tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
@@ -173,10 +173,10 @@ class TfIdf:
         # # print(closest.columns.tolist())
         # print("index name:")
         # print(closest.index.name)
-        # print("""closest["slug_x","coefficient"]""")
-        # print(closest[["slug_x","coefficient"]])
+        # print("""closest["slug","coefficient"]""")
+        # print(closest[["slug","coefficient"]])
 
-        return closest[["slug_x", "coefficient"]]
+        return closest[["slug", "coefficient"]]
         # return pd.DataFrame(closest).merge(items).head(k)
 
     def prepare_dataframes(self):
@@ -186,7 +186,7 @@ class TfIdf:
         self.df = recommenderMethods.join_posts_ratings_categories(include_prefilled=True)  # joining posts and categories into one table
 
     def get_prefilled_full_text(self):
-        return self.df[['slug_x', 'recommended_tfidf_full_text']]
+        return self.df[['slug', 'recommended_tfidf_full_text']]
 
     def save_sparse_matrix(self, recommenderMethods):
         print("Loading posts.")
@@ -200,7 +200,7 @@ class TfIdf:
     def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
 
         recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe(force_update=False)  # load_texts posts to dataframe
+        recommenderMethods.get_posts_dataframe()  # load_texts posts to dataframe
         recommenderMethods.get_categories_dataframe()  # load_texts categories to dataframe
         recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
 
@@ -210,13 +210,13 @@ class TfIdf:
         else:
             fit_by_all_features_matrix = self.load_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz")
 
-        my_file = Path("models/tfidf_title_y.npz")
+        my_file = Path("models/tfidf_category_title.npz")
         if my_file.exists() is False:
-            # title_y = category
-            fit_by_title = recommenderMethods.get_fit_by_feature_('title_y')
-            self.save_sparse_csr(filename="models/tfidf_title_y.npz", array=fit_by_title)
+            # category_title = category
+            fit_by_title = recommenderMethods.get_fit_by_feature_('category_title')
+            self.save_sparse_csr(filename="models/tfidf_category_title.npz", array=fit_by_title)
         else:
-            fit_by_title = self.load_sparse_csr(filename="models/tfidf_title_y.npz")
+            fit_by_title = self.load_sparse_csr(filename="models/tfidf_category_title.npz")
 
         tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title) # join feature tuples into one matrix
 
@@ -229,9 +229,9 @@ class TfIdf:
             post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
         except ValueError:
             fit_by_all_features_matrix = self.save_sparse_matrix(recommenderMethods)
-            fit_by_title = recommenderMethods.get_fit_by_feature_('title_y')
-            self.save_sparse_csr(filename="models/tfidf_title_y.npz", array=fit_by_title)
-            fit_by_title = self.load_sparse_csr(filename="models/tfidf_title_y.npz")
+            fit_by_title = recommenderMethods.get_fit_by_feature_('category_title')
+            self.save_sparse_csr(filename="models/tfidf_category_title.npz", array=fit_by_title)
+            fit_by_title = self.load_sparse_csr(filename="models/tfidf_category_title.npz")
             tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
             post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
 
@@ -253,7 +253,7 @@ class TfIdf:
         recommenderMethods.df['full_text'] = recommenderMethods.df['full_text'].replace([None], '')
 
         fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature_('all_features_preprocessed')
-        fit_by_title = recommenderMethods.get_fit_by_feature_('title_y')
+        fit_by_title = recommenderMethods.get_fit_by_feature_('category_title')
         fit_by_full_text = recommenderMethods.get_fit_by_feature_('full_text')
 
         # join feature tuples into one matrix
@@ -287,10 +287,10 @@ class TfIdf:
         # preprocessing
 
         # feature tuples of (document_id, token_id) and coefficient
-        fit_by_post_title_matrix = recommenderMethods.get_fit_by_feature_('title_x', 'title_y')
+        fit_by_post_title_matrix = recommenderMethods.get_fit_by_feature_('post_title', 'category_title')
         print("fit_by_post_title_matrix")
         print(fit_by_post_title_matrix)
-        # fit_by_category_matrix = recommenderMethods.get_fit_by_feature_('title_y')
+        # fit_by_category_matrix = recommenderMethods.get_fit_by_feature_('category_title')
         fit_by_excerpt_matrix = recommenderMethods.get_fit_by_feature_('excerpt')
         print("fit_by_excerpt_matrix")
         print(fit_by_excerpt_matrix)
@@ -319,7 +319,7 @@ class TfIdf:
         dataframe = dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         dataframe = dataframe[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description']]
+            ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description']]
         # print("dataframe afer joining with category")
         # print(dataframe.iloc[0])
         return dataframe.iloc[0]
@@ -345,8 +345,8 @@ class TfIdf:
         ratings = self.df.groupby('id_x', sort=False).value.mean()
         scores = ((1-k)*(n_views/n_views.max()) + k*(ratings/ratings.max())).to_numpy().argsort()[::-1]
         df_deduped = df.groupby('id_x', sort=False).agg({
-            'title_x':'first',
-            'title_y':'first', # category title
+            'post_title':'first',
+            'category_title':'first', # category title
         })
 
         return df_deduped.assign(views=n_views).iloc[scores]
@@ -383,22 +383,22 @@ class TfIdf:
     @DeprecationWarning
     def set_tfidf_vectorizer_combine_features(self):
         tfidf_vectorizer = TfidfVectorizer()
-        self.df.drop_duplicates(subset=['title_x'], inplace=True)
-        tf_train_data = pd.concat([self.df['title_y'], self.df['keywords'], self.df['title_x'], self.df['excerpt']])
+        self.df.drop_duplicates(subset=['post_title'], inplace=True)
+        tf_train_data = pd.concat([self.df['category_title'], self.df['keywords'], self.df['post_title'], self.df['excerpt']])
         tfidf_vectorizer.fit_transform(tf_train_data)
 
-        tf_idf_title_x = tfidf_vectorizer.transform(self.df['title_x'])
-        tf_idf_title_y = tfidf_vectorizer.transform(self.df['title_y'])  # category title
+        tf_idf_post_title = tfidf_vectorizer.transform(self.df['post_title'])
+        tf_idf_category_title = tfidf_vectorizer.transform(self.df['category_title'])  # category title
         tf_idf_keywords = tfidf_vectorizer.transform(self.df['keywords'])
         tf_idf_excerpt = tfidf_vectorizer.transform(self.df['excerpt'])
 
         model = LogisticRegression()
-        model.fit([tf_idf_title_x.shape, tf_idf_title_y.shape, tf_idf_keywords.shape, tf_idf_excerpt.shape],
+        model.fit([tf_idf_post_title.shape, tf_idf_category_title.shape, tf_idf_keywords.shape, tf_idf_excerpt.shape],
                   self.df['excerpt'])
 
     def set_cosine_sim(self):
         cosine_sim = cosine_similarity(self.tfidf_tuples)
-        cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug_x'], columns=self.df['slug_x'])
+        cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug'], columns=self.df['slug'])
         self.cosine_sim_df = cosine_sim_df
 
     # # @profile
@@ -428,8 +428,8 @@ class TfIdf:
 
         # preprocessing
 
-        self.df["title_y"] = self.df["title_y"].map(lambda s: self.preprocess(s, stemming=False))
-        self.df["title_x"] = self.df["title_x"].map(lambda s: self.preprocess(s, stemming=False))
+        self.df["category_title"] = self.df["category_title"].map(lambda s: self.preprocess(s, stemming=False))
+        self.df["post_title"] = self.df["post_title"].map(lambda s: self.preprocess(s, stemming=False))
         self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False))
         self.df["keywords"] = self.df["keywords"].map(lambda s: self.preprocess(s, stemming=False))
 
@@ -495,9 +495,9 @@ class TfIdf:
         post_dataframe_joined = self.join_post_ratings_categories(post_dataframe)
         print("post_dataframe_joined:")
         print(post_dataframe_joined)
-        post_dataframe["title_x"] = self.preprocess(post_dataframe_joined["title_x"], stemming)
+        post_dataframe["post_title"] = self.preprocess(post_dataframe_joined["post_title"], stemming)
         post_dataframe["excerpt"] = self.preprocess(post_dataframe_joined["excerpt"], stemming)
-        post_dataframe["title_y"] = post_dataframe_joined["title_y"]
+        post_dataframe["category_title"] = post_dataframe_joined["category_title"]
         print("preprocessing single post:")
         print(post_dataframe)
         if json is False:
@@ -552,12 +552,12 @@ class TfIdf:
     def get_document_scores(self):
         search_terms = 'Domácí. Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.'
 
-        self.df["title_y"] = self.df["title_y"]
-        self.df["title_x"] = self.df["title_x"].map(lambda s: self.preprocess(s, stemming=False))
+        self.df["category_title"] = self.df["category_title"]
+        self.df["post_title"] = self.df["post_title"].map(lambda s: self.preprocess(s, stemming=False))
         self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False))
         self.df["keywords"] = self.df["keywords"]
 
-        cols = ["keywords", "title_y", "title_x", "excerpt", "slug_x"]
+        cols = ["keywords", "category_title", "post_title", "excerpt", "slug"]
         documents_df = pd.DataFrame()
         documents_df['features_combined'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
         documents = list(map(' '.join, documents_df[['features_combined']].values.tolist()))
