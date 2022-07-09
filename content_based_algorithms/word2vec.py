@@ -417,9 +417,13 @@ class Word2VecClass:
         # cols = ["title_y", "title_x", "excerpt", "keywords", "slug_x", "all_features_preprocessed"]
         documents_df = pd.DataFrame()
 
+        print("self.df")
+        print(self.df)
+
         documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["title_y"] + ' ' + self.df[
             "all_features_preprocessed"] + ' ' + self.df["body_preprocessed"]
         documents_df["slug"] = self.df["slug_x"]
+
         found_post = found_post_dataframe['features_to_use'].iloc[0]
 
         del self.df
