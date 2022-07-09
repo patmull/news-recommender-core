@@ -256,7 +256,7 @@ class RecommenderMethods:
         return closest[["slug_x", "coefficient"]]
         # return pd.DataFrame(closest).merge(items).head(k)
 
-    def find_post_by_slug(self, slug):
+    def find_post_by_slug(self, slug, force_update=False):
         recommenderMethods = RecommenderMethods()
         print("recommenderMethods.get_posts_dataframe():")
         print(recommenderMethods.get_posts_dataframe()['slug'])
