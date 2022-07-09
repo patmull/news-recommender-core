@@ -277,7 +277,7 @@ class SvdClass:
         data = Dataset.load_from_df(ratings, reader)
         knn = KNNBasic() #Evaluating the performance in terms of RMSE
         cross_validate(knn, data,  measures=['RMSE', 'mae'], cv=3)
-        # Define the SVD algorithm object
+        # Define the SVD method object
         svd = SVD() #Evaluate the performance in terms of RMSE
         cross_validate(svd, data, measures=['RMSE'], cv=3)
         trainset = data.build_full_trainset()
