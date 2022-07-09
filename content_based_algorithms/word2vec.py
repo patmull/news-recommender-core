@@ -408,66 +408,69 @@ class Word2VecClass:
         self.df = recommenderMethods.join_posts_ratings_categories_full_text()
 
         print("self.posts_df")
-        print(self.posts_df)
+        print(self.df.to_string())
         print("self.categories_df")
-        print(self.categories_df)
+        print(self.df.to_string())
         print("self.df")
-        print(self.df)
+        print(self.df.to_string())
 
         # search_terms = 'Domácí. Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.'
-        found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
-        found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
-        found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
-                                                  found_post_dataframe.iloc[0]['title_y'] + " " + \
-                                                  found_post_dataframe.iloc[0]['all_features_preprocessed'] + " " + \
-                                                  found_post_dataframe.iloc[0]['body_preprocessed']
+        found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug, force_update=True)
 
-        del self.posts_df
-        del self.categories_df
+        print("found_post_dataframe")
+        print(found_post_dataframe)
+        if found_post_dataframe is None:
+            return []
+        else:
+            found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
+            found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
+                                                      found_post_dataframe.iloc[0]['title_y'] + " " + \
+                                                      found_post_dataframe.iloc[0]['all_features_preprocessed'] + " " + \
+                                                      found_post_dataframe.iloc[0]['body_preprocessed']
 
-        # cols = ["title_y", "title_x", "excerpt", "keywords", "slug_x", "all_features_preprocessed"]
-        documents_df = pd.DataFrame()
+            del self.posts_df
+            del self.categories_df
 
-        print("self.df")
-        print(self.df)
+            # cols = ["title_y", "title_x", "excerpt", "keywords", "slug_x", "all_features_preprocessed"]
+            documents_df = pd.DataFrame()
 
-        documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["title_y"] + ' ' + self.df[
-            "all_features_preprocessed"] + ' ' + self.df["body_preprocessed"]
-        documents_df["slug"] = self.df["slug_x"]
+            documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["title_y"] + ' ' + self.df[
+                "all_features_preprocessed"] + ' ' + self.df["body_preprocessed"]
+            documents_df["slug"] = self.df["slug_x"]
 
-        found_post = found_post_dataframe['features_to_use'].iloc[0]
+            found_post = found_post_dataframe['features_to_use'].iloc[0]
 
-        del self.df
-        del found_post_dataframe
+            del self.df
+            del found_post_dataframe
 
-        print("Loading word2vec model...")
+            print("Loading word2vec model...")
 
-        try:
-            word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
-        except FileNotFoundError:
-            print("Downloading from Dropbox...")
-            dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
-            recommenderMethods = RecommenderMethods()
-            recommenderMethods.dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
-                                                     "/w2v_model.vectors.npy")
-            word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+            try:
+                word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+            except FileNotFoundError:
+                print("Downloading from Dropbox...")
+                dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
+                recommenderMethods = RecommenderMethods()
+                recommenderMethods.dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
+                                                         "/w2v_model.vectors.npy")
+                word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
 
-        ds = DocSim(word2vec_embedding)
+            ds = DocSim(word2vec_embedding)
 
-        documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(';', ' ')
-        documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(r'\r\n', '', regex=True)
-        documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
-        list_of_document_features = documents_df["features_to_use"].tolist()
-        del documents_df
-        # https://github.com/v1shwa/document-similarity with my edits
+            documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(';', ' ')
+            documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(r'\r\n', '', regex=True)
+            documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
+            list_of_document_features = documents_df["features_to_use"].tolist()
+            del documents_df
+            # https://github.com/v1shwa/document-similarity with my edits
 
-        most_similar_articles_with_scores = ds.calculate_similarity_idnes_model(found_post,
-                                                                                list_of_document_features)[:21]
-        # removing post itself
-        del most_similar_articles_with_scores[0]  # removing post itself
+            most_similar_articles_with_scores = ds.calculate_similarity_idnes_model(found_post,
+                                                                                    list_of_document_features)[:21]
+            # removing post itself
+            del most_similar_articles_with_scores[0]  # removing post itself
 
-        # workaround due to float32 error in while converting to JSON
-        return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
+            # workaround due to float32 error in while converting to JSON
+            return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
 
     def flatten(self, t):
         return [item for sublist in t for item in sublist]
