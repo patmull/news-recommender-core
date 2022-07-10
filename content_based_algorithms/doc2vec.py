@@ -42,15 +42,22 @@ class Doc2VecClass:
         print(self.posts_df)
         print("self.categories_df:")
         print(self.categories_df)
+        self.posts_df = self.posts_df.rename(columns={'title':'post_title'})
+        self.posts_df = self.posts_df.rename(columns={'slug':'post_slug'})
+        self.categories_df = self.categories_df.rename(columns={'title':'category_title'})
+        self.categories_df = self.categories_df.rename(columns={'slug':'category_slug'})
+
         if include_prefilled is False:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
             # clean up from unnecessary columns
+            self.df = self.df.rename(columns={'post_slug': 'slug'})
             self.df = self.df[
                 ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                  'all_features_preprocessed', 'body_preprocessed']]
         else:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
             # clean up from unnecessary columns
+            self.df = self.df.rename(columns={'post_slug': 'slug'})
             try:
                 self.df = self.df[
                     ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
@@ -198,6 +205,9 @@ class Doc2VecClass:
 
         del documents_df
         gc.collect()
+
+        print("self.df.columns")
+        print(self.df.columns)
 
         documents_slugs = self.df['slug'].tolist()
 
