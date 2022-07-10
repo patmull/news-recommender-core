@@ -1,6 +1,7 @@
 import warnings
 
 from content_based_algorithms.data_queries import RecommenderMethods
+from content_based_algorithms.lda import Lda
 from data_connection import Database
 from prefilling_all import prepare_and_run, run_prefilling
 
@@ -20,9 +21,13 @@ def try_prefillers():
 def fxn():
     warnings.warn("deprecated", DeprecationWarning)
 
+"""
+lda = Lda()
+lda.get_similar_lda_full_text('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
+"""
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     recommender_methods = RecommenderMethods()
     recommender_methods.database.insert_posts_dataframe_to_cache()
-    run_prefilling()
+    run_prefilling() 

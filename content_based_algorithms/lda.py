@@ -9,11 +9,12 @@ import pyLDAvis
 import regex
 import tqdm
 from gensim.corpora import WikiCorpus
-from gensim.utils import deaccent
+from gensim.utils import deaccent, simple_preprocess
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
 import content_based_algorithms.data_queries as data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
+from preprocessing.cz_preprocessing import CzPreprocess
 
 import gensim
 import numpy as np
@@ -122,44 +123,53 @@ class Lda:
 
     # @profile
     def get_similar_lda_full_text(self, searched_slug, N=21, train=False, display_dominant_topics=True):
-        self.database.connect()
-        self.get_posts_dataframe()
-        self.join_posts_ratings_categories()
-        self.database.disconnect()
+        recommender_methods = RecommenderMethods()
 
-        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-        self.df['tokenized'] = self.df.apply(
+        recommender_methods.get_posts_dataframe()
+        recommender_methods.join_posts_ratings_categories()
+
+        recommender_methods.df['tokenized_keywords'] = recommender_methods.df['keywords'].apply(lambda x: x.split(', '))
+        recommender_methods.df['tokenized'] = recommender_methods.df.apply(
             lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
             axis=1)
-        self.df['tokenized_full_text'] = self.df.apply(
+        recommender_methods.df['tokenized_full_text'] = recommender_methods.df.apply(
             lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
             axis=1)
 
         gc.collect()
 
-        self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
+        recommender_methods.df['tokenized_all_features_preprocessed'] = recommender_methods.df.all_features_preprocessed.apply(lambda x: x.split(' '))
         gc.collect()
-        self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(lambda x: x.split(' '))
-        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
+        recommender_methods.df['tokenized_full_text'] = recommender_methods.df.tokenized_full_text.apply(lambda x: x.split(' '))
+        recommender_methods.df['tokenized'] = recommender_methods.df['tokenized_keywords'] + recommender_methods.df['tokenized_all_features_preprocessed'] + recommender_methods.df[
             'tokenized_full_text']
         gc.collect()
 
         if train is True:
-            self.train_lda_full_text(self.df, display_dominant_topics=display_dominant_topics)
+            self.train_lda_full_text(recommender_methods.df, display_dominant_topics=display_dominant_topics)
 
-        dictionary, corpus, lda = self.load_lda_full_text(self.df, retrain=train, display_dominant_topics=display_dominant_topics)
-
-        searched_doc_id_list = self.df.index[self.df['slug'] == searched_slug].tolist()
+        dictionary, corpus, lda = self.load_lda_full_text(recommender_methods.df, retrain=train, display_dominant_topics=display_dominant_topics)
+        recommender_methods.df = recommender_methods.df.rename(columns={'post_slug':'slug'})
+        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['slug'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
-        new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
+        new_sentences = recommender_methods.df.iloc[searched_doc_id,:]
+        new_sentences = new_sentences[['tokenized']]
+        print("new_sentences[['tokenized']][0]:")
+        print(new_sentences[['tokenized']][0])
+        # .replace(' ', '_')
+        cz_lemma = CzPreprocess()
+        new_sentences_splitted = [gensim.utils.deaccent(sentence).replace(' ', '_') for sentence in new_sentences[['tokenized']][0]]
+        print("new_sentences_splitted:")
+        print(new_sentences_splitted)
+        new_bow = dictionary.doc2bow(new_sentences_splitted)
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
         doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist_full_text.npy')
 
         most_sim_ids, most_sim_coefficients = self.get_most_similar_documents(new_doc_distribution, doc_topic_dist, N)
 
-        most_similar_df = self.df.iloc[most_sim_ids]
-        del self.df
+        most_similar_df = recommender_methods.df.iloc[most_sim_ids]
+        del recommender_methods.df
         gc.collect()
         most_similar_df = most_similar_df.iloc[1:, :]
         post_recommendations = pd.DataFrame()
