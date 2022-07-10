@@ -19,7 +19,6 @@ import regex
 import tqdm
 from gensim import corpora
 from gensim.models import KeyedVectors, Word2Vec, LdaModel
-from gensim.test.utils import common_texts
 from gensim.utils import deaccent
 from html2text import html2text
 from nltk import FreqDist, RegexpTokenizer
@@ -33,6 +32,7 @@ import time as t
 
 from data_connection import Database
 from preprocessing.cz_preprocessing import CzPreprocess, cz_stopwords, general_stopwords
+from reader import MongoReader
 
 myclient = pymongo.MongoClient('localhost', 27017)
 db = myclient.test
@@ -200,60 +200,6 @@ class Reader(object):
     def iterate(self):
         ''' virtual method '''
         pass
-
-
-class MongoReader(Reader):
-    def __init__(self, dbName=None, collName=None,
-                 mongoURI="mongodb://localhost:27017", limit=None):
-        ''' init
-            :param mongoURI: mongoDB URI. default: localhost:27017
-            :param dbName: MongoDB database name.
-            :param collName: MongoDB Collection name.
-            :param limit: query limit
-        '''
-        Reader.__init__(self)
-        self.conn = None
-        self.mongoURI = mongoURI
-        self.dbName = dbName
-        self.collName = collName
-        self.limit = limit
-        self.fields = []
-        self.key_field = 'text'
-        self.return_fields = ['text']
-
-    def get_value(self, value):
-        ''' convinient method to retrive value.
-        '''
-        if not value:
-            return value
-        if isinstance(value, list):
-            return ' '.join([v.encode('utf-8', 'replace').decode('utf-8', 'replace') for v in value])
-        else:
-            return value.encode('utf-8', 'replace').decode('utf-8', 'replace')
-
-    def iterate(self):
-        ''' Iterate through the source reader '''
-        if not self.conn:
-            try:
-                self.conn = pymongo.MongoClient(self.mongoURI)[self.dbName][self.collName]
-            except Exception as ex:
-                raise Exception("ERROR establishing connection: %s" % ex)
-
-        if self.limit:
-            cursor = self.conn.find().limit(self.limit)
-        else:
-            cursor = self.conn.find({}, self.fields)
-
-        for doc in cursor:
-            content = ""
-            for f in self.return_fields:
-                content +=" %s" % (self.get_value(doc.get(f)))
-            texts = self.prepare_words(content)
-            # tags = doc.get(self.key_field).split(',')
-            # tags = [t.strip() for t in tags]
-            doc = { "text": texts }
-            yield doc
-
 
 class Word2VecClass:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/w2v_embedding_all_in_one"
@@ -836,20 +782,22 @@ class Word2VecClass:
             pass
         else:
             print("Building bigrams...")
-            mongo_collection_bigrams.delete_many({})
+            # mongo_collection_bigrams.delete_many({})
             print("Loading stopwords free documents...")
             # using 80% training set
-            """
+
+            reader = MongoReader(dbName='idnes', collName='preprocessed_articles_stopwords_free')
+
             print("Building sentences...")
             sentences = [doc.get('text') for doc in reader.iterate()]
+
             first_sentence = next(iter(sentences))
             print("first_sentence[:10]")
             print(first_sentence[:10])
-            """
 
-            reader = MongoReader(dbName='idnes', collName='preprocessed_articles_stopwords_free')
-            print("Building sentences...")
-            sentences = [doc.get('text') for doc in reader.iterate()]
+            print("Sentences sample:")
+            print(sentences[1500:1600])
+            time.sleep(40)
             # Working but possibly slow
             phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
 

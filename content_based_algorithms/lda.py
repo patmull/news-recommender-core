@@ -281,6 +281,7 @@ class Lda:
             print("Could not load_texts LDA models or precalculated vectors. Reason:")
             print(e)
             self.train_lda_full_text(data, display_dominant_topics)
+            # TODO: Download from Dropbox as a 2nd option before training
 
             lda_model = LdaModel.load("models/lda_model_full_text")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
