@@ -363,7 +363,8 @@ class Lda:
 
     def train_lda_full_text(self, data, display_dominant_topics=True, lst=None):
 
-        data_words_nostops = self.remove_stopwords(data['tokenized'])
+
+        data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
         self.df.assign(tokenized=data_words_bigrams)

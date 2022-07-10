@@ -22,7 +22,7 @@ def prefill_body_preprocessed():
 
 
 def run_prefilling():
-    print("Inserting recommender posts to cache...")
+    print("Refreshing post cache. Inserting recommender posts to cache...")
 
     recommender_methods = RecommenderMethods()
     recommender_methods.database.insert_posts_dataframe_to_cache()
