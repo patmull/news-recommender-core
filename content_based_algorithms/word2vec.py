@@ -341,8 +341,13 @@ class Word2VecClass:
 
         self.df = recommenderMethods.join_posts_ratings_categories()
 
+        self.categories_df = self.categories_df.rename(columns={'title':'category_title'})
+        self.categories_df = self.categories_df.rename(columns={'slug':'category_slug'})
+
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
+        print("found_post_dataframe:")
+        print(found_post_dataframe.columns)
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
                                                   found_post_dataframe.iloc[0]['category_title'] + " " + \
                                                   found_post_dataframe.iloc[0]['all_features_preprocessed']
