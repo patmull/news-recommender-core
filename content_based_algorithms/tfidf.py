@@ -134,7 +134,7 @@ class TfIdf:
         del recommenderMethods
         return post_recommendations
 
-    def get_recommended_posts_for_keywords(self, keywords, data_frame, k=10):
+    def get_recommended_posts_for_keywords(self, keywords, data_frame=None, k=10):
 
         keywords_list = []
         keywords_list.append(keywords)
@@ -145,7 +145,8 @@ class TfIdf:
         tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
         cosine_similarities = cosine_similarity(tfidf_keywords_input, tfidf).flatten()
         # cosine_similarities = linear_kernel(tfidf_keywords_input, tfidf).flatten()
-
+        if data_frame is None:
+            data_frame = pd.DataFrame()
         data_frame['coefficient'] = cosine_similarities
 
         # related_docs_indices = cosine_similarities.argsort()[:-(number+1):-1]
