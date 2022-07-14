@@ -150,7 +150,9 @@ class Doc2VecClass:
         gc.collect()
 
         if from_db is False:
-            documents_slugs = self.df['post_slug'].tolist()
+            if 'post_slug' in self.df:
+                self.df = self.df.rename(columns={'post_slug':'slug'})
+            documents_slugs = self.df['slug'].tolist()
 
             if train is True:
                 self.train_doc2vec(documents_all_features_preprocessed, body_text=False, limited=False, create_csv=False)
