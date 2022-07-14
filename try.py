@@ -35,5 +35,5 @@ with warnings.catch_warnings():
     run_prefilling() 
 """
 
-word2vec = Word2VecClass()
-word2vec.build_bigrams_and_trigrams()
+word2vecClass = Word2VecClass()
+word2vecClass.find_optimal_model_idnes()

@@ -22,6 +22,7 @@ from gensim.models import KeyedVectors, Word2Vec, LdaModel
 from gensim.utils import deaccent
 from html2text import html2text
 from nltk import FreqDist, RegexpTokenizer
+from pymongo import MongoClient
 
 from content_based_algorithms import data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
@@ -47,6 +48,7 @@ def save_to_mongo(data, number_of_processed_files, mongo_collection):
     mongo_collection.insert_one(dict_to_insert)
 
 
+# TODO: Repair iterator. Doesn't work (still lops). Check Gensim Word2Vec article for guidance
 class MyCorpus(object):
     def __init__(self, dictionary):
         self.dictionary = dictionary
@@ -554,7 +556,6 @@ class Word2VecClass:
         self.save_full_model_to_smaller()
 
     # TODO: texts by generator
-    # TODO: create bigrams
     def find_optimal_model_idnes(self):
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
@@ -565,10 +566,25 @@ class Word2VecClass:
         logger = logging.getLogger()  # get the root logger
         logger.info("Testing file write")
 
-        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_stopwords_free')
+        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_bigrams')
         print("Building sentences...")
-        sentences = [doc.get('text') for doc in reader.iterate()]
+        # sentences = [doc.get('text') for doc in reader.iterate()]
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
+        # sentences = MyCorpus(dictionary)
+        # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
+        sentences = []
 
+        client = MongoClient("localhost", 27017, maxPoolSize=50)
+        db = client.idnes
+        collection = db.preprocessed_articles_bigrams
+        cursor = collection.find({})
+        for document in cursor:
+            # joined_string = ' '.join(document['text'])
+            # sentences.append([joined_string])
+            sentences.append(document['text'])
+        print("Sentences build into type of:")
+        print(type(sentences))
+        print(sentences[0:100])
 
         model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
         hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
@@ -614,7 +630,8 @@ class Word2VecClass:
                                                                                                              window=window,
                                                                                                              min_count=min_count,
                                                                                                              epochs=epochs,
-                                                                                                             sample=sample)
+                                                                                                             sample=sample,
+                                                                                                             force_update_model=True)
                                         else:
                                             word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
                                                                                                              model_variant=model_variant,
@@ -647,11 +664,15 @@ class Word2VecClass:
                                         print("Saved training results...")
         pbar.close()
 
+
+
     def compute_eval_values_idnes(self, sentences, model_variant, negative_sampling_variant, vector_size, window, min_count,
                                   epochs, sample, force_update_model=True):
         if os.path.isfile("models/w2v_idnes.model") is False or force_update_model is True:
             print("Started training on iDNES.cz dataset...")
             # w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant, vector_size=vector_size, window=window, min_count=min_count, epochs=epochs, sample=sample, workers=7)
+            # w2v_model = Word2Vec(min_count=min_count)
+            # w2v_model.build_vocab(corpus_iterable=sentences)
             w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
                                  vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
                                  sample=sample, workers=7)
@@ -662,14 +683,22 @@ class Word2VecClass:
             print("Loading Word2Vec iDNES.cz model from saved model file")
             w2v_model = Word2Vec.load("models/w2v_idnes.model")
 
-        import pandas as pd
-        df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
-                         usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
-        df.to_csv('research/word2vec/similarities/WordSim353-cs-cropped.tsv', sep='\t', encoding='utf-8', index=False)
+        print("Similarity test")
+        print(w2v_model.wv.most_similar('tygr'))
 
-        print("Word pairs evaluation iDnes.cz model:")
-        word_pairs_eval = w2v_model.wv.evaluate_word_pairs('research/word2vec/similarities/WordSim353-cs-cropped.tsv')
-        print(word_pairs_eval)
+        path_to_cropped_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
+        if os.path.exists(path_to_cropped_file):
+            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(
+                path_to_cropped_file)
+        else:
+            df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
+                             usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
+            cz_preprocess = CzPreprocess()
+            df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+            df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+
+            df.to_csv(path_to_cropped_file, sep='\t', encoding='utf-8', index=False)
+            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(path_to_cropped_file)
 
         overall_score, _ = w2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
         print("Analogies evaluation of iDnes.cz model:")
@@ -1045,10 +1074,5 @@ def run():
     print("Elapsed time: " + str(end - start))
     """
 
-    # word2vecClass.find_optimal_model_idnes()
-
-    # 1. Create and save Dictionary
-    # 2. Create and save Corpus from Dictionary
-    # 3. Preprocessing
-    # 4. Preprocessing + stopwords free
-    # 5. Preprocessing + bigrams
+    word2vecClass = Word2VecClass()
+    word2vecClass.find_optimal_model_idnes()

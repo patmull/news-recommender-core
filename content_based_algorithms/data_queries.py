@@ -397,8 +397,8 @@ class RecommenderMethods:
         print("cosine_sim:")
         print(cosine_sim)
         # cosine_sim = cosine_similarity(own_tfidf_matrix_csr) # computing cosine similarity
-        cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug'],
-                                     columns=self.df['slug'])  # finding original record of post belonging to slug
+        cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['post_slug'],
+                                     columns=self.df['post_slug'])  # finding original record of post belonging to slug
         del cosine_sim
         self.cosine_sim_df = cosine_sim_df
 
@@ -441,7 +441,11 @@ class RecommenderMethods:
         list_of_coefficients = []
 
         # finding coefficient belonging to recommended posts compared to original post (for which we want to find recommendations)
+        if 'post_slug' in post_recommendations:
+            post_recommendations = post_recommendations.rename(columns={'post_slug': 'slug'})
+
         for index, row in post_recommendations.iterrows():
+
             list_of_coefficients.append(self.cosine_sim_df.at[row['slug'], slug])
 
         post_recommendations['coefficient'] = list_of_coefficients

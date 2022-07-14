@@ -68,20 +68,22 @@ class Lda:
     # @profile
 
     def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, N=21):
-        self.get_posts_dataframe()
-        self.join_posts_ratings_categories()
+        recommender_methods = RecommenderMethods()
+
+        recommender_methods.get_posts_dataframe()
+        recommender_methods.join_posts_ratings_categories()
 
         gc.collect()
 
         # if there is no LDA model, training will run anyway due to load_texts method handle
         if train is True:
-            self.train_lda(self.df, display_dominant_topics=display_dominant_topics)
+            self.train_lda(recommender_methods.df, display_dominant_topics=display_dominant_topics)
 
-        dictionary, corpus, lda = self.load_lda(self.df)
+        dictionary, corpus, lda = self.load_lda(recommender_methods.df)
 
-        searched_doc_id_list = self.df.index[self.df['post_slug'] == searched_slug].tolist()
+        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['post_slug'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
-        selected_by_index = self.df.iloc[searched_doc_id]
+        selected_by_index = recommender_methods.df.iloc[searched_doc_id]
         selected_by_column = selected_by_index['all_features_preprocessed']
         new_bow = dictionary.doc2bow([selected_by_column])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
@@ -90,11 +92,13 @@ class Lda:
 
         most_sim_ids, most_sim_coefficients = self.get_most_similar_documents(new_doc_distribution, doc_topic_dist, N)
 
-        most_similar_df = self.df.iloc[most_sim_ids]
+        most_similar_df = recommender_methods.df.iloc[most_sim_ids]
 
         most_similar_df = most_similar_df.iloc[1:, :]
 
         post_recommendations = pd.DataFrame()
+
+        most_similar_df = most_similar_df.rename(columns={'post_slug':'slug'})
         post_recommendations['slug'] = most_similar_df['slug'].iloc[:N]
         # post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
         if N == 21:
@@ -111,7 +115,7 @@ class Lda:
             post_recommendations['coefficient'] = most_sim_coefficients[:N]
         """
 
-        del self.df
+        del recommender_methods.df
         gc.collect()
 
         dict = post_recommendations.to_dict('records')
