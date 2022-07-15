@@ -19,10 +19,10 @@ import regex
 import tqdm
 from gensim import corpora
 from gensim.models import KeyedVectors, Word2Vec, LdaModel
-from gensim.test.utils import common_texts
 from gensim.utils import deaccent
 from html2text import html2text
 from nltk import FreqDist, RegexpTokenizer
+from pymongo import MongoClient
 
 from content_based_algorithms import data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
@@ -33,6 +33,7 @@ import time as t
 
 from data_connection import Database
 from preprocessing.cz_preprocessing import CzPreprocess, cz_stopwords, general_stopwords
+from reader import MongoReader
 
 myclient = pymongo.MongoClient('localhost', 27017)
 db = myclient.test
@@ -47,6 +48,7 @@ def save_to_mongo(data, number_of_processed_files, mongo_collection):
     mongo_collection.insert_one(dict_to_insert)
 
 
+# TODO: Repair iterator. Doesn't work (still lops). Check Gensim Word2Vec article for guidance
 class MyCorpus(object):
     def __init__(self, dictionary):
         self.dictionary = dictionary
@@ -201,60 +203,6 @@ class Reader(object):
         ''' virtual method '''
         pass
 
-
-class MongoReader(Reader):
-    def __init__(self, dbName=None, collName=None,
-                 mongoURI="mongodb://localhost:27017", limit=None):
-        ''' init
-            :param mongoURI: mongoDB URI. default: localhost:27017
-            :param dbName: MongoDB database name.
-            :param collName: MongoDB Collection name.
-            :param limit: query limit
-        '''
-        Reader.__init__(self)
-        self.conn = None
-        self.mongoURI = mongoURI
-        self.dbName = dbName
-        self.collName = collName
-        self.limit = limit
-        self.fields = []
-        self.key_field = 'text'
-        self.return_fields = ['text']
-
-    def get_value(self, value):
-        ''' convinient method to retrive value.
-        '''
-        if not value:
-            return value
-        if isinstance(value, list):
-            return ' '.join([v.encode('utf-8', 'replace').decode('utf-8', 'replace') for v in value])
-        else:
-            return value.encode('utf-8', 'replace').decode('utf-8', 'replace')
-
-    def iterate(self):
-        ''' Iterate through the source reader '''
-        if not self.conn:
-            try:
-                self.conn = pymongo.MongoClient(self.mongoURI)[self.dbName][self.collName]
-            except Exception as ex:
-                raise Exception("ERROR establishing connection: %s" % ex)
-
-        if self.limit:
-            cursor = self.conn.find().limit(self.limit)
-        else:
-            cursor = self.conn.find({}, self.fields)
-
-        for doc in cursor:
-            content = ""
-            for f in self.return_fields:
-                content +=" %s" % (self.get_value(doc.get(f)))
-            texts = self.prepare_words(content)
-            # tags = doc.get(self.key_field).split(',')
-            # tags = [t.strip() for t in tags]
-            doc = { "text": texts }
-            yield doc
-
-
 class Word2VecClass:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/w2v_embedding_all_in_one"
 
@@ -281,7 +229,7 @@ class Word2VecClass:
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         self.df = self.df[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+            ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed']]
 
     @DeprecationWarning
@@ -289,7 +237,7 @@ class Word2VecClass:
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         self.df = self.df[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+            ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed', 'body_preprocessed', 'full_text']]
 
     def prepare_word2vec_eval(self):
@@ -305,11 +253,11 @@ class Word2VecClass:
         documents_df = pd.DataFrame()
         documents_training_df = pd.DataFrame()
 
-        documents_df["features_to_use"] = self.df["title_y"] + " " + self.df["keywords"] + ' ' + self.df[
+        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
             "all_features_preprocessed"]
-        documents_df["slug"] = self.df["slug_x"]
+        documents_df["slug"] = self.df["slug"]
 
-        documents_training_df["features_to_use"] = self.df["title_y"] + " " + self.df["keywords"] + " " + self.df[
+        documents_training_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + " " + self.df[
             "all_features_preprocessed"]
         documents_training_df["features_to_use"] = documents_training_df["features_to_use"].replace(",", "")
         documents_training_df["features_to_use"] = documents_training_df["features_to_use"].str.split(" ")
@@ -338,23 +286,27 @@ class Word2VecClass:
 
         self.posts_df = recommenderMethods.get_posts_dataframe()
         self.categories_df = recommenderMethods.get_categories_dataframe()
+
         self.df = recommenderMethods.join_posts_ratings_categories()
 
-        print(self.posts_df)
+        self.categories_df = self.categories_df.rename(columns={'title':'category_title'})
+        self.categories_df = self.categories_df.rename(columns={'slug':'category_slug'})
 
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
+        print("found_post_dataframe:")
+        print(found_post_dataframe.columns)
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
-                                                  found_post_dataframe.iloc[0]['title_y'] + " " + \
+                                                  found_post_dataframe.iloc[0]['category_title'] + " " + \
                                                   found_post_dataframe.iloc[0]['all_features_preprocessed']
         del self.posts_df
         del self.categories_df
 
         documents_df = pd.DataFrame()
 
-        documents_df["features_to_use"] = self.df["title_y"] + " " + self.df["keywords"] + ' ' + self.df[
+        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
             "all_features_preprocessed"]
-        documents_df["slug"] = self.df["slug_x"]
+        documents_df["slug"] = self.df["post_slug"]
         found_post = found_post_dataframe['features_to_use'].iloc[0]
 
         del self.df
@@ -362,8 +314,7 @@ class Word2VecClass:
 
         documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
         list_of_document_features = documents_df["features_to_use"].tolist()
-        print("list_of_document_features")
-        print(list_of_document_features)
+
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
 
@@ -379,12 +330,9 @@ class Word2VecClass:
             ds = DocSim(model_idnes)
             print("found_post")
             print(found_post)
-            print("list_of_document_features")
-            print(list_of_document_features)
             most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post,
                                                                                            list_of_document_features)[:21]
-        print("most_similar_articles_with_scores:")
-        print(most_similar_articles_with_scores)
+
         # removing post itself
         if len(most_similar_articles_with_scores) > 0:
             del most_similar_articles_with_scores[0]  # removing post itself
@@ -399,60 +347,77 @@ class Word2VecClass:
         recommenderMethods = RecommenderMethods()
 
         self.posts_df = recommenderMethods.get_posts_dataframe()
-        self.categories_df = recommenderMethods.get_categories_dataframe()
+        self.categories_df = recommenderMethods.get_categories_dataframe(rename_title=True)
         self.df = recommenderMethods.join_posts_ratings_categories_full_text()
-        # post_found = self.(search_slug)
 
         # search_terms = 'Domácí. Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.'
-        found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
-        found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
-        found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
-                                                  found_post_dataframe.iloc[0]['title_y'] + " " + \
-                                                  found_post_dataframe.iloc[0]['all_features_preprocessed'] + " " + \
-                                                  found_post_dataframe.iloc[0]['body_preprocessed']
+        found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug, force_update=True)
 
-        del self.posts_df
-        del self.categories_df
+        print("found_post_dataframe")
+        print(found_post_dataframe)
 
-        # cols = ["title_y", "title_x", "excerpt", "keywords", "slug_x", "all_features_preprocessed"]
-        documents_df = pd.DataFrame()
+        # TODO: If this works well on production, add also to short text version
+        if found_post_dataframe is None:
+            return []
+        else:
+            print("found_post_dataframe.iloc.columns")
+            print(found_post_dataframe.columns)
+            print("found_post_dataframe.iloc[0]")
+            print(found_post_dataframe.iloc[0])
+            print("Keywords:")
+            print(found_post_dataframe.iloc[0]['keywords'])
+            print("all_features_preprocessed:")
+            print(found_post_dataframe.iloc[0]['all_features_preprocessed'])
+            print("body_preprocessed:")
+            print(found_post_dataframe.iloc[0]['body_preprocessed'])
+            found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
+            found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
+                                                      found_post_dataframe.iloc[0]['all_features_preprocessed'] + " " + \
+                                                      found_post_dataframe.iloc[0]['body_preprocessed']
 
-        documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["title_y"] + ' ' + self.df[
-            "all_features_preprocessed"] + ' ' + self.df["body_preprocessed"]
-        documents_df["slug"] = self.df["slug_x"]
-        found_post = found_post_dataframe['features_to_use'].iloc[0]
+            del self.posts_df
+            del self.categories_df
 
-        del self.df
-        del found_post_dataframe
+            # cols = ["category_title", "post_title", "excerpt", "keywords", "slug", "all_features_preprocessed"]
+            documents_df = pd.DataFrame()
 
-        print("Loading word2vec model...")
+            documents_df["features_to_use"] = self.df["keywords"] + '||' + self.df["category_title"] + ' ' + self.df[
+                "all_features_preprocessed"] + ' ' + self.df["body_preprocessed"]
+            documents_df["slug"] = self.df["post_slug"]
 
-        try:
-            word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
-        except FileNotFoundError:
-            print("Downloading from Dropbox...")
-            dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
-            recommenderMethods = RecommenderMethods()
-            recommenderMethods.dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
-                                                     "/w2v_model.vectors.npy")
-            word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+            found_post = found_post_dataframe['features_to_use'].iloc[0]
 
-        ds = DocSim(word2vec_embedding)
+            del self.df
+            del found_post_dataframe
 
-        documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(';', ' ')
-        documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(r'\r\n', '', regex=True)
-        documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
-        list_of_document_features = documents_df["features_to_use"].tolist()
-        del documents_df
-        # https://github.com/v1shwa/document-similarity with my edits
+            print("Loading word2vec model...")
 
-        most_similar_articles_with_scores = ds.calculate_similarity_idnes_model(found_post,
-                                                                                list_of_document_features)[:21]
-        # removing post itself
-        del most_similar_articles_with_scores[0]  # removing post itself
+            try:
+                word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+            except FileNotFoundError:
+                print("Downloading from Dropbox...")
+                dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
+                recommenderMethods = RecommenderMethods()
+                recommenderMethods.dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
+                                                         "/w2v_model.vectors.npy")
+                word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
 
-        # workaround due to float32 error in while converting to JSON
-        return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
+            ds = DocSim(word2vec_embedding)
+
+            documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(';', ' ')
+            documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(r'\r\n', '', regex=True)
+            documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
+            list_of_document_features = documents_df["features_to_use"].tolist()
+            del documents_df
+            # https://github.com/v1shwa/document-similarity with my edits
+
+            most_similar_articles_with_scores = ds.calculate_similarity_idnes_model(found_post,
+                                                                                    list_of_document_features)[:21]
+            # removing post itself
+            del most_similar_articles_with_scores[0]  # removing post itself
+
+            # workaround due to float32 error in while converting to JSON
+            return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
 
     def flatten(self, t):
         return [item for sublist in t for item in sublist]
@@ -591,7 +556,6 @@ class Word2VecClass:
         self.save_full_model_to_smaller()
 
     # TODO: texts by generator
-    # TODO: create bigrams
     def find_optimal_model_idnes(self):
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
@@ -602,9 +566,26 @@ class Word2VecClass:
         logger = logging.getLogger()  # get the root logger
         logger.info("Testing file write")
 
-        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_stopwords_free')
+        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_bigrams')
         print("Building sentences...")
         sentences = [doc.get('text') for doc in reader.iterate()]
+        # sentences = [doc.get('text') for doc in reader.iterate()]
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
+        # sentences = MyCorpus(dictionary)
+        # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
+        sentences = []
+
+        client = MongoClient("localhost", 27017, maxPoolSize=50)
+        db = client.idnes
+        collection = db.preprocessed_articles_bigrams
+        cursor = collection.find({})
+        for document in cursor:
+            # joined_string = ' '.join(document['text'])
+            # sentences.append([joined_string])
+            sentences.append(document['text'])
+        print("Sentences build into type of:")
+        print(type(sentences))
+        print(sentences[0:100])
 
         model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
         hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
@@ -650,7 +631,8 @@ class Word2VecClass:
                                                                                                              window=window,
                                                                                                              min_count=min_count,
                                                                                                              epochs=epochs,
-                                                                                                             sample=sample)
+                                                                                                             sample=sample,
+                                                                                                             force_update_model=True)
                                         else:
                                             word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
                                                                                                              model_variant=model_variant,
@@ -684,11 +666,15 @@ class Word2VecClass:
                                         print("Saved training results...")
         pbar.close()
 
+
+
     def compute_eval_values_idnes(self, sentences, model_variant, negative_sampling_variant, vector_size, window, min_count,
                                   epochs, sample, force_update_model=True):
         if os.path.isfile("models/w2v_idnes.model") is False or force_update_model is True:
             print("Started training on iDNES.cz dataset...")
             # w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant, vector_size=vector_size, window=window, min_count=min_count, epochs=epochs, sample=sample, workers=7)
+            # w2v_model = Word2Vec(min_count=min_count)
+            # w2v_model.build_vocab(corpus_iterable=sentences)
             w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
                                  vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
                                  sample=sample, workers=7)
@@ -699,14 +685,22 @@ class Word2VecClass:
             print("Loading Word2Vec iDNES.cz model from saved model file")
             w2v_model = Word2Vec.load("models/w2v_idnes.model")
 
-        import pandas as pd
-        df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
-                         usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
-        df.to_csv('research/word2vec/similarities/WordSim353-cs-cropped.tsv', sep='\t', encoding='utf-8', index=False)
+        print("Similarity test")
+        print(w2v_model.wv.most_similar('tygr'))
 
-        print("Word pairs evaluation iDnes.cz model:")
-        word_pairs_eval = w2v_model.wv.evaluate_word_pairs('research/word2vec/similarities/WordSim353-cs-cropped.tsv')
-        print(word_pairs_eval)
+        path_to_cropped_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
+        if os.path.exists(path_to_cropped_file):
+            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(
+                path_to_cropped_file)
+        else:
+            df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
+                             usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
+            cz_preprocess = CzPreprocess()
+            df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+            df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+
+            df.to_csv(path_to_cropped_file, sep='\t', encoding='utf-8', index=False)
+            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(path_to_cropped_file)
 
         overall_score, _ = w2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
         print("Analogies evaluation of iDnes.cz model:")
@@ -819,20 +813,22 @@ class Word2VecClass:
             pass
         else:
             print("Building bigrams...")
-            mongo_collection_bigrams.delete_many({})
+            # mongo_collection_bigrams.delete_many({})
             print("Loading stopwords free documents...")
             # using 80% training set
-            """
+
+            reader = MongoReader(dbName='idnes', collName='preprocessed_articles_stopwords_free')
+
             print("Building sentences...")
             sentences = [doc.get('text') for doc in reader.iterate()]
+
             first_sentence = next(iter(sentences))
             print("first_sentence[:10]")
             print(first_sentence[:10])
-            """
 
-            reader = MongoReader(dbName='idnes', collName='preprocessed_articles_stopwords_free')
-            print("Building sentences...")
-            sentences = [doc.get('text') for doc in reader.iterate()]
+            print("Sentences sample:")
+            print(sentences[1500:1600])
+            time.sleep(40)
             # Working but possibly slow
             phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
 
@@ -1080,10 +1076,5 @@ def run():
     print("Elapsed time: " + str(end - start))
     """
 
-    # word2vecClass.find_optimal_model_idnes()
-
-    # 1. Create and save Dictionary
-    # 2. Create and save Corpus from Dictionary
-    # 3. Preprocessing
-    # 4. Preprocessing + stopwords free
-    # 5. Preprocessing + bigrams
+    word2vecClass = Word2VecClass()
+    word2vecClass.find_optimal_model_idnes()

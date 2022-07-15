@@ -1,5 +1,6 @@
 import traceback
 
+from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.prefiller import PreFiller
 from data_connection import Database
 from prefilling_additional import PreFillerAdditional
@@ -21,7 +22,12 @@ def prefill_body_preprocessed():
 
 
 def run_prefilling():
-    print("Running Tfidf short text")
+    print("Refreshing post cache. Inserting recommender posts to cache...")
+
+    recommender_methods = RecommenderMethods()
+    recommender_methods.database.insert_posts_dataframe_to_cache()
+
+    print("Check needed columns posts...")
 
     database = Database()
     columns_needing_prefill = check_needed_columns(database)
@@ -68,7 +74,7 @@ def run_prefilling():
 
 def prepare_and_run(database, method, full_text, reverse, random):
     not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts")
+    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts in " + method + " full text: " + str(full_text))
     if len(not_prefilled_posts) > 0:
         try:
             prefiller.prefilling_job(method=method, full_text=full_text)

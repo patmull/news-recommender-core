@@ -66,7 +66,7 @@ class Database:
     def join_posts_ratings_categories(self):
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
-        self.df = self.df[['id_x','title_x','slug_x','excerpt','body','views','keywords','title_y','description','all_features_preprocessed']]
+        self.df = self.df[['id_x','post_title','slug','excerpt','body','views','keywords','category_title','description','all_features_preprocessed']]
 
     def get_posts_join_categories(self):
 
@@ -182,8 +182,8 @@ class Database:
             print("Error:", s)  # errno, sqlstate, msg values
             self.cnx.rollback()
 
+    @DeprecationWarning
     def insert_recommended_tfidf_json(self, articles_recommended_json, article_id, db):
-        self.connect()
         if db == "pgsql":
             try:
                 query = """UPDATE posts SET recommended_tfidf=%s WHERE id=%s;"""
@@ -191,7 +191,6 @@ class Database:
                 self.cursor.execute(query, inserted_values)
                 self.cnx.commit()
                 print("Inserted")
-                self.disconnect()
             except psycopg2.connector.Error as e:
                 print("NOT INSERTED")
                 print("Error code:", e.errno)  # error number
@@ -247,6 +246,7 @@ class Database:
         else:
             raise ValueError("Not allowed DB method passed.")
 
+    @DeprecationWarning
     def insert_doc2vec_vector(self, doc2vec_vector, article_id):
         query = """UPDATE posts SET doc2vec_representation=%s WHERE id=%s;"""
         inserted_values = (doc2vec_vector, article_id)

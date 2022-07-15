@@ -48,6 +48,11 @@ def translate_question_words():
     print(translations)
 
 
+def google_translate(text_to_translate):
+    translation = GoogleTranslator(source='en', target='cs').translate((text_to_translate))
+    return translation
+
+
 def clean_console_output_to_file():
 
     texts = []

@@ -9,11 +9,12 @@ import pyLDAvis
 import regex
 import tqdm
 from gensim.corpora import WikiCorpus
-from gensim.utils import deaccent
+from gensim.utils import deaccent, simple_preprocess
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
 import content_based_algorithms.data_queries as data_queries
 from content_based_algorithms.data_queries import RecommenderMethods
+from preprocessing.cz_preprocessing import CzPreprocess
 
 import gensim
 import numpy as np
@@ -38,12 +39,13 @@ class Lda:
         self.categories_df = None
         self.database = Database()
 
+    @DeprecationWarning
     def join_posts_ratings_categories(self):
         self.get_categories_dataframe()
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         self.df = self.df[
-            ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+            ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed', 'body_preprocessed']]
         return self.df
 
@@ -66,22 +68,22 @@ class Lda:
     # @profile
 
     def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, N=21):
-        self.get_posts_dataframe()
-        self.join_posts_ratings_categories()
+        recommender_methods = RecommenderMethods()
+
+        recommender_methods.get_posts_dataframe()
+        recommender_methods.join_posts_ratings_categories()
 
         gc.collect()
 
-        print(self.df.head(10).to_string())
         # if there is no LDA model, training will run anyway due to load_texts method handle
         if train is True:
-            self.train_lda(self.df, display_dominant_topics=display_dominant_topics)
+            self.train_lda(recommender_methods.df, display_dominant_topics=display_dominant_topics)
 
-        dictionary, corpus, lda = self.load_lda(self.df)
+        dictionary, corpus, lda = self.load_lda(recommender_methods.df)
 
-        searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
+        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['post_slug'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
-        print("self.df.iloc[searched_doc_id]")
-        selected_by_index = self.df.iloc[searched_doc_id]
+        selected_by_index = recommender_methods.df.iloc[searched_doc_id]
         selected_by_column = selected_by_index['all_features_preprocessed']
         new_bow = dictionary.doc2bow([selected_by_column])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
@@ -90,12 +92,14 @@ class Lda:
 
         most_sim_ids, most_sim_coefficients = self.get_most_similar_documents(new_doc_distribution, doc_topic_dist, N)
 
-        most_similar_df = self.df.iloc[most_sim_ids]
+        most_similar_df = recommender_methods.df.iloc[most_sim_ids]
 
         most_similar_df = most_similar_df.iloc[1:, :]
 
         post_recommendations = pd.DataFrame()
-        post_recommendations['slug'] = most_similar_df['slug_x'].iloc[:N]
+
+        most_similar_df = most_similar_df.rename(columns={'post_slug':'slug'})
+        post_recommendations['slug'] = most_similar_df['slug'].iloc[:N]
         # post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
         if N == 21:
             post_recommendations['coefficient'] = most_sim_coefficients[:N-1]
@@ -111,7 +115,7 @@ class Lda:
             post_recommendations['coefficient'] = most_sim_coefficients[:N]
         """
 
-        del self.df
+        del recommender_methods.df
         gc.collect()
 
         dict = post_recommendations.to_dict('records')
@@ -123,51 +127,57 @@ class Lda:
 
     # @profile
     def get_similar_lda_full_text(self, searched_slug, N=21, train=False, display_dominant_topics=True):
-        self.database.connect()
-        self.get_posts_dataframe()
-        self.join_posts_ratings_categories()
-        self.database.disconnect()
+        recommender_methods = RecommenderMethods()
 
-        print("get_similar_lda_full_text dataframe:")
-        print(self.df.to_string())
+        recommender_methods.get_posts_dataframe()
+        recommender_methods.join_posts_ratings_categories()
 
-        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-        self.df['tokenized'] = self.df.apply(
+        recommender_methods.df['tokenized_keywords'] = recommender_methods.df['keywords'].apply(lambda x: x.split(', '))
+        recommender_methods.df['tokenized'] = recommender_methods.df.apply(
             lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
             axis=1)
-        self.df['tokenized_full_text'] = self.df.apply(
+        recommender_methods.df['tokenized_full_text'] = recommender_methods.df.apply(
             lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
             axis=1)
 
         gc.collect()
 
-        self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
+        recommender_methods.df['tokenized_all_features_preprocessed'] = recommender_methods.df.all_features_preprocessed.apply(lambda x: x.split(' '))
         gc.collect()
-        self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(lambda x: x.split(' '))
-        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
+        recommender_methods.df['tokenized_full_text'] = recommender_methods.df.tokenized_full_text.apply(lambda x: x.split(' '))
+        recommender_methods.df['tokenized'] = recommender_methods.df['tokenized_keywords'] + recommender_methods.df['tokenized_all_features_preprocessed'] + recommender_methods.df[
             'tokenized_full_text']
         gc.collect()
 
         if train is True:
-            self.train_lda_full_text(self.df, display_dominant_topics=display_dominant_topics)
+            self.train_lda_full_text(recommender_methods.df, display_dominant_topics=display_dominant_topics)
 
-        dictionary, corpus, lda = self.load_lda_full_text(self.df, retrain=train, display_dominant_topics=display_dominant_topics)
-
-        searched_doc_id_list = self.df.index[self.df['slug_x'] == searched_slug].tolist()
+        dictionary, corpus, lda = self.load_lda_full_text(recommender_methods.df, retrain=train, display_dominant_topics=display_dominant_topics)
+        recommender_methods.df = recommender_methods.df.rename(columns={'post_slug':'slug'})
+        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['slug'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
-        new_bow = dictionary.doc2bow(self.df.iloc[searched_doc_id, 11])
+        new_sentences = recommender_methods.df.iloc[searched_doc_id,:]
+        new_sentences = new_sentences[['tokenized']]
+        print("new_sentences[['tokenized']][0]:")
+        print(new_sentences[['tokenized']][0])
+        # .replace(' ', '_')
+        cz_lemma = CzPreprocess()
+        new_sentences_splitted = [gensim.utils.deaccent(sentence).replace(' ', '_') for sentence in new_sentences[['tokenized']][0]]
+        print("new_sentences_splitted:")
+        print(new_sentences_splitted)
+        new_bow = dictionary.doc2bow(new_sentences_splitted)
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
         doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist_full_text.npy')
 
         most_sim_ids, most_sim_coefficients = self.get_most_similar_documents(new_doc_distribution, doc_topic_dist, N)
 
-        most_similar_df = self.df.iloc[most_sim_ids]
-        del self.df
+        most_similar_df = recommender_methods.df.iloc[most_sim_ids]
+        del recommender_methods.df
         gc.collect()
         most_similar_df = most_similar_df.iloc[1:, :]
         post_recommendations = pd.DataFrame()
-        post_recommendations['slug'] = most_similar_df['slug_x'].iloc[:N]
+        post_recommendations['slug'] = most_similar_df['slug'].iloc[:N]
         post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
 
         dict = post_recommendations.to_dict('records')
@@ -275,6 +285,7 @@ class Lda:
             print("Could not load_texts LDA models or precalculated vectors. Reason:")
             print(e)
             self.train_lda_full_text(data, display_dominant_topics)
+            # TODO: Download from Dropbox as a 2nd option before training
 
             lda_model = LdaModel.load("models/lda_model_full_text")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
@@ -292,12 +303,8 @@ class Lda:
         data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
-        print("data_words_bigrams")
-        print(data_words_bigrams)
-
         self.df.assign(tokenized=data_words_bigrams)
-        print("data['tokenized']")
-        print(data['tokenized'])
+
         dictionary = corpora.Dictionary(data['tokenized'])
         dictionary.filter_extremes()
         corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
@@ -334,11 +341,9 @@ class Lda:
         self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized']
         all_words = [word for item in list(self.df["tokenized"]) for word in item]
-        print(all_words[:50])
 
         top_k_words, _ = RecommenderMethods.most_common_words(all_words)
-        print(top_k_words)
-        print("top_k_words")
+
         self.top_k_words = set(top_k_words)
 
         self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
@@ -349,8 +354,6 @@ class Lda:
         self.df = self.df[self.df['tokenized'].map(type) == list]
         self.df.reset_index(drop=True, inplace=True)
         print("After cleaning and excluding short aticles, the dataframe now has:", len(self.df), "articles")
-        print("df head:")
-        print(self.df.head)
 
         self.save_corpus_dict(corpus, dictionary)
 
@@ -365,7 +368,8 @@ class Lda:
 
     def train_lda_full_text(self, data, display_dominant_topics=True, lst=None):
 
-        data_words_nostops = self.remove_stopwords(data['tokenized'])
+
+        data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
         self.df.assign(tokenized=data_words_bigrams)
@@ -440,7 +444,6 @@ class Lda:
         trigram_mod = gensim.models.phrases.Phraser(trigram)
 
         # See trigram example
-        print(trigram_mod[bigram_mod[data_words[0]]])
 
         # Form Bigrams
         data_words_bigrams = self.make_bigrams(bigram_mod, data_words)
@@ -455,8 +458,6 @@ class Lda:
 
     def visualise_lda(self, lda_model, corpus, dictionary, data_words_bigrams):
 
-        print("Keywords and topics:")
-        print(lda_model.print_topics())
         # Compute Perplexity
         print('\nLog perplexity: ', lda_model.log_perplexity(corpus))
         # a measure of how good the model is. lower the better.
@@ -498,8 +499,7 @@ class Lda:
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
             'tokenized_full_text']
         data = self.df
-        print("data['tokenized']")
-        print(data['tokenized'])
+
         data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
         # Term Document Frequency
@@ -510,10 +510,7 @@ class Lda:
         corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
 
         t1 = time.time()
-        print("corpus[:1]")
-        print(corpus[:1])
-        print("words:")
-        print([[(dictionary[id], freq) for id, freq in cp] for cp in corpus[:1]])
+
         # low alpha means each document is only represented by a small number of topics, and vice versa
         # low eta means each topic is only represented by a small number of words, and vice versa
 
@@ -544,9 +541,6 @@ class Lda:
                                                              # added
                                                              workers=2,
                                                              iterations=iterations)
-
-        print("mm")
-        print(corpus)
 
         """
         lda_model.save("full_models/cswiki/lda/lda_model")
@@ -585,8 +579,7 @@ class Lda:
                 list_of_preprocessed_files.append(i)
 
         list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
-        print("Loading data from files:")
-        print(list_of_preprocessed_files)
+
         print("Loading preprocessed corpus...")
         processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
         print("Loaded " + str(len(processed_data)) + " documents.")
@@ -604,14 +597,12 @@ class Lda:
         print("Creating dictionary...")
         print("TOP WORDS (after bigrams and stopwords removal):")
         top_k_words, _ = RecommenderMethods.most_common_words(processed_data)
-        print(top_k_words)
         preprocessed_dictionary = corpora.Dictionary(processed_data)
         print("Saving dictionary...")
         preprocessed_dictionary.save("full_models/cswiki/lda/preprocessed/dictionary")
         print("Translating words into Doc2Bow vectors")
         preprocessed_corpus = [preprocessed_dictionary.doc2bow(token, allow_update=True) for token in processed_data]
         print("Piece of preprocessed_corpus:")
-        print(preprocessed_corpus[:1])
 
         limit = 1500
         start = 10
@@ -740,7 +731,7 @@ class Lda:
         print(self.df.head(10).to_string())
         df_dominant_topic_merged = df_dominant_topic.merge(self.df, how='outer', left_index=True, right_index=True)
         print("After join")
-        df_dominant_topic_filtered_columns = df_dominant_topic_merged[['Document_No', 'slug_x', 'title_x', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords']]
+        df_dominant_topic_filtered_columns = df_dominant_topic_merged[['Document_No', 'slug', 'post_title', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords']]
         print(df_dominant_topic_filtered_columns.head(10).to_string())
         # saving dominant topics with corresponding documents
         df_dominant_topic_filtered_columns.to_csv("exports/dominant_topics_and_documents.csv", sep=';', encoding='iso8859_2', errors='replace')
@@ -838,15 +829,13 @@ class Lda:
                 continue
             print("Processing doc. num. " + str(num_of_preprocessed_docs))
             print("Before:")
-            print(doc)
             tokens = deaccent(czlemma.preprocess(doc))
 
             # removing words in greek, azbuka or arabian
             # use only one of the following lines, whichever you prefer
             tokens = [i for i in tokens.split() if regex.sub(r'[^\p{Latin}]',u'',i)]
             processed_data.append(tokens)
-            print("After:")
-            print(tokens)
+
             i = i + 1
             num_of_preprocessed_docs = num_of_preprocessed_docs + 1
             # saving list to pickle evey 100th document

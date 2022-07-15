@@ -25,12 +25,14 @@ class Doc2VecClass:
         # self.database.insert_post_dataframe_to_cache() # uncomment for UPDATE of DB records
         self.posts_df = self.database.get_posts_dataframe_from_cache()
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
+        self.posts_df = self.posts_df.rename({'title': 'post_title'})
         return self.posts_df
 
     def get_categories_dataframe(self):
         self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
         self.database.disconnect()
+        self.posts_df = self.posts_df.rename({'title': 'category_title'})
         return self.categories_df
 
     def join_posts_ratings_categories(self, include_prefilled=False):
@@ -40,18 +42,25 @@ class Doc2VecClass:
         print(self.posts_df)
         print("self.categories_df:")
         print(self.categories_df)
+        self.posts_df = self.posts_df.rename(columns={'title':'post_title'})
+        self.posts_df = self.posts_df.rename(columns={'slug':'post_slug'})
+        self.categories_df = self.categories_df.rename(columns={'title':'category_title'})
+        self.categories_df = self.categories_df.rename(columns={'slug':'category_slug'})
+
         if include_prefilled is False:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
             # clean up from unnecessary columns
+            self.df = self.df.rename(columns={'post_slug': 'slug'})
             self.df = self.df[
-                ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                  'all_features_preprocessed', 'body_preprocessed']]
         else:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
             # clean up from unnecessary columns
+            self.df = self.df.rename(columns={'post_slug': 'slug'})
             try:
                 self.df = self.df[
-                    ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                    ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                      'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text']]
             except KeyError:
@@ -59,7 +68,7 @@ class Doc2VecClass:
                 self.posts_df.drop_duplicates(subset=['title'], inplace=True)
                 print(self.df.columns.values)
                 self.df = self.df[
-                    ['id_x', 'title_x', 'slug_x', 'excerpt', 'body', 'views', 'keywords', 'title_y', 'description',
+                    ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                      'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text']]
 
@@ -131,7 +140,7 @@ class Doc2VecClass:
             lambda x: x.replace(' ', ', '))
         documents_df['all_features_preprocessed'] = self.df[cols].apply(lambda row: ' '.join(row.values.astype(str)),
                                                                         axis=1)
-        documents_df['all_features_preprocessed'] = self.df['title_y'] + ', ' + documents_df[
+        documents_df['all_features_preprocessed'] = self.df['category_title'] + ', ' + documents_df[
             'all_features_preprocessed']
 
         documents_all_features_preprocessed = list(
@@ -141,7 +150,9 @@ class Doc2VecClass:
         gc.collect()
 
         if from_db is False:
-            documents_slugs = self.df['slug_x'].tolist()
+            if 'post_slug' in self.df:
+                self.df = self.df.rename(columns={'post_slug':'slug'})
+            documents_slugs = self.df['slug'].tolist()
 
             if train is True:
                 self.train_doc2vec(documents_all_features_preprocessed, body_text=False, limited=False, create_csv=False)
@@ -188,7 +199,7 @@ class Doc2VecClass:
         documents_df['all_features_preprocessed'] = self.df[cols].apply(lambda row: ' '.join(row.values.astype(str)),
                                                                         axis=1)
 
-        documents_df['all_features_preprocessed'] = self.df['title_y'] + ', ' + documents_df[
+        documents_df['all_features_preprocessed'] = self.df['category_title'] + ', ' + documents_df[
             'all_features_preprocessed'] + ", " + self.df['body_preprocessed']
 
         documents_all_features_preprocessed = list(
@@ -197,7 +208,10 @@ class Doc2VecClass:
         del documents_df
         gc.collect()
 
-        documents_slugs = self.df['slug_x'].tolist()
+        print("self.df.columns")
+        print(self.df.columns)
+
+        documents_slugs = self.df['slug'].tolist()
 
         if train is True:
             self.train_doc2vec(documents_all_features_preprocessed, body_text=True)
@@ -233,12 +247,12 @@ class Doc2VecClass:
         recommenderMethods.get_categories_dataframe()
         self.df = recommenderMethods.join_posts_ratings_categories()
 
-        # cols = ["title_y","title_x","excerpt","keywords","slug_x"]
+        # cols = ["category_title","post_title","excerpt","keywords","slug"]
 
         cols = ["keywords"]
         documents_df = pd.DataFrame()
         documents_df['keywords'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
-        documents_slugs = self.df['slug_x'].tolist()
+        documents_slugs = self.df['slug'].tolist()
 
         filename = "preprocessing/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
@@ -246,16 +260,16 @@ class Doc2VecClass:
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
 
         """
-        documents_df['documents_cleaned'] = documents_df.title_x.apply(lambda x: " ".join(
+        documents_df['documents_cleaned'] = documents_df.post_title.apply(lambda x: " ".join(
             re.sub(r'(?![\d_])\w', ' ', w).lower() for w in x.split() if
             # re.sub(r'[^a-zA-Z]', ' ', w).lower() not in cz_stopwords))
         documents_df['keywords_cleaned'] = documents_df.keywords.apply(lambda x: " ".join(
             w.lower() for w in x.split()
             if w.lower() not in cz_stopwords))
-        documents_df['title_x'] = title_df.title_x.apply(lambda x: " ".join(
+        documents_df['post_title'] = title_df.post_title.apply(lambda x: " ".join(
             w.lower() for w in x.split()
             if w.lower() not in cz_stopwords))
-        documents_df['slug_x'] = slug_df.slug_x
+        documents_df['slug'] = slug_df.slug
         """
         # keywords_cleaned = list(map(' '.join, documents_df[['keywords_cleaned']].values.tolist()))
         # print("keywords_cleaned:")

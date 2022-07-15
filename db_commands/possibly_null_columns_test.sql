@@ -14,3 +14,5 @@ SELECT COUNT (*) AS "recommended_doc2vec" FROM posts WHERE posts.recommended_doc
 SELECT COUNT (*) AS "recommended_doc2vec_full_text" FROM posts WHERE posts.recommended_doc2vec_full_text IS NULL;
 SELECT COUNT (*) AS "recommended_lda" FROM posts WHERE posts.recommended_lda IS NULL;
 SELECT COUNT (*) AS "recommended_lda_full_text" FROM posts WHERE posts.recommended_lda_full_text IS NULL;
+
+SELECT recommended_word2vec_full_text FROM posts WHERE slug LIKE '%uprchlicka-krize%';
