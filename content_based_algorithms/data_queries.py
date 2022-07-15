@@ -95,7 +95,7 @@ class RecommenderMethods:
 
     def get_users_dataframe(self):
         self.database.connect()
-        self.posts_df = self.database.get_all_users()
+        self.posts_df = self.database.get_users_dataframe()
         self.database.disconnect()
         return self.posts_df
 
@@ -270,7 +270,7 @@ class RecommenderMethods:
         # closest.index.name = 'index1'
         closest.columns.name = 'index'
 
-        return closest[["slug", "coefficient"]]
+        return closest[["post_slug", "coefficient"]]
         # return pd.DataFrame(closest).merge(items).head(k)
 
     def find_post_by_slug(self, slug, force_update=False):
