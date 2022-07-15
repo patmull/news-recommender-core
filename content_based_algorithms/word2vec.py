@@ -601,12 +601,13 @@ class Word2VecClass:
         corpus_title = ['100% Corpus']
         model_results = {'Validation_Set': [],
                          'Model_Variant': [],
-                         'Softmax': [],
                          'Negative': [],
                          'Vector_size': [],
                          'Window': [],
+                         'Min_count': [],
                          'Epochs': [],
                          'Sample': [],
+                         'Softmax': [],
                          'Word_pairs_test_Pearson_coeff': [],
                          'Word_pairs_test_Pearson_p-val': [],
                          'Word_pairs_test_Spearman_coeff': [],
@@ -649,7 +650,7 @@ class Word2VecClass:
                                         model_results['Negative'].append(negative_sampling_variant)
                                         model_results['Vector_size'].append(vector_size)
                                         model_results['Window'].append(window)
-                                        model_results['Min. count'].append(min_count)
+                                        model_results['Min_count'].append(min_count)
                                         model_results['Epochs'].append(epochs)
                                         model_results['Sample'].append(sample)
                                         model_results['Softmax'].append(hs_softmax)
