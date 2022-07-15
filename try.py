@@ -19,8 +19,8 @@ def try_prefillers():
     try_word2vec_recommendation_prefiller(database=database, method=method, full_text=False, reverse=reverse, random=random)
 
 
-def fxn():
-    warnings.warn("deprecated", DeprecationWarning)
+# try_prefillers()
+# run_prefilling()
 
 """
 lda = Lda()
@@ -28,6 +28,10 @@ lda.get_similar_lda_full_text('zemrel-posledni-krkonossky-nosic-helmut-hofer-iko
 """
 
 """
+# warning ignoring filter
+def fxn():
+    warnings.warn("deprecated", DeprecationWarning)
+
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     recommender_methods = RecommenderMethods()
