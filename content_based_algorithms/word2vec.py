@@ -568,6 +568,7 @@ class Word2VecClass:
 
         reader = MongoReader(dbName='idnes', collName='preprocessed_articles_bigrams')
         print("Building sentences...")
+        sentences = [doc.get('text') for doc in reader.iterate()]
         # sentences = [doc.get('text') for doc in reader.iterate()]
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
         # sentences = MyCorpus(dictionary)
@@ -600,12 +601,13 @@ class Word2VecClass:
         corpus_title = ['100% Corpus']
         model_results = {'Validation_Set': [],
                          'Model_Variant': [],
-                         'Softmax': [],
                          'Negative': [],
                          'Vector_size': [],
                          'Window': [],
+                         'Min_count': [],
                          'Epochs': [],
                          'Sample': [],
+                         'Softmax': [],
                          'Word_pairs_test_Pearson_coeff': [],
                          'Word_pairs_test_Pearson_p-val': [],
                          'Word_pairs_test_Spearman_coeff': [],
@@ -645,12 +647,13 @@ class Word2VecClass:
                                         print(word_pairs_eval[0][0])
                                         model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
                                         model_results['Model_Variant'].append(model_variant)
-                                        model_results['Softmax'].append(hs_softmax)
                                         model_results['Negative'].append(negative_sampling_variant)
                                         model_results['Vector_size'].append(vector_size)
                                         model_results['Window'].append(window)
+                                        model_results['Min_count'].append(min_count)
                                         model_results['Epochs'].append(epochs)
                                         model_results['Sample'].append(sample)
+                                        model_results['Softmax'].append(hs_softmax)
                                         model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
                                         model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
                                         model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
