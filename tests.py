@@ -27,7 +27,7 @@ def word2vec_method():
     database = Database()
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
-    random_post_slug = random_post['slug'].iloc[0]
+    random_post_slug = random_post['post_slug'].iloc[0]
     print("random_post slug:")
     print(random_post_slug)
     similar_posts = word2vec.get_similar_word2vec(random_post_slug)
@@ -55,6 +55,62 @@ def try_prefillers():
     reverse = True
     random = False
     test_word2vec_recommendation_prefiller(database=database, method=method, full_text=False, reverse=reverse, random=random)
+
+def get_prefilled_tfidf(full_text):
+    database = Database()
+    database.connect()
+    posts = database.get_posts_with_no_prefilled_tfidf(full_text)
+    return len(posts)
+
+
+def get_prefilled_word2vec(full_text):
+    database = Database()
+    database.connect()
+    posts = database.get_posts_with_no_prefilled_word2vec(full_text)
+    return len(posts)
+
+
+def get_prefilled_doc2vec(full_text):
+    database = Database()
+    database.connect()
+    posts = database.get_posts_with_no_prefilled_doc2vec(full_text)
+    return len(posts)
+
+
+def get_prefilled_lda(full_text):
+    database = Database()
+    database.connect()
+    posts = database.get_posts_with_no_prefilled_lda(full_text)
+    return len(posts)
+
+
+def test_prefilled_recommendations():
+
+    number_of_tfidf = get_prefilled_tfidf(full_text=False)
+    print(number_of_tfidf)
+    number_of_tfidf_full_text = get_prefilled_tfidf(full_text=True)
+    print(number_of_tfidf_full_text)
+    number_of_word2vec = get_prefilled_word2vec(full_text=False)
+    print(number_of_word2vec)
+    number_of_word2vec_full_text = get_prefilled_word2vec(full_text=True)
+    print(number_of_word2vec_full_text)
+    number_of_doc2vec = get_prefilled_doc2vec(full_text=False)
+    print(number_of_doc2vec)
+    number_of_doc2vec_full_text = get_prefilled_doc2vec(full_text=True)
+    print(number_of_doc2vec_full_text)
+    number_of_lda = get_prefilled_lda(full_text=False)
+    print(number_of_lda)
+    number_of_lda_full_text = get_prefilled_lda(full_text=True)
+    print(number_of_lda_full_text)
+
+    assert number_of_tfidf == 0
+    assert number_of_tfidf_full_text == 0
+    assert number_of_word2vec == 0
+    assert number_of_word2vec_full_text == 0
+    assert number_of_doc2vec == 0
+    assert number_of_doc2vec_full_text == 0
+    assert number_of_lda == 0
+    assert number_of_lda_full_text == 0
 
 
 def main():

@@ -66,8 +66,8 @@ def categories_count():
     # recommender_methods.get_categories_dataframe()
     posts_categories_df = recommender_methods.join_posts_ratings_categories()
 
-    df_freq_stats = posts_categories_df['title_y'].value_counts().reset_index()
-    df_freq_stats.columns = ['title_y', 'count']
+    df_freq_stats = posts_categories_df['category_title'].value_counts().reset_index()
+    df_freq_stats.columns = ['category_title', 'count']
     print(df_freq_stats)
     df_freq_stats.to_csv("research/corpus_stats/idnes_corpus_freq.csv")
 
