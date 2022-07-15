@@ -330,8 +330,8 @@ class RecommenderMethods:
         self.set_cosine_sim_use_own_matrix(combined_matrix1)
 
         # getting posts with highest similarity
-        combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
-                                                  self.df[['slug_x']], k=num_of_recommendations)
+        combined_all = self.get_recommended_posts(find_by_string=slug, data_frame=self.cosine_sim_df,
+                                                  items=self.df[['slug_x']], k=num_of_recommendations)
 
         df_renamed = combined_all.rename(columns={'slug_x': 'slug'})
         # json conversion
