@@ -1,3 +1,8 @@
+import warnings
+
+from content_based_algorithms.data_queries import RecommenderMethods
+from content_based_algorithms.lda import Lda
+from content_based_algorithms.word2vec import Word2VecClass
 from data_connection import Database
 from prefilling_all import prepare_and_run, run_prefilling
 
@@ -16,3 +21,23 @@ def try_prefillers():
 
 # try_prefillers()
 # run_prefilling()
+
+"""
+lda = Lda()
+lda.get_similar_lda_full_text('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
+"""
+
+"""
+# warning ignoring filter
+def fxn():
+    warnings.warn("deprecated", DeprecationWarning)
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    recommender_methods = RecommenderMethods()
+    recommender_methods.database.insert_posts_dataframe_to_cache()
+    run_prefilling() 
+"""
+
+word2vecClass = Word2VecClass()
+word2vecClass.find_optimal_model_idnes()
