@@ -606,7 +606,6 @@ class Word2VecClass:
         print("Building sentences...")
         sentences = [doc.get('text') for doc in reader.iterate()]
 
-
         model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
         hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
         negative_sampling_variants = range(5, 20, 5)  # 0 = no negative sampling
