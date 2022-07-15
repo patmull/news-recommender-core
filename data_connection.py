@@ -115,7 +115,6 @@ class Database:
 
     def insert_posts_dataframe_to_cache(self):
         sql = """SELECT * FROM posts ORDER BY id;"""
-
         self.connect()
         folder_name = 'db_cache/'
         p = Path(folder_name)
@@ -146,9 +145,9 @@ class Database:
         sql = """SELECT * FROM categories ORDER BY id;"""
 
         # LOAD INTO A DATAFRAME
-        df = pd.read_sql_query(sql, self.get_cnx())
+        self.category_df = pd.read_sql_query(sql, self.get_cnx())
         # df = pd.read_sql_query(results, database.get_cnx())
-        return df
+        return self.category_df
 
     def get_ratings_dataframe(self, pd):
         sql = """SELECT * FROM ratings ORDER BY id;"""

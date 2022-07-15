@@ -206,6 +206,7 @@ class TfIdf:
 
         my_file = Path("models/tfidf_all_features_preprocessed.npz")
         if my_file.exists() is False:
+            print("Sparse matrix file doesn't exists. Creating new...")
             fit_by_all_features_matrix = self.save_sparse_matrix(recommenderMethods)
         else:
             fit_by_all_features_matrix = self.load_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz")
@@ -213,6 +214,7 @@ class TfIdf:
         my_file = Path("models/tfidf_title_y.npz")
         if my_file.exists() is False:
             # title_y = category
+            print("Sparse matrix file doesn't exists. Creating new...")
             fit_by_title = recommenderMethods.get_fit_by_feature_('title_y')
             self.save_sparse_csr(filename="models/tfidf_title_y.npz", array=fit_by_title)
         else:
@@ -228,6 +230,7 @@ class TfIdf:
         try:
             post_recommendations = recommenderMethods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
         except ValueError:
+            print("Can't get TF-IDF result straight away. Trying to fit by title.")
             fit_by_all_features_matrix = self.save_sparse_matrix(recommenderMethods)
             fit_by_title = recommenderMethods.get_fit_by_feature_('title_y')
             self.save_sparse_csr(filename="models/tfidf_title_y.npz", array=fit_by_title)
