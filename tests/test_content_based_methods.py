@@ -69,6 +69,7 @@ def test_word2vec_method():
     assert type(similar_posts[0]['coefficient']) is float
     assert len(similar_posts) > 0
 
+
 def test_doc2vec_method():
     doc2vec = Doc2VecClass()
     # random article
@@ -91,6 +92,7 @@ def test_doc2vec_method():
     assert type(similar_posts[0]['slug']) is str
     assert type(similar_posts[0]['coefficient']) is float
     assert len(similar_posts) > 0
+
 
 def test_lda_method():
     lda = Lda()
