@@ -166,7 +166,7 @@ class LightGBM:
         tfidf_prefilled_posts = tfidf.get_prefilled_full_text()
         print("tfidf_prefilled_posts:")
         print(tfidf_prefilled_posts)
-        found_row = tfidf_prefilled_posts.loc[tfidf_prefilled_posts['slug_x'] == post_slug]
+        found_row = tfidf_prefilled_posts.loc[tfidf_prefilled_posts['slug'] == post_slug]
         tfidf_results_json = json.loads(found_row['recommended_tfidf_full_text'].iloc[0])
         tfidf_results_df = pd.json_normalize(tfidf_results_json)
         print("tfidf_results_df:")
@@ -336,8 +336,8 @@ class LightGBM:
         recommenderMethods = RecommenderMethods()
 
         post_category_df = recommenderMethods.join_posts_ratings_categories()
-        post_category_df = post_category_df.rename(columns={'slug_x': 'slug'})
-        post_category_df = post_category_df.rename(columns={'title_y': 'category'})
+        post_category_df = post_category_df.rename(columns={'slug': 'slug'})
+        post_category_df = post_category_df.rename(columns={'category_title': 'category'})
 
         print(df_results.columns)
         print(post_category_df.columns)
@@ -480,8 +480,8 @@ class LightGBM:
         recommenderMethods = RecommenderMethods()
         post_category_df = recommenderMethods.join_posts_ratings_categories()
 
-        post_category_df = post_category_df.rename(columns={'slug_x': 'slug'})
-        post_category_df = post_category_df.rename(columns={'title_y': 'category'})
+        post_category_df = post_category_df.rename(columns={'slug': 'slug'})
+        post_category_df = post_category_df.rename(columns={'category_title': 'category'})
         post_category_df['model_name'] = 'tfidf'
 
         tf_idf_results = tf_idf_results.merge(post_category_df, on='slug')
@@ -526,7 +526,7 @@ class LightGBM:
 
         features_X = ['coefficient', 'views']
 
-        all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'title_x', 'excerpt', 'body', 'views', 'keywords', 'category', 'description', 'all_features_preprocessed', 'body_preprocessed']
+        all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'post_title', 'excerpt', 'body', 'views', 'keywords', 'category', 'description', 'all_features_preprocessed', 'body_preprocessed']
         if use_categorical_columns is True:
             categorical_columns_after_encoding = [x for x in all_columns if x.startswith("category_")]
             features.extend(categorical_columns_after_encoding)
@@ -661,7 +661,7 @@ class LearnToRank:
         tfidf_prefilled_posts = tfidf.get_prefilled_full_text()
         print("tfidf_prefilled_posts:")
         print(tfidf_prefilled_posts)
-        found_row = tfidf_prefilled_posts.loc[tfidf_prefilled_posts['slug_x'] == post_slug]
+        found_row = tfidf_prefilled_posts.loc[tfidf_prefilled_posts['slug'] == post_slug]
         tfidf_results_json = json.loads(found_row['recommended_tfidf_full_text'].iloc[0])
         tfidf_results_df = pd.json_normalize(tfidf_results_json)
         print("tfidf_results_df:")
