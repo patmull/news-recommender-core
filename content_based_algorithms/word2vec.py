@@ -663,7 +663,7 @@ class Word2VecClass:
 
                                         pbar.update(1)
                                         pd.DataFrame(model_results).to_csv('word2vec_tuning_results.csv', index=False,
-                                                                           mode="a")
+                                                                           mode="w")
                                         print("Saved training results...")
         pbar.close()
 
