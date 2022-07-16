@@ -560,8 +560,7 @@ class Word2VecClass:
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
         # Enabling Word2Vec logging
-        logging.basicConfig(filename='model_callbacks.log',
-                            format="%(asctime)s:%(levelname)s:%(message)s",
+        logging.basicConfig(format="%(asctime)s:%(levelname)s:%(message)s",
                             level=logging.NOTSET)
         logger = logging.getLogger()  # get the root logger
         logger.info("Testing file write")
