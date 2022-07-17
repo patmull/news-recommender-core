@@ -35,6 +35,9 @@ from data_connection import Database
 from preprocessing.cz_preprocessing import CzPreprocess, cz_stopwords, general_stopwords
 from reader import MongoReader
 
+PATH_TO_UNPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs-unprocessed.txt'
+PATH_TO_PREPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs.txt'
+
 myclient = pymongo.MongoClient('localhost', 27017)
 db = myclient.test
 mongo_db = myclient["idnes"]
@@ -686,13 +689,10 @@ class Word2VecClass:
             print("Loading Word2Vec iDNES.cz model from saved model file")
             w2v_model = Word2Vec.load("models/w2v_idnes.model")
 
-        print("Similarity test")
-        print(w2v_model.wv.most_similar('tygr'))
-
-        path_to_cropped_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
-        if os.path.exists(path_to_cropped_file):
+        path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
+        if os.path.exists(path_to_cropped_wordsim_file):
             word_pairs_eval = w2v_model.wv.evaluate_word_pairs(
-                path_to_cropped_file)
+                path_to_cropped_wordsim_file)
         else:
             df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
                              usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
@@ -700,8 +700,8 @@ class Word2VecClass:
             df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
             df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
 
-            df.to_csv(path_to_cropped_file, sep='\t', encoding='utf-8', index=False)
-            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(path_to_cropped_file)
+            df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
+            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
 
         overall_score, _ = w2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
         print("Analogies evaluation of iDnes.cz model:")
@@ -1079,3 +1079,36 @@ def run():
 
     word2vecClass = Word2VecClass()
     word2vecClass.find_optimal_model_idnes()
+
+
+def preprocess_question_words_file():
+    # open file1 in reading mode
+    file1 = open(PATH_TO_UNPROCESSED_QUESTIONS_WORDS, 'r', encoding="utf-8")
+
+    # open file2 in writing mode
+    file2 = open(PATH_TO_PREPROCESSED_QUESTIONS_WORDS, 'w', encoding="utf-8")
+
+    # read from file1 and write to file2
+    for line in file1:
+        if len(line.split()) == 4 or line.startswith(":"):
+            if not line.startswith(":"):
+                cz_preprocess = CzPreprocess()
+                file2.write(gensim.utils.deaccent(cz_preprocess.preprocess(line)) + "\n")
+            else:
+                file2.write(line)
+        else:
+            continue
+
+
+    # close file1 and file2
+    file1.close()
+    file2.close()
+
+    # open file2 in reading mode
+    file2 = open(PATH_TO_PREPROCESSED_QUESTIONS_WORDS, 'r')
+
+    # print the file2 content
+    print(file2.read())
+
+    # close the file2
+    file2.close()
