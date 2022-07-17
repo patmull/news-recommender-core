@@ -41,13 +41,18 @@ with warnings.catch_warnings():
     run_prefilling() 
 """
 
+"""
 word2vecClass = Word2VecClass()
 word2vecClass.find_optimal_model_idnes()
-
+"""
 # preprocess_question_words_file()
+
+w2v_model = Word2VecClass()
+w2v_model.eval_wiki()
 
 """
 path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
+path_to_cropped_wordsim_file = 'models/w2v_model_limited'
 w2v_model = Word2Vec.load("models/w2v_idnes.model")
 word_pairs_eval = w2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file, case_insensitive=True)
 print("Word pairs test:")
@@ -62,5 +67,4 @@ print(w2v_model.wv.most_similar('tygr'))
 overall_score, _ = w2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt', case_insensitive=True)
 print("Analogies evaluation of iDnes.cz model:")
 print(overall_score)
-
 """
