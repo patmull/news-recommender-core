@@ -595,7 +595,7 @@ class Word2VecClass:
         no_negative_sampling = 0  # use with hs_soft_max
         vector_size_range = [50, 100, 158, 200, 250, 300, 450]
         # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        window_range = [2, 4, 5, 8, 12, 16, 20]
+        window_range = [1, 2, 4, 5, 8, 12, 16, 20]
         min_count_range = [0, 2, 4, 5, 8, 12, 16, 20]
         epochs_range = [2, 5, 10, 15, 20, 25, 30]
         sample_range = [0.0, 1.0 * (10.0 ** -1.0), 1.0 * (10.0 ** -2.0), 1.0 * (10.0 ** -3.0), 1.0 * (10.0 ** -4.0),
