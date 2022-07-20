@@ -7,6 +7,7 @@ from content_based_algorithms.lda import Lda
 from content_based_algorithms.word2vec import Word2VecClass, preprocess_question_words_file
 from data_connection import Database
 from prefilling_all import prepare_and_run, run_prefilling
+from research.relevance_statistics import try_ap
 
 
 def try_word2vec_recommendation_prefiller(database, method, full_text, reverse, random):
@@ -47,9 +48,10 @@ word2vecClass.find_optimal_model_idnes()
 """
 # preprocess_question_words_file()
 
+"""
 w2v_model = Word2VecClass()
 w2v_model.eval_wiki()
-
+"""
 """
 path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
 path_to_cropped_wordsim_file = 'models/w2v_model_limited'
@@ -68,3 +70,5 @@ overall_score, _ = w2v_model.wv.evaluate_word_analogies('research/word2vec/analo
 print("Analogies evaluation of iDnes.cz model:")
 print(overall_score)
 """
+
+try_ap()
