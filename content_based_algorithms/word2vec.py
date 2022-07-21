@@ -663,7 +663,7 @@ class Word2VecClass:
 
                                         pbar.update(1)
                                         pd.DataFrame(model_results).to_csv('word2vec_tuning_results.csv', index=False,
-                                                                           mode="a")
+                                                                           mode="w")
                                         print("Saved training results...")
         pbar.close()
 
@@ -830,7 +830,6 @@ class Word2VecClass:
             print("Sentences sample:")
             print(sentences[1500:1600])
             time.sleep(40)
-            # Working but possibly slow
             phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
 
             cursor = mongo_collection_stopwords_free.find({})
