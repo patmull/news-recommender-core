@@ -1,30 +1,42 @@
+import json
+import os.path
 import random
 import urllib.request
-
+import certifi
 import pandas as pd
 import urllib3
 
+from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.tfidf import TfIdf
 from pytranslate import google_translate
 
 # Run with:
 # python -m pytest .\tests\test_user_preferences_methods.py::test_user_keywords
+from user_based_recommendation import UserBasedRecommendation
+
+
 def test_user_keywords():
 
-    word_url = "http://svnweb.freebsd.org/csrg/share/dict/words?view=co&content-type=text/plain"
-    response = urllib.request.urlopen(word_url)
-    long_txt = response.read().decode()
-    words = long_txt.splitlines()
-    upper_words = [word for word in words if word[0].isupper()]
-    name_words = [word for word in upper_words if not word.isupper()]
-    random_phrase = ' '.join([name_words[random.randint(0, len(name_words))] for i in range(2)])
+    path_to_words_file = "datasets/english_words.txt"
+    if not os.path.exists(path_to_words_file):
+        word_url = "https://svnweb.freebsd.org/csrg/share/dict/words?view=co&content-type=text/plain"
+        response = urllib.request.urlopen(word_url, cafile=certifi.where())
+        long_txt = response.read().decode()
+        words = long_txt.splitlines()
+    else:
+        with open(path_to_words_file, "r") as word_list:
+            words = word_list.read().split('\n')
+    # words = long_txt.splitlines()s)
+    random_phrase = words[random.randint(0, len(words))] + ' ' + words[random.randint(0, len(words))]
 
     translated_random_phrase = google_translate(random_phrase)
     print("translated_random_phrase:")
     print(translated_random_phrase)
 
     tfidf = TfIdf()
-    similar_posts = tfidf.get_recommended_posts_for_keywords(translated_random_phrase)
+    json_keywords = {"keywords": random_phrase}
+    # input_json_keywords = json.dumps(json_keywords)
+    similar_posts = tfidf.keyword_based_comparison(json_keywords["keywords"])
     assert type(similar_posts) is list
     assert len(similar_posts) > 0
     print(type(similar_posts[0]['slug']))
@@ -33,8 +45,20 @@ def test_user_keywords():
     assert len(similar_posts) > 0
 
 
-
 # TODO:
-"""
-def user_categories():
-"""
+def test_user_categories():
+    user_based_recommendation = UserBasedRecommendation()
+    recommender_methods = RecommenderMethods()
+    users = recommender_methods.get_users_dataframe()
+    print("users:")
+    print(users)
+    list_of_user_ids = users['id'].to_list()
+    random_position = random.randrange(len(list_of_user_ids))
+    random_id = list_of_user_ids[random_position]
+    num_of_recommended_posts = 5
+    recommendations = user_based_recommendation.load_recommended_posts_for_user(random_id, num_of_recommended_posts)
+    print("Recommendations:")
+    print(recommendations)
+    assert type(recommendations) is dict
+    assert len(recommendations) > 0
+    assert type(recommendations['columns']) is list

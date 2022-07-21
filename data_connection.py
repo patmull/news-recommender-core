@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 
+import pandas
 import psycopg2
 import pandas as pd
 
@@ -80,12 +81,11 @@ class Database:
 
     def get_all_users(self):
         sql = """SELECT * FROM users ORDER BY id;"""
-
         query = (sql)
         self.cursor.execute(query)
-
         rs = self.cursor.fetchall()
         return rs
+
 
     def get_post_by_id(self, post_id):
 
@@ -151,6 +151,14 @@ class Database:
 
     def get_ratings_dataframe(self, pd):
         sql = """SELECT * FROM ratings ORDER BY id;"""
+
+        # LOAD INTO A DATAFRAME
+        df = pd.read_sql_query(sql, self.get_cnx())
+        # df = pd.read_sql_query(results, database.get_cnx())
+        return df
+
+    def get_users_dataframe(self):
+        sql = """SELECT * FROM users ORDER BY id;"""
 
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
