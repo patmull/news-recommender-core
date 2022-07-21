@@ -37,7 +37,7 @@ class BigramPhrases():
         time.sleep(40)
         print("Training Phrases model...")
         phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
-        folder = "full_model/idnes/"
+        folder = "full_models/idnes/"
         filename = "bigrams.phrases"
         path = folder + filename
         if not os.path.exists(folder):
@@ -46,4 +46,6 @@ class BigramPhrases():
         phrase_model.save(path)
         # less RAM, no updates allowed
         frozen_model = phrase_model.freeze()
-        frozen_model.save("/full_model/idnes/bigrams_phrase_model_frozen.pkl")
+        filename_frozen = "bigrams_phrase_model_frozen.pkl"
+        path_to_frozen = folder + filename_frozen
+        frozen_model.save(path_to_frozen)
