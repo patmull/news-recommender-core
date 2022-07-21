@@ -17,6 +17,7 @@ from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
 from content_based_algorithms.data_queries import RecommenderMethods, remove_stopwords
 from preprocessing.czech_stemmer import cz_stem
 from data_connection import Database
+from visualisation.tfidf_visualisation import TfIdfVisualizer
 
 
 class TfIdf:
@@ -636,7 +637,7 @@ class TfIdf:
             general_stopwords = file.readlines()
             general_stopwords = [line.rstrip() for line in general_stopwords]
 
-        filename = "preprocessing/stopwords/cz_stopwords.txt"
+        filename = "preprocessing/stopwords/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in general_stopwords]
@@ -667,21 +668,24 @@ class TfIdf:
             list_tmp = set(queried_post_stopwords_free) & set(found_post_stopwords_free)  # we don't need to list3 to actually be a list
             list_tmp = sorted(list_tmp, key=lambda k: queried_post_stopwords_free.index(k))
             print(list_tmp)
-            matched_words_results.append(list_tmp[0])
-            print("----------------")
+            if len(list_tmp) > 0:
+                matched_words_results.append(list_tmp[0])
+                print("----------------")
 
-            print("IDF values:")
-            print(found_post)
-            print("----------------")
-            print("Simple example:")
-            word_count = cv.fit_transform(found_posts)
-            print(word_count.shape)
-            print(word_count)
-            print(word_count.toarray())
-            tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
-            tfidf_transformer.fit(word_count)
-            df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
-            print(df_idf.sort_values(by=['idf_weights']).head(40))
+                print("IDF values:")
+                print(found_post)
+                print("----------------")
+                print("Simple example:")
+                word_count = cv.fit_transform(found_posts)
+                print(word_count.shape)
+                print(word_count)
+                print(word_count.toarray())
+                tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
+                tfidf_transformer.fit(word_count)
+                df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
+                print(df_idf.sort_values(by=['idf_weights']).head(40))
+            else:
+                print("No matches found")
 
         print("---------------")
         print("From whole dataset:")
@@ -700,9 +704,9 @@ class TfIdf:
         print("----------------")
         print("Simple example:")
         tfidf_vectorizer = TfidfVectorizer(use_idf=True)
-        tfidf_vectorizer_vectors = tfidf_vectorizer.fit_transform(found_posts)
+        tfidf_vectors = tfidf_vectorizer.fit_transform(found_posts)
         # dataframe number
-        first_vector_tfidfvectorizer = tfidf_vectorizer_vectors[0]
+        first_vector_tfidfvectorizer = tfidf_vectors[0]
         df = pd.DataFrame(first_vector_tfidfvectorizer.T.todense(), index=tfidf_vectorizer.get_feature_names(),
                           columns=["tfidf"])
         print(df.sort_values(by=["tfidf"], ascending=False).head(45))
@@ -710,11 +714,19 @@ class TfIdf:
         print("---------------")
         print("From whole dataset:")
         tfidf_vectorizer = TfidfVectorizer(use_idf=True)
-        tfidf_vectorizer_vectors = tfidf_vectorizer.fit_transform(posts['all_features_preprocessed'])
+        tfidf_vectors = tfidf_vectorizer.fit_transform(posts['all_features_preprocessed'])
         # dataframe number
         # TODO: loop through recommended posts
         for id in ids:
-            first_vector_tfidfvectorizer = tfidf_vectorizer_vectors[id]
+            first_vector_tfidfvectorizer = tfidf_vectors[id]
             df = pd.DataFrame(first_vector_tfidfvectorizer.T.todense(), index=tfidf_vectorizer.get_feature_names(),
                               columns=["tfidf"])
             print(df.sort_values(by=["tfidf"], ascending=False).head(45))
+
+        text_titles = posts['all_features_preprocessed'].to_list()
+
+        tfidf_visualizer = TfIdfVisualizer()
+        tfidf_visualizer.prepare_for_heatmap(tfidf_vectors, text_titles, tfidf_vectorizer)
+        tfidf_visualizer.plot_tfidf_heatmap()
+
+
