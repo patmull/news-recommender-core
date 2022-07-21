@@ -135,19 +135,24 @@ class TfIdf:
         del recommenderMethods
         return post_recommendations
 
-    def get_recommended_posts_for_keywords(self, keywords, data_frame=None, k=10):
+    @DeprecationWarning
+    def get_recommended_posts_for_keywords(self, keywords, data_frame, k=10):
+
+        recommender_methods = RecommenderMethods()
+        recommender_methods.posts_df = recommender_methods.get_posts_dataframe()
+        recommender_methods.categories_df = recommender_methods.get_categories_dataframe()
+        recommender_methods.df = recommender_methods.join_posts_ratings_categories()
 
         keywords_list = []
         keywords_list.append(keywords)
         txt_cleaned = self.get_cleaned_text(self.df,
-                                            self.df['post_title'] + self.df['category_title'] + self.df['keywords'] + self.df[
+                                            self.df['title_x'] + self.df['title_y'] + self.df['keywords'] + self.df[
                                                 'excerpt'])
         tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
         tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
         cosine_similarities = cosine_similarity(tfidf_keywords_input, tfidf).flatten()
         # cosine_similarities = linear_kernel(tfidf_keywords_input, tfidf).flatten()
-        if data_frame is None:
-            data_frame = pd.DataFrame()
+
         data_frame['coefficient'] = cosine_similarities
 
         # related_docs_indices = cosine_similarities.argsort()[:-(number+1):-1]
@@ -175,10 +180,10 @@ class TfIdf:
         # # print(closest.columns.tolist())
         # print("index name:")
         # print(closest.index.name)
-        # print("""closest["slug","coefficient"]""")
-        # print(closest[["slug","coefficient"]])
+        # print("""closest["slug_x","coefficient"]""")
+        # print(closest[["slug_x","coefficient"]])
 
-        return closest[["slug", "coefficient"]]
+        return closest[["slug_x", "coefficient"]]
         # return pd.DataFrame(closest).merge(items).head(k)
 
     def prepare_dataframes(self):

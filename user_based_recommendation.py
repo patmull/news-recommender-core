@@ -4,6 +4,7 @@ from content_based_algorithms.data_queries import RecommenderMethods
 from data_connection import Database
 import pandas as pd
 
+
 class UserBasedRecommendation:
 
     def __init__(self):
@@ -37,7 +38,6 @@ class UserBasedRecommendation:
 
         return df_ratings
 
-
     def load_user_categories(self, user_id):
 
         sql_user_categories = """SELECT c.slug AS "category_slug" FROM user_categories uc JOIN categories c ON c.id = uc.category_id WHERE uc.user_id = (%(user_id)s);"""
@@ -68,6 +68,7 @@ class UserBasedRecommendation:
         df_sorted_results = df_sorted_results.drop_duplicates(subset=['post_id'])
         print("df_sorted_results[['post_slug']]")
         print(df_sorted_results[['post_id','post_slug']])
+        df_sorted_results = df_sorted_results.rename(columns={'post_id':'id', 'post_slug':'slug'})
         return self.convert_to_json(df_sorted_results.head(num_of_recommendations))
 
     def load_user_keywords(self, user_id):
