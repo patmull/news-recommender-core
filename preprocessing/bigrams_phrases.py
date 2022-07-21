@@ -1,3 +1,4 @@
+import os
 import time
 
 import gensim
@@ -36,7 +37,11 @@ class BigramPhrases():
         time.sleep(40)
         print("Training Phrases model...")
         phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
-        path = "full_model/idnes/bigrams.phrases"
+        folder = "full_model/idnes/"
+        filename = "bigrams.phrases"
+        path = folder + filename
+        if not os.path.exists(folder):
+            os.makedirs(folder)
         print("Saving phrases model to " + str(path))
         phrase_model.save(path)
         # less RAM, no updates allowed
