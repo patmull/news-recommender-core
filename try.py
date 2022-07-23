@@ -1,3 +1,4 @@
+from content_based_algorithms.word2vec import Word2VecClass
 from preprocessing.bigrams_phrases import BigramPhrases
 from data_connection import Database
 from prefilling_all import prepare_and_run, run_prefilling
@@ -35,10 +36,9 @@ with warnings.catch_warnings():
     run_prefilling() 
 """
 
-"""
+
 word2vecClass = Word2VecClass()
 word2vecClass.find_optimal_model_idnes()
-"""
 """
 tfidf = TfIdf()
 tfidf.analyze('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
@@ -49,6 +49,9 @@ tfidf.analyze('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
 """
 w2v_model = Word2VecClass()
 w2v_model.eval_wiki()
+
+bigram_phrases = BigramPhrases()
+bigram_phrases.train_phrases_from_mongo_idnes()
 """
 """
 path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
@@ -70,6 +73,3 @@ print(overall_score)
 """
 
 # try_ap()
-
-bigram_phrases = BigramPhrases()
-bigram_phrases.train_phrases_from_mongo_idnes()
