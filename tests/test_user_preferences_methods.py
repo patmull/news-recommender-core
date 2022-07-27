@@ -11,7 +11,7 @@ from content_based_algorithms.tfidf import TfIdf
 from pytranslate import google_translate
 
 # Run with:
-# python -m pytest .\tests\test_user_preferences_methods.py::test_user_keywords
+# python -m pytest .\tests\test_user_preferences_methods.py::test_user_keywords -rP
 from user_based_recommendation import UserBasedRecommendation
 
 
