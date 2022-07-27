@@ -8,8 +8,37 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
+from sklearn.svm import SVC, SVR
 from sklearn.tree import DecisionTreeRegressor
+from hypopt import GridSearch
+
+# TODO: Not finished yet. Not clear how can be useful!
+class GridSearcher():
+    def run(self):
+
+
+        dataset = pd.read_csv('word2vec/evaluation/word2vec_modely_srovnani_filtered.csv', sep=";")
+        print(dataset.head(10).to_string())
+        dataset_x = dataset[['Negative', 'Vector_size', 'Window', 'Min_count', 'Epochs', 'Sample', 'Softmax']]
+        dataset_y = dataset[['Analogies_test']]
+        # converting float to int so it can be labeled as ordinal variable
+        dataset_x = dataset_x[dataset_x['Sample'].notnull()].copy()
+        dataset_x['Sample'] = dataset_x['Sample'].astype(int).astype(str)
+        X = dataset_x
+        Y = dataset_y
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, Y, test_size=0.20, random_state=1)
+
+        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25, random_state=1)
+
+        param_grid = [
+            {'C': [1, 10, 100], 'kernel': ['linear']},
+            {'C': [1, 10, 100], 'gamma': [0.001, 0.0001], 'kernel': ['rbf']},
+        ]
+        # Grid-search all parameter combinations using a validation set.
+        opt = GridSearch(model=SVR(), param_grid=param_grid[0])
+        opt.fit(X_train, y_train, X_val, y_val)
+        print('Test Score for Optimized Parameters:', opt.score(X_test, y_test))
 
 # TODO: Not finished yet. Not clear how can be useful!
 class RandomForestRegression():
@@ -78,13 +107,25 @@ class RandomForestRegression():
 
 class Anova():
 
-    def __init__(self):
-        self.filename = 'word2vec/evaluation/word2vec_modely_srovnani_filtered.csv'
+    def __init__(self, dataset):
+        if dataset == "brute-force":
+            self.filename = 'word2vec/evaluation/word2vec_modely_srovnani_filtered.csv'
+            self.semicolon = True
+        elif dataset == "random-search":
+            self.filename = 'word2vec/evaluation/word2vec_tuning_results_random_search.csv'
+            self.semicolon = False
+        else:
+            raise ValueError("Selected dataset does not match with any option.")
 
     # load the dataset
-    def load_dataset(self, filename, y_feature):
+    def load_dataset(self, filename, y_feature, semicolon=False):
         # load the dataset as a pandas DataFrame
-        dataset = pd.read_csv(filename, sep=";")
+        if semicolon is True:
+            sep = ";"
+        else:
+            sep = ","
+        dataset = pd.read_csv(filename, sep=sep)
+        # removing rows with zeros
         # retrieve numpy array
         X = dataset[['Negative', 'Vector_size', 'Window', 'Min_count', 'Epochs', 'Sample', 'Softmax']]
         y = dataset[[y_feature]]
@@ -104,7 +145,7 @@ class Anova():
 
     def run(self, run_on):
         # load the dataset
-        X, y = self.load_dataset(self.filename, run_on)
+        X, y = self.load_dataset(self.filename, run_on, self.semicolon)
         # split into train and test sets
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=1)
         # feature selection
@@ -118,14 +159,18 @@ class Anova():
         pyplot.bar(X_column_names, fs.scores_)
         pyplot.show()
 
-
+"""
 random_fores_regressor = RandomForestRegression()
 random_fores_regressor.run()
-
 """
-anova = Anova()
+
+anova = Anova(dataset="random-search")
 anova.run('Analogies_test')
 anova.run('Word_pairs_test_Out-of-vocab_ratio')
 anova.run('Word_pairs_test_Spearman_coeff')
 anova.run('Word_pairs_test_Pearson_coeff')
+
+"""
+grid_searcher = GridSearcher()
+grid_searcher.run()
 """
