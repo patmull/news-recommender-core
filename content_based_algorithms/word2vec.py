@@ -435,7 +435,9 @@ class Word2VecClass:
                                                                    limit=87000)  #
         else:
             word2vec_embedding = None
-        word2vec_embedding.save("models/w2v_model_limited")  # write separately=[] for all_in_one model
+        print("word2vec_embedding:")
+        print(word2vec_embedding)
+        word2vec_embedding.save("models/w2v_model_limited_test")  # write separately=[] for all_in_one model
 
     def save_fast_text_to_w2v(self):
         print("Loading and saving FastText pretrained model to Word2Vec model")
