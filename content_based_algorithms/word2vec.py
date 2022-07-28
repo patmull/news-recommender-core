@@ -339,7 +339,11 @@ class Word2VecClass:
 
         # removing post itself
         if len(most_similar_articles_with_scores) > 0:
+            print("most_similar_articles_with_scores:")
+            print(most_similar_articles_with_scores)
             del most_similar_articles_with_scores[0]  # removing post itself
+            print("most_similar_articles_with_scores after del:")
+            print(most_similar_articles_with_scores)
 
             # workaround due to float32 error in while converting to JSON
             return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
@@ -577,7 +581,7 @@ class Word2VecClass:
         print("Building sentences...")
         sentences = [doc.get('text') for doc in reader.iterate()]
         # sentences = [doc.get('text') for doc in reader.iterate()]
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
         # sentences = MyCorpus(dictionary)
         # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
         sentences = []
@@ -742,7 +746,7 @@ class Word2VecClass:
         print("Building sentences...")
         sentences = [doc.get('text') for doc in reader.iterate()]
         # sentences = [doc.get('text') for doc in reader.iterate()]
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
         # sentences = MyCorpus(dictionary)
         # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
         sentences = []
@@ -1018,6 +1022,7 @@ class Word2VecClass:
         print("Analogies evaluation of FastText on iDNES.cz model:")
         print(overall_analogies_score)
 
+    @DeprecationWarning
     def train_word2vec_idnes_model(self, data):
 
         data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
@@ -1085,6 +1090,24 @@ class Word2VecClass:
         print("Analogies evaluation of FastText on Wikipedia.cz model:")
         print(overall_analogies_score)
 
+    def train_and_save_phrases_model_idnes(self):
+        path_to_phrases = 'models/idnes_bigrams.phrases'
+
+        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_bigrams')
+
+        print("Building sentences...")
+        sentences = [doc.get('text') for doc in reader.iterate()]
+
+        first_sentence = next(iter(sentences))
+        print("first_sentence[:10]")
+        print(first_sentence[:10])
+
+        print("Sentences sample:")
+        print(sentences[1500:1600])
+        time.sleep(40)
+        phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
+        phrase_model.save(path_to_phrases)
+
     def build_bigrams_and_trigrams(self, force_update=False):
         cursor_any_record = mongo_collection_bigrams.find_one()
         if cursor_any_record is not None and force_update is False:
@@ -1131,10 +1154,11 @@ class Word2VecClass:
             for row in data:
                 csv_out.writerow(row)
 
+
     def save_corpus_dict(self, corpus, dictionary):
         print("Saving corpus and dictionary...")
-        pickle.dump(corpus, open('precalc_vectors/corpus.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
-        dictionary.save('precalc_vectors/dictionary.gensim')
+        pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
+        dictionary.save('precalc_vectors/dictionary_idnes.gensim')
 
     def remove_stopwords_mongodb(self, force_update=False):
         cursor_any_record = mongo_collection_stopwords_free.find_one()
@@ -1299,12 +1323,25 @@ class Word2VecClass:
         # TODO: Test this
         return False
 
-    def create_dictionary_idnes(self, sentences=None, force_update=False, filter_extremes=False):
+    def create_corpus_and_dict_from_mongo_idnes(self):
+        dict = self.create_dictionary_from_mongo_idnes(force_update=True)
+        self.create_corpus_from_mongo_idnes(dict, force_update=True)
+
+    def create_dictionary_from_mongo_idnes(self, sentences=None, force_update=False, filter_extremes=False):
         # a memory-friendly iterator
-        if os.path.isfile("full_models/idnes/lda/preprocessed/dictionary") is False or force_update is True:
+        path_to_dict = 'precalc_vectors/dictionary_idnes.gensim'
+        if os.path.isfile(path_to_dict) is False or force_update is True:
             if sentences is None:
-                reader = MongoReader(dbName='idnes', collName='preprocessed_articles_bigrams')
-                sentences = [doc.get('text') for doc in reader.iterate()]
+                print("Building sentences...")
+                sentences = []
+                client = MongoClient("localhost", 27017, maxPoolSize=50)
+                db = client.idnes
+                collection = db.preprocessed_articles_bigrams
+                cursor = collection.find({})
+                for document in cursor:
+                    # joined_string = ' '.join(document['text'])
+                    # sentences.append([joined_string])
+                    sentences.append(document['text'])
             print("Creating dictionary...")
             preprocessed_dictionary = corpora.Dictionary(line for line in sentences)
             del sentences
@@ -1312,20 +1349,19 @@ class Word2VecClass:
             if filter_extremes is True:
                 preprocessed_dictionary.filter_extremes()
             print("Saving dictionary...")
-            preprocessed_dictionary.save("full_models/idnes/lda/preprocessed/dictionary")
+            preprocessed_dictionary.save(path_to_dict)
+            print("Dictionary saved to: " + path_to_dict)
             return preprocessed_dictionary
         else:
             print("Dictionary already exists. Loading...")
-            loaded_dict = corpora.Dictionary.load("full_models/idnes/lda/preprocessed/dictionary")
+            loaded_dict = corpora.Dictionary.load("full_models/idnes/preprocessed/dictionary")
             return loaded_dict
 
     def create_corpus_from_mongo_idnes(self, dictionary, sentences=None, force_update=False, preprocessed=False):
-        path_part_1 = "full_models/idnes/"
-        path_part_2 = "/idnes.mm"
-        if preprocessed is True:
-            path_to_corpus = path_part_1 + "preprocessed" + path_part_2
-        else:
-            path_to_corpus = path_part_1 + "unpreprocessed" + path_part_2
+        path_part_1 = "precalc_vectors"
+        path_part_2 = "/corpus_idnes.mm"
+        path_to_corpus = path_part_1 + path_part_2
+
         if os.path.isfile(path_to_corpus) is False or force_update is True:
             corpus = MyCorpus(dictionary)
             del sentences

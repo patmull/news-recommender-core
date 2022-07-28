@@ -241,24 +241,24 @@ class Lda:
         """
         try:
             lda_model = LdaModel.load("models/lda_model")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus.pkl', 'rb'))
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+            corpus = pickle.load(open('precalc_vectors/corpus_idnes.pkl', 'rb'))
         except Exception as e:
             print("Could not load_texts LDA models or precalculated vectors. Reason:")
             print(e)
             self.train_lda(data)
 
             lda_model = LdaModel.load("models/lda_model")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus.pkl', 'rb'))
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+            corpus = pickle.load(open('precalc_vectors/corpus_idnes.pkl', 'rb'))
 
         return dictionary, corpus, lda_model
 
     def save_corpus_dict(self, corpus, dictionary):
 
         print("Saving corpus and dictionary...")
-        pickle.dump(corpus, open('precalc_vectors/corpus.pkl', 'wb'))
-        dictionary.save('precalc_vectors/dictionary.gensim')
+        pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'))
+        dictionary.save('precalc_vectors/dictionary_idnes.gensim')
 
     def load_lda_full_text(self, data, display_dominant_topics, training_now=False, retrain=False, ):
 
