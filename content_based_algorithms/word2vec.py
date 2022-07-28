@@ -300,16 +300,24 @@ class Word2VecClass:
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
         print("found_post_dataframe:")
         print(found_post_dataframe.columns)
+        """
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
                                                   found_post_dataframe.iloc[0]['category_title'] + " " + \
-                                                  found_post_dataframe.iloc[0]['all_features_preprocessed']
+                                                  found_post_dataframe.iloc[0]['all_features_preprocessed'] + found_post_dataframe.iloc[0]['body_preprocessed']
+        """
+        found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + found_post_dataframe.iloc[0]['trigrams_full_text']
+
         del self.posts_df
         del self.categories_df
 
         documents_df = pd.DataFrame()
-
+        """
         documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
-            "all_features_preprocessed"]
+            "all_features_preprocessed"] + " " + self.df["body_preprocessed"]
+        """
+        # documents_df["features_to_use"] = self.df["trigrams_full_text"]
+        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
+            "all_features_preprocessed"] + " " + self.df["body_preprocessed"]
         documents_df["slug"] = self.df["post_slug"]
         found_post = found_post_dataframe['features_to_use'].iloc[0]
 
@@ -401,14 +409,15 @@ class Word2VecClass:
             print("Loading word2vec model...")
 
             try:
-                word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+                word2vec_embedding = KeyedVectors.load("models/w2v_idnes.model")
             except FileNotFoundError:
                 print("Downloading from Dropbox...")
                 dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
                 recommenderMethods = RecommenderMethods()
+                # TODO: Rename file
                 recommenderMethods.dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
                                                          "/w2v_model.vectors.npy")
-                word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+                word2vec_embedding = KeyedVectors.load("models/w2v_idnes.model")
 
             ds = DocSim(word2vec_embedding)
 
