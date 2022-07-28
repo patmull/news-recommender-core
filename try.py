@@ -41,9 +41,18 @@ word2vec = Word2VecClass()
 word2vec.final_training_idnes_model()
 """
 
+"""
+word2vec = Word2VecClass()
+word2vec.get_similar_word2vec("chripkova-sezona-muze-letos-nemile-prekvapit-jak-se-na-ni-pripravit")
+"""
+
+word2vec = Word2VecClass()
+word2vec.create_corpus_and_dict_from_mongo_idnes()
+
+"""
 word2vecClass = Word2VecClass()
 word2vecClass.find_optimal_model_idnes(random_search=True)
-
+"""
 
 """
 tfidf = TfIdf()
