@@ -122,7 +122,7 @@ class GenSimMethods:
         # self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
 
         # converting pandas columns to list of lists and through map to list of string joined by space ' '
-        self.documents = list(map(' '.join, self.df[["keywords", "category_title", "post_title", "excerpt"]].values.tolist()))
+        self.documents = list(map(' '.join, self.df[["trigrams_full_text"]].values.tolist()))
 
         filename = "preprocessing/stopwords/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
