@@ -1,0 +1,2 @@
+Validation_Set,Model_Variant,Negative,Vector_size,Window,Min_count,Epochs,Sample,Softmax,Word_pairs_test_Pearson_coeff,Word_pairs_test_Pearson_p-val,Word_pairs_test_Spearman_coeff,Word_pairs_test_Spearman_p-val,Word_pairs_test_Out-of-vocab_ratio,Analogies_test
+iDnes.cz 100% Corpus,1,15,100,16,3,25,1e-05,0,0.015438475493820629,0.7882911599001715,0.08569469709928772,0.13538579312527788,13.59773371104816,0.011094108645753635
