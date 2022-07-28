@@ -36,13 +36,14 @@ with warnings.catch_warnings():
     run_prefilling() 
 """
 
-word2vec = Word2VecClass()
-word2vec.save_full_model_to_smaller()
-
 """
+word2vec = Word2VecClass()
+word2vec.final_training_idnes_model()
+"""
+
 word2vecClass = Word2VecClass()
 word2vecClass.find_optimal_model_idnes(random_search=True)
-"""
+
 
 """
 tfidf = TfIdf()
