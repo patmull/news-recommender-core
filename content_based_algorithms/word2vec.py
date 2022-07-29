@@ -717,7 +717,8 @@ class Word2VecClass:
                                                                                      window=window,
                                                                                      min_count=min_count,
                                                                                      epochs=epochs,
-                                                                                     sample=sample)
+                                                                                     sample=sample,
+                                                                                     force_update_model=True)
 
                 print(word_pairs_eval[0][0])
                 model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
@@ -880,16 +881,17 @@ class Word2VecClass:
         print(sentences[0:100])
 
         model_variant = 1  # sg parameter: 0 = CBOW; 1 = Skip-Gram
-        hs_softmax = 0  # 1 = Hierarchical SoftMax
         negative_sampling_variant = 15  # 0 = no negative sampling
         no_negative_sampling = 0  # use with hs_soft_max
         # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        vector_size = 100
+        vector_size = 250
         # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        window = 16
-        min_count = 3
+        window = 20
+        min_count = 5
         epochs = 25
-        sample = 1.0 * (10.0 ** -5.0)
+        sample = 0.0
+        hs_softmax = 0  # 1 = Hierarchical SoftMax
+
         # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
 
         corpus_title = ['100% Corpus']
@@ -929,7 +931,8 @@ class Word2VecClass:
                                                                              window=window,
                                                                              min_count=min_count,
                                                                              epochs=epochs,
-                                                                             sample=sample)
+                                                                             sample=sample,
+                                                                             force_update_model=True)
 
         print(word_pairs_eval[0][0])
         model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
@@ -950,29 +953,26 @@ class Word2VecClass:
 
         pbar.update(1)
         pd.DataFrame(model_results).to_csv('word2vec_final_evaluation_results.csv', index=False,
-                                           mode="w")
+                                           mode="a")
         print("Saved training results...")
         pbar.close()
 
     def compute_eval_values_idnes(self, sentences=None, model_variant=None, negative_sampling_variant=None,
                                   vector_size=None, window=None, min_count=None,
-                                  epochs=None, sample=None, force_update_model=True, model_path="models/w2v_idnes.model"):
+                                  epochs=None, sample=None, force_update_model=True, model_path="models/w2v_idnes.model", use_defaul_model=False):
         if os.path.isfile("models/w2v_idnes.model") is False or force_update_model is True:
             print("Started training on iDNES.cz dataset...")
 
-            # DEFAULT:
-            # model = Word2Vec(sentences=texts, vector_size=158, window=5, min_count=5, workers=7, epochs=15)
-            w2v_model = Word2Vec(sentences=sentences)
+            if use_defaul_model:
+                # DEFAULT:
+                w2v_model = Word2Vec(sentences=sentences)
+                w2v_model.save("models/w2v_idnes.model")
+            else:
+                # CUSTOM:
+                w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
+                                    vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
+                                    sample=sample, workers=7)
 
-
-            """
-            CUSTOM: 
-            w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
-                                 vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
-                                   sample=sample, workers=7)
-            """
-
-            w2v_model.save("models/w2v_idnes.model")
         else:
             print("Loading Word2Vec iDNES.cz model from saved model file")
             w2v_model = Word2Vec.load(model_path)
@@ -1165,7 +1165,7 @@ class Word2VecClass:
 
 
     def save_corpus_dict(self, corpus, dictionary):
-        print("Saving corpus and dictionary...")
+        print("Saving train_corpus and dictionary...")
         pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
         dictionary.save('precalc_vectors/dictionary_idnes.gensim')
 
@@ -1325,7 +1325,7 @@ class Word2VecClass:
             print("Dictionary and  Corpus successfully saved on disk")
 
         else:
-            print("Dictionary and corpus already exists")
+            print("Dictionary and train_corpus already exists")
 
 
     def test_with_and_without_extremes(self):
@@ -1377,7 +1377,7 @@ class Word2VecClass:
             corpus = MyCorpus(dictionary)
             del sentences
             gc.collect()
-            print("Saving preprocessed corpus...")
+            print("Saving preprocessed train_corpus...")
             corpora.MmCorpus.serialize(path_to_corpus, corpus)
         else:
             print("Corpus already exists. Loading...")
