@@ -165,7 +165,7 @@ class RecommenderMethods:
                 self.df = self.df[
                     ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                      'all_features_preprocessed', 'body_preprocessed',
-                     'recommended_tfidf_full_text']]
+                     'recommended_tfidf_full_text', 'trigrams_full_text']]
             except KeyError:
                 self.df = self.database.insert_posts_dataframe_to_cache()
                 self.posts_df.drop_duplicates(subset=['title'], inplace=True)
@@ -173,18 +173,18 @@ class RecommenderMethods:
                 self.df = self.df[
                     ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                      'all_features_preprocessed', 'body_preprocessed',
-                     'recommended_tfidf_full_text']]
+                     'recommended_tfidf_full_text', 'trigrams_full_text']]
         print("4.3")
         print(self.df.columns)
 
         if full_text is True:
             self.df = self.df[
                 ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text']]
+                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text', 'trigrams_full_text']]
         else:
             self.df = self.df[
                 ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation']]
+                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'trigrams_full_text']]
         return self.df
 
     def join_posts_ratings_categories_full_text(self):
