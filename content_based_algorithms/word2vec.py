@@ -884,12 +884,12 @@ class Word2VecClass:
         negative_sampling_variant = 15  # 0 = no negative sampling
         no_negative_sampling = 0  # use with hs_soft_max
         # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        vector_size = 250
+        vector_size = 200
         # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        window = 20
-        min_count = 5
-        epochs = 25
-        sample = 0.0
+        window = 16
+        min_count = 12
+        epochs = 30
+        sample = 0.01
         hs_softmax = 0  # 1 = Hierarchical SoftMax
 
         # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
