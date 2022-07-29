@@ -1332,9 +1332,11 @@ class Word2VecClass:
         # TODO: Test this
         return False
 
-    def create_corpus_and_dict_from_mongo_idnes(self):
+    def create_or_update_corpus_and_dict_from_mongo_idnes(self):
         dict = self.create_dictionary_from_mongo_idnes(force_update=True)
         self.create_corpus_from_mongo_idnes(dict, force_update=True)
+        # TODO: Update DOCSIM INDEX!!!!!!!!!
+
 
     def create_dictionary_from_mongo_idnes(self, sentences=None, force_update=False, filter_extremes=False):
         # a memory-friendly iterator
