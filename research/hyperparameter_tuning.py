@@ -9,36 +9,6 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC, SVR
-from sklearn.tree import DecisionTreeRegressor
-from hypopt import GridSearch
-
-# TODO: Not finished yet. Not clear how can be useful!
-class GridSearcher():
-    def run(self):
-
-
-        dataset = pd.read_csv('word2vec/evaluation/word2vec_modely_srovnani_filtered.csv', sep=";")
-        print(dataset.head(10).to_string())
-        dataset_x = dataset[['Negative', 'Vector_size', 'Window', 'Min_count', 'Epochs', 'Sample', 'Softmax']]
-        dataset_y = dataset[['Analogies_test']]
-        # converting float to int so it can be labeled as ordinal variable
-        dataset_x = dataset_x[dataset_x['Sample'].notnull()].copy()
-        dataset_x['Sample'] = dataset_x['Sample'].astype(int).astype(str)
-        X = dataset_x
-        Y = dataset_y
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, Y, test_size=0.20, random_state=1)
-
-        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25, random_state=1)
-
-        param_grid = [
-            {'C': [1, 10, 100], 'kernel': ['linear']},
-            {'C': [1, 10, 100], 'gamma': [0.001, 0.0001], 'kernel': ['rbf']},
-        ]
-        # Grid-search all parameter combinations using a validation set.
-        opt = GridSearch(model=SVR(), param_grid=param_grid[0])
-        opt.fit(X_train, y_train, X_val, y_val)
-        print('Test Score for Optimized Parameters:', opt.score(X_test, y_test))
 
 # TODO: Not finished yet. Not clear how can be useful!
 class RandomForestRegression():
