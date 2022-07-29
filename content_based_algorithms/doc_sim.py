@@ -1,3 +1,4 @@
+import os.path
 import pickle
 import re
 
@@ -113,8 +114,8 @@ class DocSim:
         """Calculates & returns similarity scores between given source document & all
         the target documents."""
         termsim_index = WordEmbeddingSimilarityIndex(self.w2v_model)
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
-        bow_corpus = pickle.load(open("precalc_vectors/corpus.pkl","rb"))
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+        bow_corpus = pickle.load(open("precalc_vectors/corpus_idnes.pkl","rb"))
         similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary)  # construct similarity matrix
 
         docsim_index = SoftCosineSimilarity(bow_corpus, similarity_matrix, num_best=21)
@@ -146,21 +147,30 @@ class DocSim:
         the target documents."""
         gensim_methods = GenSimMethods()
         common_texts = gensim_methods.load_texts()
-        # bow_corpus = pickle.load(open("precalc_vectors/corpus.pkl","rb"))
+        # bow_corpus = pickle.load(open("precalc_vectors/corpus_idnes.pkl","rb"))
 
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
-        tfidf = TfidfModel(dictionary=dictionary)
-        words = [word for word, count in dictionary.most_common()]
-        word_vectors = self.w2v_model.wv.vectors_for_all(words, allow_inference=False)  # produce vectors for words in corpus
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+        path_to_docsim_index = "full_models/idnes/docsim_index_idnes"
 
+        if os.path.exists(path_to_docsim_index):
+            docsim_index = SoftCosineSimilarity.load(path_to_docsim_index)
+        else:
+            print("Docsim index not found. Will create a new from avilable articles.")
+            # TODO: This can be preloaded
+            tfidf = TfidfModel(dictionary=dictionary)
+            words = [word for word, count in dictionary.most_common()]
+            word_vectors = self.w2v_model.wv.vectors_for_all(words, allow_inference=False)  # produce vectors for words in corpus
 
-        indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
-        termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})
-        similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary, tfidf)  # compute word similarities
+            indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
+            termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer}) # for similarity index
+            similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary, tfidf)  # compute word similarities # for docsim_index creation
 
-        tfidf_corpus = tfidf[[dictionary.doc2bow(document) for document in common_texts]]
-        docsim_index = SoftCosineSimilarity(tfidf_corpus, similarity_matrix,
-                                            num_best=10)  # index tfidf_corpus        print("source_doc:")
+            tfidf_corpus = tfidf[[dictionary.doc2bow(document) for document in common_texts]] # for docsim_index creation
+            docsim_index = SoftCosineSimilarity(tfidf_corpus, similarity_matrix,
+                                                num_best=10)  # index tfidf_corpus        print("source_doc:")
+            docsim_index.save(path_to_docsim_index)
+            # TO HERE
+
 
         print(source_doc)
         source_doc = source_doc.replace(",","")
