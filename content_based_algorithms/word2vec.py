@@ -300,16 +300,24 @@ class Word2VecClass:
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
         print("found_post_dataframe:")
         print(found_post_dataframe.columns)
+        """
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
                                                   found_post_dataframe.iloc[0]['category_title'] + " " + \
-                                                  found_post_dataframe.iloc[0]['all_features_preprocessed']
+                                                  found_post_dataframe.iloc[0]['all_features_preprocessed'] + found_post_dataframe.iloc[0]['body_preprocessed']
+        """
+        found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + found_post_dataframe.iloc[0]['trigrams_full_text']
+
         del self.posts_df
         del self.categories_df
 
         documents_df = pd.DataFrame()
-
+        """
         documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
-            "all_features_preprocessed"]
+            "all_features_preprocessed"] + " " + self.df["body_preprocessed"]
+        """
+        # documents_df["features_to_use"] = self.df["trigrams_full_text"]
+        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
+            "all_features_preprocessed"] + " " + self.df["body_preprocessed"]
         documents_df["slug"] = self.df["post_slug"]
         found_post = found_post_dataframe['features_to_use'].iloc[0]
 
@@ -339,7 +347,11 @@ class Word2VecClass:
 
         # removing post itself
         if len(most_similar_articles_with_scores) > 0:
+            print("most_similar_articles_with_scores:")
+            print(most_similar_articles_with_scores)
             del most_similar_articles_with_scores[0]  # removing post itself
+            print("most_similar_articles_with_scores after del:")
+            print(most_similar_articles_with_scores)
 
             # workaround due to float32 error in while converting to JSON
             return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
@@ -397,14 +409,15 @@ class Word2VecClass:
             print("Loading word2vec model...")
 
             try:
-                word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+                word2vec_embedding = KeyedVectors.load("models/w2v_idnes.model")
             except FileNotFoundError:
                 print("Downloading from Dropbox...")
                 dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
                 recommenderMethods = RecommenderMethods()
+                # TODO: Rename file
                 recommenderMethods.dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
                                                          "/w2v_model.vectors.npy")
-                word2vec_embedding = KeyedVectors.load("models/w2v_model_limited")
+                word2vec_embedding = KeyedVectors.load("models/w2v_idnes.model")
 
             ds = DocSim(word2vec_embedding)
 
@@ -436,7 +449,9 @@ class Word2VecClass:
                                                                    limit=87000)  #
         else:
             word2vec_embedding = None
-        word2vec_embedding.save("models/w2v_model_limited")  # write separately=[] for all_in_one model
+        print("word2vec_embedding:")
+        print(word2vec_embedding)
+        word2vec_embedding.save("models/w2v_model_limited_test")  # write separately=[] for all_in_one model
 
     def save_fast_text_to_w2v(self):
         print("Loading and saving FastText pretrained model to Word2Vec model")
@@ -575,7 +590,7 @@ class Word2VecClass:
         print("Building sentences...")
         sentences = [doc.get('text') for doc in reader.iterate()]
         # sentences = [doc.get('text') for doc in reader.iterate()]
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
         # sentences = MyCorpus(dictionary)
         # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
         sentences = []
@@ -590,7 +605,7 @@ class Word2VecClass:
             sentences.append(document['text'])
         print("Sentences build into type of:")
         print(type(sentences))
-        print(sentences[0:100])
+        print(sentences[0:10])
 
         model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
         hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
@@ -740,7 +755,7 @@ class Word2VecClass:
         print("Building sentences...")
         sentences = [doc.get('text') for doc in reader.iterate()]
         # sentences = [doc.get('text') for doc in reader.iterate()]
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary.gensim')
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
         # sentences = MyCorpus(dictionary)
         # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
         sentences = []
@@ -842,7 +857,7 @@ class Word2VecClass:
 
     def final_training_idnes_model(self):
         """
-        number_of_trials: default value according to random search study: https://dl.acm.org/doi/10.5555/2188385.2188395
+        Method for running final evaluation based on selected parameters (i.e. through random search).
         """
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
@@ -869,7 +884,7 @@ class Word2VecClass:
         negative_sampling_variant = 15  # 0 = no negative sampling
         no_negative_sampling = 0  # use with hs_soft_max
         # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        vector_size = 158
+        vector_size = 100
         # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
         window = 16
         min_count = 3
@@ -939,22 +954,28 @@ class Word2VecClass:
         print("Saved training results...")
         pbar.close()
 
-    def compute_eval_values_idnes(self, sentences, model_variant, negative_sampling_variant, vector_size, window, min_count,
-                                  epochs, sample, force_update_model=True):
+    def compute_eval_values_idnes(self, sentences=None, model_variant=None, negative_sampling_variant=None,
+                                  vector_size=None, window=None, min_count=None,
+                                  epochs=None, sample=None, force_update_model=True, model_path="models/w2v_idnes.model"):
         if os.path.isfile("models/w2v_idnes.model") is False or force_update_model is True:
             print("Started training on iDNES.cz dataset...")
 
             # DEFAULT:
             # model = Word2Vec(sentences=texts, vector_size=158, window=5, min_count=5, workers=7, epochs=15)
+            w2v_model = Word2Vec(sentences=sentences)
 
+
+            """
+            CUSTOM: 
             w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
                                  vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
-                                 sample=sample, workers=7)
+                                   sample=sample, workers=7)
+            """
 
             w2v_model.save("models/w2v_idnes.model")
         else:
             print("Loading Word2Vec iDNES.cz model from saved model file")
-            w2v_model = Word2Vec.load("models/w2v_idnes.model")
+            w2v_model = Word2Vec.load(model_path)
 
         path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
         if os.path.exists(path_to_cropped_wordsim_file):
@@ -975,6 +996,9 @@ class Word2VecClass:
         print(overall_score)
 
         return word_pairs_eval, overall_score
+
+    def eval_model(self, path):
+        print(self.compute_eval_values_idnes(sentences=None, force_update_model=False, model_path="models/w2v_idnes.model"))
 
     def eval_idnes_basic(self):
         topn = 30
@@ -1007,6 +1031,7 @@ class Word2VecClass:
         print("Analogies evaluation of FastText on iDNES.cz model:")
         print(overall_analogies_score)
 
+    @DeprecationWarning
     def train_word2vec_idnes_model(self, data):
 
         data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
@@ -1074,6 +1099,24 @@ class Word2VecClass:
         print("Analogies evaluation of FastText on Wikipedia.cz model:")
         print(overall_analogies_score)
 
+    def train_and_save_phrases_model_idnes(self):
+        path_to_phrases = 'models/idnes_bigrams.phrases'
+
+        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_bigrams')
+
+        print("Building sentences...")
+        sentences = [doc.get('text') for doc in reader.iterate()]
+
+        first_sentence = next(iter(sentences))
+        print("first_sentence[:10]")
+        print(first_sentence[:10])
+
+        print("Sentences sample:")
+        print(sentences[1500:1600])
+        time.sleep(40)
+        phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
+        phrase_model.save(path_to_phrases)
+
     def build_bigrams_and_trigrams(self, force_update=False):
         cursor_any_record = mongo_collection_bigrams.find_one()
         if cursor_any_record is not None and force_update is False:
@@ -1120,10 +1163,11 @@ class Word2VecClass:
             for row in data:
                 csv_out.writerow(row)
 
+
     def save_corpus_dict(self, corpus, dictionary):
         print("Saving corpus and dictionary...")
-        pickle.dump(corpus, open('precalc_vectors/corpus.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
-        dictionary.save('precalc_vectors/dictionary.gensim')
+        pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
+        dictionary.save('precalc_vectors/dictionary_idnes.gensim')
 
     def remove_stopwords_mongodb(self, force_update=False):
         cursor_any_record = mongo_collection_stopwords_free.find_one()
@@ -1288,12 +1332,27 @@ class Word2VecClass:
         # TODO: Test this
         return False
 
-    def create_dictionary_idnes(self, sentences=None, force_update=False, filter_extremes=False):
+    def create_or_update_corpus_and_dict_from_mongo_idnes(self):
+        dict = self.create_dictionary_from_mongo_idnes(force_update=True)
+        self.create_corpus_from_mongo_idnes(dict, force_update=True)
+        # TODO: Update DOCSIM INDEX!!!!!!!!!
+
+
+    def create_dictionary_from_mongo_idnes(self, sentences=None, force_update=False, filter_extremes=False):
         # a memory-friendly iterator
-        if os.path.isfile("full_models/idnes/lda/preprocessed/dictionary") is False or force_update is True:
+        path_to_dict = 'precalc_vectors/dictionary_idnes.gensim'
+        if os.path.isfile(path_to_dict) is False or force_update is True:
             if sentences is None:
-                reader = MongoReader(dbName='idnes', collName='preprocessed_articles_bigrams')
-                sentences = [doc.get('text') for doc in reader.iterate()]
+                print("Building sentences...")
+                sentences = []
+                client = MongoClient("localhost", 27017, maxPoolSize=50)
+                db = client.idnes
+                collection = db.preprocessed_articles_bigrams
+                cursor = collection.find({})
+                for document in cursor:
+                    # joined_string = ' '.join(document['text'])
+                    # sentences.append([joined_string])
+                    sentences.append(document['text'])
             print("Creating dictionary...")
             preprocessed_dictionary = corpora.Dictionary(line for line in sentences)
             del sentences
@@ -1301,20 +1360,19 @@ class Word2VecClass:
             if filter_extremes is True:
                 preprocessed_dictionary.filter_extremes()
             print("Saving dictionary...")
-            preprocessed_dictionary.save("full_models/idnes/lda/preprocessed/dictionary")
+            preprocessed_dictionary.save(path_to_dict)
+            print("Dictionary saved to: " + path_to_dict)
             return preprocessed_dictionary
         else:
             print("Dictionary already exists. Loading...")
-            loaded_dict = corpora.Dictionary.load("full_models/idnes/lda/preprocessed/dictionary")
+            loaded_dict = corpora.Dictionary.load("full_models/idnes/preprocessed/dictionary")
             return loaded_dict
 
     def create_corpus_from_mongo_idnes(self, dictionary, sentences=None, force_update=False, preprocessed=False):
-        path_part_1 = "full_models/idnes/"
-        path_part_2 = "/idnes.mm"
-        if preprocessed is True:
-            path_to_corpus = path_part_1 + "preprocessed" + path_part_2
-        else:
-            path_to_corpus = path_part_1 + "unpreprocessed" + path_part_2
+        path_part_1 = "precalc_vectors"
+        path_part_2 = "/corpus_idnes.mm"
+        path_to_corpus = path_part_1 + path_part_2
+
         if os.path.isfile(path_to_corpus) is False or force_update is True:
             corpus = MyCorpus(dictionary)
             del sentences
