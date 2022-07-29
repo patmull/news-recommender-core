@@ -183,11 +183,11 @@ class GenSimMethods:
             print(doc_score, self.documents[doc_position])
 
     def get_similarities(self, lsi, corpus, vec_lsi, N=10):
-        index = similarities.MatrixSimilarity(lsi[corpus])  # transform corpus to LSI space and index it
+        index = similarities.MatrixSimilarity(lsi[corpus])  # transform train_corpus to LSI space and index it
         Path("/tmp").mkdir(parents=True, exist_ok=True)
         index.save('/tmp/deerwester.index')
         index = similarities.MatrixSimilarity.load('/tmp/deerwester.index')
-        sims = index[vec_lsi]  # perform a similarity query against the corpus
+        sims = index[vec_lsi]  # perform a similarity query against the train_corpus
         print(list(enumerate(sims)))  # print (document_number, document_similarity) 2-tuples
         sims = sorted(enumerate(sims), key=lambda item: -item[1])
         return sims[:N]

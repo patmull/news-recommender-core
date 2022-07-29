@@ -1,13 +1,25 @@
 import csv
 import gc
+import logging
+import os
+import pickle
+import random
 
 import gensim
 import pandas as pd
+import smart_open
+import tqdm
+from gensim import corpora
+from gensim.models import Word2Vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+from pymongo import MongoClient
+from sklearn.model_selection import train_test_split
+
 from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.tfidf import TfIdf
 from preprocessing.cz_preprocessing import CzPreprocess
 from data_connection import Database
+from reader import MongoReader
 
 
 class Doc2VecClass:
@@ -435,4 +447,227 @@ class Doc2VecClass:
 
         return (res[:20])
 
+    def create_tagged_document(self, list_of_list_of_words):
+        for i, list_of_words in enumerate(list_of_list_of_words):
+            yield gensim.models.doc2vec.TaggedDocument(list_of_words, [i])
+
+
+    def find_best_doc2vec_model_idnes(self, number_of_trials=512, path_to_corpus="precalc_vectors/corpus_idnes.mm"):
+
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+        # Enabling Word2Vec logging
+        logging.basicConfig(format="%(asctime)s:%(levelname)s:%(message)s",
+                            level=logging.NOTSET)
+        logger = logging.getLogger()  # get the root logger
+        logger.info("Testing file write")
+
+        print("Building sentences...")
+        # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
+        sentences = []
+        client = MongoClient("localhost", 27017, maxPoolSize=50)
+        db = client.idnes
+        collection = db.preprocessed_articles_bigrams
+        cursor = collection.find({})
+        for document in cursor:
+            # joined_string = ' '.join(document['text'])
+            # sentences.append([joined_string])
+            sentences.append(document['text'])
+        # TODO:
+        train_corpus, test_corpus = train_test_split(sentences, test_size=0.2, shuffle=True)
+        train_corpus = list(self.create_tagged_document(sentences))
+
+        print("print(train_corpus[:2])")
+        print(print(train_corpus[:2]))
+        print("print(test_corpus[:2])")
+        print(print(test_corpus[:2]))
+
+        #train_corpus = corpus
+        #test_corpus = corpus
+
+        # corpus = list(self.read_corpus(path_to_corpus))
+
+        model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
+        hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
+        negative_sampling_variants = range(5, 20, 5)  # 0 = no negative sampling
+        no_negative_sampling = 0  # use with hs_soft_max
+        # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
+        vector_size_range = [50, 100, 158, 200, 250, 300, 450]
+        # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
+        window_range = [1, 2, 4, 5, 8, 12, 16, 20]
+        min_count_range = [0, 1, 2, 3, 5, 8, 12]
+        epochs_range = [20, 25, 30]
+        sample_range = [0.0, 1.0 * (10.0 ** -1.0), 1.0 * (10.0 ** -2.0), 1.0 * (10.0 ** -3.0), 1.0 * (10.0 ** -4.0),
+                        1.0 * (10.0 ** -5.0)]
+        corpus_title = ['100% Corpus']
+        model_results = {'Validation_Set': [],
+                         'Model_Variant': [],
+                         'Negative': [],
+                         'Vector_size': [],
+                         'Window': [],
+                         'Min_count': [],
+                         'Epochs': [],
+                         'Sample': [],
+                         'Softmax': [],
+                         'Word_pairs_test_Pearson_coeff': [],
+                         'Word_pairs_test_Pearson_p-val': [],
+                         'Word_pairs_test_Spearman_coeff': [],
+                         'Word_pairs_test_Spearman_p-val': [],
+                         'Word_pairs_test_Out-of-vocab_ratio': [],
+                         'Analogies_test': []
+                         }
+        pbar = tqdm.tqdm(total=540)
+
+
+        for i in range(0, number_of_trials):
+
+            hs_softmax = random.choice(hs_softmax_variants)
+            model_variant = random.choice(model_variants)
+            vector_size = random.choice(vector_size_range)
+            window = random.choice(window_range)
+            min_count = random.choice(min_count_range)
+            epochs = random.choice(epochs_range)
+            sample = random.choice(sample_range)
+            negative_sampling_variant = random.choice(negative_sampling_variants)
+
+            if hs_softmax == 1:
+                word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(train_corpus=train_corpus,
+                                                                                 test_corpus=test_corpus,
+                                                                                 model_variant=model_variant,
+                                                                                 negative_sampling_variant=no_negative_sampling,
+                                                                                 vector_size=vector_size,
+                                                                                 window=window,
+                                                                                 min_count=min_count,
+                                                                                 epochs=epochs,
+                                                                                 sample=sample,
+                                                                                 force_update_model=True)
+            else:
+                word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(train_corpus=train_corpus,
+                                                                                 test_corpus=test_corpus,
+                                                                                 model_variant=model_variant,
+                                                                                 negative_sampling_variant=negative_sampling_variant,
+                                                                                 vector_size=vector_size,
+                                                                                 window=window,
+                                                                                 min_count=min_count,
+                                                                                 epochs=epochs,
+                                                                                 sample=sample)
+
+                print(word_pairs_eval[0][0])
+                model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
+                model_results['Model_Variant'].append(model_variant)
+                model_results['Negative'].append(negative_sampling_variant)
+                model_results['Vector_size'].append(vector_size)
+                model_results['Window'].append(window)
+                model_results['Min_count'].append(min_count)
+                model_results['Epochs'].append(epochs)
+                model_results['Sample'].append(sample)
+                model_results['Softmax'].append(hs_softmax)
+                model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
+                model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
+                model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
+                model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
+                model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
+                model_results['Analogies_test'].append(analogies_eval)
+
+                pbar.update(1)
+                pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search.csv', index=False,
+                                                   mode="w")
+                print("Saved training results...")
+
+    def create_or_update_corpus_and_dict_from_mongo_idnes(self):
+        dict = self.create_dictionary_from_mongo_idnes(force_update=True)
+        self.create_corpus_from_mongo_idnes(dict, force_update=True)
+
+    def compute_eval_values_idnes(self, train_corpus=None, test_corpus=None, model_variant=None, negative_sampling_variant=None,
+                                  vector_size=None, window=None, min_count=None,
+                                  epochs=None, sample=None, force_update_model=True, model_path="models/d2v_idnes.model",
+                                  default_parameters=False):
+
+        if os.path.isfile(model_path) is False or force_update_model is True:
+            print("Started training on iDNES.cz dataset...")
+
+            if default_parameters is True:
+                # DEFAULT:
+                d2v_model = Doc2Vec()
+            else:
+                # CUSTOM:
+                d2v_model = Doc2Vec(dm=model_variant, negative=negative_sampling_variant,
+                                    vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
+                                    sample=sample, workers=7)
+
+            print("Sample of train corpus:")
+            print(train_corpus[:2])
+            d2v_model.build_vocab(train_corpus)
+            d2v_model.train(train_corpus, total_examples=d2v_model.corpus_count, epochs=d2v_model.epochs)
+            d2v_model.save(model_path)
+        else:
+            print("Loading Doc2Vec iDNES.cz model from saved model file")
+            d2v_model = Doc2Vec.load(model_path)
+
+        path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
+        if os.path.exists(path_to_cropped_wordsim_file):
+            word_pairs_eval = d2v_model.wv.evaluate_word_pairs(
+                path_to_cropped_wordsim_file)
+        else:
+            df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
+                             usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
+            cz_preprocess = CzPreprocess()
+            df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+            df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+
+            df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
+            word_pairs_eval = d2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
+
+        overall_score, _ = d2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
+        print("Analogies evaluation of iDnes.cz model:")
+        print(overall_score)
+
+        doc_id = random.randint(0, len(test_corpus) - 1)
+        print("print(test_corpus[:2])")
+        print(print(train_corpus[:2]))
+        print("print(test_corpus[:2])")
+        print(print(test_corpus[:2]))
+        inferred_vector = d2v_model.infer_vector(test_corpus[doc_id])
+        sims = d2v_model.dv.most_similar([inferred_vector], topn=len(d2v_model.dv))
+        # Compare and print the most/median/least similar documents from the train train_corpus
+        print('Test Document ({}): «{}»\n'.format(doc_id, ' '.join(test_corpus[doc_id])))
+        print(u'SIMILAR/DISSIMILAR DOCS PER MODEL %s:\n' % d2v_model)
+        for label, index in [('MOST', 0), ('MEDIAN', len(sims) // 2), ('LEAST', len(sims) - 1)]:
+            print(u'%s %s: «%s»\n' % (label, sims[index], ' '.join(train_corpus[sims[index][0]].words)))
+
+        return word_pairs_eval, overall_score
+
+    def create_dictionary_from_mongo_idnes(self, sentences=None, force_update=False, filter_extremes=False):
+        # a memory-friendly iterator
+        path_to_train_dict = 'precalc_vectors/dictionary_train_idnes.gensim'
+        if os.path.isfile(path_to_train_dict) is False or force_update is True:
+            if sentences is None:
+                print("Building sentences...")
+                sentences = []
+                client = MongoClient("localhost", 27017, maxPoolSize=50)
+                db = client.idnes
+                collection = db.preprocessed_articles_bigrams
+                cursor = collection.find({})
+                for document in cursor:
+                    # joined_string = ' '.join(document['text'])
+                    # sentences.append([joined_string])
+                    sentences.append(document['text'])
+            sentences_train, sentences_test = train_test_split(train_size=0.2, shuffle=True)
+            print("Creating dictionary...")
+            preprocessed_dictionary_train = gensim.corpora.Dictionary(line for line in sentences_train)
+            del sentences
+            gc.collect()
+            if filter_extremes is True:
+                preprocessed_dictionary_train.filter_extremes()
+            print("Saving dictionary...")
+            preprocessed_dictionary_train.save(path_to_train_dict)
+            print("Dictionary saved to: " + path_to_train_dict)
+            return preprocessed_dictionary_train
+        else:
+            print("Dictionary already exists. Loading...")
+            loaded_dict = corpora.Dictionary.load(path_to_train_dict)
+            return loaded_dict
+
+    def create_corpus_from_mongo_idnes(self, dict, force_update):
+        pass
 

@@ -159,7 +159,7 @@ class DocSim:
             # TODO: This can be preloaded
             tfidf = TfidfModel(dictionary=dictionary)
             words = [word for word, count in dictionary.most_common()]
-            word_vectors = self.w2v_model.wv.vectors_for_all(words, allow_inference=False)  # produce vectors for words in corpus
+            word_vectors = self.w2v_model.wv.vectors_for_all(words, allow_inference=False)  # produce vectors for words in train_corpus
 
             indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
             termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer}) # for similarity index
