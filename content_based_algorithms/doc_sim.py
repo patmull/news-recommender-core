@@ -150,7 +150,7 @@ class DocSim:
         # bow_corpus = pickle.load(open("precalc_vectors/corpus_idnes.pkl","rb"))
 
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-        path_to_docsim_index = "precalc_vectors/docsim_index_idnes"
+        path_to_docsim_index = "full_models/idnes/docsim_index_idnes"
 
         if os.path.exists(path_to_docsim_index):
             docsim_index = SoftCosineSimilarity.load(path_to_docsim_index)
