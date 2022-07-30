@@ -15,7 +15,7 @@ class RandomForestRegression():
 
     def run(self):
 
-        dataset = pd.read_csv('word2vec/evaluation/word2vec_modely_srovnani_filtered.csv', sep=";")
+        dataset = pd.read_csv('word2vec/evaluation/idnes/word2vec_modely_srovnani_filtered.csv', sep=";")
         print(dataset.head(10).to_string())
         dataset_x = dataset[['Negative', 'Vector_size', 'Window', 'Min_count', 'Epochs', 'Sample', 'Softmax']]
         dataset_y = dataset[['Analogies_test']]
@@ -79,10 +79,10 @@ class Anova():
 
     def __init__(self, dataset):
         if dataset == "brute-force":
-            self.filename = 'word2vec/evaluation/word2vec_modely_srovnani_filtered.csv'
+            self.filename = 'word2vec/evaluation/idnes/word2vec_modely_srovnani_filtered.csv'
             self.semicolon = True
         elif dataset == "random-search":
-            self.filename = 'word2vec/evaluation/word2vec_tuning_results_random_search.csv'
+            self.filename = 'word2vec/evaluation/idnes/word2vec_tuning_results_random_search.csv'
             self.semicolon = False
         else:
             raise ValueError("Selected dataset does not match with any option.")
