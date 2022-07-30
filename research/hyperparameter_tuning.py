@@ -97,7 +97,7 @@ class Anova():
         dataset = pd.read_csv(filename, sep=sep)
         # removing rows with zeros
         # retrieve numpy array
-        X = dataset[['Negative', 'Vector_size', 'Window', 'Min_count', 'Epochs', 'Sample', 'Softmax']]
+        X = dataset[['Negative', 'Vector_size', 'Window', 'Epochs', 'Sample', 'Softmax']]
         y = dataset[[y_feature]]
         return X, y
 
@@ -113,7 +113,7 @@ class Anova():
         X_test_fs = fs.transform(X_test)
         return X_train_fs, X_test_fs, fs
 
-    def run(self, run_on):
+    def run(self, run_on, col):
         # load the dataset
         X, y = self.load_dataset(self.filename, run_on, self.semicolon)
         # split into train and test sets
@@ -125,20 +125,32 @@ class Anova():
         for i in range(len(fs.scores_)):
             print('Feature %s: %f' % (X_column_names[i], fs.scores_[i]))
         # plot the scores
-        pyplot.title("Dependent variable: " + run_on)
-        pyplot.bar(X_column_names, fs.scores_)
-        pyplot.show()
-
+        col.set_title(run_on)
+        col.bar(X_column_names, fs.scores_)
+        col.tick_params(labelrotation=45)
 """
 random_fores_regressor = RandomForestRegression()
 random_fores_regressor.run()
 """
 
+list_of_y_features = ['Analogies_test', 'Word_pairs_test_Out-of-vocab_ratio',
+                      'Word_pairs_test_Spearman_coeff', 'Word_pairs_test_Pearson_coeff']
+
+fig, ax = pyplot.subplots(nrows=2, ncols=2)
 anova = Anova(dataset="random-search")
-anova.run('Analogies_test')
-anova.run('Word_pairs_test_Out-of-vocab_ratio')
+i = 0
+for row in ax:
+    for col in row:
+        anova.run(list_of_y_features[i], col=col)
+        i = i + 1
+
+pyplot.tight_layout()
+pyplot.show()
+
+"""
 anova.run('Word_pairs_test_Spearman_coeff')
 anova.run('Word_pairs_test_Pearson_coeff')
+"""
 
 """
 grid_searcher = GridSearcher()
