@@ -285,7 +285,7 @@ class Word2VecClass:
         self.find_optimal_model_idnes(texts)
 
     # @profile
-    def get_similar_word2vec(self, searched_slug, model="idnes"):
+    def get_similar_word2vec(self, searched_slug, model="idnes", docsim_index=None, dictionary=None):
         recommenderMethods = RecommenderMethods()
 
         self.posts_df = recommenderMethods.get_posts_dataframe()
@@ -342,7 +342,10 @@ class Word2VecClass:
             ds = DocSim(model_idnes)
             print("found_post")
             print(found_post)
-            most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post,
+            if docsim_index is None and dictionary is None:
+                print("Docsim or dictionary is not passed into method. Loading.")
+                docsim_index, dictionary = ds.load_docsim_index_and_dictionary()
+            most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post, docsim_index, dictionary,
                                                                                            list_of_document_features)[:21]
 
         # removing post itself
@@ -1335,6 +1338,8 @@ class Word2VecClass:
     def create_or_update_corpus_and_dict_from_mongo_idnes(self):
         dict = self.create_dictionary_from_mongo_idnes(force_update=True)
         self.create_corpus_from_mongo_idnes(dict, force_update=True)
+        doc_sim = DocSim()
+        doc_sim.update_docsim_index()
         # TODO: Update DOCSIM INDEX!!!!!!!!!
 
 
