@@ -78,11 +78,14 @@ class RandomForestRegression():
 class Anova():
 
     def __init__(self, dataset):
-        if dataset == "brute-force":
+        if dataset == "brute-force-word2vec":
             self.filename = 'word2vec/evaluation/idnes/word2vec_modely_srovnani_filtered.csv'
             self.semicolon = True
-        elif dataset == "random-search":
+        elif dataset == "random-search-word2vec":
             self.filename = 'word2vec/evaluation/idnes/word2vec_tuning_results_random_search.csv'
+            self.semicolon = False
+        elif dataset == "random-search-doc2vec":
+            self.filename = 'doc2vec/evaluation/idnes/doc2vec_tuning_results_random_search.csv'
             self.semicolon = False
         else:
             raise ValueError("Selected dataset does not match with any option.")
@@ -97,7 +100,7 @@ class Anova():
         dataset = pd.read_csv(filename, sep=sep)
         # removing rows with zeros
         # retrieve numpy array
-        X = dataset[['Negative', 'Vector_size', 'Window', 'Epochs', 'Sample', 'Softmax']]
+        X = dataset[['Negative', 'Vector_size', 'Window', 'Min_count', 'Epochs', 'Sample', 'Softmax']]
         y = dataset[[y_feature]]
         return X, y
 
@@ -137,7 +140,7 @@ list_of_y_features = ['Analogies_test', 'Word_pairs_test_Out-of-vocab_ratio',
                       'Word_pairs_test_Spearman_coeff', 'Word_pairs_test_Pearson_coeff']
 
 fig, ax = pyplot.subplots(nrows=2, ncols=2)
-anova = Anova(dataset="random-search")
+anova = Anova(dataset="random-search-doc2vec")
 i = 0
 for row in ax:
     for col in row:
