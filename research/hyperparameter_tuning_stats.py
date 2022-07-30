@@ -3,7 +3,7 @@ import pandas as pd
 import seaborn
 from scipy.stats import kendalltau, pearsonr, spearmanr
 
-tuning_results_df = pd.read_csv('word2vec/evaluation/word2vec_modely_srovnani_filtered.csv', sep=";")
+tuning_results_df = pd.read_csv('word2vec/evaluation/word2vec_tuning_results_random_search.csv', sep=",")
 
 
 def kendall_pval(x, y):
@@ -39,6 +39,7 @@ spearman_corr = spearman_corr.rename(columns = {'Word_pairs_test_Pearson_coeff':
 # Softmax: correlation with analogies test and word_pairs test (with Spearman stats)
 # Correlation of analogies test and word pair test as expected
 
+matplotlib.pyplot.figure(figsize=(6, 6), dpi=1200)
 seaborn.set(font_scale=0.7)
 heatmap = seaborn.heatmap(spearman_corr, annot=True, annot_kws={"size": 6})
 heatmap.figure.tight_layout()
