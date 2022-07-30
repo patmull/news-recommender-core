@@ -3,7 +3,7 @@ import pandas as pd
 import seaborn
 from scipy.stats import kendalltau, pearsonr, spearmanr
 
-tuning_results_df = pd.read_csv('word2vec/evaluation/word2vec_tuning_results_random_search.csv', sep=",")
+tuning_results_df = pd.read_csv('word2vec/evaluation/idnes/word2vec_tuning_results_random_search.csv', sep=",")
 
 
 def kendall_pval(x, y):
