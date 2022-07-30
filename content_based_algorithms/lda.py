@@ -206,8 +206,8 @@ class Lda:
         """
         This function implements a Jensen-Shannon similarity
         between the input query (an LDA topic distribution for a document)
-        and the entire corpus of topic distributions.
-        It returns an array of length M where M is the number of documents in the corpus
+        and the entire train_corpus of topic distributions.
+        It returns an array of length M where M is the number of documents in the train_corpus
         """
         # lets keep with the p,q notation above
         p = query[None, :].T  # take transpose
@@ -222,9 +222,9 @@ class Lda:
         """
         print("dictionary")
         dictionary = corpora.Dictionary(data['tokenized'])
-        print("corpus")
-        corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-        self.save_corpus_dict(corpus,dictionary)
+        print("train_corpus")
+        train_corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
+        self.save_corpus_dict(train_corpus,dictionary)
         """
         """
         try:
@@ -256,7 +256,7 @@ class Lda:
 
     def save_corpus_dict(self, corpus, dictionary):
 
-        print("Saving corpus and dictionary...")
+        print("Saving train_corpus and dictionary...")
         pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'))
         dictionary.save('precalc_vectors/dictionary_idnes.gensim')
 
@@ -295,7 +295,7 @@ class Lda:
 
     def save_corpus_dict_full_text(self, corpus, dictionary):
 
-        print("Saving corpus and dictionary...")
+        print("Saving train_corpus and dictionary...")
         pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
@@ -554,11 +554,11 @@ class Lda:
 
         doc_num = 0
         print("Title: {}".format(docno2metadata[doc_num][1]))  # take the first article as an example
-        vec = corpus[doc_num]  # get tf-idf vector
+        vec = train_corpus[doc_num]  # get tf-idf vector
         print("lda.get_document_topics(vec)")
         print(lda_model_loaded.get_document_topics(vec))
         """
-        #  For ‘u_mass’ corpus should be provided, if texts is provided, it will be converted to corpus using the dictionary. For ‘c_v’, ‘c_uci’ and ‘c_npmi’ texts should be provided
+        #  For ‘u_mass’ train_corpus should be provided, if texts is provided, it will be converted to train_corpus using the dictionary. For ‘c_v’, ‘c_uci’ and ‘c_npmi’ texts should be provided
         if data_lemmatized is None:
             coherence_model_lda = CoherenceModel(model=lda_model, corpus=corpus, dictionary=dictionary,coherence='u_mass')
         else:
@@ -580,10 +580,10 @@ class Lda:
 
         list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
 
-        print("Loading preprocessed corpus...")
+        print("Loading preprocessed train_corpus...")
         processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
         print("Loaded " + str(len(processed_data)) + " documents.")
-        print("Saving corpus into single file...")
+        print("Saving train_corpus into single file...")
 
         single_file_name = "full_models/cswiki/lda/preprocessed/articles_" + str(len(processed_data))
         with open(single_file_name, 'wb') as f:
@@ -638,8 +638,8 @@ class Lda:
         iterations_range = [50]
         num_of_docs = len(preprocessed_corpus)
         corpus_sets = [
-            # gensim.utils.ClippedCorpus(corpus, int(num_of_docs*0.05)),
-            # gensim.utils.ClippedCorpus(corpus, num_of_docs*0.5),
+            # gensim.utils.ClippedCorpus(train_corpus, int(num_of_docs*0.05)),
+            # gensim.utils.ClippedCorpus(train_corpus, num_of_docs*0.5),
             # gensim.utils.ClippedCorpus(preprocessed_corpus, int(num_of_docs * 0.75)),
             gensim.utils.ClippedCorpus(preprocessed_corpus, int(num_of_docs * 1.00)),
             preprocessed_corpus]
@@ -772,8 +772,8 @@ class Lda:
 
         corpus = WikiCorpus('full_models/cswiki-20220301-pages-articles-multistream.xml.bz2', dictionary=False)
         id2word = gensim.corpora.Dictionary.load_from_text('full_models/cswiki/cswiki_wordids.txt.bz2')
-        # corpus = gensim.corpora.MmCorpus('full_models/cswiki/cswiki_tfidf.mm')
-        # corpus = [dct.doc2bow(line) for line in dataset]
+        # train_corpus = gensim.corpora.MmCorpus('full_models/cswiki/cswiki_tfidf.mm')
+        # train_corpus = [dct.doc2bow(line) for line in dataset]
 
         # preprocessing steps
         czlemma = cz_preprocessing.CzPreprocess()
@@ -794,7 +794,7 @@ class Lda:
             if article_file.startswith("articles_"):
                 list_of_preprocessed_files.append(article_file)
         list_of_preprocessed_files = [path_to_preprocessed_files + s for s in list_of_preprocessed_files]
-        print("Loading preprocessed corpus...")
+        print("Loading preprocessed train_corpus...")
         number_of_documents = 0
         if len(list_of_preprocessed_files) > 0:
             processed_data = self.load_preprocessed_corpus(list_of_preprocessed_files)
@@ -802,7 +802,7 @@ class Lda:
             number_of_documents = len(processed_data)
 
             print("Loaded " + str(number_of_documents) + " documents.")
-            print("Saving corpus into single file...")
+            print("Saving train_corpus into single file...")
             single_file_name = "full_models/cswiki/lda/preprocessed/articles_" + str(number_of_documents)
             with open(single_file_name, 'wb') as f:
                 print("Saving list to " + single_file_name)
