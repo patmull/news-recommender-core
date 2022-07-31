@@ -3,9 +3,11 @@ import string
 import time
 
 import numpy as np
+import pytest
 from gensim.utils import deaccent
 
 from content_based_algorithms.doc2vec import Doc2VecClass
+from content_based_algorithms.doc_sim import DocSim
 from content_based_algorithms.helper import Helper
 from content_based_algorithms.lda import Lda
 from content_based_algorithms.prefiller import PreFiller
@@ -15,12 +17,13 @@ from prefilling_all import run_prefilling, prepare_and_run
 from preprocessing.cz_preprocessing import CzPreprocess
 from data_connection import Database
 
+
 def tfidf():
     tf_idf = TfIdf()
     print(tf_idf.recommend_posts_by_all_features_preprocessed(
         "chaos-v-mapach-kavkazu-proc-armenie-a-azerbajdzan-nebojuji-jen-o-karabach"))
 
-
+@pytest.mark.word2vec_method
 def word2vec_method():
     word2vec = Word2VecClass()
     # random article
@@ -28,21 +31,27 @@ def word2vec_method():
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
     random_post_slug = random_post['post_slug'].iloc[0]
-    print("random_post slug:")
-    print(random_post_slug)
-    similar_posts = word2vec.get_similar_word2vec(random_post_slug)
-    print("similar_posts")
-    print(similar_posts)
-    print("similar_posts type:")
-    print(type(similar_posts))
+    list_of_models = ["idnes_1", "idnes_2", "idnes_3", "idnes_4"]
 
-    assert len(random_post.index) == 1
-    assert type(similar_posts) is list
-    assert len(similar_posts) > 0
-    print(type(similar_posts[0]['slug']))
-    assert type(similar_posts[0]['slug']) is str
-    assert type(similar_posts[0]['coefficient']) is float
-    assert len(similar_posts) > 0
+    ds = DocSim()
+    docsim_index, dictionary = ds.load_docsim_index_and_dictionary()
+
+    for model in list_of_models:
+        print("random_post slug:")
+        print(random_post_slug)
+        similar_posts = word2vec.get_similar_word2vec(random_post_slug, model=model, docsim_index=docsim_index,
+                                                      dictionary=dictionary)
+        print("similar_posts")
+        print(similar_posts)
+        print("similar_posts type:")
+        print(type(similar_posts))
+        assert len(random_post.index) == 1
+        assert type(similar_posts) is list
+        assert len(similar_posts) > 0
+        print(type(similar_posts[0]['slug']))
+        assert type(similar_posts[0]['slug']) is str
+        assert type(similar_posts[0]['coefficient']) is float
+        assert len(similar_posts) > 0
 
 
 def test_word2vec_recommendation_prefiller(database, method, full_text, reverse, random):
