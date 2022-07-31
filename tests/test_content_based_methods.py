@@ -1,4 +1,5 @@
 from content_based_algorithms.doc2vec import Doc2VecClass
+from content_based_algorithms.doc_sim import DocSim
 from content_based_algorithms.lda import Lda
 from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.word2vec import Word2VecClass
@@ -45,7 +46,7 @@ def test_tfidf_method():
     assert type(similar_posts[0]['coefficient']) is float
     assert len(similar_posts) > 0
 
-
+# python -m pytest .\tests\test_content_based_methods.py::test_word2vec_method
 def test_word2vec_method():
     word2vec = Word2VecClass()
     # random article
@@ -53,21 +54,27 @@ def test_word2vec_method():
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
     random_post_slug = random_post['slug'].iloc[0]
-    print("random_post slug:")
-    print(random_post_slug)
-    similar_posts = word2vec.get_similar_word2vec(random_post_slug)
-    print("similar_posts")
-    print(similar_posts)
-    print("similar_posts type:")
-    print(type(similar_posts))
+    list_of_models = ["idnes_1", "idnes_2", "idnes_3", "idnes_4"]
 
-    assert len(random_post.index) == 1
-    assert type(similar_posts) is list
-    assert len(similar_posts) > 0
-    print(type(similar_posts[0]['slug']))
-    assert type(similar_posts[0]['slug']) is str
-    assert type(similar_posts[0]['coefficient']) is float
-    assert len(similar_posts) > 0
+    ds = DocSim()
+    docsim_index, dictionary = ds.load_docsim_index_and_dictionary()
+
+    for model in list_of_models:
+        print("random_post slug:")
+        print(random_post_slug)
+        similar_posts = word2vec.get_similar_word2vec(random_post_slug, model=model, docsim_index=docsim_index,
+                                                      dictionary=dictionary)
+        print("similar_posts")
+        print(similar_posts)
+        print("similar_posts type:")
+        print(type(similar_posts))
+        assert len(random_post.index) == 1
+        assert type(similar_posts) is list
+        assert len(similar_posts) > 0
+        print(type(similar_posts[0]['slug']))
+        assert type(similar_posts[0]['slug']) is str
+        assert type(similar_posts[0]['coefficient']) is float
+        assert len(similar_posts) > 0
 
 
 def test_doc2vec_method():
