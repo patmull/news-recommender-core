@@ -10,6 +10,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC, SVR
 
+
 # TODO: Not finished yet. Not clear how can be useful!
 class RandomForestRegression():
 

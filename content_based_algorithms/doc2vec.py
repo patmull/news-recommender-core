@@ -451,7 +451,6 @@ class Doc2VecClass:
         for i, list_of_words in enumerate(list_of_list_of_words):
             yield gensim.models.doc2vec.TaggedDocument(list_of_words, [i])
 
-
     def find_best_doc2vec_model_idnes(self, number_of_trials=512, path_to_corpus="precalc_vectors/corpus_idnes.mm"):
 
         for handler in logging.root.handlers[:]:
@@ -518,10 +517,12 @@ class Doc2VecClass:
                          }
         pbar = tqdm.tqdm(total=540)
 
-
         for i in range(0, number_of_trials):
 
-            hs_softmax = random.choice(hs_softmax_variants)
+            hs_softmax = 1
+            # hs_softmax = random.choice(hs_softmax_variants)
+            # TODO: Get Back random choice!!!
+            # This is temporary due to adding softmax one values to results after fixed tab indent in else.
             model_variant = random.choice(model_variants)
             vector_size = random.choice(vector_size_range)
             window = random.choice(window_range)
@@ -552,27 +553,27 @@ class Doc2VecClass:
                                                                                  epochs=epochs,
                                                                                  sample=sample)
 
-                print(word_pairs_eval[0][0])
-                model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
-                model_results['Model_Variant'].append(model_variant)
-                model_results['Negative'].append(negative_sampling_variant)
-                model_results['Vector_size'].append(vector_size)
-                model_results['Window'].append(window)
-                model_results['Min_count'].append(min_count)
-                model_results['Epochs'].append(epochs)
-                model_results['Sample'].append(sample)
-                model_results['Softmax'].append(hs_softmax)
-                model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
-                model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
-                model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
-                model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
-                model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
-                model_results['Analogies_test'].append(analogies_eval)
+            print(word_pairs_eval[0][0])
+            model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
+            model_results['Model_Variant'].append(model_variant)
+            model_results['Negative'].append(negative_sampling_variant)
+            model_results['Vector_size'].append(vector_size)
+            model_results['Window'].append(window)
+            model_results['Min_count'].append(min_count)
+            model_results['Epochs'].append(epochs)
+            model_results['Sample'].append(sample)
+            model_results['Softmax'].append(hs_softmax)
+            model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
+            model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
+            model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
+            model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
+            model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
+            model_results['Analogies_test'].append(analogies_eval)
 
-                pbar.update(1)
-                pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search.csv', index=False,
-                                                   mode="w")
-                print("Saved training results...")
+            pbar.update(1)
+            pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search.csv', index=False,
+                                               mode="w")
+            print("Saved training results...")
 
     def create_or_update_corpus_and_dict_from_mongo_idnes(self):
         dict = self.create_dictionary_from_mongo_idnes(force_update=True)
