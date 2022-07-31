@@ -303,6 +303,10 @@ class Database:
                 sql = """SELECT * FROM posts WHERE recommended_word2vec_full_text IS NULL ORDER BY id DESC;"""
             elif method == "lda":
                 sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id DESC;"""
+            elif method == "word2vec_eval_1":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_1 IS NULL ORDER BY id DESC"""
+            else:
+                raise ValueError("Selected method not implemented.")
 
         query = (sql)
         self.cursor.execute(query)
@@ -330,7 +334,6 @@ class Database:
         sql = """SELECT * FROM relevance_testings ORDER BY id;"""
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
-
 
     def insert_preprocessed_body(self, preprocessed_body, article_id):
         try:
