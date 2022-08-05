@@ -36,7 +36,6 @@ with warnings.catch_warnings():
     recommender_methods.database.insert_posts_dataframe_to_cache()
     run_prefilling() 
 """
-<<<<<<< HEAD
 word2vec = Word2VecClass()
 word2vec.final_training_idnes_model()
 
@@ -44,12 +43,7 @@ word2vec.final_training_idnes_model()
 doc2vec = Doc2VecClass()
 doc2vec.train_final_doc2vec_model_idnes()
 """
-=======
 
-word2vec = Word2VecClass()
-word2vec.final_training_idnes_model()
-
->>>>>>> cb612ec8ab7c8a6bc26abe1134d031e67bc460c6
 """
 word2vec = Word2VecClass()
 # print(word2vec.get_similar_word2vec("chripkova-sezona-muze-letos-nemile-prekvapit-jak-se-na-ni-pripravit"))
