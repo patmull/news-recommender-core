@@ -285,7 +285,12 @@ class Word2VecClass:
         self.find_optimal_model_idnes(texts)
 
     # @profile
-    def get_similar_word2vec(self, searched_slug, model="idnes"):
+    def get_similar_word2vec(self, searched_slug, model="idnes", docsim_index=None, dictionary=None):
+
+        # check method inputs
+        if not model.startswith("idnes_") or not model == "wiki":
+            ValueError("Bad model name passed.")
+
         recommenderMethods = RecommenderMethods()
 
         self.posts_df = recommenderMethods.get_posts_dataframe()
@@ -293,8 +298,8 @@ class Word2VecClass:
 
         self.df = recommenderMethods.join_posts_ratings_categories()
 
-        self.categories_df = self.categories_df.rename(columns={'title':'category_title'})
-        self.categories_df = self.categories_df.rename(columns={'slug':'category_slug'})
+        self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
+        self.categories_df = self.categories_df.rename(columns={'slug': 'category_slug'})
 
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
@@ -331,19 +336,39 @@ class Word2VecClass:
         # https://github.com/v1shwa/document-similarity with my edits
 
         if model == "wiki":
-            model_wiki = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
+            w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
             print("Similarities on Wikipedia.cz model:")
-            ds = DocSim(model_wiki)
+            ds = DocSim(w2v_model)
             most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
                                                                                           list_of_document_features)[:21]
-        elif model == "idnes":
-            model_idnes = KeyedVectors.load("models/w2v_idnes.model")
+        elif model.startswith("idnes_"):
+            if model.startswith("idnes_1"):
+                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
+            elif model.startswith("idnes_2"):
+                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_2_default_parameters/"
+            elif model.startswith("idnes_3"):
+                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
+            elif model.startswith("idnes_4"):
+                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
+            elif model.startswith("idnes"):
+                path_to_folder = "w2v_idnes.model"
+            else:
+                path_to_folder = None
+                ValueError("Wrong model name chosen.")
+            file_name = "w2v_idnes.model"
+            path_to_model = path_to_folder + file_name
+            w2v_model = KeyedVectors.load(path_to_model)
             print("Similarities on iDNES.cz model:")
-            ds = DocSim(model_idnes)
+            ds = DocSim(w2v_model)
             print("found_post")
             print(found_post)
-            most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post,
+            if docsim_index is None and dictionary is None:
+                print("Docsim or dictionary is not passed into method. Loading.")
+                docsim_index, dictionary = ds.load_docsim_index_and_dictionary()
+            most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post, docsim_index,
+                                                                                           dictionary,
                                                                                            list_of_document_features)[:21]
+
 
         # removing post itself
         if len(most_similar_articles_with_scores) > 0:
@@ -1335,6 +1360,8 @@ class Word2VecClass:
     def create_or_update_corpus_and_dict_from_mongo_idnes(self):
         dict = self.create_dictionary_from_mongo_idnes(force_update=True)
         self.create_corpus_from_mongo_idnes(dict, force_update=True)
+        doc_sim = DocSim()
+        doc_sim.update_docsim_index()
         # TODO: Update DOCSIM INDEX!!!!!!!!!
 
 
