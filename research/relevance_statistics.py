@@ -1,4 +1,5 @@
 import ast
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -58,18 +59,17 @@ def model_ap():
     evaluation_results_df = evaluation_results.get_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
-    list_of_aps = []
     list_of_models = []
-
+    list_of_models.append([x for x in evaluation_results_df['model_name']])
+    
+    list_of_aps = []
     list_of_aps.append([average_precision_score(x['relevance'], x['coefficient'])
                         if len(x['relevance']) == len(x['coefficient'])
                         else ValueError("Lengths of arrays in relevance and coefficient does not match.")
                         for x in evaluation_results_df['results_part_2']])
-
-    list_of_models.append([x for x in evaluation_results_df['model_name']])
+    print(list_of_models)
 
     print(list_of_aps)
-    print(list_of_models)
 
     dict_of_model_stats = {'ap': list_of_aps[0], 'model_name': list_of_models[0]}
     print(dict_of_model_stats)
@@ -82,4 +82,148 @@ def model_ap():
     return model_ap_results[['model_name', 'ap']].groupby(['model_name']).mean()
 
 
-print(model_ap())
+def models_complete_statistics():
+    evaluation_results_df = evaluation_results.get_results_dataframe()
+    print(evaluation_results_df.head(10).to_string())
+    dict_of_model_stats = {}
+    list_of_models = []
+    list_of_models.append([x for x in evaluation_results_df['model_name']])
+    print(list_of_models)
+
+    print("AVERAGE PRECISION:")
+    list_of_aps = []
+    list_of_aps.append([average_precision_score(x['relevance'], x['coefficient'])
+                        if len(x['relevance']) == len(x['coefficient'])
+                        else ValueError("Lengths of arrays in relevance and coefficient does not match.")
+                        for x in evaluation_results_df['results_part_2']])
+
+    print(list_of_aps)
+
+    y_pred = np.full((1, 20), 1)[0]
+    print("WEIGHTED PRECISION SCORE:")
+    list_of_ps = []
+    list_of_ps.append([precision_score(x['relevance'], y_pred, average='weighted')
+                        if len(x['relevance']) == len(x['coefficient'])
+                        else ValueError("Lengths of arrays in relevance and coefficient does not match.")
+                        for x in evaluation_results_df['results_part_2']])
+    print(list_of_ps)
+
+    print("BALANCED_ACCURACY:")
+    list_of_balanced_accuracies = []
+    list_of_balanced_accuracies.append([balanced_accuracy_score(x['relevance'], y_pred)
+                        if len(x['relevance']) == len(x['coefficient'])
+                        else ValueError("Lengths of arrays in relevance and coefficient does not match.")
+                        for x in evaluation_results_df['results_part_2']])
+    print(list_of_balanced_accuracies)
+    """
+    true_relevance = y_true
+    scores = y_scores
+    """
+    print("DCG AT K:")
+    list_of_dcgs = []
+    list_of_dcgs.append([dcg_score([x['relevance']], [y_pred])
+                                        if len(x['relevance']) == len(x['coefficient'])
+                                        else ValueError(
+        "Lengths of arrays in relevance and coefficient does not match.")
+                                        for x in evaluation_results_df['results_part_2']])
+    print(list_of_dcgs)
+
+    print("DCG AT K=5:")
+    list_of_dcg_at_k = []
+    list_of_dcg_at_k.append([dcg_score([x['relevance']], [y_pred], k=5)
+                                        if len(x['relevance']) == len(x['coefficient'])
+                                        else ValueError(
+        "Lengths of arrays in relevance and coefficient does not match.")
+                                        for x in evaluation_results_df['results_part_2']])
+    print(list_of_dcg_at_k)
+
+    print("F1-SCORE (WEIGHTED AVERAGE):")
+    list_of_f1_score = []
+    list_of_f1_score.append([f1_score(x['relevance'], y_pred, average='weighted')
+                                        if len(x['relevance']) == len(x['coefficient'])
+                                        else ValueError(
+        "Lengths of arrays in relevance and coefficient does not match.")
+                                        for x in evaluation_results_df['results_part_2']])
+    print(list_of_f1_score)
+
+    print("NDCG:")
+    list_of_ndcgs = []
+    list_of_ndcgs.append([ndcg_score([x['relevance']], [y_pred])
+                             if len(x['relevance']) == len(x['coefficient'])
+                             else ValueError(
+        "Lengths of arrays in relevance and coefficient does not match.")
+                             for x in evaluation_results_df['results_part_2']])
+    print(list_of_ndcgs)
+
+    print("NDCG AT 5:")
+    list_of_ndcgs_at_k = []
+    list_of_ndcgs_at_k.append([ndcg_score([x['relevance']], [y_pred], k=5)
+                          if len(x['relevance']) == len(x['coefficient'])
+                          else ValueError(
+        "Lengths of arrays in relevance and coefficient does not match.")
+                          for x in evaluation_results_df['results_part_2']])
+    print(list_of_ndcgs_at_k)
+
+    print("PRECISION, RECALL, THRESHOLDS:")
+    list_of_precisions = []
+    list_of_recalls = []
+    list_of_thresholds = []
+    list_of_precisions, list_of_recalls, list_of_thresholds = zip(*(precision_recall_curve(x['relevance'], x['coefficient'])
+                               if len(x['relevance']) == len(x['coefficient'])
+                               else ValueError(
+        "Lengths of arrays in relevance and coefficient does not match.")
+                               for x in evaluation_results_df['results_part_2']))
+    print(list_of_precisions)
+    print(list_of_recalls)
+    print(list_of_thresholds)
+
+    list_of_precisions = []
+    print("PRECISION SCORE:")
+    list_of_precisions.append([precision_score(x['relevance'], y_pred, average=None)
+                               if len(x['relevance']) == len(x['coefficient'])
+                               else ValueError(
+        "Lengths of arrays in relevance and coefficient does not match.")
+                               for x in evaluation_results_df['results_part_2']])
+    print(list_of_precisions)
+    """
+    list_of_top_k_accuracy = []
+    print("TOP k=5 ACCURACY:")
+    list_of_top_k_accuracy.append([top_k_accuracy_score(x['relevance'], x['coefficient'], k=2)
+                               if len(x['relevance']) == len(x['coefficient'])
+                               else ValueError(
+        "Lengths of arrays in relevance and coefficient does not match.")
+                               for x in evaluation_results_df['results_part_2']])
+    print(list_of_top_k_accuracy)
+    """
+
+    # completation of results
+    # TODO: Add other columns
+    dict_of_model_stats = {'ap': list_of_aps[0], 'model_name': list_of_models[0]}
+    print(dict_of_model_stats)
+
+    model_results = pd.DataFrame.from_dict(dict_of_model_stats, orient='index').transpose()
+    
+    return model_results
+
+
+def print_confusion_matrix():
+    evaluation_results_df = evaluation_results.get_results_dataframe()
+    print(evaluation_results_df.head(10).to_string())
+    dict_of_model_stats = {}
+    list_of_models = []
+    list_of_models.append([x for x in evaluation_results_df['model_name']])
+    print(list_of_models)
+
+    print("AVERAGE PRECISION:")
+    list_of_confusion_matrices = []
+    list_of_confusion_matrices.append([confusion_matrix(x['relevance'], x['coefficient'])
+                        if len(x['relevance']) == len(x['coefficient'])
+                        else ValueError("Lengths of arrays in relevance and coefficient does not match.")
+                        for x in evaluation_results_df['results_part_2']])
+
+    print("CONFUSION MATRIX:")
+
+
+warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
+stats = models_complete_statistics()
+print(stats)
