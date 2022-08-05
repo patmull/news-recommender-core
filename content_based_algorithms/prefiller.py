@@ -73,6 +73,8 @@ class PreFiller:
                     current_recommended = post[27]
                 elif method == "lda":
                     current_recommended = post[29]
+                elif method == "word2vec_eval_1":
+                    current_recommended = post[33]
                 else:
                     current_recommended = None
 
