@@ -305,6 +305,12 @@ class Database:
                 sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id DESC;"""
             elif method == "word2vec_eval_1":
                 sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_1 IS NULL ORDER BY id DESC"""
+            elif method == "word2vec_eval_2":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_2 IS NULL ORDER BY id DESC"""
+            elif method == "word2vec_eval_3":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_3 IS NULL ORDER BY id DESC"""
+            elif method == "word2vec_eval_4":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_4 IS NULL ORDER BY id DESC"""
             else:
                 raise ValueError("Selected method not implemented.")
 
