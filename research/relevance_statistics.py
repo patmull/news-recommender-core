@@ -278,9 +278,9 @@ def show_confusion_matrix():
 
 
 stats = models_complete_statistics(investigate_by='model_variant')
-"""
+
 print("Means of model's metrics:")
 print(stats.to_string())
-"""
 
-print(show_confusion_matrix())
+
+# print(show_confusion_matrix())
