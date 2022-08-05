@@ -263,6 +263,7 @@ def plot_confusion_matrix(cm, title):
 
 
 def show_confusion_matrix():
+    print("Please be awware that confusion matrix is only ")
     evaluation_results_df = evaluation_results.get_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
@@ -295,9 +296,6 @@ def show_confusion_matrix():
             print(type(item))
             if item.shape == (2,2):
                 item = np.asmatrix(item)
-                print(item[0,1])
-                item[0,0] = 20 - item[0,1]
-                item[1,0] = 20 - item[1,1]
                 print("item after convrsion to matrix")
                 print(item)
                 list_of_confusion_matrices_selected.append(item)
