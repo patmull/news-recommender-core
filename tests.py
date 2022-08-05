@@ -147,7 +147,7 @@ def main():
     # word2vec.get_similar_word2vec("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
     # tfidf()
     # word2vec = Word2VecClass()
-    #word2vec.get_similar_word2vec("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
+    # word2vec.get_similar_word2vec("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
     # word2vec.prepare_word2vec_eval()
 
     # word2vec = Word2VecClass()
@@ -166,8 +166,8 @@ def main():
     print(deaccent(czpreprocessing.preprocess(doc_string)))
     """
     # word2vecClass = Word2VecClass()
-    word2vec_method()
-    try_prefillers()
+    # word2vec_method()
+    # try_prefillers()
     # 1. Create Dictionary
     # word2vecClass.create_dictionary_from_dataframe(force_update=False, filter_extremes=False)
     # preprocess train_corpus and save it to mongo
