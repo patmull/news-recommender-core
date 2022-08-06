@@ -171,8 +171,8 @@ class RecommenderMethods:
                 self.posts_df.drop_duplicates(subset=['title'], inplace=True)
                 print(self.df.columns.values)
                 self.df = self.df[
-                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-                     'all_features_preprocessed', 'body_preprocessed',
+                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                     'description', 'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text', 'trigrams_full_text']]
         print("4.3")
         print(self.df.columns)
