@@ -8,6 +8,8 @@ from sklearn.metrics import average_precision_score, precision_score, balanced_a
     dcg_score, f1_score, jaccard_score, ndcg_score, precision_recall_curve, top_k_accuracy_score
 import seaborn as sns
 import evaluation_results
+from content_based_algorithms.data_queries import RecommenderMethods
+
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 
 
@@ -109,12 +111,15 @@ def model_variant_ap(variant=None):
     return model_ap_results[['model_variant', 'ap']].groupby(['model_variant']).mean()
 
 
-def models_complete_statistics(investigate_by='model_name', k=5):
+def models_complete_statistics(investigate_by='model_name', k=5, save_results_for_every_item=False):
     evaluation_results_df = evaluation_results.get_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
     list_of_models = []
     list_of_models.append([x for x in evaluation_results_df[investigate_by]])
+    if save_results_for_every_item:
+        list_of_slugs = []
+        list_of_slugs.append([x for x in evaluation_results_df['query_slug']])
     print(list_of_models)
     print("evaluation_results_df['results_part_2']")
     print(evaluation_results_df['results_part_2'].to_string())
@@ -232,14 +237,26 @@ def models_complete_statistics(investigate_by='model_name', k=5):
                            'DCG': list_of_dcgs[0], 'DCG_AT_' + str(k): list_of_dcg_at_k,
                            'F1-SCORE': list_of_f1_score[0], 'NDCG': list_of_ndcgs[0],
                            'NDCG_AT_' + str(k): list_of_ndcgs_at_k[0],
-
-                           investigate_by: list_of_models[0]}
+                           investigate_by: list_of_models[0], 'slug': list_of_slugs[0]}
     print(dict_of_model_stats)
 
     model_results = pd.DataFrame.from_dict(dict_of_model_stats, orient='index').transpose()
 
     model_results = model_results.fillna(0)
-    
+    print("Model results:")
+    print(model_results.to_string())
+    if save_results_for_every_item:
+        print("Saving also results for every item.")
+        path_to_resuts = 'save_relevance_results_by_queries.csv'
+        recommender_methods = RecommenderMethods()
+        posts_categories__ratings_df = recommender_methods.join_posts_ratings_categories()
+        categories_df = posts_categories__ratings_df[['category_title', 'post_slug']]
+        model_results_joined_with_category = pd.merge(model_results, categories_df, left_on='slug', right_on='post_slug', how='')
+        model_results_joined_with_category.to_csv(path_to_resuts, index=False)
+
+    else:
+        model_results = model_results.drop(['slug'])
+
     return model_results.groupby([investigate_by]).mean()
 
 
@@ -251,7 +268,7 @@ def plot_confusion_matrix(cm, title):
     ax.set_title(title)
 
     ax.set_xlabel('\nPredicted Values')
-    ax.set_ylabel('Actual Values ');
+    ax.set_ylabel('Actual Values ')
 
     ## Ticket labels - List must be in alphabetical order
     ax.xaxis.set_ticklabels(['False', 'True'])
@@ -308,10 +325,7 @@ def show_confusion_matrix():
     plot_confusion_matrix(cm_mean, "Confusion matrix")
 
 
-stats = models_complete_statistics(investigate_by='model_variant')
-
-# print("Means of model's metrics:")
-# print(stats.to_string())
-
-
-print(show_confusion_matrix())
+stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=True)
+print("Means of model's metrics:")
+print(stats.to_string())
+# print(show_confusion_matrix())

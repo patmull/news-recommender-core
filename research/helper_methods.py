@@ -20,4 +20,20 @@ def random_row_remover(remove_n=234):
     df_subset.to_csv(path_to_df)
 
 
-random_row_remover()
+def extract_and_sort_columns_from_results(target_model_variant, sort_by='category_title', target_stats=None):
+    df_queries = pd.read_csv('save_relevance_results_by_queries.csv')
+    df_queries = df_queries.loc[df_queries['model_variant'].isin(target_model_variant)]
+    df_queries = df_queries.sort_values(by=sort_by)
+    # df_queries = df_queries.drop('post_slug')
+    target_csv_path = 'filtered_results.csv'
+    df_queries.to_csv(target_csv_path, index=False) # Set to false to get rid of "Unnamed: 0" column
+    if target_stats is not None:
+        target_csv_path = 'transposed_and_filtered_results.csv'
+        res = df_queries.pivot_table(index=['slug'], columns='model_variant',
+                             values=target_stats, aggfunc='first').reset_index()
+        print(res.to_string())
+        res.to_csv(target_csv_path)
+
+
+extract_and_sort_columns_from_results(target_model_variant=['word2vec-eval-2', 'tfidf-full-text'], target_stats=['AP','DCG'])
+# random_row_remover()
