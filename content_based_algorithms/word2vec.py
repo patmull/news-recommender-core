@@ -551,6 +551,7 @@ class Word2VecClass:
                          'Analogies_test': []
                          }  # Can take a long time to run
         pbar = tqdm.tqdm(total=540)
+        global set_title, csv_file_name
         if random_search is False:
             for model_variant in model_variants:
                 for negative_sampling_variant in negative_sampling_variants:
@@ -581,7 +582,13 @@ class Word2VecClass:
                                                                                                       sample=sample)
 
                                             print(word_pairs_eval[0][0])
-                                            model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
+                                            if source == "idnes":
+                                                set_title = "idnes"
+                                            elif source == "cswiki":
+                                                set_title = "cswiki"
+                                            else:
+                                                ValueError("Bad ource specified")
+                                            model_results['Validation_Set'].append(set_title + " " + corpus_title[0])
                                             model_results['Model_Variant'].append(model_variant)
                                             model_results['Negative'].append(negative_sampling_variant)
                                             model_results['Vector_size'].append(vector_size)
@@ -598,7 +605,13 @@ class Word2VecClass:
                                             model_results['Analogies_test'].append(analogies_eval)
 
                                             pbar.update(1)
-                                            pd.DataFrame(model_results).to_csv('word2vec_tuning_results_cswiki.csv', index=False,
+                                            if source == "idnes":
+                                                csv_file_name = 'word2vec_tuning_results_cswiki.csv'
+                                            elif source == "cswiki":
+                                                csv_file_name = 'word2vec_tuning_results_idnes.csv'
+                                            else:
+                                                ValueError("Bad source specified")
+                                            pd.DataFrame(model_results).to_csv(csv_file_name, index=False,
                                                                                mode="w")
                                             print("Saved training results...")
         else:
