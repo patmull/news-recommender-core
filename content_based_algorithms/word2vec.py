@@ -909,12 +909,12 @@ class Word2VecClass:
         negative_sampling_variant = 15  # 0 = no negative sampling
         no_negative_sampling = 0  # use with hs_soft_max
         # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        vector_size = 200
+        vector_size = 250
         # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        window = 16
-        min_count = 12
-        epochs = 30
-        sample = 0.01
+        window = 20
+        min_count = 5
+        epochs = 25
+        sample = 0.0
         hs_softmax = 0  # 1 = Hierarchical SoftMax
 
         # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
@@ -947,7 +947,8 @@ class Word2VecClass:
                                                                              min_count=min_count,
                                                                              epochs=epochs,
                                                                              sample=sample,
-                                                                             force_update_model=True)
+                                                                             force_update_model=True,
+                                                                             )
         else:
             word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
                                                                              model_variant=model_variant,
@@ -957,7 +958,8 @@ class Word2VecClass:
                                                                              min_count=min_count,
                                                                              epochs=epochs,
                                                                              sample=sample,
-                                                                             force_update_model=True)
+                                                                             force_update_model=True,
+                                                                             )
 
         print(word_pairs_eval[0][0])
         model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
@@ -984,20 +986,23 @@ class Word2VecClass:
 
     def compute_eval_values_idnes(self, sentences=None, model_variant=None, negative_sampling_variant=None,
                                   vector_size=None, window=None, min_count=None,
-                                  epochs=None, sample=None, force_update_model=True, model_path="models/w2v_idnes.model", use_defaul_model=False):
+                                  epochs=None, sample=None, force_update_model=True, model_path="models/w2v_idnes.model", 
+                                  use_defaul_model=False, save_model=True):
         if os.path.isfile("models/w2v_idnes.model") is False or force_update_model is True:
             print("Started training on iDNES.cz dataset...")
 
-            if use_defaul_model:
+            if use_defaul_model is True:
                 # DEFAULT:
                 w2v_model = Word2Vec(sentences=sentences)
-                w2v_model.save("models/w2v_idnes.model")
+                if save_model is True:
+                    w2v_model.save("models/w2v_idnes.model")
             else:
                 # CUSTOM:
                 w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
                                     vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
                                     sample=sample, workers=7)
-
+                if save_model is True:
+                    w2v_model.save("models/w2v_idnes.model")
         else:
             print("Loading Word2Vec iDNES.cz model from saved model file")
             w2v_model = Word2Vec.load(model_path)
