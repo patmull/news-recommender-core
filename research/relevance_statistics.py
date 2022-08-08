@@ -3,10 +3,14 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 from sklearn.metrics import average_precision_score, precision_score, balanced_accuracy_score, confusion_matrix, \
     dcg_score, f1_score, jaccard_score, ndcg_score, precision_recall_curve, top_k_accuracy_score
-
+import seaborn as sns
 import evaluation_results
+from content_based_algorithms.data_queries import RecommenderMethods
+
+warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 
@@ -56,12 +60,12 @@ def try_statistics():
     print(top_k_accuracy_score(y_true, scores, k=2))
 
 
-def model_ap():
+def model_ap(investigate_by='model_name'):
     evaluation_results_df = evaluation_results.get_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
     list_of_models = []
-    list_of_models.append([x for x in evaluation_results_df['model_name']])
+    list_of_models.append([x for x in evaluation_results_df[investigate_by]])
     
     list_of_aps = []
     list_of_aps.append([average_precision_score(x['relevance'], x['coefficient'])
@@ -69,10 +73,9 @@ def model_ap():
                         else ValueError("Lengths of arrays in relevance and coefficient does not match.")
                         for x in evaluation_results_df['results_part_2']])
     print(list_of_models)
-
     print(list_of_aps)
 
-    dict_of_model_stats = {'ap': list_of_aps[0], 'model_name': list_of_models[0]}
+    dict_of_model_stats = {'ap': list_of_aps[0], investigate_by: list_of_models[0]}
     print(dict_of_model_stats)
 
     model_ap_results = pd.DataFrame.from_dict(dict_of_model_stats)
@@ -80,20 +83,51 @@ def model_ap():
     list_of_aps.append([print(x['relevance'])
                         for x in evaluation_results_df['results_part_2']])
     """
-    return model_ap_results[['model_name', 'ap']].groupby(['model_name']).mean()
+    return model_ap_results[[investigate_by, 'ap']].groupby([investigate_by]).mean()
 
 
-def models_complete_statistics():
+def model_variant_ap(variant=None):
+    evaluation_results_df = evaluation_results.get_results_dataframe()
+    print(evaluation_results_df.head(10).to_string())
+
+    if variant is not None:
+        evaluation_results_df = evaluation_results_df.loc[evaluation_results_df['model_variant'] == variant]
+
+    dict_of_model_stats = {}
+    list_of_aps = []
+    list_of_models = []
+    list_of_models.append([x for x in evaluation_results_df['model_variant']])
+
+    print(list_of_aps)
+    print(list_of_models)
+
+    dict_of_model_stats = {'ap': list_of_aps[0], 'model_variant': list_of_models[0]}
+    print(dict_of_model_stats)
+
+    model_ap_results = pd.DataFrame.from_dict(dict_of_model_stats)
+    """
+    list_of_aps.append([print(x['relevance'])
+                        for x in evaluation_results_df['results_part_2']])
+    """
+    return model_ap_results[['model_variant', 'ap']].groupby(['model_variant']).mean()
+
+
+def models_complete_statistics(investigate_by='model_name', k=5, save_results_for_every_item=False):
     evaluation_results_df = evaluation_results.get_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
     list_of_models = []
-    list_of_models.append([x for x in evaluation_results_df['model_name']])
+    list_of_models.append([x for x in evaluation_results_df[investigate_by]])
+    if save_results_for_every_item:
+        list_of_slugs = []
+        list_of_slugs.append([x for x in evaluation_results_df['query_slug']])
     print(list_of_models)
+    print("evaluation_results_df['results_part_2']")
+    print(evaluation_results_df['results_part_2'].to_string())
 
     print("AVERAGE PRECISION:")
     list_of_aps = []
-    list_of_aps.append([average_precision_score(x['relevance'], x['coefficient'])
+    list_of_aps.append([average_precision_score(x['relevance'], x['coefficient'], average='weighted')
                         if len(x['relevance']) == len(x['coefficient'])
                         else ValueError("Lengths of arrays in relevance and coefficient does not match.")
                         for x in evaluation_results_df['results_part_2']])
@@ -103,7 +137,7 @@ def models_complete_statistics():
     y_pred = np.full((1, 20), 1)[0]
     print("WEIGHTED PRECISION SCORE:")
     list_of_ps = []
-    list_of_ps.append([precision_score(x['relevance'], y_pred, average='weighted')
+    list_of_ps.append([precision_score(x['relevance'], y_pred, average='macro')
                         if len(x['relevance']) == len(x['coefficient'])
                         else ValueError("Lengths of arrays in relevance and coefficient does not match.")
                         for x in evaluation_results_df['results_part_2']])
@@ -120,7 +154,7 @@ def models_complete_statistics():
     true_relevance = y_true
     scores = y_scores
     """
-    print("DCG AT K:")
+    print("DCG:")
     list_of_dcgs = []
     list_of_dcgs.append([dcg_score([x['relevance']], [y_pred])
                                         if len(x['relevance']) == len(x['coefficient'])
@@ -131,7 +165,7 @@ def models_complete_statistics():
 
     print("DCG AT K=5:")
     list_of_dcg_at_k = []
-    list_of_dcg_at_k.append([dcg_score([x['relevance']], [y_pred], k=5)
+    list_of_dcg_at_k.append([dcg_score([x['relevance']], [y_pred], k=k)
                                         if len(x['relevance']) == len(x['coefficient'])
                                         else ValueError(
         "Lengths of arrays in relevance and coefficient does not match.")
@@ -158,7 +192,7 @@ def models_complete_statistics():
 
     print("NDCG AT 5:")
     list_of_ndcgs_at_k = []
-    list_of_ndcgs_at_k.append([ndcg_score([x['relevance']], [y_pred], k=5)
+    list_of_ndcgs_at_k.append([ndcg_score([x['relevance']], [y_pred], k=k)
                           if len(x['relevance']) == len(x['coefficient'])
                           else ValueError(
         "Lengths of arrays in relevance and coefficient does not match.")
@@ -180,7 +214,7 @@ def models_complete_statistics():
 
     list_of_precisions = []
     print("PRECISION SCORE:")
-    list_of_precisions.append([precision_score(x['relevance'], y_pred, average=None)
+    list_of_precisions.append([precision_score(x['relevance'], y_pred, average='macro')
                                if len(x['relevance']) == len(x['coefficient'])
                                else ValueError(
         "Lengths of arrays in relevance and coefficient does not match.")
@@ -199,31 +233,101 @@ def models_complete_statistics():
 
     # completation of results
     # TODO: Add other columns
-    dict_of_model_stats = {'ap': list_of_aps[0], 'model_name': list_of_models[0]}
+    dict_of_model_stats = {'AP': list_of_aps[0], 'precision_score': list_of_ps[0],
+                           'balanced_accuracies': list_of_balanced_accuracies[0],
+                           'DCG': list_of_dcgs[0], 'DCG_AT_' + str(k): list_of_dcg_at_k,
+                           'F1-SCORE': list_of_f1_score[0], 'NDCG': list_of_ndcgs[0],
+                           'NDCG_AT_' + str(k): list_of_ndcgs_at_k[0],
+                           investigate_by: list_of_models[0], 'slug': list_of_slugs[0]}
     print(dict_of_model_stats)
 
     model_results = pd.DataFrame.from_dict(dict_of_model_stats, orient='index').transpose()
-    
-    return model_results
+
+    model_results = model_results.fillna(0)
+    print("Model results:")
+    print(model_results.to_string())
+    if save_results_for_every_item:
+        print("Saving also results for every item.")
+        path_to_resuts = 'save_relevance_results_by_queries.csv'
+        recommender_methods = RecommenderMethods()
+        posts_categories__ratings_df = recommender_methods.join_posts_ratings_categories()
+        categories_df = posts_categories__ratings_df[['category_title', 'post_slug']]
+        model_results_joined_with_category = pd.merge(model_results, categories_df, left_on='slug', right_on='post_slug', how='')
+        model_results_joined_with_category.to_csv(path_to_resuts, index=False)
+
+    else:
+        model_results = model_results.drop(['slug'])
+
+    return model_results.groupby([investigate_by]).mean()
 
 
-def print_confusion_matrix():
+def plot_confusion_matrix(cm, title):
+    plt.tight_layout()
+
+    ax = sns.heatmap(cm, annot=True, cmap='Blues')
+
+    ax.set_title(title)
+
+    ax.set_xlabel('\nPredicted Values')
+    ax.set_ylabel('Actual Values ')
+
+    ## Ticket labels - List must be in alphabetical order
+    ax.xaxis.set_ticklabels(['False', 'True'])
+    ax.yaxis.set_ticklabels(['False', 'True'])
+    plt.tight_layout()
+
+    ## Display the visualization of the Confusion Matrix.
+    plt.show()
+
+
+def show_confusion_matrix():
+    print("Please be awware that confusion matrix is only ")
     evaluation_results_df = evaluation_results.get_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
     list_of_models = []
+    list_of_models.append([x for x in evaluation_results_df['model_variant']])
+    print(list_of_models)
+
+    y_pred = np.full((1, 20), 1)[0]
+
     list_of_models.append([x for x in evaluation_results_df['model_name']])
     print(list_of_models)
 
     print("AVERAGE PRECISION:")
     list_of_confusion_matrices = []
-    list_of_confusion_matrices.append([confusion_matrix(x['relevance'], x['coefficient'])
+    list_of_confusion_matrices.append([confusion_matrix(x['relevance'], y_pred)
                         if len(x['relevance']) == len(x['coefficient'])
                         else ValueError("Lengths of arrays in relevance and coefficient does not match.")
                         for x in evaluation_results_df['results_part_2']])
 
     print("CONFUSION MATRIX:")
 
+    print(list_of_confusion_matrices)
+    # for cm in list_of_confusion_matrices:
+    np.set_printoptions(precision=2)
+    print('Confusion matrix, without normalization')
+    cm = list_of_confusion_matrices[0][0]
+    list_of_confusion_matrices_selected = []
+    for row in list_of_confusion_matrices:
+        for item in row:
+            print("item")
+            print(type(item))
+            if item.shape == (2,2):
+                item = np.asmatrix(item)
+                print("item after convrsion to matrix")
+                print(item)
+                list_of_confusion_matrices_selected.append(item)
 
-stats = models_complete_statistics()
-print(stats)
+    print("list_of_confusion_matrices_selected:")
+    print(list_of_confusion_matrices_selected)
+    cm_mean = np.mean(list_of_confusion_matrices_selected, axis=0)
+    print(cm_mean)
+    plt.figure()
+    plot_confusion_matrix(cm_mean, "Confusion matrix")
+
+
+stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=True)
+print("Means of model's metrics:")
+print(stats.to_string())
+# print(show_confusion_matrix())
