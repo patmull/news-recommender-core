@@ -5,7 +5,7 @@ import re
 import gensim
 import numpy as np
 from gensim.corpora import Dictionary
-from gensim.models import TfidfModel, KeyedVectors
+from gensim.models import TfidfModel
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix, SoftCosineSimilarity
 from gensim.similarities.annoy import AnnoyIndexer
 from scipy import spatial
