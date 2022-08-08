@@ -36,9 +36,13 @@ with warnings.catch_warnings():
     recommender_methods.database.insert_posts_dataframe_to_cache()
     run_prefilling() 
 """
-
 word2vec = Word2VecClass()
 word2vec.final_training_idnes_model()
+
+"""
+doc2vec = Doc2VecClass()
+doc2vec.train_final_doc2vec_model_idnes()
+"""
 
 """
 word2vec = Word2VecClass()
