@@ -3,7 +3,7 @@ import random
 
 import pandas as pd
 
-from content_based_algorithms.word2vec import CzLemma
+from content_based_algorithms.word2vec import CzPreprocess
 from data_connection import Database
 
 
@@ -33,7 +33,7 @@ class PreFillerAdditional():
             time.sleep(5)
             random.shuffle(posts_categories)
 
-        cz_lemma = CzLemma()
+        cz_lemma = CzPreprocess()
 
         for post in posts_categories:
             if len(posts_categories) < 1:
@@ -116,7 +116,7 @@ class PreFillerAdditional():
             time.sleep(5)
             random.shuffle(posts)
 
-        cz_lemma = CzLemma()
+        cz_lemma = CzPreprocess()
 
         for post in posts:
             if len(posts) < 1:
@@ -183,7 +183,7 @@ class PreFillerAdditional():
             time.sleep(5)
             random.shuffle(posts)
 
-        cz_lemma = CzLemma()
+        cz_lemma = CzPreprocess()
 
         for post in posts:
             if len(posts) < 1:
