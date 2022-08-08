@@ -551,7 +551,8 @@ class Doc2VecClass:
                                                                                  window=window,
                                                                                  min_count=min_count,
                                                                                  epochs=epochs,
-                                                                                 sample=sample)
+                                                                                 sample=sample,
+                                                                                 force_update_model=True)
 
             print(word_pairs_eval[0][0])
             model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
@@ -671,4 +672,126 @@ class Doc2VecClass:
 
     def create_corpus_from_mongo_idnes(self, dict, force_update):
         pass
+
+    def train_final_doc2vec_model_idnes(self):
+
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+        # Enabling Word2Vec logging
+        logging.basicConfig(format="%(asctime)s:%(levelname)s:%(message)s",
+                            level=logging.NOTSET)
+        logger = logging.getLogger()  # get the root logger
+        logger.info("Testing file write")
+
+        print("Building sentences...")
+        # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
+        sentences = []
+        client = MongoClient("localhost", 27017, maxPoolSize=50)
+        db = client.idnes
+        collection = db.preprocessed_articles_bigrams
+        cursor = collection.find({})
+        for document in cursor:
+            # joined_string = ' '.join(document['text'])
+            # sentences.append([joined_string])
+            sentences.append(document['text'])
+        # TODO:
+        train_corpus, test_corpus = train_test_split(sentences, test_size=0.2, shuffle=True)
+        train_corpus = list(self.create_tagged_document(sentences))
+
+        print("print(train_corpus[:2])")
+        print(print(train_corpus[:2]))
+        print("print(test_corpus[:2])")
+        print(print(test_corpus[:2]))
+
+        #train_corpus = corpus
+        #test_corpus = corpus
+
+        # corpus = list(self.read_corpus(path_to_corpus))
+
+        model_variant = 1  # sg parameter: 0 = CBOW; 1 = Skip-Gram
+        hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
+        negative_sampling_variant = 15  # 0 = no negative sampling
+        no_negative_sampling = 0  # use with hs_soft_max
+        # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
+        vector_size= 100
+        # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
+        window = 20
+        min_count = 8
+        epoch = 30
+        sample = 1.0 * (10.0 ** -5.0)
+        hs_softmax = 0
+
+        corpus_title = ['100% Corpus']
+        model_results = {'Validation_Set': [],
+                         'Model_Variant': [],
+                         'Negative': [],
+                         'Vector_size': [],
+                         'Window': [],
+                         'Min_count': [],
+                         'Epochs': [],
+                         'Sample': [],
+                         'Softmax': [],
+                         'Word_pairs_test_Pearson_coeff': [],
+                         'Word_pairs_test_Pearson_p-val': [],
+                         'Word_pairs_test_Spearman_coeff': [],
+                         'Word_pairs_test_Spearman_p-val': [],
+                         'Word_pairs_test_Out-of-vocab_ratio': [],
+                         'Analogies_test': []
+                         }
+        pbar = tqdm.tqdm(total=540)
+
+        # hs_softmax = random.choice(hs_softmax_variants)
+        # TODO: Get Back random choice!!!
+        # This is temporary due to adding softmax one values to results after fixed tab indent in else.
+        model_variant = model_variant
+        vector_size = vector_size
+        window = window
+        min_count = min_count
+        epochs = epoch
+        sample = sample
+        negative_sampling_variant = negative_sampling_variant
+
+        if hs_softmax == 1:
+            word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(train_corpus=train_corpus,
+                                                                             test_corpus=test_corpus,
+                                                                             model_variant=model_variant,
+                                                                             negative_sampling_variant=no_negative_sampling,
+                                                                             vector_size=vector_size,
+                                                                             window=window,
+                                                                             min_count=min_count,
+                                                                             epochs=epochs,
+                                                                             sample=sample,
+                                                                             force_update_model=True)
+        else:
+            word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(train_corpus=train_corpus,
+                                                                             test_corpus=test_corpus,
+                                                                             model_variant=model_variant,
+                                                                             negative_sampling_variant=negative_sampling_variant,
+                                                                             vector_size=vector_size,
+                                                                             window=window,
+                                                                             min_count=min_count,
+                                                                             epochs=epochs,
+                                                                             sample=sample)
+
+        print(word_pairs_eval[0][0])
+        model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
+        model_results['Model_Variant'].append(model_variant)
+        model_results['Negative'].append(negative_sampling_variant)
+        model_results['Vector_size'].append(vector_size)
+        model_results['Window'].append(window)
+        model_results['Min_count'].append(min_count)
+        model_results['Epochs'].append(epochs)
+        model_results['Sample'].append(sample)
+        model_results['Softmax'].append(hs_softmax)
+        model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
+        model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
+        model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
+        model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
+        model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
+        model_results['Analogies_test'].append(analogies_eval)
+
+        pbar.update(1)
+        pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search_final.csv', index=False,
+                                           mode="w")
+        print("Saved training results...")
 
