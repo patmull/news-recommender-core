@@ -8,6 +8,7 @@ from sklearn.metrics import average_precision_score, precision_score, balanced_a
 
 import evaluation_results
 
+warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 
 def try_statistics():
     y_true = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1])
@@ -224,6 +225,5 @@ def print_confusion_matrix():
     print("CONFUSION MATRIX:")
 
 
-warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 stats = models_complete_statistics()
 print(stats)
