@@ -135,7 +135,7 @@ class RecommenderMethods:
         self.database.disconnect()
         print("self.results_df:")
         print(results_df)
-        results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name']]
+        results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name', 'model_variant']]
         return results_df_
 
     def refresh_cached_db_file(self):
@@ -171,8 +171,8 @@ class RecommenderMethods:
                 self.posts_df.drop_duplicates(subset=['title'], inplace=True)
                 print(self.df.columns.values)
                 self.df = self.df[
-                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-                     'all_features_preprocessed', 'body_preprocessed',
+                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                     'description', 'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text', 'trigrams_full_text']]
         print("4.3")
         print(self.df.columns)
