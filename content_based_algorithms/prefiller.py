@@ -75,6 +75,12 @@ class PreFiller:
                     current_recommended = post[29]
                 elif method == "word2vec_eval_1":
                     current_recommended = post[33]
+                elif method == "word2vec_eval_2":
+                    current_recommended = post[34]
+                elif method == "word2vec_eval_3":
+                    current_recommended = post[35]
+                elif method == "word2vec_eval_4":
+                    current_recommended = post[36]
                 else:
                     current_recommended = None
 
