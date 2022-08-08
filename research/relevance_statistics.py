@@ -12,6 +12,7 @@ from content_based_algorithms.data_queries import RecommenderMethods
 
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 
+warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 
 def try_statistics():
     y_true = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1])
@@ -301,6 +302,7 @@ def show_confusion_matrix():
                         for x in evaluation_results_df['results_part_2']])
 
     print("CONFUSION MATRIX:")
+
     print(list_of_confusion_matrices)
     # for cm in list_of_confusion_matrices:
     np.set_printoptions(precision=2)
