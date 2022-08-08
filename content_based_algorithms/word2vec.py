@@ -6,22 +6,17 @@ import os
 import pickle
 import random
 import re
-import string
 import time
 from collections import defaultdict
 
 import gensim
-import majka
-import numpy as np
 import psycopg2
 import pymongo as pymongo
 import regex
 import tqdm
 from gensim import corpora
-from gensim.models import KeyedVectors, Word2Vec, LdaModel
+from gensim.models import KeyedVectors, Word2Vec
 from gensim.utils import deaccent
-from html2text import html2text
-from nltk import FreqDist, RegexpTokenizer
 from pymongo import MongoClient
 
 from content_based_algorithms import data_queries
@@ -32,7 +27,7 @@ import pandas as pd
 import time as t
 
 from data_connection import Database
-from preprocessing.cz_preprocessing import CzPreprocess, cz_stopwords, general_stopwords
+from preprocessing.cz_preprocessing import CzPreprocess
 from reader import MongoReader
 
 PATH_TO_UNPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs-unprocessed.txt'
@@ -66,107 +61,6 @@ class MyCorpus(object):
             print("\rDoc. num. " + str(i), end='')
             yield self.dictionary.doc2bow(doc.get('text'))
             i = i + 1
-
-
-@DeprecationWarning
-class CzLemma:
-
-    def __init__(self):
-        self.df = None
-        self.categories_df = None
-
-    # pre-worked
-    def preprocess(self, sentence, stemming=False, lemma=True):
-        # print(sentence)
-        sentence = str(sentence)
-        sentence = sentence.lower()
-        sentence = sentence.replace('{html}', "")
-        cleanr = re.compile('<.*?>')
-        cleantext = re.sub(cleanr, '', sentence)
-        cleantext.translate(str.maketrans('', '', string.punctuation))  # removing punctuation
-
-        a_string = cleantext.split('=References=')[0]  # remove references and everything afterwards
-        a_string = html2text(a_string).lower()  # remove HTML tags, convert to lowercase
-        a_string = re.sub(r'https?:\/\/.*?[\s]', '', a_string)  # remove URLs
-
-        # 'ToktokTokenizer' does divide by '|' and '\n', but retaining this
-        #   statement seems to improve its speed a little
-        a_string = a_string.replace('|', ' ').replace('\n', ' ')
-
-        rem_url = re.sub(r'http\S+', '', cleantext)
-        rem_num = re.sub('[0-9]+', '', rem_url)
-        # print("rem_num")
-        # print(rem_num)
-        tokenizer = RegexpTokenizer(r'\w+')
-        tokens = tokenizer.tokenize(rem_num)
-        # print("tokens")
-        # print(tokens)
-
-        tokens = [w for w in tokens if '=' not in w]  # remove remaining tags and the like
-        string_punctuation = list(string.punctuation)
-        tokens = [w for w in tokens if not
-        all(x.isdigit() or x in string_punctuation for x in w)] # remove tokens that are all punctuation
-        tokens = [w.strip(string.punctuation) for w in tokens]  # remove stray punctuation attached to words
-        tokens = [w for w in tokens if len(w) > 1]  # remove single characters
-        tokens = [w for w in tokens if not any(x.isdigit() for x in w)]  # remove everything with a digit in it
-
-        edited_words = [self.cz_lemma(w) for w in tokens]
-        edited_words = list(filter(None, edited_words))  # empty strings removal
-
-        # removing stopwords
-        edited_words = [word for word in edited_words if word not in cz_stopwords]
-        edited_words = [word for word in edited_words if word not in general_stopwords]
-
-        return " ".join(edited_words)
-
-    @DeprecationWarning
-    def preprocess_single_post_find_by_slug(self, slug, json=False, stemming=False):
-        recommenderMethods = RecommenderMethods()
-        post_dataframe = recommenderMethods.find_post_by_slug(slug)
-        post_dataframe["title"] = post_dataframe["title"].map(lambda s: self.preprocess(s, stemming))
-        post_dataframe["excerpt"] = post_dataframe["excerpt"].map(lambda s: self.preprocess(s, stemming))
-        if json is False:
-            return post_dataframe
-        else:
-            return recommenderMethods.convert_df_to_json(post_dataframe)
-
-    @DeprecationWarning
-    def preprocess_feature(self, feature_text, stemming=False):
-        post_excerpt_preprocessed = self.preprocess(feature_text, stemming)
-        return post_excerpt_preprocessed
-
-    @DeprecationWarning
-    def cz_lemma(self, string, json=False):
-        morph = majka.Majka('morphological_database/majka.w-lt')
-
-        morph.flags |= majka.ADD_DIACRITICS  # find word forms with diacritics
-        morph.flags |= majka.DISALLOW_LOWERCASE  # do not enable to find lowercase variants
-        morph.flags |= majka.IGNORE_CASE  # ignore the word case whatsoever
-        morph.flags = 0  # unset all flags
-
-        morph.tags = False  # return just the lemma, do not process the tags
-        morph.tags = True  # turn tag processing back on (default)
-
-        morph.compact_tag = True  # return tag in compact form (as returned by Majka)
-        morph.compact_tag = False  # do not return compact tag (default)
-
-        morph.first_only = True  # return only the first entry
-        morph.first_only = False  # return all entries (default)
-
-        morph.tags = False
-        morph.first_only = True
-        morph.negative = "ne"
-
-        ls = morph.find(string)
-
-        if json is not True:
-            if not ls:
-                return string
-            else:
-                # # print(ls[0]['lemma'])
-                return str(ls[0]['lemma'])
-        else:
-            return ls
 
 
 class Reader(object):
@@ -214,75 +108,6 @@ class Word2VecClass:
         self.documents = None
         self.df = None
         self.database = Database()
-
-    @DeprecationWarning
-    def get_posts_dataframe(self):
-        self.posts_df = self.database.get_posts_dataframe_from_cache()
-        self.posts_df.drop_duplicates(subset=['title'], inplace=True)
-        return self.posts_df
-
-    @DeprecationWarning
-    def get_categories_dataframe(self):
-        self.database.connect()
-        self.categories_df = self.database.get_categories_dataframe(pd)
-        self.database.disconnect()
-        return self.categories_df
-
-    @DeprecationWarning
-    def join_posts_ratings_categories(self):
-        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-        # clean up from unnecessary columns
-        self.df = self.df[
-            ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-             'all_features_preprocessed']]
-
-    @DeprecationWarning
-    def join_posts_ratings_categories_full_text(self):
-        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-        # clean up from unnecessary columns
-        self.df = self.df[
-            ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-             'all_features_preprocessed', 'body_preprocessed', 'full_text']]
-
-    def prepare_word2vec_eval(self):
-        recommenderMethods = RecommenderMethods()
-
-        self.get_posts_dataframe()
-        self.get_categories_dataframe()
-        self.join_posts_ratings_categories()
-
-        del self.posts_df
-        del self.categories_df
-
-        documents_df = pd.DataFrame()
-        documents_training_df = pd.DataFrame()
-
-        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
-            "all_features_preprocessed"]
-        documents_df["slug"] = self.df["slug"]
-
-        documents_training_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + " " + self.df[
-            "all_features_preprocessed"]
-        documents_training_df["features_to_use"] = documents_training_df["features_to_use"].replace(",", "")
-        documents_training_df["features_to_use"] = documents_training_df["features_to_use"].str.split(" ")
-
-        texts = documents_training_df["features_to_use"].tolist()
-        texts = data_queries.remove_stopwords(texts)
-
-        del self.df
-
-        # documents_df['features_combined'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
-        # documents = list(map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
-
-        # Uncomment for change of model
-        # self.refresh_model()
-
-        # word2vec_embedding = KeyedVectors.load_texts(self.amazon_bucket_url)
-        # self.amazon_bucket_url#
-
-        print("Loading Word2Vec FastText (Wikipedia) model...")
-        # word2vec_embedding = KeyedVectors.load_texts("models/w2v_model_limited")
-        self.find_optimal_model_idnes(texts)
 
     # @profile
     def get_similar_word2vec(self, searched_slug, model="idnes", docsim_index=None, dictionary=None):
@@ -335,6 +160,7 @@ class Word2VecClass:
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
 
+        global most_similar_articles_with_scores
         if model == "wiki":
             w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
             print("Similarities on Wikipedia.cz model:")
@@ -366,10 +192,9 @@ class Word2VecClass:
                 print("Docsim or dictionary is not passed into method. Loading.")
                 docsim_index, dictionary = ds.load_docsim_index_and_dictionary()
             most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post, docsim_index,
-                                                                                           dictionary,
-                                                                                           list_of_document_features)[:21]
-
-
+                                                                                           dictionary, list_of_document_features)[:21]
+        else:
+            ValueError("No from option is available.")
         # removing post itself
         if len(most_similar_articles_with_scores) > 0:
             print("most_similar_articles_with_scores:")
@@ -599,7 +424,7 @@ class Word2VecClass:
         print("Loading word2vec model...")
         self.save_full_model_to_smaller()
 
-    def find_optimal_model_idnes(self, random_search=False, number_of_trials=512):
+    def find_optimal_model(self, source, random_search=False, number_of_trials=512):
         """
         number_of_trials: default value according to random search study: https://dl.acm.org/doi/10.5555/2188385.2188395
         """
@@ -611,17 +436,16 @@ class Word2VecClass:
         logger = logging.getLogger()  # get the root logger
         logger.info("Testing file write")
 
-        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_trigrams')
-        print("Building sentences...")
-        sentences = [doc.get('text') for doc in reader.iterate()]
-        # sentences = [doc.get('text') for doc in reader.iterate()]
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-        # sentences = MyCorpus(dictionary)
-        # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
         sentences = []
 
         client = MongoClient("localhost", 27017, maxPoolSize=50)
-        db = client.idnes
+        global db
+        if source == "idnes":
+            db = client.idnes
+        elif source == "cswiki":
+            db = client.cswiki
+        else:
+            ValueError("No from selected sources are in options.")
         collection = db.preprocessed_articles_trigrams
         cursor = collection.find({})
         for document in cursor:
@@ -643,7 +467,8 @@ class Word2VecClass:
         min_count_range = [0, 1, 2, 3, 5, 8, 12]
         epochs_range = [20, 25, 30]
         sample_range = [0.0, 1.0 * (10.0 ** -1.0), 1.0 * (10.0 ** -2.0), 1.0 * (10.0 ** -3.0), 1.0 * (10.0 ** -4.0),
-                        1.0 * (10.0 ** -5.0)]  # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
+                        1.0 * (10.0 ** -5.0)]
+        # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
 
         corpus_title = ['100% Corpus']
         model_results = {'Validation_Set': [],
@@ -673,24 +498,24 @@ class Word2VecClass:
                                     for sample in sample_range:
                                         for hs_softmax in hs_softmax_variants:
                                             if hs_softmax == 1:
-                                                word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                                                                 model_variant=model_variant,
-                                                                                                                 negative_sampling_variant=no_negative_sampling,
-                                                                                                                 vector_size=vector_size,
-                                                                                                                 window=window,
-                                                                                                                 min_count=min_count,
-                                                                                                                 epochs=epochs,
-                                                                                                                 sample=sample,
-                                                                                                                 force_update_model=True)
+                                                word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, source=source,
+                                                                                                      model_variant=model_variant,
+                                                                                                      negative_sampling_variant=no_negative_sampling,
+                                                                                                      vector_size=vector_size,
+                                                                                                      window=window,
+                                                                                                      min_count=min_count,
+                                                                                                      epochs=epochs,
+                                                                                                      sample=sample,
+                                                                                                      force_update_model=True)
                                             else:
-                                                word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                                                                 model_variant=model_variant,
-                                                                                                                 negative_sampling_variant=negative_sampling_variant,
-                                                                                                                 vector_size=vector_size,
-                                                                                                                 window=window,
-                                                                                                                 min_count=min_count,
-                                                                                                                 epochs=epochs,
-                                                                                                                 sample=sample)
+                                                word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, source=source,
+                                                                                                      model_variant=model_variant,
+                                                                                                      negative_sampling_variant=negative_sampling_variant,
+                                                                                                      vector_size=vector_size,
+                                                                                                      window=window,
+                                                                                                      min_count=min_count,
+                                                                                                      epochs=epochs,
+                                                                                                      sample=sample)
 
                                             print(word_pairs_eval[0][0])
                                             model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
@@ -710,7 +535,7 @@ class Word2VecClass:
                                             model_results['Analogies_test'].append(analogies_eval)
 
                                             pbar.update(1)
-                                            pd.DataFrame(model_results).to_csv('word2vec_tuning_results.csv', index=False,
+                                            pd.DataFrame(model_results).to_csv('word2vec_tuning_results_cswiki.csv', index=False,
                                                                                mode="w")
                                             print("Saved training results...")
         else:
@@ -725,28 +550,28 @@ class Word2VecClass:
                 negative_sampling_variant = random.choice(negative_sampling_variants)
 
                 if hs_softmax == 1:
-                    word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                                     model_variant=model_variant,
-                                                                                     negative_sampling_variant=no_negative_sampling,
-                                                                                     vector_size=vector_size,
-                                                                                     window=window,
-                                                                                     min_count=min_count,
-                                                                                     epochs=epochs,
-                                                                                     sample=sample,
-                                                                                     force_update_model=True)
+                    word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, source=source,
+                                                                          model_variant=model_variant,
+                                                                          negative_sampling_variant=no_negative_sampling,
+                                                                          vector_size=vector_size,
+                                                                          window=window,
+                                                                          min_count=min_count,
+                                                                          epochs=epochs,
+                                                                          sample=sample,
+                                                                          force_update_model=True)
                 else:
-                    word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                                     model_variant=model_variant,
-                                                                                     negative_sampling_variant=negative_sampling_variant,
-                                                                                     vector_size=vector_size,
-                                                                                     window=window,
-                                                                                     min_count=min_count,
-                                                                                     epochs=epochs,
-                                                                                     sample=sample,
-                                                                                     force_update_model=True)
+                    word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, source=source,
+                                                                          model_variant=model_variant,
+                                                                          negative_sampling_variant=negative_sampling_variant,
+                                                                          vector_size=vector_size,
+                                                                          window=window,
+                                                                          min_count=min_count,
+                                                                          epochs=epochs,
+                                                                          sample=sample,
+                                                                          force_update_model=True)
 
                 print(word_pairs_eval[0][0])
-                model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
+                model_results['Validation_Set'].append("cs.wikipedia.org " + corpus_title[0])
                 model_results['Model_Variant'].append(model_variant)
                 model_results['Negative'].append(negative_sampling_variant)
                 model_results['Vector_size'].append(vector_size)
@@ -763,11 +588,19 @@ class Word2VecClass:
                 model_results['Analogies_test'].append(analogies_eval)
 
                 pbar.update(1)
-                pd.DataFrame(model_results).to_csv('word2vec_tuning_results_random_search.csv', index=False,
+                if source == "idnes":
+                    pd.DataFrame(model_results).to_csv('word2vec_tuning_results_random_search_idnes.csv', index=False,
                                                    mode="w")
-                print("Saved training results...")
+                    print("Saved training results...")
+                elif source == "cswiki":
+                    pd.DataFrame(model_results).to_csv('word2vec_tuning_results_random_search_cswiki.csv', index=False,
+                                                       mode="w")
+                    print("Saved training results...")
+                else:
+                    ValueError("No from selected models is in options.")
         pbar.close()
 
+    @DeprecationWarning
     def find_optimal_model_idnes_phase_2(self):
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
@@ -839,24 +672,24 @@ class Word2VecClass:
                                 for sample in sample_range:
                                     for hs_softmax in hs_softmax_variants:
                                         if hs_softmax == 1:
-                                            word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                                                             model_variant=model_variant,
-                                                                                                             negative_sampling_variant=no_negative_sampling,
-                                                                                                             vector_size=vector_size,
-                                                                                                             window=window,
-                                                                                                             min_count=min_count,
-                                                                                                             epochs=epochs,
-                                                                                                             sample=sample,
-                                                                                                             force_update_model=True)
+                                            word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences,
+                                                                                                  model_variant=model_variant,
+                                                                                                  negative_sampling_variant=no_negative_sampling,
+                                                                                                  vector_size=vector_size,
+                                                                                                  window=window,
+                                                                                                  min_count=min_count,
+                                                                                                  epochs=epochs,
+                                                                                                  sample=sample,
+                                                                                                  force_update_model=True)
                                         else:
-                                            word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                                                             model_variant=model_variant,
-                                                                                                             negative_sampling_variant=negative_sampling_variant,
-                                                                                                             vector_size=vector_size,
-                                                                                                             window=window,
-                                                                                                             min_count=min_count,
-                                                                                                             epochs=epochs,
-                                                                                                             sample=sample)
+                                            word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences,
+                                                                                                  model_variant=model_variant,
+                                                                                                  negative_sampling_variant=negative_sampling_variant,
+                                                                                                  vector_size=vector_size,
+                                                                                                  window=window,
+                                                                                                  min_count=min_count,
+                                                                                                  epochs=epochs,
+                                                                                                  sample=sample)
 
                                         print(word_pairs_eval[0][0])
                                         model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
@@ -881,130 +714,43 @@ class Word2VecClass:
                                         print("Saved training results...")
         pbar.close()
 
-    def final_training_idnes_model(self):
-        """
-        Method for running final evaluation based on selected parameters (i.e. through random search).
-        """
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
-        # Enabling Word2Vec logging
-        logging.basicConfig(format="%(asctime)s:%(levelname)s:%(message)s",
-                            level=logging.NOTSET)
-        logger = logging.getLogger()  # get the root logger
-        logger.info("Testing file write")
-        # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
-        sentences = []
-
-        client = MongoClient("localhost", 27017, maxPoolSize=50)
-        db = client.idnes
-        collection = db.preprocessed_articles_trigrams
-        cursor = collection.find({})
-        for document in cursor:
-            sentences.append(document['text'])
-        print("Sentences build into type of:")
-        print(type(sentences))
-        print(sentences[0:100])
-
-        model_variant = 1  # sg parameter: 0 = CBOW; 1 = Skip-Gram
-        negative_sampling_variant = 15  # 0 = no negative sampling
-        no_negative_sampling = 0  # use with hs_soft_max
-        # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        vector_size = 250
-        # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        window = 20
-        min_count = 5
-        epochs = 25
-        sample = 0.0
-        hs_softmax = 0  # 1 = Hierarchical SoftMax
-
-        # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
-
-        corpus_title = ['100% Corpus']
-        model_results = {'Validation_Set': [],
-                         'Model_Variant': [],
-                         'Negative': [],
-                         'Vector_size': [],
-                         'Window': [],
-                         'Min_count': [],
-                         'Epochs': [],
-                         'Sample': [],
-                         'Softmax': [],
-                         'Word_pairs_test_Pearson_coeff': [],
-                         'Word_pairs_test_Pearson_p-val': [],
-                         'Word_pairs_test_Spearman_coeff': [],
-                         'Word_pairs_test_Spearman_p-val': [],
-                         'Word_pairs_test_Out-of-vocab_ratio': [],
-                         'Analogies_test': []
-                         }  # Can take a long time to run
-        pbar = tqdm.tqdm(total=540)
-
-        if hs_softmax == 1:
-            word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                             model_variant=model_variant,
-                                                                             negative_sampling_variant=no_negative_sampling,
-                                                                             vector_size=vector_size,
-                                                                             window=window,
-                                                                             min_count=min_count,
-                                                                             epochs=epochs,
-                                                                             sample=sample,
-                                                                             force_update_model=True,
-                                                                             )
+    def evaluate_model(self, source, sentences=None, model_variant=None, negative_sampling_variant=None,
+                       vector_size=None, window=None, min_count=None,
+                       epochs=None, sample=None, force_update_model=True,
+                       use_defaul_model=False, save_model=True):
+        global model_path
+        if source == "idnes":
+            model_path = "models/w2v_idnes.model"
+        elif source == "cswiki":
+            model_path = "models/w2v_cswiki.model"
         else:
-            word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                             model_variant=model_variant,
-                                                                             negative_sampling_variant=negative_sampling_variant,
-                                                                             vector_size=vector_size,
-                                                                             window=window,
-                                                                             min_count=min_count,
-                                                                             epochs=epochs,
-                                                                             sample=sample,
-                                                                             force_update_model=True,
-                                                                             )
+            ValueError("Wrong source of the model was chosen.")
 
-        print(word_pairs_eval[0][0])
-        model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
-        model_results['Model_Variant'].append(model_variant)
-        model_results['Negative'].append(negative_sampling_variant)
-        model_results['Vector_size'].append(vector_size)
-        model_results['Window'].append(window)
-        model_results['Min_count'].append(min_count)
-        model_results['Epochs'].append(epochs)
-        model_results['Sample'].append(sample)
-        model_results['Softmax'].append(hs_softmax)
-        model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
-        model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
-        model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
-        model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
-        model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
-        model_results['Analogies_test'].append(analogies_eval)
-
-        pbar.update(1)
-        pd.DataFrame(model_results).to_csv('word2vec_final_evaluation_results.csv', index=False,
-                                           mode="a")
-        print("Saved training results...")
-        pbar.close()
-
-    def compute_eval_values_idnes(self, sentences=None, model_variant=None, negative_sampling_variant=None,
-                                  vector_size=None, window=None, min_count=None,
-                                  epochs=None, sample=None, force_update_model=True, model_path="models/w2v_idnes.model", 
-                                  use_defaul_model=False, save_model=True):
-        if os.path.isfile("models/w2v_idnes.model") is False or force_update_model is True:
-            print("Started training on iDNES.cz dataset...")
+        if os.path.isfile(model_path) is False or force_update_model is True:
+            if source == "idnes":
+                print("Started training on iDNES.cz dataset...")
+            elif source == "cswiki":
+                print("Started training on cs.Wikipedia.cz dataset...")
 
             if use_defaul_model is True:
                 # DEFAULT:
                 w2v_model = Word2Vec(sentences=sentences)
                 if save_model is True:
-                    w2v_model.save("models/w2v_idnes.model")
+                    if source == "idnes":
+                        w2v_model.save("models/w2v_idnes.model")
+                    elif source == "cswiki":
+                        w2v_model.save("models/w2v_cswiki.model")
             else:
                 # CUSTOM:
                 w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
                                     vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
                                     sample=sample, workers=7)
-                if save_model is True:
+                if source == "idnes":
                     w2v_model.save("models/w2v_idnes.model")
+                elif source == "cswiki":
+                    w2v_model.save("models/w2v_cswiki.model")
         else:
-            print("Loading Word2Vec iDNES.cz model from saved model file")
+            print("Loading Word2Vec model from saved model file")
             w2v_model = Word2Vec.load(model_path)
 
         path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
@@ -1022,183 +768,17 @@ class Word2VecClass:
             word_pairs_eval = w2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
 
         overall_score, _ = w2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
-        print("Analogies evaluation of iDnes.cz model:")
+        if source == "idnes":
+            print("Analogies evaluation of iDnes.cz model:")
+        elif source == "cswiki":
+            print("Analogies evaluation of cs.wikipedia.org model:")
+
         print(overall_score)
 
         return word_pairs_eval, overall_score
 
-    def find_optimal_model_cswiki(self, random_search=False, number_of_trials=512):
-        """
-        number_of_trials: default value according to random search study: https://dl.acm.org/doi/10.5555/2188385.2188395
-        """
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
-        # Enabling Word2Vec logging
-        logging.basicConfig(format="%(asctime)s:%(levelname)s:%(message)s",
-                            level=logging.NOTSET)
-        logger = logging.getLogger()  # get the root logger
-        logger.info("Testing file write")
-
-        reader = MongoReader(dbName='cswiki', collName='preprocessed_articles_trigrams')
-        print("Building sentences...")
-        sentences = [doc.get('text') for doc in reader.iterate()]
-        # sentences = [doc.get('text') for doc in reader.iterate()]
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-        # sentences = MyCorpus(dictionary)
-        # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
-        sentences = []
-
-        client = MongoClient("localhost", 27017, maxPoolSize=50)
-        db = client.idnes
-        collection = db.preprocessed_articles_trigrams
-        cursor = collection.find({})
-        for document in cursor:
-            # joined_string = ' '.join(document['text'])
-            # sentences.append([joined_string])
-            sentences.append(document['text'])
-        print("Sentences build into type of:")
-        print(type(sentences))
-        print(sentences[0:10])
-
-        model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
-        hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
-        negative_sampling_variants = range(5, 20, 5)  # 0 = no negative sampling
-        no_negative_sampling = 0  # use with hs_soft_max
-        # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        min_count_range = [0, 1, 2, 3, 5, 8, 12]
-        epochs_range = [20, 25, 30]
-        sample_range = [0.0, 1.0 * (10.0 ** -1.0), 1.0 * (10.0 ** -2.0), 1.0 * (10.0 ** -3.0), 1.0 * (10.0 ** -4.0),
-                        1.0 * (10.0 ** -5.0)]
-        # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
-
-        corpus_title = ['100% Corpus']
-        model_results = {'Validation_Set': [],
-                         'Model_Variant': [],
-                         'Negative': [],
-                         'Vector_size': [],
-                         'Window': [],
-                         'Min_count': [],
-                         'Epochs': [],
-                         'Sample': [],
-                         'Softmax': [],
-                         'Word_pairs_test_Pearson_coeff': [],
-                         'Word_pairs_test_Pearson_p-val': [],
-                         'Word_pairs_test_Spearman_coeff': [],
-                         'Word_pairs_test_Spearman_p-val': [],
-                         'Word_pairs_test_Out-of-vocab_ratio': [],
-                         'Analogies_test': []
-                         }  # Can take a long time to run
-        pbar = tqdm.tqdm(total=540)
-        if random_search is False:
-            for model_variant in model_variants:
-                for negative_sampling_variant in negative_sampling_variants:
-                    for vector_size in vector_size_range:
-                        for window in window_range:
-                            for min_count in min_count_range:
-                                for epochs in epochs_range:
-                                    for sample in sample_range:
-                                        for hs_softmax in hs_softmax_variants:
-                                            if hs_softmax == 1:
-                                                word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                                                                 model_variant=model_variant,
-                                                                                                                 negative_sampling_variant=no_negative_sampling,
-                                                                                                                 vector_size=vector_size,
-                                                                                                                 window=window,
-                                                                                                                 min_count=min_count,
-                                                                                                                 epochs=epochs,
-                                                                                                                 sample=sample,
-                                                                                                                 force_update_model=True)
-                                            else:
-                                                word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                                                                 model_variant=model_variant,
-                                                                                                                 negative_sampling_variant=negative_sampling_variant,
-                                                                                                                 vector_size=vector_size,
-                                                                                                                 window=window,
-                                                                                                                 min_count=min_count,
-                                                                                                                 epochs=epochs,
-                                                                                                                 sample=sample)
-
-                                            print(word_pairs_eval[0][0])
-                                            model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
-                                            model_results['Model_Variant'].append(model_variant)
-                                            model_results['Negative'].append(negative_sampling_variant)
-                                            model_results['Vector_size'].append(vector_size)
-                                            model_results['Window'].append(window)
-                                            model_results['Min_count'].append(min_count)
-                                            model_results['Epochs'].append(epochs)
-                                            model_results['Sample'].append(sample)
-                                            model_results['Softmax'].append(hs_softmax)
-                                            model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
-                                            model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
-                                            model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
-                                            model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
-                                            model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
-                                            model_results['Analogies_test'].append(analogies_eval)
-
-                                            pbar.update(1)
-                                            pd.DataFrame(model_results).to_csv('word2vec_tuning_results_cswiki.csv', index=False,
-                                                                               mode="w")
-                                            print("Saved training results...")
-        else:
-            for i in range(0, number_of_trials):
-                hs_softmax = random.choice(hs_softmax_variants)
-                model_variant = random.choice(model_variants)
-                vector_size = random.choice(vector_size_range)
-                window = random.choice(window_range)
-                min_count = random.choice(min_count_range)
-                epochs = random.choice(epochs_range)
-                sample = random.choice(sample_range)
-                negative_sampling_variant = random.choice(negative_sampling_variants)
-
-                if hs_softmax == 1:
-                    word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                                     model_variant=model_variant,
-                                                                                     negative_sampling_variant=no_negative_sampling,
-                                                                                     vector_size=vector_size,
-                                                                                     window=window,
-                                                                                     min_count=min_count,
-                                                                                     epochs=epochs,
-                                                                                     sample=sample,
-                                                                                     force_update_model=True)
-                else:
-                    word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
-                                                                                     model_variant=model_variant,
-                                                                                     negative_sampling_variant=negative_sampling_variant,
-                                                                                     vector_size=vector_size,
-                                                                                     window=window,
-                                                                                     min_count=min_count,
-                                                                                     epochs=epochs,
-                                                                                     sample=sample,
-                                                                                     force_update_model=True)
-
-                print(word_pairs_eval[0][0])
-                model_results['Validation_Set'].append("cs.wikipedia.org " + corpus_title[0])
-                model_results['Model_Variant'].append(model_variant)
-                model_results['Negative'].append(negative_sampling_variant)
-                model_results['Vector_size'].append(vector_size)
-                model_results['Window'].append(window)
-                model_results['Min_count'].append(min_count)
-                model_results['Epochs'].append(epochs)
-                model_results['Sample'].append(sample)
-                model_results['Softmax'].append(hs_softmax)
-                model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
-                model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
-                model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
-                model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
-                model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
-                model_results['Analogies_test'].append(analogies_eval)
-
-                pbar.update(1)
-                pd.DataFrame(model_results).to_csv('word2vec_tuning_results_random_search_cswiki.csv', index=False,
-                                                   mode="w")
-                print("Saved training results...")
-        pbar.close()
-
-    def eval_model(self, path):
-        print(self.compute_eval_values_idnes(sentences=None, force_update_model=False, model_path="models/w2v_idnes.model"))
+    def eval_model(self, source):
+        print(self.evaluate_model(source=source,sentences=None, force_update_model=False))
 
     def eval_idnes_basic(self):
         topn = 30
@@ -1230,42 +810,6 @@ class Word2VecClass:
             "research/word2vec/analogies/questions-words-cs.txt")
         print("Analogies evaluation of FastText on iDNES.cz model:")
         print(overall_analogies_score)
-
-    @DeprecationWarning
-    def train_word2vec_idnes_model(self, data):
-
-        data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
-        data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
-
-        self.df.assign(tokenized=data_words_bigrams)
-
-        # View
-        all_words = [word for item in self.df['tokenized'] for word in item]
-        # use nltk fdist to get a frequency distribution of all words
-        fdist = FreqDist(all_words)
-        k = 15000
-        top_k_words = zip(*fdist.most_common(k))
-        self.top_k_words = set(top_k_words)
-
-        self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
-
-        # document length
-        self.df['doc_len'] = self.df['tokenized'].apply(lambda x: len(x))
-        self.df.drop(labels='doc_len', axis=1, inplace=True)
-
-        minimum_amount_of_words = 5
-
-        self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
-        # make sure all tokenized items are lists
-        self.df = self.df[self.df['tokenized'].map(type) == list]
-        self.df.reset_index(drop=True, inplace=True)
-
-        # View
-        dictionary = corpora.Dictionary(data_words_bigrams)
-        dictionary.filter_extremes()
-        # dictionary.compactify()
-        corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
-        self.save_corpus_dict(corpus, dictionary)
 
     def eval_wiki(self):
         topn = 30
@@ -1352,9 +896,6 @@ class Word2VecClass:
                 save_to_mongo(number_of_processed_files=i, data=bigram_text,
                               mongo_collection=mongo_collection_bigrams)
                 i = i + 1
-
-    def keep_top_k_words(self, text):
-        return [word for word in text if word in self.top_k_words]
 
     def save_tuple_to_csv(self, path, data):
         with open(path, 'w+') as out:
@@ -1532,13 +1073,6 @@ class Word2VecClass:
         # TODO: Test this
         return False
 
-    def create_or_update_corpus_and_dict_from_mongo_idnes(self):
-        dict = self.create_dictionary_from_mongo_idnes(force_update=True)
-        self.create_corpus_from_mongo_idnes(dict, force_update=True)
-        doc_sim = DocSim()
-        doc_sim.update_docsim_index()
-        # TODO: Update DOCSIM INDEX!!!!!!!!!
-
 
     def create_dictionary_from_mongo_idnes(self, sentences=None, force_update=False, filter_extremes=False):
         # a memory-friendly iterator
@@ -1585,26 +1119,6 @@ class Word2VecClass:
             print("Corpus already exists. Loading...")
             corpus = corpora.MmCorpus(path_to_corpus)
         return corpus
-
-@DeprecationWarning
-def run():
-    searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"  # print(doc2vecClass.get_similar_doc2vec(slug))
-    # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
-    # searched_slug = "facr-o-slavii-a-rangers-verime-v-objektivni-vysetreni-odmitame-rasismus"
-
-    """
-    start = t.time()
-    print(word2vecClass.get_similar_word2vec(searched_slug))
-    end = t.time()
-    print("Elapsed time: " + str(end - start))
-    start = t.time()
-    print(word2vecClass.get_similar_word2vec_full_text(searched_slug))
-    end = t.time()
-    print("Elapsed time: " + str(end - start))
-    """
-
-    word2vecClass = Word2VecClass()
-    word2vecClass.find_optimal_model_idnes()
 
 
 def preprocess_question_words_file():
