@@ -726,7 +726,7 @@ class Word2VecClass:
         else:
             ValueError("Wrong source of the model was chosen.")
 
-        if os.path.isfile(model_path) is False or force_update_model is True:
+        if os.path.isfile(model_path) is False and force_update_model is True:
             if source == "idnes":
                 print("Started training on iDNES.cz dataset...")
             elif source == "cswiki":
