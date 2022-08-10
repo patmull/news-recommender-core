@@ -252,13 +252,13 @@ def models_complete_statistics(investigate_by='model_name', k=5, save_results_fo
         recommender_methods = RecommenderMethods()
         posts_categories__ratings_df = recommender_methods.join_posts_ratings_categories()
         categories_df = posts_categories__ratings_df[['category_title', 'post_slug']]
-        model_results_joined_with_category = pd.merge(model_results, categories_df, left_on='slug', right_on='post_slug', how='')
+        model_results_joined_with_category = pd.merge(model_results, categories_df, left_on='slug', right_on='post_slug', how='left')
         model_results_joined_with_category.to_csv(path_to_resuts, index=False)
 
     else:
         model_results = model_results.drop(['slug'])
 
-    return model_results.groupby([investigate_by]).mean()
+    return model_results.groupby([investigate_by]).mean().reset_index()
 
 
 def plot_confusion_matrix(cm, title):
@@ -327,7 +327,10 @@ def show_confusion_matrix():
     plot_confusion_matrix(cm_mean, "Confusion matrix")
 
 
-stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=True)
-print("Means of model's metrics:")
-print(stats.to_string())
-# print(show_confusion_matrix())
+def print_model_relevnces():
+    stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=True)
+    print("Means of model's metrics:")
+    print(stats.to_string())
+
+def print_confusion_matrix():
+    print(show_confusion_matrix())
