@@ -62,7 +62,7 @@ word2vecClass.find_optimal_model_idnes(random_search=True)
 """
 
 word2vecClass = Word2VecClass()
-word2vecClass.find_optimal_model(source="cswiki")
+word2vecClass.find_optimal_model(source="cswiki", random_search=True)
 
 """
 tfidf = TfIdf()

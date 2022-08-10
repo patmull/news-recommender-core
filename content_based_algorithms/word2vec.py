@@ -520,7 +520,7 @@ class Word2VecClass:
         print(sentences[0:10])
 
         model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
-        hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
+        hs_softmax_variants = [0]  # 1 = Hierarchical SoftMax
         negative_sampling_variants = range(5, 20, 5)  # 0 = no negative sampling
         no_negative_sampling = 0  # use with hs_soft_max
         # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
