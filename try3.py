@@ -43,7 +43,7 @@ word2vec.final_training_idnes_model()
 """
 
 word2vec = Word2VecClass()
-word2vec.find_optimal_model(source="cswiki")
+word2vec.final_training_model(source="cswiki")
 
 # print(word2vec.get_similar_word2vec("chripkova-sezona-muze-letos-nemile-prekvapit-jak-se-na-ni-pripravit"))
 """ds = DocSim()
