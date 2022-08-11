@@ -907,6 +907,166 @@ class Word2VecClass:
 
             print("Preprocessing Idnes has (finally) ended. All articles were preprocessed.")
 
+    def final_training_model(self, source):
+        """
+        Method for running final evaluation based on selected parameters (i.e. through random search).
+        """
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+        # Enabling Word2Vec logging
+        logging.basicConfig(format="%(asctime)s:%(levelname)s:%(message)s",
+                            level=logging.NOTSET)
+        logger = logging.getLogger()  # get the root logger
+        logger.info("Testing file write")
+        # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
+        sentences = []
+
+        client = MongoClient("localhost", 27017, maxPoolSize=50)
+        global db
+        if source == "idnes":
+            db = client.idnes
+        elif source == "cswiki":
+            db = client.cswiki
+        else:
+            ValueError("No source is available.")
+        collection = db.preprocessed_articles_trigrams
+        cursor = collection.find({})
+        for document in cursor:
+            sentences.append(document['text'])
+        print("Sentences build into type of:")
+        print(type(sentences))
+        print(sentences[0:100])
+
+        model_variant = 1  # sg parameter: 0 = CBOW; 1 = Skip-Gram
+        negative_sampling_variant = 10  # 0 = no negative sampling
+        no_negative_sampling = 0  # use with hs_soft_max
+        vector_size = 200
+        window = 16
+        min_count = 3
+        epochs = 25
+        sample = 0.0
+        hs_softmax = 0
+        # 1 = Hierarchical SoftMax
+
+        # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
+
+        corpus_title = ['100% Corpus']
+        model_results = {'Validation_Set': [],
+                         'Model_Variant': [],
+                         'Negative': [],
+                         'Vector_size': [],
+                         'Window': [],
+                         'Min_count': [],
+                         'Epochs': [],
+                         'Sample': [],
+                         'Softmax': [],
+                         'Word_pairs_test_Pearson_coeff': [],
+                         'Word_pairs_test_Pearson_p-val': [],
+                         'Word_pairs_test_Spearman_coeff': [],
+                         'Word_pairs_test_Spearman_p-val': [],
+                         'Word_pairs_test_Out-of-vocab_ratio': [],
+                         'Analogies_test': []
+                         }  # Can take a long time to run
+        pbar = tqdm.tqdm(total=540)
+
+        if hs_softmax == 1:
+            word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
+                                                                             model_variant=model_variant,
+                                                                             negative_sampling_variant=no_negative_sampling,
+                                                                             vector_size=vector_size,
+                                                                             window=window,
+                                                                             min_count=min_count,
+                                                                             epochs=epochs,
+                                                                             sample=sample,
+                                                                             force_update_model=True,
+                                                                             )
+        else:
+            word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
+                                                                             model_variant=model_variant,
+                                                                             negative_sampling_variant=negative_sampling_variant,
+                                                                             vector_size=vector_size,
+                                                                             window=window,
+                                                                             min_count=min_count,
+                                                                             epochs=epochs,
+                                                                             sample=sample,
+                                                                             force_update_model=True,
+                                                                             )
+
+        print(word_pairs_eval[0][0])
+
+        model_results['Validation_Set'].append(source + " " + corpus_title[0])
+        model_results['Model_Variant'].append(model_variant)
+        model_results['Negative'].append(negative_sampling_variant)
+        model_results['Vector_size'].append(vector_size)
+        model_results['Window'].append(window)
+        model_results['Min_count'].append(min_count)
+        model_results['Epochs'].append(epochs)
+        model_results['Sample'].append(sample)
+        model_results['Softmax'].append(hs_softmax)
+        model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
+        model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
+        model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
+        model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
+        model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
+        model_results['Analogies_test'].append(analogies_eval)
+
+        pbar.update(1)
+        if source == "idnes":
+            pd.DataFrame(model_results).to_csv('word2vec_final_evaluation_results_idnes.csv', index=False,
+                                               mode="a")
+        elif source == "cswiki":
+            pd.DataFrame(model_results).to_csv('word2vec_final_evaluation_results_cswiki.csv', index=False,
+                                               mode="a")
+        else:
+            ValueError("No source matches available options.")
+
+        print("Saved training results...")
+        pbar.close()
+
+    def compute_eval_values_idnes(self, sentences=None, model_variant=None, negative_sampling_variant=None,
+                                  vector_size=None, window=None, min_count=None,
+                                  epochs=None, sample=None, force_update_model=True,
+                                  model_path="models/w2v_idnes.model",
+                                  use_defaul_model=False, save_model=True):
+        if os.path.isfile("models/w2v_idnes.model") is False or force_update_model is True:
+            print("Started training on iDNES.cz dataset...")
+
+            if use_defaul_model is True:
+                # DEFAULT:
+                w2v_model = Word2Vec(sentences=sentences)
+                if save_model is True:
+                    w2v_model.save("models/w2v_idnes.model")
+            else:
+                # CUSTOM:
+                w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
+                                     vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
+                                     sample=sample, workers=7)
+                if save_model is True:
+                    w2v_model.save("models/w2v_idnes.model")
+        else:
+            print("Loading Word2Vec iDNES.cz model from saved model file")
+            w2v_model = Word2Vec.load(model_path)
+
+        path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
+        if os.path.exists(path_to_cropped_wordsim_file):
+            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(
+                path_to_cropped_wordsim_file)
+        else:
+            df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
+                             usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
+            cz_preprocess = CzPreprocess()
+            df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+            df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+
+            df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
+            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
+
+        overall_score, _ = w2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
+        print("Analogies evaluation of iDnes.cz model:")
+        print(overall_score)
+
+        return word_pairs_eval, overall_score
+
     def create_dictionary_from_dataframe(self, force_update=False, filter_extremes=False):
         path_to_dict = "full_models/idnes/unprocessed/idnes.dict"
         path_to_corpus = "full_models/idnes/unprocessed/idnes.mm"
