@@ -49,7 +49,7 @@ print(word2vec.get_similar_word2vec("chripkova-sezona-muze-letos-nemile-prekvapi
 
 """
 doc2vec = Doc2VecClass()
-doc2vec.find_best_doc2vec_model_idnes()
+doc2vec.find_best_doc2vec_model()
 """
 """
 word2vec = Word2VecClass()
