@@ -451,7 +451,7 @@ class Doc2VecClass:
         for i, list_of_words in enumerate(list_of_list_of_words):
             yield gensim.models.doc2vec.TaggedDocument(list_of_words, [i])
 
-    def find_best_doc2vec_model_idnes(self, number_of_trials=512, path_to_corpus="precalc_vectors/corpus_idnes.mm"):
+    def find_best_doc2vec_model(self, source, number_of_trials=512, path_to_corpus="precalc_vectors/corpus_idnes.mm"):
 
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
@@ -465,8 +465,15 @@ class Doc2VecClass:
         # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
         sentences = []
         client = MongoClient("localhost", 27017, maxPoolSize=50)
-        db = client.idnes
-        collection = db.preprocessed_articles_bigrams
+        global db
+        if source == "idnes":
+            db = client.idnes
+        elif source == "cswiki":
+            db = client.cswiki
+        else:
+            ValueError("No from selected options are in available options.")
+
+        collection = db.preprocessed_articles_trigrams
         cursor = collection.find({})
         for document in cursor:
             # joined_string = ' '.join(document['text'])
@@ -532,27 +539,29 @@ class Doc2VecClass:
             negative_sampling_variant = random.choice(negative_sampling_variants)
 
             if hs_softmax == 1:
-                word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(train_corpus=train_corpus,
-                                                                                 test_corpus=test_corpus,
-                                                                                 model_variant=model_variant,
-                                                                                 negative_sampling_variant=no_negative_sampling,
-                                                                                 vector_size=vector_size,
-                                                                                 window=window,
-                                                                                 min_count=min_count,
-                                                                                 epochs=epochs,
-                                                                                 sample=sample,
-                                                                                 force_update_model=True)
+                word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
+                                                                           test_corpus=test_corpus,
+                                                                           model_variant=model_variant,
+                                                                           negative_sampling_variant=no_negative_sampling,
+                                                                           vector_size=vector_size,
+                                                                           window=window,
+                                                                           min_count=min_count,
+                                                                           epochs=epochs,
+                                                                           sample=sample,
+                                                                           force_update_model=True,
+                                                                           source=source)
             else:
-                word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(train_corpus=train_corpus,
-                                                                                 test_corpus=test_corpus,
-                                                                                 model_variant=model_variant,
-                                                                                 negative_sampling_variant=negative_sampling_variant,
-                                                                                 vector_size=vector_size,
-                                                                                 window=window,
-                                                                                 min_count=min_count,
-                                                                                 epochs=epochs,
-                                                                                 sample=sample,
-                                                                                 force_update_model=True)
+                word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
+                                                                           test_corpus=test_corpus,
+                                                                           model_variant=model_variant,
+                                                                           negative_sampling_variant=negative_sampling_variant,
+                                                                           vector_size=vector_size,
+                                                                           window=window,
+                                                                           min_count=min_count,
+                                                                           epochs=epochs,
+                                                                           sample=sample,
+                                                                           force_update_model=True,
+                                                                           source=source)
 
             print(word_pairs_eval[0][0])
             model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
@@ -572,18 +581,25 @@ class Doc2VecClass:
             model_results['Analogies_test'].append(analogies_eval)
 
             pbar.update(1)
-            pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search.csv', index=False,
-                                               mode="w")
+            if source == "idnes":
+                pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search_idnes.csv', index=False,
+                                                   mode="w")
+            elif source == "cswiki":
+                pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search_cswiki.csv', index=False,
+                                                   mode="w")
+            else:
+                ValueError("No from selected options are in available options.")
+
             print("Saved training results...")
 
     def create_or_update_corpus_and_dict_from_mongo_idnes(self):
         dict = self.create_dictionary_from_mongo_idnes(force_update=True)
         self.create_corpus_from_mongo_idnes(dict, force_update=True)
 
-    def compute_eval_values_idnes(self, train_corpus=None, test_corpus=None, model_variant=None, negative_sampling_variant=None,
-                                  vector_size=None, window=None, min_count=None,
-                                  epochs=None, sample=None, force_update_model=True, model_path="models/d2v_idnes.model",
-                                  default_parameters=False):
+    def compute_eval_values(self, source, train_corpus=None, test_corpus=None, model_variant=None, negative_sampling_variant=None,
+                            vector_size=None, window=None, min_count=None,
+                            epochs=None, sample=None, force_update_model=True, model_path="models/d2v_idnes.model",
+                            default_parameters=False):
 
         if os.path.isfile(model_path) is False or force_update_model is True:
             print("Started training on iDNES.cz dataset...")
@@ -601,7 +617,8 @@ class Doc2VecClass:
             print(train_corpus[:2])
             d2v_model.build_vocab(train_corpus)
             d2v_model.train(train_corpus, total_examples=d2v_model.corpus_count, epochs=d2v_model.epochs)
-            d2v_model.save(model_path)
+            if source == "idnes":
+                d2v_model.save(model_path)
         else:
             print("Loading Doc2Vec iDNES.cz model from saved model file")
             d2v_model = Doc2Vec.load(model_path)
@@ -752,26 +769,26 @@ class Doc2VecClass:
         negative_sampling_variant = negative_sampling_variant
 
         if hs_softmax == 1:
-            word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(train_corpus=train_corpus,
-                                                                             test_corpus=test_corpus,
-                                                                             model_variant=model_variant,
-                                                                             negative_sampling_variant=no_negative_sampling,
-                                                                             vector_size=vector_size,
-                                                                             window=window,
-                                                                             min_count=min_count,
-                                                                             epochs=epochs,
-                                                                             sample=sample,
-                                                                             force_update_model=True)
+            word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
+                                                                       test_corpus=test_corpus,
+                                                                       model_variant=model_variant,
+                                                                       negative_sampling_variant=no_negative_sampling,
+                                                                       vector_size=vector_size,
+                                                                       window=window,
+                                                                       min_count=min_count,
+                                                                       epochs=epochs,
+                                                                       sample=sample,
+                                                                       force_update_model=True)
         else:
-            word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(train_corpus=train_corpus,
-                                                                             test_corpus=test_corpus,
-                                                                             model_variant=model_variant,
-                                                                             negative_sampling_variant=negative_sampling_variant,
-                                                                             vector_size=vector_size,
-                                                                             window=window,
-                                                                             min_count=min_count,
-                                                                             epochs=epochs,
-                                                                             sample=sample)
+            word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
+                                                                       test_corpus=test_corpus,
+                                                                       model_variant=model_variant,
+                                                                       negative_sampling_variant=negative_sampling_variant,
+                                                                       vector_size=vector_size,
+                                                                       window=window,
+                                                                       min_count=min_count,
+                                                                       epochs=epochs,
+                                                                       sample=sample)
 
         print(word_pairs_eval[0][0])
         model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
