@@ -451,7 +451,7 @@ class Doc2VecClass:
         for i, list_of_words in enumerate(list_of_list_of_words):
             yield gensim.models.doc2vec.TaggedDocument(list_of_words, [i])
 
-    def find_best_doc2vec_model_idnes(self, number_of_trials=512, path_to_corpus="precalc_vectors/corpus_idnes.mm"):
+    def find_best_doc2vec_model(self, source, number_of_trials=512, path_to_corpus="precalc_vectors/corpus_idnes.mm"):
 
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
@@ -465,7 +465,13 @@ class Doc2VecClass:
         # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
         sentences = []
         client = MongoClient("localhost", 27017, maxPoolSize=50)
-        db = client.idnes
+        global db
+        if source == "idnes":
+            db = client.idnes
+        elif source == "cswiki":
+            db = client.cswiki
+        else:
+            ValueError("No source selected from available options.")
         collection = db.preprocessed_articles_bigrams
         cursor = collection.find({})
         for document in cursor:
@@ -532,7 +538,7 @@ class Doc2VecClass:
             negative_sampling_variant = random.choice(negative_sampling_variants)
 
             if hs_softmax == 1:
-                word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(train_corpus=train_corpus,
+                word_pairs_eval, analogies_eval = self.compute_eval_value(train_corpus=train_corpus,
                                                                                  test_corpus=test_corpus,
                                                                                  model_variant=model_variant,
                                                                                  negative_sampling_variant=no_negative_sampling,
@@ -543,7 +549,7 @@ class Doc2VecClass:
                                                                                  sample=sample,
                                                                                  force_update_model=True)
             else:
-                word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(train_corpus=train_corpus,
+                word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
                                                                                  test_corpus=test_corpus,
                                                                                  model_variant=model_variant,
                                                                                  negative_sampling_variant=negative_sampling_variant,
@@ -555,7 +561,12 @@ class Doc2VecClass:
                                                                                  force_update_model=True)
 
             print(word_pairs_eval[0][0])
-            model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
+            if source == "idnes":
+                model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
+            elif source == "cswiki":
+                model_results['Validation_Set'].append("cs.Wikipedia.org " + corpus_title[0])
+            else:
+                ValueError("No source from available options selected")
             model_results['Model_Variant'].append(model_variant)
             model_results['Negative'].append(negative_sampling_variant)
             model_results['Vector_size'].append(vector_size)
@@ -572,7 +583,14 @@ class Doc2VecClass:
             model_results['Analogies_test'].append(analogies_eval)
 
             pbar.update(1)
-            pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search.csv', index=False,
+            if source == "idnes":
+                saved_file_name = 'doc2vec_tuning_results_random_search_idnes.csv'
+            elif source == "cswiki":
+                saved_file_name = 'doc2vec_tuning_results_random_search_cswiki.csv'
+            else:
+                ValueError("Source does not matech available options.")
+
+            pd.DataFrame(model_results).to_csv(saved_file_name, index=False,
                                                mode="w")
             print("Saved training results...")
 
@@ -580,7 +598,7 @@ class Doc2VecClass:
         dict = self.create_dictionary_from_mongo_idnes(force_update=True)
         self.create_corpus_from_mongo_idnes(dict, force_update=True)
 
-    def compute_eval_values_idnes(self, train_corpus=None, test_corpus=None, model_variant=None, negative_sampling_variant=None,
+    def compute_eval_values(self, train_corpus=None, test_corpus=None, model_variant=None, negative_sampling_variant=None,
                                   vector_size=None, window=None, min_count=None,
                                   epochs=None, sample=None, force_update_model=True, model_path="models/d2v_idnes.model",
                                   default_parameters=False):
