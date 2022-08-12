@@ -76,7 +76,7 @@ class RecommenderMethods:
                 self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
 
         print("4.1.2")
-        self.posts_df.drop_duplicates(subset=['post_title'], inplace=True)
+        self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         print("4.1.3")
         self.database.disconnect()
         print("4.1.4")

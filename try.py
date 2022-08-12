@@ -50,6 +50,7 @@ print(word2vec.get_similar_word2vec("chripkova-sezona-muze-letos-nemile-prekvapi
 doc2vec = Doc2VecClass()
 doc2vec.find_best_doc2vec_model(source="cswiki")
 
+
 """
 word2vec = Word2VecClass()
 word2vec.create_or_update_corpus_and_dict_from_mongo_idnes()
