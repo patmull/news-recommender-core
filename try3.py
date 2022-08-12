@@ -57,7 +57,7 @@ print(word2vec.get_similar_word2vec("zdrazil-vam-dodavatel-elektrinu-nebo-plyn-b
                                     model="idnes_4", docsim_index=docsim_index, dictionary=dictionary))
 """
 doc2vec = Doc2VecClass()
-doc2vec.find_best_doc2vec_model_idnes()
+doc2vec.find_best_doc2vec_model()
 """
 
 """
