@@ -704,7 +704,7 @@ class Doc2VecClass:
     def create_corpus_from_mongo_idnes(self, dict, force_update):
         pass
 
-    def train_final_doc2vec_model_idnes(self):
+    def train_final_doc2vec_model(self, source):
 
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
@@ -718,12 +718,16 @@ class Doc2VecClass:
         # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
         sentences = []
         client = MongoClient("localhost", 27017, maxPoolSize=50)
-        db = client.idnes
-        collection = db.preprocessed_articles_bigrams
+        global db
+        if source == "idnes":
+            db = client.idnes
+        elif source == "cswiki":
+            db = client.cswiki
+        else:
+            ValueError("No source matches the selected options.")
+        collection = db.preprocessed_articles_trigrams
         cursor = collection.find({})
         for document in cursor:
-            # joined_string = ' '.join(document['text'])
-            # sentences.append([joined_string])
             sentences.append(document['text'])
         # TODO:
         train_corpus, test_corpus = train_test_split(sentences, test_size=0.2, shuffle=True)
@@ -733,10 +737,6 @@ class Doc2VecClass:
         print(print(train_corpus[:2]))
         print("print(test_corpus[:2])")
         print(print(test_corpus[:2]))
-
-        #train_corpus = corpus
-        #test_corpus = corpus
-
         # corpus = list(self.read_corpus(path_to_corpus))
 
         model_variant = 1  # sg parameter: 0 = CBOW; 1 = Skip-Gram
@@ -792,7 +792,8 @@ class Doc2VecClass:
                                                                        min_count=min_count,
                                                                        epochs=epochs,
                                                                        sample=sample,
-                                                                       force_update_model=True)
+                                                                       force_update_model=True,
+                                                                       source=source)
         else:
             word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
                                                                        test_corpus=test_corpus,
@@ -802,10 +803,11 @@ class Doc2VecClass:
                                                                        window=window,
                                                                        min_count=min_count,
                                                                        epochs=epochs,
-                                                                       sample=sample)
+                                                                       sample=sample,
+                                                                       source=source)
 
         print(word_pairs_eval[0][0])
-        model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
+        model_results['Validation_Set'].append(source + " " + corpus_title[0])
         model_results['Model_Variant'].append(model_variant)
         model_results['Negative'].append(negative_sampling_variant)
         model_results['Vector_size'].append(vector_size)
@@ -822,7 +824,7 @@ class Doc2VecClass:
         model_results['Analogies_test'].append(analogies_eval)
 
         pbar.update(1)
-        pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search_final.csv', index=False,
+        final_results_file_name = 'doc2vec_tuning_results_random_search_final_' + source + '.csv'
+        pd.DataFrame(model_results).to_csv(final_results_file_name, index=False,
                                            mode="w")
         print("Saved training results...")
-
