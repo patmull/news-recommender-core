@@ -471,9 +471,9 @@ class Doc2VecClass:
         elif source == "cswiki":
             db = client.cswiki
         else:
-            ValueError("No from selected options are in available options.")
-
+            ValueError("No source selected from available options.")
         collection = db.preprocessed_articles_trigrams
+
         cursor = collection.find({})
         for document in cursor:
             # joined_string = ' '.join(document['text'])
@@ -540,6 +540,17 @@ class Doc2VecClass:
 
             if hs_softmax == 1:
                 word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
+                                                                                 test_corpus=test_corpus,
+                                                                                 model_variant=model_variant,
+                                                                                 negative_sampling_variant=no_negative_sampling,
+                                                                                 vector_size=vector_size,
+                                                                                 window=window,
+                                                                                 min_count=min_count,
+                                                                                 epochs=epochs,
+                                                                                 sample=sample,
+                                                                                 force_update_model=True, source=source)
+            else:
+                word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
                                                                            test_corpus=test_corpus,
                                                                            model_variant=model_variant,
                                                                            negative_sampling_variant=no_negative_sampling,
@@ -550,21 +561,15 @@ class Doc2VecClass:
                                                                            sample=sample,
                                                                            force_update_model=True,
                                                                            source=source)
-            else:
-                word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
-                                                                           test_corpus=test_corpus,
-                                                                           model_variant=model_variant,
-                                                                           negative_sampling_variant=negative_sampling_variant,
-                                                                           vector_size=vector_size,
-                                                                           window=window,
-                                                                           min_count=min_count,
-                                                                           epochs=epochs,
-                                                                           sample=sample,
-                                                                           force_update_model=True,
-                                                                           source=source)
 
             print(word_pairs_eval[0][0])
-            model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
+            if source == "idnes":
+                model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
+            elif source == "cswiki":
+                model_results['Validation_Set'].append("cs.Wikipedia.org " + corpus_title[0])
+            else:
+                ValueError("No source from available options selected")
+
             model_results['Model_Variant'].append(model_variant)
             model_results['Negative'].append(negative_sampling_variant)
             model_results['Vector_size'].append(vector_size)
@@ -582,13 +587,14 @@ class Doc2VecClass:
 
             pbar.update(1)
             if source == "idnes":
-                pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search_idnes.csv', index=False,
-                                                   mode="w")
+                saved_file_name = 'doc2vec_tuning_results_random_search_idnes.csv'
             elif source == "cswiki":
-                pd.DataFrame(model_results).to_csv('doc2vec_tuning_results_random_search_cswiki.csv', index=False,
-                                                   mode="w")
+                saved_file_name = 'doc2vec_tuning_results_random_search_cswiki.csv'
             else:
-                ValueError("No from selected options are in available options.")
+                ValueError("Source does not matech available options.")
+
+            pd.DataFrame(model_results).to_csv(saved_file_name, index=False,
+                                               mode="w")
 
             print("Saved training results...")
 
@@ -596,10 +602,18 @@ class Doc2VecClass:
         dict = self.create_dictionary_from_mongo_idnes(force_update=True)
         self.create_corpus_from_mongo_idnes(dict, force_update=True)
 
-    def compute_eval_values(self, source, train_corpus=None, test_corpus=None, model_variant=None, negative_sampling_variant=None,
+    def compute_eval_values(self, source, train_corpus=None, test_corpus=None, model_variant=None,
+                            negative_sampling_variant=None,
                             vector_size=None, window=None, min_count=None,
-                            epochs=None, sample=None, force_update_model=True, model_path="models/d2v_idnes.model",
+                            epochs=None, sample=None, force_update_model=True,
                             default_parameters=False):
+        global model_path
+        if source == "idnes":
+            model_path = "models/d2v_idnes.model"
+        elif source == "cswiki":
+            model_path = "models/d2v_cswiki.model"
+        else:
+            ValueError("No sourc matches available options.")
 
         if os.path.isfile(model_path) is False or force_update_model is True:
             print("Started training on iDNES.cz dataset...")
@@ -617,8 +631,8 @@ class Doc2VecClass:
             print(train_corpus[:2])
             d2v_model.build_vocab(train_corpus)
             d2v_model.train(train_corpus, total_examples=d2v_model.corpus_count, epochs=d2v_model.epochs)
-            if source == "idnes":
-                d2v_model.save(model_path)
+            d2v_model.save(model_path)
+
         else:
             print("Loading Doc2Vec iDNES.cz model from saved model file")
             d2v_model = Doc2Vec.load(model_path)
@@ -638,7 +652,7 @@ class Doc2VecClass:
             word_pairs_eval = d2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
 
         overall_score, _ = d2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
-        print("Analogies evaluation of iDnes.cz model:")
+        print("Analogies evaluation of model:")
         print(overall_score)
 
         doc_id = random.randint(0, len(test_corpus) - 1)
