@@ -20,6 +20,10 @@ def try_prefillers():
 # try_prefillers()
 # run_prefilling()
 
+
+doc2vec = Doc2VecClass()
+doc2vec.train_final_doc2vec_model(source="cswiki")
+
 """
 lda = Lda()
 lda.get_similar_lda_full_text('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')

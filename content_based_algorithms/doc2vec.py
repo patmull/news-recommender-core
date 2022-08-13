@@ -488,11 +488,6 @@ class Doc2VecClass:
         print("print(test_corpus[:2])")
         print(print(test_corpus[:2]))
 
-        #train_corpus = corpus
-        #test_corpus = corpus
-
-        # corpus = list(self.read_corpus(path_to_corpus))
-
         model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
         hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
         negative_sampling_variants = range(5, 20, 5)  # 0 = no negative sampling
@@ -741,15 +736,15 @@ class Doc2VecClass:
 
         model_variant = 1  # sg parameter: 0 = CBOW; 1 = Skip-Gram
         hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
-        negative_sampling_variant = 15  # 0 = no negative sampling
+        negative_sampling_variant = 10  # 0 = no negative sampling
         no_negative_sampling = 0  # use with hs_soft_max
         # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        vector_size= 100
+        vector_size = 200
         # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        window = 20
-        min_count = 8
-        epoch = 30
-        sample = 1.0 * (10.0 ** -5.0)
+        window = 16
+        min_count = 3
+        epoch = 25
+        sample = 0.0
         hs_softmax = 0
 
         corpus_title = ['100% Corpus']
