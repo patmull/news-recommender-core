@@ -278,8 +278,8 @@ class Word2VecClass:
             del documents_df
             # https://github.com/v1shwa/document-similarity with my edits
 
-            most_similar_articles_with_scores = ds.calculate_similarity_idnes_model(found_post,
-                                                                                    list_of_document_features)[:21]
+            most_similar_articles_with_scores = ds.calculate_similarity(found_post,
+                                                                        list_of_document_features)[:21]
             # removing post itself
             del most_similar_articles_with_scores[0]  # removing post itself
 

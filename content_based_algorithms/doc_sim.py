@@ -21,7 +21,7 @@ class DocSim:
         self.stopwords = stopwords if stopwords is not None else []
 
 
-    def calculate_similarity_idnes_model(self, source_doc, target_docs=None, threshold=0.2):
+    def calculate_similarity(self, source_doc, target_docs=None, threshold=0.2):
         """Calculates & returns similarity scores between given source document & all
         the target documents."""
         if not target_docs:
