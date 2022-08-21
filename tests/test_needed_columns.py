@@ -22,6 +22,7 @@ def test_keywords_column():
     return len(posts)
 
 
+# python -m pytest .\tests\test_content_based_methods.py::test_prefilled_features_columns
 def test_prefilled_features_columns():
     all_features_preprocessed = test_all_features_preprocessed_column()
     body_preprocessed = test_body_preprocessed_column()
