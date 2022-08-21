@@ -96,11 +96,13 @@ class Database:
 
     def get_posts_dataframe_from_sql(self, pd):
         print("Getting posts from SQL...")
+        self.connect()
         sql = """SELECT * FROM posts ORDER BY id;"""
 
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         # df = pd.read_sql_query(results, database.get_cnx())
+        self.disconnect()
         return df
 
     def get_posts_dataframe(self, from_cache=True):
@@ -120,7 +122,7 @@ class Database:
         p = Path(folder_name)
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
-        # df = pd.read_sql_query(results, database.get_cnx())
+        self.disconnect()
 
         outfile = 'cached_posts_dataframe.pkl'
 
@@ -212,7 +214,7 @@ class Database:
         elif db == "redis":
             raise Exception("Redis is not implemented yet.")
         else:
-            raise ValueError("Not allowed DB method passed.")
+            raise ValueError("Not allowed DB model_variant passed.")
 
     def insert_recommended_json(self, method, full_text, articles_recommended_json, article_id, db):
         self.connect()
@@ -222,6 +224,10 @@ class Database:
                     query = """UPDATE posts SET recommended_tfidf=%s WHERE id=%s;"""
                 elif method == "tfidf" and full_text is True:
                     query = """UPDATE posts SET recommended_tfidf_full_text=%s WHERE id=%s;"""
+                elif method == "word2vec" and full_text is False:
+                    query = """UPDATE posts SET recommended_word2vec=%s WHERE id=%s;"""
+                elif method == "word2vec" and full_text is True:
+                    query = """UPDATE posts SET recommended_word2vec_full_text=%s WHERE id=%s;"""
                 elif method == "doc2vec" and full_text is False:
                     query = """UPDATE posts SET recommended_doc2vec=%s WHERE id=%s;"""
                 elif method == "doc2vec" and full_text is True:
@@ -230,10 +236,20 @@ class Database:
                     query = """UPDATE posts SET recommended_lda=%s WHERE id=%s;"""
                 elif method == "lda" and full_text is True:
                     query = """UPDATE posts SET recommended_lda_full_text=%s WHERE id=%s;"""
-                elif method == "word2vec" and full_text is False:
-                    query = """UPDATE posts SET recommended_word2vec=%s WHERE id=%s;"""
-                elif method == "word2vec" and full_text is True:
-                    query = """UPDATE posts SET recommended_word2vec_full_text=%s WHERE id=%s;"""
+                elif method == "word2vec_eval_idnes_1" and full_text is True:
+                    query = """UPDATE posts SET recommended_word2vec_eval_1=%s WHERE id=%s;"""
+                elif method == "word2vec_eval_idnes_2" and full_text is True:
+                    query = """UPDATE posts SET recommended_word2vec_eval_2=%s WHERE id=%s;"""
+                elif method == "word2vec_eval_idnes_3" and full_text is True:
+                    query = """UPDATE posts SET recommended_word2vec_eval_3=%s WHERE id=%s;"""
+                elif method == "word2vec_eval_idnes_4" and full_text is True:
+                    query = """UPDATE posts SET recommended_word2vec_eval_4=%s WHERE id=%s;"""
+                elif method == "word2vec_eval_cswiki_1" and full_text is True:
+                    query = """UPDATE posts SET recommended_word2vec_eval_cswiki_1=%s WHERE id=%s;"""
+                elif method == "doc2vec_eval_cswiki_1" and full_text is True:
+                    query = """UPDATE posts SET recommended_doc2vec_eval_cswiki_1=%s WHERE id=%s;"""
+                else:
+                    Exception("Method not implemented.")
                 inserted_values = (articles_recommended_json, article_id)
                 self.cursor.execute(query, inserted_values)
                 self.cnx.commit()
@@ -266,80 +282,19 @@ class Database:
         try:
             query = """UPDATE posts SET all_features_preprocessed=%s WHERE id=%s;"""
             inserted_values = (preprocessed_all_features, post_id)
+            self.connect()
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
+            self.disconnect()
 
-        except psycopg2.connector.Error as e:
+        except psycopg2.Error as e:
             print("NOT INSERTED")
-            print("Error code:", e.errno)  # error number
-            print("SQLSTATE value:", e.sqlstate)  # SQLSTATE value
-            print("Error message:", e.msg)  # error message
+            print("Error code:", e.pgcode)  # error number
+            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
             print("Error:", e)  # errno, sqlstate, msg values
             s = str(e)
             print("Error:", s)  # errno, sqlstate, msg values
             self.cnx.rollback()
-
-    def get_not_prefilled_posts(self, full_text, method):
-        self.connect()
-        if full_text is False:
-            if method == "tfidf":
-                sql = """SELECT * FROM posts AS p WHERE p.recommended_tfidf IS NULL ORDER BY id DESC;"""
-            elif method == "doc2vec":
-                sql = """SELECT * FROM posts AS p WHERE p.recommended_doc2vec IS NULL ORDER BY id DESC;"""
-            elif method == "word2vec":
-                sql = """SELECT * FROM posts AS p WHERE p.recommended_word2vec IS NULL ORDER BY id DESC;"""
-            elif method == "lda":
-                sql = """SELECT * FROM posts AS p WHERE p.recommended_lda IS NULL ORDER BY id DESC;"""
-            elif method == "doc2vec_vectors":
-                sql = """SELECT * FROM posts AS p WHERE p.doc2vec_representation IS NULL ORDER BY id DESC;"""
-            else:
-                raise ValueError("Selected method not implemented.")
-        else:
-            if method == "tfidf":
-                sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id DESC;"""
-            elif method == "doc2vec":
-                sql = """SELECT * FROM posts WHERE recommended_doc2vec_full_text IS NULL ORDER BY id DESC;"""
-            elif method == "word2vec":
-                sql = """SELECT * FROM posts WHERE recommended_word2vec_full_text IS NULL ORDER BY id DESC;"""
-            elif method == "lda":
-                sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id DESC;"""
-            elif method == "word2vec_eval_1":
-                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_1 IS NULL ORDER BY id DESC"""
-            elif method == "word2vec_eval_2":
-                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_2 IS NULL ORDER BY id DESC"""
-            elif method == "word2vec_eval_3":
-                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_3 IS NULL ORDER BY id DESC"""
-            elif method == "word2vec_eval_4":
-                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_4 IS NULL ORDER BY id DESC"""
-            else:
-                raise ValueError("Selected method not implemented.")
-
-        query = (sql)
-        self.cursor.execute(query)
-        rs = self.cursor.fetchall()
-        self.disconnect()
-        return rs
-
-    def get_not_preprocessed_posts(self):
-        sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
-        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in Parser module
-        query = (sql)
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
-        return rs
-
-    def get_posts_dataframe_from_database(self):
-        sql = """SELECT * FROM posts ORDER BY id;"""
-
-        # LOAD INTO A DATAFRAME
-        df = pd.read_sql_query(sql, self.get_cnx())
-        return df
-
-    def get_results_dataframe(self, pd):
-        sql = """SELECT * FROM relevance_testings ORDER BY id;"""
-        df = pd.read_sql_query(sql, self.get_cnx())
-        return df
 
     def insert_preprocessed_body(self, preprocessed_body, article_id):
         try:
@@ -357,70 +312,130 @@ class Database:
             print("Error:", s)  # errno, sqlstate, msg values
             self.cnx.rollback()
 
-    def get_posts_with_no_body_preprocessed(self):
+    def insert_phrases_text(self, bigram_text, article_id, full_text):
+        try:
+            if full_text is False:
+                query = """UPDATE posts SET trigrams_short_text=%s WHERE id=%s;"""
+            else:
+                query = """UPDATE posts SET trigrams_full_text=%s WHERE id=%s;"""
+            inserted_values = (bigram_text, article_id)
+            self.cursor.execute(query, inserted_values)
+            self.cnx.commit()
+
+        except psycopg2.Error as e:
+            print("NOT INSERTED")
+            print("Error code:", e.pgcode)  # error number
+            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
+            print("Error:", e)  # errno, sqlstate, msg values
+            s = str(e)
+            print("Error:", s)  # errno, sqlstate, msg values
+            self.cnx.rollback()
+
+    def get_not_preprocessed_posts(self):
         sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
+        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in Parser module
         query = (sql)
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
         return rs
 
-    def get_posts_with_no_all_features_preprocessed(self):
-        sql = """SELECT * FROM posts WHERE all_features_preprocessed IS NULL ORDER BY id;"""
+    def get_not_prefilled_posts(self, full_text, method):
+        self.connect()
+        if full_text is False:
+            if method == "tfidf":
+                sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
+            elif method == "word2vec":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
+            elif method == "doc2vec":
+                sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
+            elif method == "lda":
+                sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
+            else:
+                raise ValueError("Selected model_variant not implemented.")
+        else:
+            if method == "tfidf":
+                sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id;"""
+            elif method == "word2vec":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_full_text IS NULL ORDER BY id;"""
+            elif method == "doc2vec":
+                sql = """SELECT * FROM posts WHERE recommended_doc2vec_full_text IS NULL ORDER BY id;"""
+            elif method == "lda":
+                sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id;"""
+            elif method == "word2vec_eval_idnes_1":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_idnes_1 IS NULL ORDER BY id;"""
+            elif method == "word2vec_eval_idnes_2":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_2 IS NULL ORDER BY id;"""
+            elif method == "word2vec_eval_idnes_3":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_3 IS NULL ORDER BY id;"""
+            elif method == "word2vec_eval_idnes_4":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_4 IS NULL ORDER BY id;"""
+            elif method == "word2vec_eval_cswiki_1":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_cswiki_1 IS NULL ORDER BY id;"""
+            elif method == "doc2vec_eval_cswiki_1":
+                sql = """SELECT * FROM posts WHERE recommended_doc2vec_eval_cswiki_1 IS NULL ORDER BY id;"""
+            else:
+                raise ValueError("Selected model_variant not implemented.")
+
         query = (sql)
         self.cursor.execute(query)
-
         rs = self.cursor.fetchall()
+        self.disconnect()
+        return rs
+
+
+    def get_posts_dataframe_from_database(self):
+        sql = """SELECT * FROM posts ORDER BY id;"""
+
+        # LOAD INTO A DATAFRAME
+        df = pd.read_sql_query(sql, self.get_cnx())
+        return df
+
+    def get_results_dataframe(self, pd):
+        sql = """SELECT * FROM relevance_testings ORDER BY id;"""
+        df = pd.read_sql_query(sql, self.get_cnx())
+        return df
+
+    def get_posts_with_no_body_preprocessed(self):
+        sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
+        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in Parser module
+        query = (sql)
+        self.connect()
+        self.cursor.execute(query)
+        rs = self.cursor.fetchall()
+        self.disconnect()
         return rs
 
     def get_posts_with_no_keywords(self):
-        sql = """SELECT * FROM posts WHERE keywords IS NULL ORDER BY id;"""
+        sql = """SELECT * FROM posts WHERE posts.keywords IS NULL ORDER BY id;"""
+        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in Parser module
         query = (sql)
+        self.connect()
         self.cursor.execute(query)
-
         rs = self.cursor.fetchall()
+        self.disconnect()
         return rs
 
-    def get_posts_with_no_prefilled_tfidf(self, full_text):
+    def get_posts_with_no_all_features_preprocessed(self):
+        sql = """SELECT * FROM posts WHERE posts.all_features_preprocessed IS NULL ORDER BY id;"""
+        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in Parser module
+        query = (sql)
+        self.connect()
+        self.cursor.execute(query)
+        rs = self.cursor.fetchall()
+        self.disconnect()
+        return rs
+
+    def get_posts_with_not_prefilled_ngrams_text(self, full_text=True):
         if full_text is False:
-            sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
+            sql = """SELECT * FROM posts WHERE trigrams_short_text IS NULL ORDER BY id;"""
         else:
-            sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id;"""
+            sql = """SELECT * FROM posts WHERE trigrams_full_text IS NULL ORDER BY id;"""
+
+        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in Parser module
         query = (sql)
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
         return rs
 
-    def get_posts_with_no_prefilled_word2vec(self, full_text):
-        if full_text is False:
-            sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
-        else:
-            sql = """SELECT * FROM posts WHERE recommended_word2vec_full_text IS NULL ORDER BY id;"""
-        query = (sql)
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
-        return rs
-
-    def get_posts_with_no_prefilled_doc2vec(self, full_text):
-        if full_text is False:
-            sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
-        else:
-            sql = """SELECT * FROM posts WHERE recommended_doc2vec_full_text IS NULL ORDER BY id;"""
-        query = (sql)
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
-        return rs
-
-    def get_posts_with_no_prefilled_lda(self, full_text):
-        if full_text is False:
-            sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
-        else:
-            sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id;"""
-        query = (sql)
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
-        return rs
