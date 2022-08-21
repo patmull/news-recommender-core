@@ -135,7 +135,7 @@ class RecommenderMethods:
         self.database.disconnect()
         print("self.results_df:")
         print(results_df)
-        results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name', 'model_variant']]
+        results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name', 'model_variant', 'created_at']]
         return results_df_
 
     def refresh_cached_db_file(self):
