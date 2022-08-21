@@ -15,18 +15,18 @@ val_error_msg_algorithm = "Selected method does not correspondent with any imple
 
 class PreFiller:
 
-    def prefilling_job(self, method, full_text, random_order=False, reversed=True, database="pgsql"):
+    def prefilling_job(self, method, full_text, random_order=False, reversed=True, database="pgsql", force_update_data=False):
         while True:
             try:
                 self.fill_recommended(method=method, full_text=full_text, skip_already_filled=True,
-                                      random_order=random_order, reversed=reversed)
+                                      random_order=random_order, reversed=reversed, force_update_data=force_update_data)
             except psycopg2.OperationalError:
                 print("DB operational error. Waiting few seconds before trying again...")
                 t.sleep(30)  # wait 30 seconds then try again
                 continue
             break
 
-    def fill_recommended(self, method, skip_already_filled, full_text=True, random_order=False, reversed=False):
+    def fill_recommended(self, method, skip_already_filled, full_text=True, random_order=False, reversed=False, force_update_data=False):
 
         database = Database()
         database.connect()
@@ -99,7 +99,7 @@ class PreFiller:
                             actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
                         elif method == "word2vec":
                             word2vec = Word2VecClass()
-                            actual_recommended_json = word2vec.get_similar_word2vec(slug)
+                            actual_recommended_json = word2vec.get_similar_word2vec(slug, force_update_data=force_update_data)
                         elif method == "doc2vec":
                             doc2vec = Doc2VecClass()
                             actual_recommended_json = doc2vec.get_similar_doc2vec(slug)

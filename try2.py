@@ -3,6 +3,8 @@ from content_based_algorithms.word2vec import Word2VecClass
 from preprocessing.bigrams_phrases import BigramPhrases
 from data_connection import Database
 from prefilling_all import prepare_and_run, run_prefilling
+from research.relevance_statistics import model_variant_ap, models_complete_statistics, print_model_variant_relevances, \
+    save_model_variant_relevances, print_model_variant_relevances_for_each_article
 
 
 def try_word2vec_recommendation_prefiller(database, method, full_text, reverse, random):
@@ -84,3 +86,8 @@ w2v_model.eval_wiki()
 bigram_phrases = BigramPhrases()
 bigram_phrases.train_phrases_from_mongo_idnes()
 """
+
+
+#print_model_variant_relevances()
+save_model_variant_relevances(crop_by_date=True, last_n_by_date=80)
+#print(print_model_variant_relevances_for_each_article(save_to_csv=True, crop_by_date=True))

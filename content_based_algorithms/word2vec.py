@@ -110,7 +110,7 @@ class Word2VecClass:
         self.database = Database()
 
     # @profile
-    def get_similar_word2vec(self, searched_slug, model="idnes", docsim_index=None, dictionary=None):
+    def get_similar_word2vec(self, searched_slug, model="idnes", docsim_index=None, dictionary=None, force_update_data=False):
 
         # check method inputs
         if not model.startswith("idnes_") or not model == "wiki":
@@ -118,7 +118,7 @@ class Word2VecClass:
 
         recommenderMethods = RecommenderMethods()
 
-        self.posts_df = recommenderMethods.get_posts_dataframe()
+        self.posts_df = recommenderMethods.get_posts_dataframe(force_update=force_update_data)
         self.categories_df = recommenderMethods.get_categories_dataframe()
 
         self.df = recommenderMethods.join_posts_ratings_categories()
@@ -129,6 +129,7 @@ class Word2VecClass:
         found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug)
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
         print("found_post_dataframe:")
+        print(found_post_dataframe)
         print(found_post_dataframe.columns)
         """
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \

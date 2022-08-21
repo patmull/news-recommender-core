@@ -64,10 +64,8 @@ word2vec.create_or_update_corpus_and_dict_from_mongo_idnes()
 word2vecClass = Word2VecClass()
 word2vecClass.find_optimal_model_idnes(random_search=True)
 """
-"""
 word2vecClass = Word2VecClass()
 word2vecClass.find_optimal_model(source="cswiki", random_search=True)
-"""
 
 """
 tfidf = TfIdf()
