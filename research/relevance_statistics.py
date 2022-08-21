@@ -1,4 +1,5 @@
 import ast
+import random
 import warnings
 
 import numpy as np
@@ -13,6 +14,7 @@ from content_based_algorithms.data_queries import RecommenderMethods
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
+
 
 def try_statistics():
     y_true = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1])
@@ -95,6 +97,11 @@ def model_variant_ap(variant=None):
 
     dict_of_model_stats = {}
     list_of_aps = []
+    list_of_aps = []
+    list_of_aps.append([average_precision_score(x['relevance'], x['coefficient'])
+                        if len(x['relevance']) == len(x['coefficient'])
+                        else ValueError("Lengths of arrays in relevance and coefficient does not match.")
+                        for x in evaluation_results_df['results_part_2']])
     list_of_models = []
     list_of_models.append([x for x in evaluation_results_df['model_variant']])
 
@@ -112,8 +119,18 @@ def model_variant_ap(variant=None):
     return model_ap_results[['model_variant', 'ap']].groupby(['model_variant']).mean()
 
 
-def models_complete_statistics(investigate_by='model_name', k=5, save_results_for_every_item=False):
+def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=False, crop_by_date=False, last_n_by_date=None):
+    global list_of_slugs, list_of_created_at
     evaluation_results_df = evaluation_results.get_results_dataframe()
+
+    if crop_by_date:
+        if last_n_by_date is not None:
+            evaluation_results_df = evaluation_results_df.sort_values(by=['created_at'], ascending=False)
+            evaluation_results_df = evaluation_results_df.head(last_n_by_date)
+        else:
+            ValueError("When cropping by date, the 'date' argument needs to be set, otherwise it will show the date but not"
+                       "crop the date")
+    print("evaluation_results_df")
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
     list_of_models = []
@@ -121,6 +138,10 @@ def models_complete_statistics(investigate_by='model_name', k=5, save_results_fo
     if save_results_for_every_item:
         list_of_slugs = []
         list_of_slugs.append([x for x in evaluation_results_df['query_slug']])
+
+    if crop_by_date:
+        list_of_created_at = []
+        list_of_created_at.append([x for x in evaluation_results_df['created_at']])
     print(list_of_models)
     print("evaluation_results_df['results_part_2']")
     print(evaluation_results_df['results_part_2'].to_string())
@@ -233,32 +254,55 @@ def models_complete_statistics(investigate_by='model_name', k=5, save_results_fo
 
     # completation of results
     # TODO: Add other columns
-    dict_of_model_stats = {'AP': list_of_aps[0], 'precision_score': list_of_ps[0],
-                           'balanced_accuracies': list_of_balanced_accuracies[0],
-                           'DCG': list_of_dcgs[0], 'DCG_AT_' + str(k): list_of_dcg_at_k,
-                           'F1-SCORE': list_of_f1_score[0], 'NDCG': list_of_ndcgs[0],
-                           'NDCG_AT_' + str(k): list_of_ndcgs_at_k[0],
-                           investigate_by: list_of_models[0], 'slug': list_of_slugs[0]}
+    if save_results_for_every_item is True:
+        dict_of_model_stats = {'AP': list_of_aps[0], 'precision_score': list_of_ps[0],
+                               'balanced_accuracies': list_of_balanced_accuracies[0],
+                               'DCG': list_of_dcgs[0], 'DCG_AT_' + str(k): list_of_dcg_at_k[0],
+                               'F1-SCORE': list_of_f1_score[0], 'NDCG': list_of_ndcgs[0],
+                               'NDCG_AT_' + str(k): list_of_ndcgs_at_k[0],
+                               investigate_by: list_of_models[0], 'slug': list_of_slugs[0],
+                               'created_at': list_of_created_at[0]}
+    else:
+        dict_of_model_stats = {'AP': list_of_aps[0], 'precision_score': list_of_ps[0],
+                               'balanced_accuracies': list_of_balanced_accuracies[0],
+                               'DCG': list_of_dcgs[0], 'DCG_AT_' + str(k): list_of_dcg_at_k[0],
+                               'F1-SCORE': list_of_f1_score[0], 'NDCG': list_of_ndcgs[0],
+                               'NDCG_AT_' + str(k): list_of_ndcgs_at_k[0],
+                               investigate_by: list_of_models[0]}
+
     print(dict_of_model_stats)
 
     model_results = pd.DataFrame.from_dict(dict_of_model_stats, orient='index').transpose()
 
     model_results = model_results.fillna(0)
+
     print("Model results:")
     print(model_results.to_string())
-    if save_results_for_every_item:
+    # joining with rvaluated posts slugs
+    if save_results_for_every_item is True:
         print("Saving also results for every item.")
         path_to_resuts = 'save_relevance_results_by_queries.csv'
         recommender_methods = RecommenderMethods()
         posts_categories__ratings_df = recommender_methods.join_posts_ratings_categories()
+        print("model_results.columns")
+        print(posts_categories__ratings_df.columns)
         categories_df = posts_categories__ratings_df[['category_title', 'post_slug']]
-        model_results_joined_with_category = pd.merge(model_results, categories_df, left_on='slug', right_on='post_slug', how='left')
-        model_results_joined_with_category.to_csv(path_to_resuts, index=False)
+        model_results = pd.merge(model_results, categories_df, left_on='slug', right_on='post_slug', how='left')
+       #  model_results_joined_with_category.to_csv(path_to_resuts, index=False)
+        print("model_results.columns")
+        print(model_results.columns)
+        print(model_results.to_string())
+        grouped_results = model_results.groupby(['AP', 'model_variant', 'slug', 'created_at',
+       'category_title']).mean().reset_index()
+       # full_results = pd.merge(grouped_results, categories_df, left_on='slug', right_on='post_slug', how='left')
 
+        print("full_results.columns")
+        print(grouped_results.columns)
+        grouped_results = grouped_results.sort_values(by=['created_at', 'category_title'])
+        transposed_results = grouped_results.pivot_table('AP', ['slug', 'category_title'], 'model_variant')
+        return transposed_results
     else:
-        model_results = model_results.drop(['slug'])
-
-    return model_results.groupby([investigate_by]).mean().reset_index()
+        return model_results.groupby([investigate_by]).mean().reset_index()
 
 
 def plot_confusion_matrix(cm, title):
@@ -327,10 +371,40 @@ def show_confusion_matrix():
     plot_confusion_matrix(cm_mean, "Confusion matrix")
 
 
-def print_model_relevnces():
-    stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=True)
+def print_model_variant_relevances():
+    stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=False)
     print("Means of model's metrics:")
     print(stats.to_string())
+
+
+def save_model_variant_relevances(crop_by_date=False, last_n_by_date=None):
+    stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=False, crop_by_date=crop_by_date, last_n_by_date=last_n_by_date)
+    print("Means of model's metrics:")
+    print(stats.to_string())
+    print("Saving CSV with user evaluation results...")
+    stats = stats.round(2)
+    hash = random.getrandbits(128)
+    path_for_saving = "research/word2vec/evaluation/word2vec_tuning_relevance_results" + str(hash) + ".csv"
+    stats.to_csv(path_for_saving)
+    print("Results saved.")
+
+
+def print_model_variant_relevances_for_each_article(save_to_csv=False, crop_by_date=False):
+    stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=True, crop_by_date=crop_by_date)
+    print("Means of model's metrics:")
+    print(stats.to_string())
+    if save_to_csv is True:
+        stats = stats.round(2)
+        path_for_saving = "research/word2vec/evaluation/cswiki/word2vec_tuning_relevance_results_by_each_article.csv"
+        stats.to_csv(path_for_saving)
+        print("Results saved.")
+
+
+def print_overall_model_relevances():
+    stats = models_complete_statistics(investigate_by='model_name', save_results_for_every_item=True)
+    print("Means of model's metrics:")
+    print(stats.to_string())
+
 
 def print_confusion_matrix():
     print(show_confusion_matrix())
