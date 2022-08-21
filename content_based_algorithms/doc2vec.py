@@ -23,7 +23,6 @@ from reader import MongoReader
 
 
 class Doc2VecClass:
-    # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/d2v_all_in_one.model"
 
     def __init__(self):
         self.documents = None
@@ -127,21 +126,18 @@ class Doc2VecClass:
 
         self.train(tagged_data)
 
-        # amazon loading
-        # amazon_bucket_url = "..."
-        # recommenderMethods = RecommenderMethods()
-        # model = recommenderMethods.download_from_amazon(amazon_bucket_url)
-
-        # to find the vector of a document which is not in training data
-
     def get_prefilled(self, slug):
         return self.get_similar_doc2vec(slug=slug, from_db=True)
 
-    def get_similar_doc2vec(self, slug, train=False, limited=True, number_of_recommended_posts=21, from_db=False):
-        recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe()
-        recommenderMethods.get_categories_dataframe()
-        self.df = self.join_posts_ratings_categories(include_prefilled=True)
+    def get_similar_doc2vec(self, slug, source=None, doc2vec_model=None, train=False, limited=True, number_of_recommended_posts=21, from_db=False):
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_dataframe()
+        recommender_methods.get_categories_dataframe()
+        try:
+            self.df = recommender_methods.join_posts_ratings_categories(include_prefilled=True)
+        except KeyError as ke:
+            print(ke)
+            self.df = recommender_methods.get_df_from_sql_meanwhile_insert_cache()
 
         print("self.df")
         print(self.df.columns.values)
@@ -161,37 +157,33 @@ class Doc2VecClass:
         del documents_df
         gc.collect()
 
-        if from_db is False:
-            if 'post_slug' in self.df:
-                self.df = self.df.rename(columns={'post_slug':'slug'})
-            documents_slugs = self.df['slug'].tolist()
+        if 'post_slug' in self.df:
+            self.df = self.df.rename(columns={'post_slug':'slug'})
+        documents_slugs = self.df['slug'].tolist()
 
-            if train is True:
-                self.train_doc2vec(documents_all_features_preprocessed, body_text=False, limited=False, create_csv=False)
+        if train is True:
+            self.train_doc2vec(documents_all_features_preprocessed, body_text=False, limited=False, create_csv=False)
 
-            del documents_all_features_preprocessed
-            gc.collect()
+        del documents_all_features_preprocessed
+        gc.collect()
 
-            if limited is True:
-                doc2vec_model = Doc2Vec.load("models/d2v_limited.model")
-            else:
-                doc2vec_model = Doc2Vec.load("models/d2v.model") # or download from Dropbox / AWS bucket
-
-            recommenderMethods = RecommenderMethods()
-            # not necessary
-            post_found = recommenderMethods.find_post_by_slug(slug)
-            keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
-            all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
-
-            tokens = keywords_preprocessed + all_features_preprocessed
-
-            vector_source = doc2vec_model.infer_vector(tokens)
-
-            most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
-
-            return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
+        if limited is True:
+            doc2vec_model = Doc2Vec.load("models/d2v_limited.model")
         else:
-            return
+            doc2vec_model = Doc2Vec.load("models/d2v.model") # or download from Dropbox / AWS bucket
+
+        recommenderMethods = RecommenderMethods()
+        # not necessary
+        post_found = recommenderMethods.find_post_by_slug(slug)
+        keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
+        all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
+
+        tokens = keywords_preprocessed + all_features_preprocessed
+
+        vector_source = doc2vec_model.infer_vector(tokens)
+        most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
+
+        return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
     def get_similar_doc2vec_with_full_text(self, slug, train=False, number_of_recommended_posts=21):
         recommenderMethods = RecommenderMethods()
@@ -259,8 +251,6 @@ class Doc2VecClass:
         recommenderMethods.get_categories_dataframe()
         self.df = recommenderMethods.join_posts_ratings_categories()
 
-        # cols = ["category_title","post_title","excerpt","keywords","slug"]
-
         cols = ["keywords"]
         documents_df = pd.DataFrame()
         documents_df['keywords'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
@@ -271,31 +261,8 @@ class Doc2VecClass:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
 
-        """
-        documents_df['documents_cleaned'] = documents_df.post_title.apply(lambda x: " ".join(
-            re.sub(r'(?![\d_])\w', ' ', w).lower() for w in x.split() if
-            # re.sub(r'[^a-zA-Z]', ' ', w).lower() not in cz_stopwords))
-        documents_df['keywords_cleaned'] = documents_df.keywords.apply(lambda x: " ".join(
-            w.lower() for w in x.split()
-            if w.lower() not in cz_stopwords))
-        documents_df['post_title'] = title_df.post_title.apply(lambda x: " ".join(
-            w.lower() for w in x.split()
-            if w.lower() not in cz_stopwords))
-        documents_df['slug'] = slug_df.slug
-        """
-        # keywords_cleaned = list(map(' '.join, documents_df[['keywords_cleaned']].values.tolist()))
-        # print("keywords_cleaned:")
-        # print(keywords_cleaned[:20])
-        """
-        self.train()
-        """
-
-        # model = Doc2Vec.load_texts()
         # to find the vector of a document which is not in training data
         tfidf = TfIdf()
-        # post_preprocessed = word_tokenize("Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.".lower())
-        # post_preprocessed = tfidf.preprocess_single_post("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
-
         # not necessary
         post_preprocessed = tfidf.preprocess_single_post(slug)
         post_features_to_find = post_preprocessed.iloc[0]['keywords']
@@ -321,7 +288,7 @@ class Doc2VecClass:
 
         # for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('THIRD-MOST', 2), ('FOURTH-MOST', 3), ('FIFTH-MOST', 4), ('MEDIAN', len(most_similar) // 2), ('LEAST', len(most_similar) - 1)]:
         for index in range(0, len(most_similar)):
-            print(u'%s: %s\n' % (most_similar[index][1], documents_slugs[int(most_similar[index][0])]))
+            print(u'%s: %s\n' % (most_similar[index][1], documents_slugs[int(most_similar[index])]))
             list_of_article_slugs.append(documents_slugs[int(most_similar[index][0])])
             list_of_coefficients.append(most_similar[index][1])
         print('=====================\n')
@@ -382,7 +349,7 @@ class Doc2VecClass:
         model.min_alpha = model.alpha
 
         model.save("models/d2v_mini_vectors.model")
-        print("LDA model Saved")
+        print("Doc2Vec model Saved")
 
     def train_full_text(self, tagged_data, full_body, limited):
 
@@ -428,7 +395,7 @@ class Doc2VecClass:
                 model.save("models/d2v_limited.model")
             else:
                 model.save("models/d2v.model")
-        print("LDA model Saved")
+        print("Doc2Vec model Saved")
 
     def flatten(self, t):
         return [item for sublist in t for item in sublist]
@@ -535,15 +502,15 @@ class Doc2VecClass:
 
             if hs_softmax == 1:
                 word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
-                                                                                 test_corpus=test_corpus,
-                                                                                 model_variant=model_variant,
-                                                                                 negative_sampling_variant=no_negative_sampling,
-                                                                                 vector_size=vector_size,
-                                                                                 window=window,
-                                                                                 min_count=min_count,
-                                                                                 epochs=epochs,
-                                                                                 sample=sample,
-                                                                                 force_update_model=True, source=source)
+                                                                           test_corpus=test_corpus,
+                                                                           model_variant=model_variant,
+                                                                           negative_sampling_variant=no_negative_sampling,
+                                                                           vector_size=vector_size,
+                                                                           window=window,
+                                                                           min_count=min_count,
+                                                                           epochs=epochs,
+                                                                           sample=sample,
+                                                                           force_update_model=True, source=source)
             else:
                 word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
                                                                            test_corpus=test_corpus,
@@ -629,7 +596,7 @@ class Doc2VecClass:
             d2v_model.save(model_path)
 
         else:
-            print("Loading Doc2Vec iDNES.cz model from saved model file")
+            print("Loading Doc2Vec iDNES.cz doc2vec_model from saved doc2vec_model file")
             d2v_model = Doc2Vec.load(model_path)
 
         path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
@@ -647,7 +614,7 @@ class Doc2VecClass:
             word_pairs_eval = d2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
 
         overall_score, _ = d2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
-        print("Analogies evaluation of model:")
+        print("Analogies evaluation of doc2vec_model:")
         print(overall_score)
 
         doc_id = random.randint(0, len(test_corpus) - 1)

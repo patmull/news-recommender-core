@@ -70,7 +70,8 @@ class RecommenderMethods:
                 try:
                     print("Reading from cache...")
                     self.posts_df = self.database.get_posts_dataframe_from_cache()
-                except:
+                except KeyError as ke:
+                    print(ke)
                     self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
             else:
                 self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
@@ -178,9 +179,20 @@ class RecommenderMethods:
         print(self.df.columns)
 
         if full_text is True:
-            self.df = self.df[
-                ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text', 'trigrams_full_text']]
+            try:
+                self.df = self.df[
+                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
+                     'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text', 'trigrams_full_text']]
+            except KeyError as key_error:
+                print(key_error)
+                print("Columns of self.df:")
+                print(self.df.columns)
+                self.df = self.df.rename(columns={'slug_x': 'post_slug'})
+                self.df = self.df[
+                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                     'description',
+                     'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text',
+                     'trigrams_full_text']]
         else:
             self.df = self.df[
                 ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
@@ -384,10 +396,8 @@ class RecommenderMethods:
         combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
                                                   self.df[['post_slug']])
 
-        df_renamed = combined_all.rename(columns={'slug': 'slug'})
-
         # json conversion
-        json = self.convert_datframe_posts_to_json(df_renamed, slug)
+        json = self.convert_datframe_posts_to_json(combined_all, slug)
 
         return json
 
