@@ -37,22 +37,12 @@ class DocSim:
         # print("for doc")
         print("Searching for similar articles...")
         for doc in target_docs:
-            # if type(doc) is str:
-            # print("doc_without_slug")
-            doc_without_slug = doc.split(";", 1) # removing slug
-            # print("target_vec")
+            doc_without_slug = doc.split(";", 1) # removing searched_slug
             target_vec = vectorizer.transform([doc_without_slug[0]])
-            # print(target_vec)
-            # print("source_vec")
-            # print(source_vec)
             sim_score = 1 - spatial.distance.cosine(source_vec[0].toarray(), target_vec[0].toarray())
-            # print("if sim_score > threshold")
             if sim_score > threshold:
-                # print("type(doc)")
-                # print(type(doc))
-                # print("slug = re.sub(...)")
-                slug = re.sub(r'^.*?;', ';', doc) # keeping only slug of the document
-                # print("slug.replace")
+                slug = re.sub(r'^.*?;', ';', doc) # keeping only searched_slug of the document
+                # print("searched_slug.replace")
                 slug = slug.replace('; ','')
                 # print("results.append")
                 results.append({"slug": slug, "coefficient": sim_score})
@@ -81,23 +71,12 @@ class DocSim:
         # print("for doc")
         print("Searching for similar articles...")
         for doc in target_docs:
-            # if type(doc) is str:
-            # print("doc_without_slug")
-            doc_without_slug = doc.split(";", 1) # removing slug
-            # print("target_vec")
+            doc_without_slug = doc.split(";", 1) # removing searched_slug
             target_vec = self.vectorize(doc_without_slug)
-            # print(target_vec)
-            # print("source_vec")
-            # print(source_vec)
             sim_score = self._cosine_sim(source_vec, target_vec)
-            # sim_score = 1 - spatial.distance.cosine(source_vec[0].toarray(), target_vec[0].toarray())
-            # print("if sim_score > threshold")
             if sim_score > threshold:
-                # print("type(doc)")
-                # print(type(doc))
-                # print("slug = re.sub(...)")
-                slug = re.sub(r'^.*?;', ';', doc) # keeping only slug of the document
-                # print("slug.replace")
+                slug = re.sub(r'^.*?;', ';', doc) # keeping only searched_slug of the document
+                # print("searched_slug.replace")
                 slug = slug.replace('; ','')
                 # print("results.append")
                 results.append({"slug": slug, "coefficient": sim_score})
@@ -133,7 +112,7 @@ class DocSim:
         results = []
         for sim_tuple in sims:
             doc_found = target_docs[sim_tuple[0]] # get document by position from sims results
-            slug = re.sub(r'^.*?;', ';', doc_found) # keeping only slug of the document
+            slug = re.sub(r'^.*?;', ';', doc_found) # keeping only searched_slug of the document
             slug = slug.replace("; ","")
             sim_score = sim_tuple[1]
             results.append({"slug": slug, "coefficient": sim_score})
@@ -160,8 +139,8 @@ class DocSim:
         results = []
         for sim_tuple in sims:
             doc_found = target_docs[sim_tuple[0]] # get document by position from sims results
-            slug = re.sub(r'^.*?;', ';', doc_found) # keeping only slug of the document
-            print("slug:")
+            slug = re.sub(r'^.*?;', ';', doc_found) # keeping only searched_slug of the document
+            print("searched_slug:")
             print(slug)
             slug = slug.replace("; ","")
             sim_score = sim_tuple[1]
@@ -172,18 +151,26 @@ class DocSim:
 
         return results
 
-    def load_docsim_index_and_dictionary(self):
+    def load_docsim_index_and_dictionary(self, source, force_update=True):
+        global path_to_docsim_index, dictionary
         gensim_methods = GenSimMethods()
         common_texts = gensim_methods.load_texts()
         # bow_corpus = pickle.load(open("precalc_vectors/corpus_idnes.pkl","rb"))
 
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-        path_to_docsim_index = "full_models/idnes/docsim_index_idnes"
+        # TODO: CReate if does not exists
+        if source == "idnes":
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+            path_to_docsim_index = "full_models/idnes/docsim_index_idnes"
+        elif source == "cswiki":
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_cswiki.gensim')
+            path_to_docsim_index = "full_models/cswiki/docsim_index_cswiki"
+        else:
+            ValueError("Bad source name selected")
 
-        if os.path.exists(path_to_docsim_index):
+        if os.path.exists(path_to_docsim_index) and force_update is False:
             docsim_index = SoftCosineSimilarity.load(path_to_docsim_index)
         else:
-            print("Docsim index not found. Will create a new from avilable articles.")
+            print("Docsim index not found or forced to update. Will create a new from avilable articles.")
             # TODO: This can be preloaded
             docsim_index = self.update_docsim_index(dictionary=dictionary, common_texts=common_texts,
                                                     path_to_docsim_index=path_to_docsim_index)
@@ -193,8 +180,12 @@ class DocSim:
         print("Updating DocSim index...")
         tfidf = TfidfModel(dictionary=dictionary)
         words = [word for word, count in dictionary.most_common()]
-        word_vectors = self.w2v_model.wv.vectors_for_all(words,
-                                                         allow_inference=False)  # produce vectors for words in train_corpus
+        try:
+            word_vectors = self.w2v_model.wv.vectors_for_all(words,
+                                                             allow_inference=False)  # produce vectors for words in train_corpus
+        except AttributeError:
+            word_vectors = self.w2v_model.vectors_for_all(words,
+                                                             allow_inference=False)
 
         indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
         termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})  # for similarity index
@@ -228,7 +219,7 @@ class DocSim:
 
         # Assuming that document vector is the mean of all the word vectors
         # PS: There are other & better ways to do it.
-        # TODO: Change to better method. This looks bad
+        # TODO: Change to better model_variant. This looks bad
         # https://radimrehurek.com/gensim/similarities/docsim.html#gensim.similarities.docsim.SoftCosineSimilarity
         vector = np.mean(word_vecs, axis=0)
         return vector

@@ -40,9 +40,7 @@ class Doc2VecClass:
         return self.posts_df
 
     def get_categories_dataframe(self):
-        self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
-        self.database.disconnect()
         self.posts_df = self.posts_df.rename({'title': 'category_title'})
         return self.categories_df
 
@@ -131,14 +129,10 @@ class Doc2VecClass:
 
     def get_similar_doc2vec(self, slug, source=None, doc2vec_model=None, train=False, limited=True, number_of_recommended_posts=21, from_db=False):
         recommender_methods = RecommenderMethods()
-        recommender_methods.get_posts_dataframe()
-        recommender_methods.get_categories_dataframe()
-        try:
-            self.df = recommender_methods.join_posts_ratings_categories(include_prefilled=True)
-        except KeyError as ke:
-            print(ke)
-            self.df = recommender_methods.get_df_from_sql_meanwhile_insert_cache()
+        recommender_methods.database.connect()
+        self.df = recommender_methods.get_posts_categories_dataframe()
 
+        recommender_methods.database.disconnect()
         print("self.df")
         print(self.df.columns.values)
 
@@ -186,10 +180,10 @@ class Doc2VecClass:
         return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
     def get_similar_doc2vec_with_full_text(self, slug, train=False, number_of_recommended_posts=21):
-        recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe()
-        recommenderMethods.get_categories_dataframe()
-        self.df = self.join_posts_ratings_categories()
+        recommender_methods = RecommenderMethods()
+        recommender_methods.database.connect()
+        self.df = recommender_methods.get_posts_categories_dataframe()
+        recommender_methods.database.disconnect()
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
         documents_df = pd.DataFrame()
@@ -229,7 +223,7 @@ class Doc2VecClass:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
         """
-        doc2vec_model = Doc2Vec.load("models/d2v_full_text_limited.model")
+        doc2vec_model = Doc2Vec.load("models/d2v_full_text_limited.model_variant")
 
         recommendMethods = RecommenderMethods()
 
@@ -288,7 +282,7 @@ class Doc2VecClass:
 
         # for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('THIRD-MOST', 2), ('FOURTH-MOST', 3), ('FIFTH-MOST', 4), ('MEDIAN', len(most_similar) // 2), ('LEAST', len(most_similar) - 1)]:
         for index in range(0, len(most_similar)):
-            print(u'%s: %s\n' % (most_similar[index][1], documents_slugs[int(most_similar[index])]))
+            print(u'%s: %s\n' % (most_similar[index][1], documents_slugs[int(most_similar[index][0])]))
             list_of_article_slugs.append(documents_slugs[int(most_similar[index][0])])
             list_of_coefficients.append(most_similar[index][1])
         print('=====================\n')

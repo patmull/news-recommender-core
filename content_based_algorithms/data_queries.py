@@ -59,7 +59,6 @@ class RecommenderMethods:
         self.database = Database()
 
     def get_posts_dataframe(self, force_update=False):
-        self.database.connect()
         print("4.1.1")
         if force_update is True:
             self.posts_df = self.database.insert_posts_dataframe_to_cache()
@@ -70,8 +69,9 @@ class RecommenderMethods:
                 try:
                     print("Reading from cache...")
                     self.posts_df = self.database.get_posts_dataframe_from_cache()
-                except KeyError as ke:
-                    print(ke)
+                except Exception as e:
+                    print(e)
+                    print(e.with_traceback())
                     self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
             else:
                 self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
@@ -79,8 +79,6 @@ class RecommenderMethods:
         print("4.1.2")
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         print("4.1.3")
-        self.database.disconnect()
-        print("4.1.4")
         return self.posts_df
 
     def get_df_from_sql_meanwhile_insert_cache(self):
@@ -95,28 +93,20 @@ class RecommenderMethods:
         return posts_df
 
     def get_users_dataframe(self):
-        self.database.connect()
         self.posts_df = self.database.get_users_dataframe()
-        self.database.disconnect()
         return self.posts_df
 
     def get_ratings_dataframe(self):
-        self.database.connect()
         self.posts_df = self.database.get_ratings_dataframe(pd)
-        self.database.disconnect()
         return self.posts_df
 
     def get_categories_dataframe(self, rename_title=True):
         # rename_title (defaul=False): for ensuring that category title does not collide with post title
-
-        self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
-        self.database.disconnect()
         return self.categories_df
 
     def get_user_posts_ratings(self):
         database = Database()
-        database.connect()
         ##Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
@@ -130,10 +120,8 @@ class RecommenderMethods:
         return df_ratings
 
     def get_results_dataframe(self):
-        self.database.connect()
         results_df = self.database.get_results_dataframe(pd)
         results_df.reset_index(inplace=True)
-        self.database.disconnect()
         print("self.results_df:")
         print(results_df)
         results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name', 'model_variant', 'created_at']]
@@ -141,14 +129,13 @@ class RecommenderMethods:
 
     def refresh_cached_db_file(self):
         print("Refreshing DB cache...")
-        self.database.connect()
         self.database.insert_posts_dataframe_to_cache()
         print("New DB cache file saved to local storage.")
-        self.database.disconnect()
 
+    @DeprecationWarning
     def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
 
-        self.get_posts_dataframe()
+        self.posts_df = self.get_posts_dataframe()
         print("4.1")
         self.get_categories_dataframe()
         print("4.2")
@@ -184,6 +171,7 @@ class RecommenderMethods:
                     ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
                      'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text', 'trigrams_full_text']]
             except KeyError as key_error:
+                self.df = self.get_df_from_sql_meanwhile_insert_cache()
                 print(key_error)
                 print("Columns of self.df:")
                 print(self.df.columns)
@@ -361,18 +349,13 @@ class RecommenderMethods:
 
         # getting posts with highest similarity
         combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
-                                                  self.df[['post_slug']], k=num_of_recommendations)
+                                                  self.df[['slug']], k=num_of_recommendations)
 
-        df_renamed = combined_all.rename(columns={'post_slug': 'slug'})
         # json conversion
-        json = self.convert_datframe_posts_to_json(df_renamed, slug)
+        json = self.convert_datframe_posts_to_json(combined_all, slug)
         return json
 
-
     def recommend_by_more_features_with_full_text(self, slug, tupple_of_fitted_matrices):
-        # combining results of all feature types
-        # combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices) # creating sparse matrix containing mostly zeroes from combined feature tupples
-        combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
         """
         Example 1: solving linear system A*x=b where A is 5000x5000 but is block diagonal matrix constructed of 500 5x5 blocks. Setup code:
 
@@ -388,13 +371,17 @@ class RecommenderMethods:
         Af \ b % solving with full Af takes about 2.3 seconds
 
         """
+        # combining results of all feature types
+        # combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices) # creating sparse matrix containing mostly zeroes from combined feature tupples
+        combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
+
         # computing cosine similarity
         print("Computing cosine simialirity")
         self.set_cosine_sim_use_own_matrix(combined_matrix1)
 
         # getting posts with highest similarity
         combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
-                                                  self.df[['post_slug']])
+                                                  self.df[['slug']])
 
         # json conversion
         json = self.convert_datframe_posts_to_json(combined_all, slug)
@@ -407,8 +394,8 @@ class RecommenderMethods:
         print("cosine_sim:")
         print(cosine_sim)
         # cosine_sim = cosine_similarity(own_tfidf_matrix_csr) # computing cosine similarity
-        cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['post_slug'],
-                                     columns=self.df['post_slug'])  # finding original record of post belonging to slug
+        cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug'],
+                                     columns=self.df['slug'])  # finding original record of post belonging to slug
         del cosine_sim
         self.cosine_sim_df = cosine_sim_df
 
@@ -497,6 +484,18 @@ class RecommenderMethods:
 
     def flatten(self, t):
         return [item for sublist in t for item in sublist]
+
+    def get_posts_categories_dataframe(self):
+        posts_df = self.get_posts_dataframe()
+        categories_df = self.get_categories_dataframe()
+        posts_df = posts_df.rename(columns={'title': 'post_title'})
+        categories_df = categories_df.rename(columns={'title': 'category_title', 'slug': 'category_slug'})
+        print("self.posts_df")
+        print(self.posts_df)
+        print("self.categories_df")
+        print(self.categories_df)
+        self.df = pd.merge(posts_df, categories_df, left_on='category_id', right_on='id')
+        return self.df
 
 
 def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
