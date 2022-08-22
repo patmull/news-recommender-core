@@ -1,8 +1,5 @@
-import csv
 import json
-
 import numpy as np
-
 from gensim.utils import deaccent
 
 from preprocessing.cz_preprocessing import CzPreprocess
