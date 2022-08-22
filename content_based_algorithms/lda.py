@@ -49,15 +49,15 @@ class Lda:
              'all_features_preprocessed', 'body_preprocessed']]
         return self.df
 
+    @DeprecationWarning
     def get_categories_dataframe(self):
-        self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
-        self.database.disconnect()
         return self.categories_df
 
+    @DeprecationWarning
     def get_posts_dataframe(self):
         # self.database.insert_posts_dataframe_to_cache()  # uncomment for UPDATE of DB records
-        self.posts_df = self.database.get_posts_dataframe_from_cache()
+        self.posts_df = self.database.get_posts_dataframe_from_database()
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         return self.posts_df
 
@@ -105,15 +105,6 @@ class Lda:
             post_recommendations['coefficient'] = most_sim_coefficients[:N-1]
         else:
             post_recommendations['coefficient'] = pd.Series(most_sim_coefficients[:N-1])
-
-        """
-        try:
-            post_recommendations['coefficient'] = most_sim_coefficients[:N - 1]
-        except ValueError:
-            print("Value error. Going with older version of LDA model (not updated for all articles).")
-            self.get_similar_lda(searched_slug, train=False, display_dominant_topics=False, N=number_of_df_rows)
-            post_recommendations['coefficient'] = most_sim_coefficients[:N]
-        """
 
         del recommender_methods.df
         gc.collect()
@@ -219,26 +210,7 @@ class Lda:
         return [word for word in text if word in self.top_k_words]
 
     def load_lda(self, data, training_now=False):
-        """
-        print("dictionary")
-        dictionary = corpora.Dictionary(data['tokenized'])
-        print("train_corpus")
-        train_corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-        self.save_corpus_dict(train_corpus,dictionary)
-        """
-        """
-        try:
-        except FileNotFoundError:
 
-            dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
-            dropbox_file_download(dropbox_access_token, "models/lda_model", "/lda_model")
-            dropbox_file_download(dropbox_access_token, "models/lda_model.expElogeta.npy", "/lda_model.expElogeta.npy")
-            dropbox_file_download(dropbox_access_token, "models/lda_model.id2word", "/lda_model.id2word")
-            dropbox_file_download(dropbox_access_token, "models/lda_model.state", "/lda_model.state")
-            dropbox_file_download(dropbox_access_token, "models/lda_model.state.sstats.npy", "/lda_model.state.sstats.npy")
-
-            lda_model = LdaModel.load_texts("models/lda_model")
-        """
         try:
             lda_model = LdaModel.load("models/lda_model")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
@@ -262,21 +234,6 @@ class Lda:
 
     def load_lda_full_text(self, data, display_dominant_topics, training_now=False, retrain=False, ):
 
-        """
-        try:
-            lda_model = LdaModel.load_texts("models/lda_model_full_text")
-        except FileNotFoundError:
-            print("Downloading LDA model files...")
-            dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
-            dropbox_file_download(dropbox_access_token, "models/lda_model_full_text", "/lda_model_full_text")
-            dropbox_file_download(dropbox_access_token, "models/lda_model_full_text.expElogeta.npy", "/lda_model_full_text.expElogeta.npy")
-            dropbox_file_download(dropbox_access_token, "models/lda_model_full_text.id2word", "/lda_model_full_text.id2word")
-            dropbox_file_download(dropbox_access_token, "models/lda_model_full_text.state", "/lda_model_full_text.state")
-            dropbox_file_download(dropbox_access_token, "models/lda_model_full_text.state.sstats.npy", "/lda_model_full_text.state.sstats.npy")
-            print("LDA Model files downloaded")
-
-            lda_model = LdaModel.load_texts("models/lda_model_full_text")
-        """
         try:
             lda_model = LdaModel.load("models/lda_model_full_text")
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
@@ -405,7 +362,7 @@ class Lda:
 
         t1 = time.time()
 
-        num_topics = 20  # set according visualise_lda() method (Coherence value) = 20
+        num_topics = 20  # set according visualise_lda() model_variant (Coherence value) = 20
         chunksize = 1000
         passes = 20 # evaluated on 20
         # workers = 7  # change when used LdaMulticore on different computer/server according tu no. of CPU cores
@@ -419,7 +376,7 @@ class Lda:
                              passes=passes, iterations=iterations)
 
         t2 = time.time()
-        print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
+        print("Time to force_train LDA doc2vec_model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
         lda_model.save("models/lda_model_full_text")
         print("Model Saved")
 
@@ -444,6 +401,7 @@ class Lda:
         trigram_mod = gensim.models.phrases.Phraser(trigram)
 
         # See trigram example
+        print(trigram_mod[bigram_mod[data_words[0]]])
 
         # Form Bigrams
         data_words_bigrams = self.make_bigrams(bigram_mod, data_words)
@@ -542,22 +500,9 @@ class Lda:
                                                              workers=2,
                                                              iterations=iterations)
 
-        """
-        lda_model.save("full_models/cswiki/lda/lda_model")
-        lda_model_loaded = LdaMulticore.load_texts("full_models/cswiki/lda/lda_model")
-        
-        print(lda_model.print_topics(20))
+        print("mm")
+        print(corpus)
 
-        meta_file = open("full_models/cswiki/cswiki_bow.mm.metadata.cpickle", 'rb')
-        docno2metadata = pickle.load_texts(meta_file)
-        meta_file.close()
-
-        doc_num = 0
-        print("Title: {}".format(docno2metadata[doc_num][1]))  # take the first article as an example
-        vec = train_corpus[doc_num]  # get tf-idf vector
-        print("lda.get_document_topics(vec)")
-        print(lda_model_loaded.get_document_topics(vec))
-        """
         #  For ‘u_mass’ train_corpus should be provided, if texts is provided, it will be converted to train_corpus using the dictionary. For ‘c_v’, ‘c_uci’ and ‘c_npmi’ texts should be provided
         if data_lemmatized is None:
             coherence_model_lda = CoherenceModel(model=lda_model, corpus=corpus, dictionary=dictionary,coherence='u_mass')
@@ -655,7 +600,7 @@ class Lda:
 
         pbar = tqdm.tqdm(total=540)
         print("----------------------")
-        print("Testing model on:")
+        print("Testing doc2vec_model on:")
         print("-----------------------")
         print("Topics:")
         print(topics_range)
@@ -681,7 +626,7 @@ class Lda:
                                 cv = self.compute_coherence_values(corpus=corpus_sets[i], dictionary=preprocessed_dictionary,
                                                                    # data_lemmatized=data_lemmatized,
                                                                    num_topics=k, alpha=a, eta=e, passes=p, iterations=iterations, data_lemmatized=processed_data)
-                                # Save the model results
+                                # Save the doc2vec_model results
                                 model_results['Validation_Set'].append(corpus_title[i])
                                 model_results['Topics'].append(k)
                                 model_results['Alpha'].append(a)

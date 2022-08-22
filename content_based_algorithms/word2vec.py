@@ -6,10 +6,13 @@ import os
 import pickle
 import random
 import re
+import string
 import time
 from collections import defaultdict
 
 import gensim
+import majka
+import numpy as np
 import psycopg2
 import pymongo as pymongo
 import regex
@@ -17,6 +20,8 @@ import tqdm
 from gensim import corpora
 from gensim.models import KeyedVectors, Word2Vec
 from gensim.utils import deaccent
+from html2text import html2text
+from nltk import FreqDist, RegexpTokenizer
 from pymongo import MongoClient
 
 from content_based_algorithms import data_queries
@@ -27,7 +32,7 @@ import pandas as pd
 import time as t
 
 from data_connection import Database
-from preprocessing.cz_preprocessing import CzPreprocess
+from preprocessing.cz_preprocessing import CzPreprocess, cz_stopwords, general_stopwords
 from reader import MongoReader
 
 PATH_TO_UNPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs-unprocessed.txt'
@@ -61,7 +66,6 @@ class MyCorpus(object):
             print("\rDoc. num. " + str(i), end='')
             yield self.dictionary.doc2bow(doc.get('text'))
             i = i + 1
-
 
 class Reader(object):
     ''' Source reader object feeds other objects to iterate through a source. '''
@@ -97,7 +101,7 @@ class Reader(object):
         return texts
 
     def iterate(self):
-        ''' virtual method '''
+        ''' virtual model_variant '''
         pass
 
 
@@ -109,12 +113,49 @@ class Word2VecClass:
         self.df = None
         self.database = Database()
 
-    # @profile
-    def get_similar_word2vec(self, searched_slug, model="idnes", docsim_index=None, dictionary=None, force_update_data=False):
+    @DeprecationWarning
+    def prepare_word2vec_eval(self):
+        recommenderMethods = RecommenderMethods()
 
-        # check method inputs
-        if not model.startswith("idnes_") or not model == "wiki":
-            ValueError("Bad model name passed.")
+        self.get_posts_dataframe()
+        self.get_categories_dataframe()
+        self.join_posts_ratings_categories()
+
+        del self.posts_df
+        del self.categories_df
+
+        documents_df = pd.DataFrame()
+        documents_training_df = pd.DataFrame()
+
+        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
+            "all_features_preprocessed"]
+        documents_df["searched_slug"] = self.df["searched_slug"]
+
+        documents_training_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + " " + self.df[
+            "all_features_preprocessed"]
+        documents_training_df["features_to_use"] = documents_training_df["features_to_use"].replace(",", "")
+        documents_training_df["features_to_use"] = documents_training_df["features_to_use"].str.split(" ")
+
+        texts = documents_training_df["features_to_use"].tolist()
+        texts = data_queries.remove_stopwords(texts)
+
+        del self.df
+
+        # documents_df['features_combined'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
+        # documents = list(map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
+
+        # Uncomment for change of doc2vec_model
+        # self.refresh_model()
+
+        # word2vec_embedding = KeyedVectors.load_texts(self.amazon_bucket_url)
+        # self.amazon_bucket_url#
+
+        print("Loading Word2Vec FastText (Wikipedia) doc2vec_model...")
+        # word2vec_embedding = KeyedVectors.load_texts("models/w2v_model_limited")
+        self.find_optimal_model_idnes(texts)
+
+    # @profile
+    def get_similar_word2vec(self, searched_slug, model=None, docsim_index=None, dictionary=None, docsim=None, force_update_data=False):
 
         recommenderMethods = RecommenderMethods()
 
@@ -131,11 +172,9 @@ class Word2VecClass:
         print("found_post_dataframe:")
         print(found_post_dataframe)
         print(found_post_dataframe.columns)
-        """
-        found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
-                                                  found_post_dataframe.iloc[0]['category_title'] + " " + \
-                                                  found_post_dataframe.iloc[0]['all_features_preprocessed'] + found_post_dataframe.iloc[0]['body_preprocessed']
-        """
+
+        found_post_dataframe[['trigrams_full_text']] = found_post_dataframe[['trigrams_full_text']].fillna('')
+        found_post_dataframe[['keywords']] = found_post_dataframe[['keywords']].fillna('')
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + found_post_dataframe.iloc[0]['trigrams_full_text']
 
         del self.posts_df
@@ -149,13 +188,13 @@ class Word2VecClass:
         # documents_df["features_to_use"] = self.df["trigrams_full_text"]
         documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
             "all_features_preprocessed"] + " " + self.df["body_preprocessed"]
-        documents_df["slug"] = self.df["post_slug"]
+        documents_df["searched_slug"] = self.df["post_slug"]
         found_post = found_post_dataframe['features_to_use'].iloc[0]
 
         del self.df
         del found_post_dataframe
 
-        documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
+        documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['searched_slug']
         list_of_document_features = documents_df["features_to_use"].tolist()
 
         del documents_df
@@ -211,6 +250,16 @@ class Word2VecClass:
 
     # @profile
     def get_similar_word2vec_full_text(self, searched_slug):
+        """
+        Differs from Prefillers module method
+
+        :param searched_slug:
+        :param model:
+        :param docsim_index:
+        :param dictionary:
+        :param docsim:
+        :return:
+        """
         recommenderMethods = RecommenderMethods()
 
         self.posts_df = recommenderMethods.get_posts_dataframe()
@@ -291,7 +340,7 @@ class Word2VecClass:
         return [item for sublist in t for item in sublist]
 
     def save_full_model_to_smaller(self, model="wiki"):
-        print("Saving full model to limited model...")
+        print("Saving full doc2vec_model to limited doc2vec_model...")
         if model == "wiki":
             word2vec_embedding = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full",
                                                                    limit=87000)  #
@@ -316,7 +365,6 @@ class Word2VecClass:
     def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True, random_order=False, reversed=False):
 
         database = Database()
-        database.connect()
         if skip_already_filled is False:
             posts = database.get_all_posts()
         else:
@@ -422,7 +470,7 @@ class Word2VecClass:
 
     def refresh_model(self):
         self.save_fast_text_to_w2v()
-        print("Loading word2vec model...")
+        print("Loading word2vec doc2vec_model...")
         self.save_full_model_to_smaller()
 
     def evaluate_model(self, source, sentences=None, model_variant=None, negative_sampling_variant=None,
@@ -1132,6 +1180,13 @@ class Word2VecClass:
     def test_with_and_without_extremes(self):
         # TODO: Test this
         return False
+
+    def create_or_update_corpus_and_dict_from_mongo_idnes(self):
+        dict = self.create_dictionary_from_mongo_idnes(force_update=True)
+        self.create_corpus_from_mongo_idnes(dict, force_update=True)
+        doc_sim = DocSim()
+        doc_sim.update_docsim_index()
+        # TODO: Update DOCSIM INDEX!!!!!!!!!
 
 
     def create_dictionary_from_mongo_idnes(self, sentences=None, force_update=False, filter_extremes=False):
