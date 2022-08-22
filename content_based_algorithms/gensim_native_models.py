@@ -41,13 +41,9 @@ class GenSimMethods:
         doc = post_dataframe["category_title"] + " " + post_dataframe["keywords"] + " " + post_dataframe["post_title"] + " " + \
               post_dataframe["excerpt"]
         return str(doc.tolist())
-        # return self.get_posts_dataframe().loc[self.get_posts_dataframe()['slug'] == slug]
-        # return str(self.df['category_title','post_title','excerpt','keywords','slug'].loc[self.df['slug'] == slug].values[0])
 
     def get_categories_dataframe(self):
-        self.database.connect()
         self.categories_df = self.database.get_categories_dataframe(pd)
-        self.database.disconnect()
         return self.categories_df
 
     def recommend_posts_by_all_features(self, slug):
@@ -122,6 +118,7 @@ class GenSimMethods:
         # self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
 
         # converting pandas columns to list of lists and through map to list of string joined by space ' '
+        self.df[['trigrams_full_text']] = self.df[['trigrams_full_text']].fillna('')
         self.documents = list(map(' '.join, self.df[["trigrams_full_text"]].values.tolist()))
 
         filename = "preprocessing/stopwords/czech_stopwords.txt"
@@ -173,8 +170,6 @@ class GenSimMethods:
 
         vec_bow = dictionary.doc2bow(doc.lower().split())
 
-        # WIP (Work in Progress)
-        # vec_bow = dictionary.doc2bow(self.preprocess_single_post(slug))
         vec_lsi = lsi[vec_bow]  # convert the query to LSI space
 
         sims = self.get_similarities(lsi, corpus, vec_lsi)
