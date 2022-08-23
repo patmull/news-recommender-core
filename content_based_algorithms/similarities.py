@@ -1,6 +1,8 @@
 import json
 
 import numpy as np
+import pandas as pd
+from scipy import sparse
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -112,6 +114,17 @@ class CosineTransform:
         # print(list_of_article_slugs)
         return json.dumps(list_of_article_slugs)
 
+    def set_cosine_sim_use_own_matrix(self, own_tfidf_matrix, df):
+        own_tfidf_matrix_csr = sparse.csr_matrix(own_tfidf_matrix.astype(dtype=np.float16)).astype(dtype=np.float16)
+        cosine_sim = self.cosine_similarity_n_space(own_tfidf_matrix_csr, own_tfidf_matrix_csr)
+        print("cosine_sim:")
+        print(cosine_sim)
+        # cosine_sim = cosine_similarity(own_tfidf_matrix_csr) # computing cosine similarity
+        cosine_sim_df = pd.DataFrame(cosine_sim, index=df['slug'],
+                                     columns=df['slug'])  # finding original record of post belonging to slug
+        del cosine_sim
+        self.cosine_sim_df = cosine_sim_df
+
     def cosine_similarity_n_space(self, m1, m2=None, batch_size=100):
         assert m1.shape[1] == m2.shape[1] and isinstance(batch_size, int) == True
 
@@ -155,3 +168,15 @@ class CosineTransform:
                 actual_recommended_json = self.get_by_param(slug)
 
                 database.insert_recommended_json(articles_recommended_json=actual_recommended_json, article_id=post_id)
+
+    def get_cosine_sim_use_own_matrix(self, own_tfidf_matrix, df):
+        own_tfidf_matrix_csr = sparse.csr_matrix(own_tfidf_matrix.astype(dtype=np.float16)).astype(dtype=np.float16)
+        cosine_sim = self.cosine_similarity_n_space(own_tfidf_matrix_csr, own_tfidf_matrix_csr)
+        print("cosine_sim:")
+        print(cosine_sim)
+        # cosine_sim = cosine_similarity(own_tfidf_matrix_csr) # computing cosine similarity
+        cosine_sim_df = pd.DataFrame(cosine_sim, index=df['slug'],
+                                     columns=df['slug'])  # finding original record of post belonging to slug
+        del cosine_sim
+        self.cosine_sim_df = cosine_sim_df
+        return self.cosine_sim_df
