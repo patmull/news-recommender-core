@@ -1,8 +1,8 @@
 import traceback
 
-from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.prefiller import PreFiller
 from data_connection import Database
+from data_handling.data_queries import RecommenderMethods
 from prefilling_additional import PreFillerAdditional
 
 prefiller = PreFiller()

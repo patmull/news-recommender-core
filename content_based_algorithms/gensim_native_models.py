@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 from nltk import RegexpTokenizer
 
-from content_based_algorithms.data_queries import RecommenderMethods
+from data_handling.data_queries import RecommenderMethods
 from preprocessing.cz_preprocessing import CzPreprocess
 from preprocessing.czech_stemmer import cz_stem
 from gensim import corpora, models, similarities

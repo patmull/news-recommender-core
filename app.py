@@ -1,12 +1,11 @@
 import traceback
 
-#from learn_to_rank import LearnToRank, LightGBM
 from threading import Thread
 
-from content_based_algorithms.data_queries import RecommenderMethods
+from data_handling.data_queries import RecommenderMethods
 from user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
-from flask_restful import Api, Resource
+from flask_restful import Resource
 from content_based_algorithms.lda import Lda
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.tfidf import TfIdf
@@ -18,8 +17,8 @@ def create_app():
     # initializing files needed for the start of application
     # checking needed parts...
     print("Creating posts cache file...")
-    recommenderMethods = RecommenderMethods()
-    recommenderMethods.refresh_cached_db_file()
+    recommender_methods = RecommenderMethods()
+    recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
     print("Crating flask app...")
     app = Flask(__name__)
     print("FLASK APP READY TO START!")
