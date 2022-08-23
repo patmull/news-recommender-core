@@ -4,13 +4,14 @@ import operator
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
-from content_based_algorithms.data_queries import RecommenderMethods
 from data_connection import Database
 from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
 from surprise import Reader, Dataset, SVD, KNNBasic
 from surprise.model_selection import cross_validate
+
+from data_handling.data_queries import RecommenderMethods
 
 
 class SvdClass:
@@ -73,8 +74,8 @@ class SvdClass:
                            JOIN ratings r ON r.post_id = p.id
                            JOIN users u ON r.user_id = u.id;"""
         # LOAD INTO A DATAFRAME
-        recommenderMethods = RecommenderMethods()
-        all_posts_df = recommenderMethods.get_posts_dataframe()
+        recommender_methods = RecommenderMethods()
+        all_posts_df = recommender_methods.get_posts_dataframe()
         df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
         sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
         # LOAD INTO A DATAFRAME

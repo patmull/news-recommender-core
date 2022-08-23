@@ -1,5 +1,4 @@
 import time
-
 import pytest
 
 from data_connection import Database

@@ -82,7 +82,7 @@ class GenSimMethods:
         end;                         %As is made up of 500 5x5 blocks along diagonal
         Af = full(As); b = rand(5000, 1);
 
-        Then you can test speed difference:
+        Then you can tests speed difference:
 
         As \ b % operation on sparse As takes .0012 seconds
         Af \ b % solving with full Af takes about 2.3 seconds

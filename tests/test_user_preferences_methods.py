@@ -6,8 +6,8 @@ import certifi
 import pandas as pd
 import urllib3
 
-from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.tfidf import TfIdf
+from data_handling.data_queries import RecommenderMethods
 from pytranslate import google_translate
 
 # Run with:
@@ -49,7 +49,10 @@ def test_user_keywords():
 def test_user_categories():
     user_based_recommendation = UserBasedRecommendation()
     recommender_methods = RecommenderMethods()
+    # TODO: Repair Error
+    recommender_methods.database.connect()
     users = recommender_methods.get_users_dataframe()
+    recommender_methods.database.disconnect()
     print("users:")
     print(users)
     list_of_user_ids = users['id'].to_list()
