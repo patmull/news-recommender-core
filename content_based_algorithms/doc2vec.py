@@ -4,6 +4,7 @@ import logging
 import os
 import pickle
 import random
+import warnings
 
 import gensim
 import pandas as pd
@@ -19,7 +20,8 @@ from content_based_algorithms.tfidf import TfIdf
 from data_handling.data_queries import RecommenderMethods
 from preprocessing.cz_preprocessing import CzPreprocess
 from data_connection import Database
-from reader import MongoReader
+
+DEFAULT_MODEL_LOCATION = "models/d2v_limited.model"
 
 
 class Doc2VecClass:
@@ -32,21 +34,22 @@ class Doc2VecClass:
         self.database = Database()
         self.doc2vec_model = None
 
-    def get_posts_dataframe(self):
+    def prepare_posts_df(self):
         # self.database.insert_post_dataframe_to_cache() # uncomment for UPDATE of DB records
         self.posts_df = self.database.get_posts_dataframe_from_cache()
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         self.posts_df = self.posts_df.rename({'title': 'post_title'})
         return self.posts_df
 
-    def get_categories_dataframe(self):
+    def prepare_categories_df(self):
         self.categories_df = self.database.get_categories_dataframe(pd)
         self.posts_df = self.posts_df.rename({'title': 'category_title'})
         return self.categories_df
 
+    """
     def join_posts_ratings_categories(self, include_prefilled=False):
-        self.posts_df = self.get_posts_dataframe()
-        self.categories_df = self.get_categories_dataframe()
+        self.posts_df = self.prepare_posts_df()
+        self.categories_df = self.prepare_categories_df()
         print("self.posts_df:")
         print(self.posts_df)
         print("self.categories_df:")
@@ -82,6 +85,7 @@ class Doc2VecClass:
                      'recommended_tfidf_full_text']]
 
         return self.df
+    """
 
     def train_doc2vec(self, documents_all_features_preprocessed, body_text, limited=True, create_csv=False):
         print("documents_all_features_preprocessed")
@@ -124,9 +128,6 @@ class Doc2VecClass:
 
         self.train(tagged_data)
 
-    def get_prefilled(self, slug):
-        return self.get_similar_doc2vec(slug=slug, from_db=True)
-
     def get_similar_doc2vec(self, slug, source=None, doc2vec_model=None, train=False, limited=True, number_of_recommended_posts=21, from_db=False):
         recommender_methods = RecommenderMethods()
         recommender_methods.database.connect()
@@ -166,9 +167,9 @@ class Doc2VecClass:
         else:
             doc2vec_model = Doc2Vec.load("models/d2v.model") # or download from Dropbox / AWS bucket
 
-        recommenderMethods = RecommenderMethods()
+        recommender_methods = RecommenderMethods()
         # not necessary
-        post_found = recommenderMethods.find_post_by_slug(slug)
+        post_found = recommender_methods.find_post_by_slug(slug)
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
 
@@ -177,7 +178,7 @@ class Doc2VecClass:
         vector_source = doc2vec_model.infer_vector(tokens)
         most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
-        return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
+        return self.get_similar_by_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
     def get_similar_doc2vec_with_full_text(self, slug, train=False, number_of_recommended_posts=21):
         recommender_methods = RecommenderMethods()
@@ -216,13 +217,6 @@ class Doc2VecClass:
         del documents_all_features_preprocessed
         gc.collect()
 
-        """
-        filename = "preprocessing/czech_stopwords.txt"
-        
-        with open(filename, encoding="utf-8") as file:
-            cz_stopwords = file.readlines()
-            cz_stopwords = [line.rstrip() for line in cz_stopwords]
-        """
         doc2vec_model = Doc2Vec.load("models/d2v_full_text_limited.model_variant")
 
         recommendMethods = RecommenderMethods()
@@ -237,9 +231,11 @@ class Doc2VecClass:
 
         most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
-        return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
+        return self.get_similar_by_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
     def get_similar_doc2vec_by_keywords(self, slug, number_of_recommended_posts=21):
+        warnings.warn("Method not tested properly yet...", PendingDeprecationWarning)
+
         recommenderMethods = RecommenderMethods()
         recommenderMethods.get_posts_dataframe()
         recommenderMethods.get_categories_dataframe()
@@ -269,9 +265,9 @@ class Doc2VecClass:
         vector = doc2vec_model.infer_vector(tokens)
 
         most_similar = doc2vec_model.docvecs.most_similar([vector], topn=number_of_recommended_posts)
-        return self.get_similar_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
+        return self.get_similar_by_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
-    def get_similar_posts_slug(self, most_similar, documents_slugs, number_of_recommended_posts):
+    def get_similar_by_posts_slug(self, most_similar, documents_slugs, number_of_recommended_posts):
         print('\n')
 
         post_recommendations = pd.DataFrame()
@@ -293,7 +289,6 @@ class Doc2VecClass:
         dict = post_recommendations.to_dict('records')
 
         list_of_articles = []
-
         list_of_articles.append(dict.copy())
         # print("------------------------------------")
         # print("JSON:")
@@ -301,11 +296,17 @@ class Doc2VecClass:
         # print(list_of_article_slugs[0])
         return self.flatten(list_of_articles)
 
-    def load_model(self):
+    def load_model(self, path_to_model=None):
         print("Loading Doc2Vec vectors...")
-        self.doc2vec_model = Doc2Vec.load("models/d2v_limited.model")
+        if path_to_model is None:
+            self.doc2vec_model = Doc2Vec.load(DEFAULT_MODEL_LOCATION)
+        else:
+            self.doc2vec_model = Doc2Vec.load(path_to_model)
 
     def get_vector_representation(self, slug):
+        """
+        For Learn-to-Rank
+        """
         recommender_methods = RecommenderMethods()
         return self.doc2vec_model.infer_vector(recommender_methods.find_post_by_slug(slug))
 
