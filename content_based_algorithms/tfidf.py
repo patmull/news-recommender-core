@@ -6,12 +6,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer, CountVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity, linear_kernel
 
-from content_based_algorithms.data_queries import RecommenderMethods
 from data_connection import Database
+from data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
+from preprocessing.stopwords_loading import remove_stopwords
+from visualisation.tfidf_visualisation import TfIdfVisualizer
 
 
 class TfIdf:
@@ -40,28 +42,24 @@ class TfIdf:
         for word in keywords_splitted_1:
             wordDictA[word] += 1
 
+        tfidf_data_handlers = TfIdfDataHandlers(self.df)
         recommender_methods = RecommenderMethods()
         recommender_methods.database.connect()
         recommender_methods.get_posts_categories_dataframe()
         recommender_methods.database.disconnect()
 
-        # same as "classic" tf-idf
-        """
-        fit_by_title_matrix = recommenderMethods.get_fit_by_feature_('title_x', 'category_title')  # prepended by category
-        print("6")
-        """
         cached_file_path = "precalculated/all_features_preprocessed_vectorizer.pickle"
         if os.path.isfile(cached_file_path):
             print("Cached file already exists.")
             fit_by_all_features_preprocessed = self.load_tfidf_vectorizer(path=cached_file_path)
         else:
             print("Not found .pickle file with precalculated vectors. Calculating fresh.")
-            fit_by_all_features_preprocessed = recommender_methods.get_fit_by_feature_('all_features_preprocessed')
+            fit_by_all_features_preprocessed = tfidf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
             self.save_tfidf_vectorizer(fit_by_all_features_preprocessed, path=cached_file_path)
 
         print("7")
 
-        fit_by_keywords_matrix = recommender_methods.get_fit_by_feature_('keywords')
+        fit_by_keywords_matrix = tfidf_data_handlers.get_fit_by_feature_('keywords')
         print("8")
 
         tuple_of_fitted_matrices = (fit_by_all_features_preprocessed, fit_by_keywords_matrix)
@@ -69,14 +67,14 @@ class TfIdf:
         del fit_by_all_features_preprocessed, fit_by_keywords_matrix
         gc.collect()
         if all_posts is False:
-            post_recommendations = recommender_methods.recommend_by_keywords(keywords, tuple_of_fitted_matrices,
-                                                                            number_of_recommended_posts=number_of_recommended_posts)
+            post_recommendations = tfidf_data_handlers.most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
+                                                                                number_of_recommended_posts=number_of_recommended_posts)
             print("10")
 
         if all_posts is True:
-            post_recommendations = recommender_methods.recommend_by_keywords(keywords, tuple_of_fitted_matrices,
-                                                                            number_of_recommended_posts=len(recommender_methods.posts_df.index))
-        del recommender_methods
+            post_recommendations = tfidf_data_handlers.most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
+                                                                                number_of_recommended_posts=len(tfidf_data_handlers.posts_df.index))
+        del tfidf_data_handlers
         return post_recommendations
 
     # https://datascience.stackexchange.com/questions/18581/same-tf-idf-vectorizer-for-2-data-inputs
