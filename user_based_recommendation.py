@@ -1,8 +1,9 @@
 import json
 
-from content_based_algorithms.data_queries import RecommenderMethods
 from data_connection import Database
 import pandas as pd
+
+from data_handling.data_queries import RecommenderMethods
 
 
 class UserBasedRecommendation:
@@ -73,8 +74,8 @@ class UserBasedRecommendation:
 
     def load_user_keywords(self, user_id):
         self.database.connect()
-        recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_user_keywords(user_id)
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_user_keywords(user_id)
         self.database.disconnect()
 
     def convert_to_json(self, df):

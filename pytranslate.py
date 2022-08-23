@@ -82,6 +82,8 @@ def clean_console_output_to_file():
                   encoding="utf-8") as file:
             file.writelines(texts_cleaned)
 
+def run_clean_console_output_to_file():
+    clean_console_output_to_file()
 
-# clean_console_output_to_file()
-translate_question_words()
+def run_translation_of_question_words():
+    translate_question_words()

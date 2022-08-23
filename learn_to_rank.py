@@ -271,7 +271,7 @@ class LightGBM:
 
         train, test = train_test_split(df_results, test_size=0.2, random_state=SEED)
         print('train shape: ', train.shape)
-        print('test shape: ', test.shape)
+        print('tests shape: ', test.shape)
         user_col = 'user_id'
         item_col = 'slug'
         self.target_col = 'relevance'
