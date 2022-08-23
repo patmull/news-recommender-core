@@ -1,71 +1,40 @@
+import gc
 import json
 import pickle
-from pathlib import Path
 from threading import Thread
 
 import dropbox
-import gensim
 import numpy as np
 import pandas as pd
 import smart_open
-from gensim.utils import deaccent
-from nltk import FreqDist
+from gensim import corpora
+from pymongo import MongoClient
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from content_based_algorithms.similarities import CosineTransform
 from data_connection import Database
 import os
+
 dirname = os.path.dirname(__file__)
 
-
-def load_cz_stopwords(remove_punct=True):
-    filename = "preprocessing/stopwords/czech_stopwords.txt"
-    with open(filename, encoding="utf-8") as file:
-        cz_stopwords = file.readlines()
-        if remove_punct is False:
-            cz_stopwords = [line.rstrip() for line in cz_stopwords]
-        else:
-            cz_stopwords = [gensim.utils.simple_preprocess(line.rstrip()) for line in cz_stopwords]
-        return cz_stopwords
-
-
-def load_general_stopwords():
-    filename = "preprocessing/stopwords/general_stopwords.txt"
-    with open(filename, encoding="utf-8") as file:
-        general_stopwords = file.readlines()
-        general_stopwords = [line.rstrip() for line in general_stopwords]
-        return general_stopwords
-
-
-def remove_stopwords(texts):
-    stopwords_cz = load_cz_stopwords()
-    stopwords_general = load_general_stopwords()
-    stopwords = stopwords_cz + stopwords_general
-    stopwords = flatten(stopwords)
-    joined_stopwords = ' '.join(str(x) for x in stopwords)
-    stopwords = deaccent(joined_stopwords)
-    stopwords = stopwords.split(' ')
-    return [[word for word in gensim.utils.simple_preprocess(doc) if word not in stopwords] for doc in texts]
-
-
-def flatten(t):
-    return [item for sublist in t for item in sublist]
+CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"
 
 
 class RecommenderMethods:
 
     def __init__(self):
         self.database = Database()
+        self.cached_file_path = CACHED_FILE_PATH
 
     def get_posts_dataframe(self, force_update=False):
         print("4.1.1")
         if force_update is True:
-            self.posts_df = self.database.insert_posts_dataframe_to_cache()
+            self.posts_df = self.database.insert_posts_dataframe_to_cache(self.cached_file_path)
         else:
             print("Trying reading from cache as default...")
-            cached_file_path = "db_cache/cached_posts_dataframe.pkl"
-            if os.path.isfile(cached_file_path):
+            if os.path.isfile(self.cached_file_path):
                 try:
                     print("Reading from cache...")
                     self.posts_df = self.database.get_posts_dataframe_from_cache()
@@ -105,6 +74,7 @@ class RecommenderMethods:
         self.categories_df = self.database.get_categories_dataframe(pd)
         return self.categories_df
 
+    @DeprecationWarning
     def get_user_posts_ratings(self):
         database = Database()
         ##Step 1
@@ -119,18 +89,13 @@ class RecommenderMethods:
         df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
         return df_ratings
 
-    def get_results_dataframe(self):
+    def get_evaluation_results_dataframe(self):
         results_df = self.database.get_results_dataframe(pd)
         results_df.reset_index(inplace=True)
         print("self.results_df:")
         print(results_df)
         results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name', 'model_variant', 'created_at']]
         return results_df_
-
-    def refresh_cached_db_file(self):
-        print("Refreshing DB cache...")
-        self.database.insert_posts_dataframe_to_cache()
-        print("New DB cache file saved to local storage.")
 
     @DeprecationWarning
     def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
@@ -187,49 +152,12 @@ class RecommenderMethods:
                  'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'trigrams_full_text']]
         return self.df
 
-    def join_posts_ratings_categories_full_text(self):
-        self.posts_df = self.posts_df.rename(columns = {'title': 'post_title'})
-        print("self.posts_df.columns")
-        print(self.posts_df.columns)
-        self.posts_df = self.posts_df.rename(columns= {'slug': 'post_slug'})
-        print("self.posts_df.columns")
-        print(self.posts_df.columns)
-        self.categories_df = self.categories_df.rename(columns = {'title': 'category_title'})
-
-        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-        # clean up from unnecessary columns
-        print("self.df.columns")
-        print(self.df.columns)
-        self.df = self.df[
-            ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-             'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
-        return self.df
-
-
-    #### Above are data queries ####
-
-    def get_fit_by_feature_(self, feature_name, second_feature=None):
-        fit_by_feature = self.get_tfIdfVectorizer(feature_name, second_feature)
-        return fit_by_feature
-
-    def recommend_by_keywords(self, keywords, tupple_of_fitted_matrices, number_of_recommended_posts=20):
-        # combining results of all feature types to sparse matrix
-        combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices, dtype=np.float16)
-
-        # computing cosine similarity using matrix with combined features
-        print("Computing cosine similarity using matrix with combined features...")
-        self.set_cosine_sim_use_own_matrix(combined_matrix1)
-        combined_all = self.get_recommended_posts_for_keywords(keywords, self.cosine_sim_df,
-                                                               self.df[['keywords']], k=number_of_recommended_posts)
-        # print("combined_all:")
-        # print(combined_all)
-        df_renamed = combined_all.rename(columns={'post_slug': 'slug'})
-        # print("DF RENAMED:")
-        # print(df_renamed)
-
-        json = self.convert_to_json_keyword_based(df_renamed)
-
-        return json
+    def find_post_by_slug(self, slug, force_update=False):
+        print("recommenderMethods.get_posts_dataframe():")
+        print(self.get_posts_dataframe()['slug'])
+        print("slug:")
+        print(slug)
+        return self.get_posts_dataframe().loc[self.get_posts_dataframe()['slug'] == slug]
 
     def convert_to_json_keyword_based(self, post_recommendations):
 
@@ -246,20 +174,120 @@ class RecommenderMethods:
         # print(list_of_article_slugs[0])
         return list_of_article_slugs[0]
 
+    def convert_df_to_json(self, dataframe):
+        result = dataframe[["title", "excerpt", "body"]].to_json(orient="records", lines=True)
+        parsed = json.loads(result)
+        return parsed
+
+    def convert_dataframe_posts_to_json(self, post_recommendations, slug):
+        list_of_article_slugs = []
+        list_of_coefficients = []
+
+        # finding coefficient belonging to recommended posts compared to original post (for which we want to find recommendations)
+        if 'post_slug' in post_recommendations:
+            post_recommendations = post_recommendations.rename(columns={'post_slug': 'slug'})
+
+        for index, row in post_recommendations.iterrows():
+
+            list_of_coefficients.append(self.cosine_sim_df.at[row['slug'], slug])
+
+        post_recommendations['coefficient'] = list_of_coefficients
+        dict = post_recommendations.to_dict('records')
+        list_of_article_slugs.append(dict.copy())
+        return list_of_article_slugs[0]
+
+    @DeprecationWarning
+    def download_from_amazon(self, amazon_bucket_url):
+        amazon_model = pickle.load(smart_open.smart_open(self.amazon_bucket_url))
+        return amazon_model
+
+    def dropbox_file_download(self, access_token, dropbox_file_path, local_folder_name):
+        try:
+            dbx = dropbox.Dropbox(access_token)
+
+            """
+            print("Dropbox Files:")
+            for entry in dbx.files_list_folder('').entries:
+                print(entry.path_lower)
+            """
+            dbx.files_download_to_file(dropbox_file_path, local_folder_name)
+
+        except Exception as e:
+            print(e)
+            return False
+
+    def get_posts_categories_dataframe(self):
+        recommender_methods = RecommenderMethods()
+        posts_df = recommender_methods.get_posts_dataframe()
+        categories_df = recommender_methods.get_categories_dataframe()
+        posts_df = posts_df.rename(columns={'title': 'post_title'})
+        categories_df = categories_df.rename(columns={'title': 'category_title', 'slug': 'category_slug'})
+        print("posts_df")
+        print(posts_df)
+        print("categories_df")
+        print(categories_df)
+        self.df = pd.merge(posts_df, categories_df, left_on='category_id', right_on='id')
+        return self.df
+
+    def get_posts_categories_full_text(self):
+        recommender_methods = RecommenderMethods()
+        posts_df = recommender_methods.get_posts_dataframe()
+        posts_df = posts_df.rename(columns={'title': 'post_title'})
+        print("self.posts_df.columns")
+        print(posts_df.columns)
+        posts_df = posts_df.rename(columns={'slug': 'post_slug'})
+        print("self.posts_df.columns")
+        print(posts_df.columns)
+        categories_df = recommender_methods.get_categories_dataframe()
+        categories_df = categories_df.rename(columns={'title': 'category_title'})
+
+        df = self.posts_df.merge(categories_df, left_on='category_id', right_on='id')
+        # clean up from unnecessary columns
+        print("df.columns")
+        print(df.columns)
+        df = df[
+            ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
+             'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
+        return df
+
+
+class TfIdfDataHandlers:
+
+    def __init__(self, df):
+        self.df = df
+
+    def get_fit_by_feature_(self, feature_name, second_feature=None):
+        fit_by_feature = self.get_tfIdfVectorizer(feature_name, second_feature)
+        return fit_by_feature
+
+    def most_similar_by_keywords(self, keywords, tupple_of_fitted_matrices, number_of_recommended_posts=20):
+        # combining results of all feature types to sparse matrix
+        combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices, dtype=np.float16)
+
+        # computing cosine similarity using matrix with combined features
+        print("Computing cosine similarity using matrix with combined features...")
+        cosine_transform = CosineTransform()
+        self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix(combined_matrix1, self.df)
+        combined_all = self.get_recommended_posts_for_keywords(keywords, self.cosine_sim_df,
+                                                               self.df[['keywords']], k=number_of_recommended_posts)
+
+        df_renamed = combined_all.rename(columns={'post_slug': 'slug'})
+        recommender_methods = RecommenderMethods()
+        json = recommender_methods.convert_to_json_keyword_based(df_renamed)
+
+        return json
+
     def get_recommended_posts_for_keywords(self, keywords, data_frame, items, k=10):
 
         keywords_list = [keywords]
-        txt_cleaned = self.get_cleaned_text(self.df,
-                                            self.df['post_title'] + self.df['category_title'] + self.df['keywords'] + self.df[
-                                                'excerpt'])
+        txt_cleaned = self.get_cleaned_text(self.df['post_title'] + self.df['category_title']
+                                            + self.df['keywords'] + self.df['excerpt'])
         tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
         tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
         cosine_similarities = cosine_similarity(tfidf_keywords_input, tfidf).flatten()
-        # cosine_similarities = linear_kernel(tfidf_keywords_input, tfidf).flatten()
 
         data_frame['coefficient'] = cosine_similarities
 
-        # related_docs_indices = cosine_similarities.argsort()[:-(number+1):-1]
         related_docs_indices = cosine_similarities.argsort()[::-1][:k]
 
         closest = data_frame.sort_values('coefficient', ascending=False)[:k]
@@ -273,15 +301,7 @@ class RecommenderMethods:
         return closest[["post_slug", "coefficient"]]
         # return pd.DataFrame(closest).merge(items).head(k)
 
-    def find_post_by_slug(self, slug, force_update=False):
-        recommenderMethods = RecommenderMethods()
-        print("recommenderMethods.get_posts_dataframe():")
-        print(recommenderMethods.get_posts_dataframe()['slug'])
-        print("slug:")
-        print(slug)
-        return recommenderMethods.get_posts_dataframe().loc[recommenderMethods.get_posts_dataframe()['slug'] == slug]
-
-    def get_cleaned_text(self, df, row):
+    def get_cleaned_text(self, row):
         return row
 
     def get_tfIdfVectorizer(self, fit_by, fit_by_2=None):
@@ -345,14 +365,16 @@ class RecommenderMethods:
         """
         # # print(combined_matrix1.shape)
         # computing cosine similarity
-        self.set_cosine_sim_use_own_matrix(combined_matrix1)
+        cosine_transform = CosineTransform()
+        self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix(combined_matrix1, self.df)
 
         # getting posts with highest similarity
-        combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
-                                                  self.df[['slug']], k=num_of_recommendations)
+        combined_all = self.get_closest_posts(slug, self.cosine_sim_df,
+                                              self.df[['slug']], k=num_of_recommendations)
 
         # json conversion
-        json = self.convert_datframe_posts_to_json(combined_all, slug)
+        recommender_mathods = RecommenderMethods()
+        json = recommender_mathods.convert_dataframe_posts_to_json(combined_all, slug)
         return json
 
     def recommend_by_more_features_with_full_text(self, slug, tupple_of_fitted_matrices):
@@ -376,50 +398,20 @@ class RecommenderMethods:
         combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
 
         # computing cosine similarity
-        print("Computing cosine simialirity")
-        self.set_cosine_sim_use_own_matrix(combined_matrix1)
+        cosine_transform = CosineTransform()
+        print("Computing cosine similarity")
+        self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix()
 
         # getting posts with highest similarity
-        combined_all = self.get_recommended_posts(slug, self.cosine_sim_df,
-                                                  self.df[['slug']])
+        combined_all = self.get_closest_posts(slug, self.cosine_sim_df,
+                                              self.df[['slug']])
 
         # json conversion
-        json = self.convert_datframe_posts_to_json(combined_all, slug)
+        json = self.convert_dataframe_posts_to_json(combined_all, slug)
 
         return json
 
-    def set_cosine_sim_use_own_matrix(self, own_tfidf_matrix):
-        own_tfidf_matrix_csr = sparse.csr_matrix(own_tfidf_matrix.astype(dtype=np.float16)).astype(dtype=np.float16)
-        cosine_sim = self.cosine_similarity_n_space(own_tfidf_matrix_csr, own_tfidf_matrix_csr)
-        print("cosine_sim:")
-        print(cosine_sim)
-        # cosine_sim = cosine_similarity(own_tfidf_matrix_csr) # computing cosine similarity
-        cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug'],
-                                     columns=self.df['slug'])  # finding original record of post belonging to slug
-        del cosine_sim
-        self.cosine_sim_df = cosine_sim_df
-
-    def cosine_similarity_n_space(self, m1, m2=None, batch_size=100):
-        assert m1.shape[1] == m2.shape[1] and isinstance(batch_size, int) == True
-
-        ret = np.ndarray((m1.shape[0], m2.shape[0]), dtype=np.float16)
-
-        # iterating through dataframe by batches
-        batches = m1.shape[0] // batch_size
-
-        if m1.shape[0] % batch_size != 0:
-            batches = batches + 1
-
-        for row_i in range(0, batches):
-            start = row_i * batch_size
-            end = min([(row_i + 1) * batch_size, m1.shape[0]])
-            rows = m1[start: end]
-            sim = cosine_similarity(rows, m2)
-            ret[start: end] = sim
-
-        return ret
-
-    def get_recommended_posts(self, find_by_string, data_frame, items, k=20):
+    def get_closest_posts(self, find_by_string, data_frame, items, k=20):
         print("self.cosine_sim_df:")
         print(self.cosine_sim_df)
         ix = data_frame.loc[:, find_by_string].to_numpy().argpartition(range(-1, -k, -1))
@@ -433,69 +425,8 @@ class RecommenderMethods:
         # print(pd.DataFrame(closest).merge(items).head(k))
         return pd.DataFrame(closest).merge(items).head(k)
 
-    def convert_datframe_posts_to_json(self, post_recommendations, slug):
-        list_of_article_slugs = []
-        list_of_coefficients = []
-
-        # finding coefficient belonging to recommended posts compared to original post (for which we want to find recommendations)
-        if 'post_slug' in post_recommendations:
-            post_recommendations = post_recommendations.rename(columns={'post_slug': 'slug'})
-
-        for index, row in post_recommendations.iterrows():
-
-            list_of_coefficients.append(self.cosine_sim_df.at[row['slug'], slug])
-
-        post_recommendations['coefficient'] = list_of_coefficients
-        dict = post_recommendations.to_dict('records')
-        list_of_article_slugs.append(dict.copy())
-        return list_of_article_slugs[0]
-
-    def convert_df_to_json(self, dataframe):
-        result = dataframe[["title", "excerpt", "body"]].to_json(orient="records", lines=True)
-        parsed = json.loads(result)
-        return parsed
-
-    @DeprecationWarning
-    def download_from_amazon(self, amazon_bucket_url):
-        amazon_model = pickle.load(smart_open.smart_open(self.amazon_bucket_url))
-        return amazon_model
-
-    def dropbox_file_download(self, access_token, dropbox_file_path, local_folder_name):
-        try:
-            dbx = dropbox.Dropbox(access_token)
-
-            """
-            print("Dropbox Files:")
-            for entry in dbx.files_list_folder('').entries:
-                print(entry.path_lower)
-            """
-            dbx.files_download_to_file(dropbox_file_path, local_folder_name)
-
-        except Exception as e:
-            print(e)
-            return False
-
-    @staticmethod
-    def most_common_words(all_words):
-        # use nltk fdist to get a frequency distribution of all words
-        fdist = FreqDist(all_words)
-        k = 150
-        return zip(*fdist.most_common(k))
-
     def flatten(self, t):
         return [item for sublist in t for item in sublist]
-
-    def get_posts_categories_dataframe(self):
-        posts_df = self.get_posts_dataframe()
-        categories_df = self.get_categories_dataframe()
-        posts_df = posts_df.rename(columns={'title': 'post_title'})
-        categories_df = categories_df.rename(columns={'title': 'category_title', 'slug': 'category_slug'})
-        print("self.posts_df")
-        print(self.posts_df)
-        print("self.categories_df")
-        print(self.categories_df)
-        self.df = pd.merge(posts_df, categories_df, left_on='category_id', right_on='id')
-        return self.df
 
 
 def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
