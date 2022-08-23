@@ -218,8 +218,10 @@ class RecommenderMethods:
 
     def get_posts_categories_dataframe(self):
         recommender_methods = RecommenderMethods()
+        recommender_methods.database.connect()
         posts_df = recommender_methods.get_posts_dataframe()
         categories_df = recommender_methods.get_categories_dataframe()
+        recommender_methods.database.disconnect()
         posts_df = posts_df.rename(columns={'title': 'post_title'})
         categories_df = categories_df.rename(columns={'title': 'category_title', 'slug': 'category_slug'})
         print("posts_df")
@@ -357,7 +359,7 @@ class TfIdfDataHandlers:
         end;                         %As is made up of 500 5x5 blocks along diagonal
         Af = full(As); b = rand(5000, 1);
 
-        Then you can test speed difference:
+        Then you can tests speed difference:
 
         As \ b % operation on sparse As takes .0012 seconds
         Af \ b % solving with full Af takes about 2.3 seconds
@@ -387,7 +389,7 @@ class TfIdfDataHandlers:
         end;                         %As is made up of 500 5x5 blocks along diagonal
         Af = full(As); b = rand(5000, 1);
 
-        Then you can test speed difference:
+        Then you can tests speed difference:
 
         As \ b % operation on sparse As takes .0012 seconds
         Af \ b % solving with full Af takes about 2.3 seconds

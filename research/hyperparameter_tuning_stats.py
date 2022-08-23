@@ -34,10 +34,10 @@ spearman_corr = spearman_corr.rename(columns={'Word_pairs_test_Pearson_coeff': '
 
 # Correlated variables:
 # Min_count: Word_pairs_test_Out-of-vocab_ratio (this makes sense since it controls the dropout of words)
-# Epochs:  correlation with word_pairs test (with Spearman stats)
-# Sample:  correlation with word_pairs test (with Spearman stats)
-# Softmax: correlation with analogies test and word_pairs test (with Spearman stats)
-# Correlation of analogies test and word pair test as expected
+# Epochs:  correlation with word_pairs tests (with Spearman stats)
+# Sample:  correlation with word_pairs tests (with Spearman stats)
+# Softmax: correlation with analogies tests and word_pairs tests (with Spearman stats)
+# Correlation of analogies tests and word pair tests as expected
 
 matplotlib.pyplot.figure(figsize=(6, 6), dpi=1200)
 seaborn.set(font_scale=0.7)
