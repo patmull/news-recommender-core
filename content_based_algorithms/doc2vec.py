@@ -15,8 +15,8 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from pymongo import MongoClient
 from sklearn.model_selection import train_test_split
 
-from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.tfidf import TfIdf
+from data_handling.data_queries import RecommenderMethods
 from preprocessing.cz_preprocessing import CzPreprocess
 from data_connection import Database
 from reader import MongoReader

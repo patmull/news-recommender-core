@@ -24,15 +24,16 @@ from html2text import html2text
 from nltk import FreqDist, RegexpTokenizer
 from pymongo import MongoClient
 
-from content_based_algorithms import data_queries
-from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.doc_sim import DocSim
 from content_based_algorithms.helper import NumpyEncoder, Helper
 import pandas as pd
 import time as t
 
 from data_connection import Database
+from data_handling import data_queries
+from data_handling.data_queries import RecommenderMethods
 from preprocessing.cz_preprocessing import CzPreprocess, cz_stopwords, general_stopwords
+from preprocessing.stopwords_loading import remove_stopwords
 from reader import MongoReader
 
 PATH_TO_UNPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs-unprocessed.txt'
@@ -115,7 +116,7 @@ class Word2VecClass:
 
     @DeprecationWarning
     def prepare_word2vec_eval(self):
-        recommenderMethods = RecommenderMethods()
+        recommenderMethods = None
 
         self.get_posts_dataframe()
         self.get_categories_dataframe()
@@ -260,14 +261,14 @@ class Word2VecClass:
         :param docsim:
         :return:
         """
-        recommenderMethods = RecommenderMethods()
+        recommender_methods = RecommenderMethods()
 
-        self.posts_df = recommenderMethods.get_posts_dataframe()
-        self.categories_df = recommenderMethods.get_categories_dataframe(rename_title=True)
-        self.df = recommenderMethods.join_posts_ratings_categories_full_text()
+        self.posts_df = recommender_methods.get_posts_dataframe()
+        self.categories_df = recommender_methods.get_categories_dataframe(rename_title=True)
+        self.df = recommender_methods.get_posts_categories_full_text()
 
         # search_terms = 'Domácí. Zemřel poslední krkonošský nosič Helmut Hofer, ikona Velké Úpy. Ve věku 88 let zemřel potomek slavného rodu vysokohorských nosičů Helmut Hofer z Velké Úpy. Byl posledním žijícím nosičem v Krkonoších, starodávným řemeslem se po staletí živili generace jeho předků. Jako nosič pracoval pro Českou boudu na Sněžce mezi lety 1948 až 1953.'
-        found_post_dataframe = recommenderMethods.find_post_by_slug(searched_slug, force_update=True)
+        found_post_dataframe = recommender_methods.find_post_by_slug(searched_slug, force_update=True)
 
         print("found_post_dataframe")
         print(found_post_dataframe)
@@ -313,9 +314,9 @@ class Word2VecClass:
             except FileNotFoundError:
                 print("Downloading from Dropbox...")
                 dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
-                recommenderMethods = RecommenderMethods()
+                recommender_methods = RecommenderMethods()
                 # TODO: Rename file
-                recommenderMethods.dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
+                recommender_methods.dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
                                                          "/w2v_model.vectors.npy")
                 word2vec_embedding = KeyedVectors.load("models/w2v_idnes.model")
 
@@ -872,7 +873,7 @@ class Word2VecClass:
             for doc in cursor:
                 print("Before:")
                 print(doc['text'])
-                removed_stopwords = data_queries.remove_stopwords(doc['text'])
+                removed_stopwords = remove_stopwords(doc['text'])
                 removed_stopwords = self.flatten(removed_stopwords)
                 print("After removal:")
                 print(removed_stopwords)

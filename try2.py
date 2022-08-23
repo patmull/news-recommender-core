@@ -1,5 +1,6 @@
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.word2vec import Word2VecClass
+from data_handling.data_queries import RecommenderMethods
 from preprocessing.bigrams_phrases import BigramPhrases
 from data_connection import Database
 from prefilling_all import prepare_and_run, run_prefilling
@@ -88,6 +89,16 @@ bigram_phrases.train_phrases_from_mongo_idnes()
 """
 
 
-#print_model_variant_relevances()
-save_model_variant_relevances(crop_by_date=True, last_n_by_date=80)
-#print(print_model_variant_relevances_for_each_article(save_to_csv=True, crop_by_date=True))
+# print_model_variant_relevances()
+# save_model_variant_relevances(crop_by_date=True, last_n_by_date=80)
+# print(print_model_variant_relevances_for_each_article(save_to_csv=True, crop_by_date=True))
+
+
+recommender_methods = RecommenderMethods()
+posts_df = recommender_methods.get_posts_dataframe()
+random_df_row = posts_df.sample(1)
+random_slug = random_df_row['slug']
+print("random_slug:")
+print(random_slug.iloc[0])
+found_df = recommender_methods.find_post_by_slug(random_slug.iloc[0])
+print(found_df['slug'].iloc[0])

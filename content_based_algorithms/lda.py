@@ -12,8 +12,9 @@ from gensim.corpora import WikiCorpus
 from gensim.utils import deaccent, simple_preprocess
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
-import content_based_algorithms.data_queries as data_queries
-from content_based_algorithms.data_queries import RecommenderMethods
+
+from data_handling import data_queries
+from data_handling.data_queries import RecommenderMethods
 from preprocessing.cz_preprocessing import CzPreprocess
 
 import gensim
@@ -25,9 +26,10 @@ from scipy.stats import entropy
 
 from content_based_algorithms.helper import Helper
 from data_connection import Database
-import preprocessing.cz_preprocessing
 from preprocessing import cz_preprocessing
-from preprocessing.cz_preprocessing import cz_stopwords
+from preprocessing.stopwords_loading import remove_stopwords
+from dataset_statistics.corpus_statistics import CorpusStatistics
+
 
 class Lda:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/lda_all_in_one"
@@ -257,7 +259,7 @@ class Lda:
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
     def train_lda(self, data, display_dominant_topics=False):
-        data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
+        data_words_nostops = remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
         self.df.assign(tokenized=data_words_bigrams)
@@ -299,7 +301,7 @@ class Lda:
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized']
         all_words = [word for item in list(self.df["tokenized"]) for word in item]
 
-        top_k_words, _ = RecommenderMethods.most_common_words(all_words)
+        top_k_words, _ = CorpusStatistics.most_common_words(all_words)
 
         self.top_k_words = set(top_k_words)
 
@@ -536,12 +538,12 @@ class Lda:
             pickle.dump(processed_data, f)
 
         print("Removing stopwords...")
-        data_words_nostops = data_queries.remove_stopwords(processed_data)
+        data_words_nostops = remove_stopwords(processed_data)
         print("Building bigrams...")
         processed_data = self.build_bigrams_and_trigrams(data_words_nostops)
         print("Creating dictionary...")
         print("TOP WORDS (after bigrams and stopwords removal):")
-        top_k_words, _ = RecommenderMethods.most_common_words(processed_data)
+        top_k_words, _ = CorpusStatistics.most_common_words(processed_data)
         preprocessed_dictionary = corpora.Dictionary(processed_data)
         print("Saving dictionary...")
         preprocessed_dictionary.save("full_models/cswiki/lda/preprocessed/dictionary")

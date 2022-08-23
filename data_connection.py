@@ -1,8 +1,5 @@
 # import psycopg2.connector
 import os
-from pathlib import Path
-
-import pandas
 import psycopg2
 import pandas as pd
 
@@ -114,19 +111,23 @@ class Database:
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         return self.posts_df
 
+    def insert_posts_dataframe_to_cache(self, cached_file_path=None):
 
-    def insert_posts_dataframe_to_cache(self):
+        if cached_file_path is None:
+            print("Cached file path is None. Using default location.")
+            cached_file_path = 'db_cache/cached_posts_dataframe.pkl'
+
         sql = """SELECT * FROM posts ORDER BY id;"""
         self.connect()
-        folder_name = 'db_cache/'
-        p = Path(folder_name)
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         self.disconnect()
 
-        outfile = 'cached_posts_dataframe.pkl'
+        splitted_cache_file = cached_file_path.split('/')
 
-        outdir = './db_cache'
+        outfile = splitted_cache_file[1]
+        outdir = './' + splitted_cache_file[0]
+
         if not os.path.exists(outdir):
             os.mkdir(outdir)
 
