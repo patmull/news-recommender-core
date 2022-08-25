@@ -5,8 +5,8 @@ import logging
 import os
 import pickle
 import random
-import re
 import time
+import traceback
 from collections import defaultdict
 
 import gensim
@@ -64,39 +64,356 @@ class MyCorpus(object):
             i = i + 1
 
 
-class Reader(object):
-    """ Source reader object feeds other objects to iterate through a source. """
+def save_full_model_to_smaller(model="wiki"):
+    print("Saving full doc2vec_model to limited doc2vec_model...")
+    if model == "wiki":
+        word2vec_embedding = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full",
+                                                               limit=87000)  #
+    elif model == "idnes":
+        word2vec_embedding = KeyedVectors.load_word2vec_format("full_models/idnes/word2vec/w2v_model_full",
+                                                               limit=87000)  #
+    else:
+        word2vec_embedding = None
+    print("word2vec_embedding:")
+    print(word2vec_embedding)
+    word2vec_embedding.save("models/w2v_model_limited_test")  # write separately=[] for all_in_one model
 
-    def __init__(self):
-        self.wn_lemmatizer = CzPreprocess()
 
-    def prepare_words(self, text):
-        """ Prepare text
-        """
-        # lower cased all text
-        texts = text.lower()
-        # tokenize
-        texts = re.split(r'(?![\.|\$])[^\w\d]', texts)
-        texts = [w.strip('.') for w in texts]
-        # remove words that are too short
-        texts = [w for w in texts if not len(w) < 3]
-        # remove words that are not alphanumeric and does not contain at least one character
-        texts = [w for w in texts if w.isalnum()]
-        # remove numbers only
-        texts = [w for w in texts if not w.isdigit()]
-        # remove stopped words
-        # texts = [w for w in texts if not w in self.stop]
-        # remove duplicates
-        seen = set()
-        seen_add = seen.add
-        texts = [w for w in texts if not (w in seen or seen_add(w))]
-        # lemmatize
-        texts = [self.wn_lemmatizer.cz_lemma(w) for w in texts]
-        return texts
+def save_fast_text_to_w2v():
+    print("Loading and saving FastText pretrained model to Word2Vec model")
+    word2vec_model = gensim.models.fasttext.load_facebook_vectors("full_models/cswiki/word2vec/cc.cs.300.bin.gz",
+                                                                  encoding="utf-8")
+    print("FastText loaded...")
+    word2vec_model.fill_norms()
+    word2vec_model.save_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
+    print("Fast text saved...")
 
-    def iterate(self):
-        """ virtual model_variant """
+
+def refresh_model():
+    save_fast_text_to_w2v()
+    print("Loading word2vec doc2vec_model...")
+    save_full_model_to_smaller()
+
+
+@DeprecationWarning
+def build_bigrams_and_trigrams(force_update=False):
+    cursor_any_record = mongo_collection_bigrams.find_one()
+    if cursor_any_record is not None and force_update is False:
+        print("There are already records in MongoDB. Skipping bigrams building.")
         pass
+    else:
+        print("Building bigrams...")
+        # mongo_collection_bigrams.delete_many({})
+        print("Loading stopwords free documents...")
+        # using 80% training set
+
+        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_stopwords_free')
+
+        print("Building sentences...")
+        sentences = [doc.get('text') for doc in reader.iterate()]
+
+        first_sentence = next(iter(sentences))
+        print("first_sentence[:10]")
+        print(first_sentence[:10])
+
+        print("Sentences sample:")
+        print(sentences[1500:1600])
+        time.sleep(40)
+        phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
+
+        cursor = mongo_collection_stopwords_free.find({})
+        i = 1
+        for doc in cursor:
+            print("Building bigrams for document number " + str(i))
+            bigram_text = phrase_model[doc['text']]
+            print("bigram_text:")
+            print(bigram_text)
+            save_to_mongo(number_of_processed_files=i, data=bigram_text,
+                          supplied_mongo_collection=mongo_collection_bigrams)
+            i = i + 1
+
+
+def save_tuple_to_csv(path, data):
+    with open(path, 'w+') as out:
+        csv_out = csv.writer(out)
+        csv_out.writerow(['word', 'sim'])
+        for row in data:
+            csv_out.writerow(row)
+
+
+@DeprecationWarning
+def save_corpus_dict(corpus, dictionary):
+    print("Saving train_corpus and dictionary...")
+    pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
+    dictionary.save('precalc_vectors/dictionary_idnes.gensim')
+
+
+def eval_idnes_basic():
+    topn = 30
+    limit = None
+
+    print("Loading iDNES.cz full model...")
+    idnes_model = KeyedVectors.load_word2vec_format("models/w2v_model_full.model", limit=limit)
+
+    searched_word = 'hokej'
+    sims = idnes_model.most_similar(searched_word, topn=topn)  # get other similar words
+    print("TOP " + str(topn) + " similar Words from iDNES.cz for word " + searched_word + ":")
+    print(sims)
+
+    searched_word = 'zimák'
+    if searched_word in idnes_model.key_to_index:
+        print(searched_word)
+        print("Exists in vocab")
+    else:
+        print(searched_word)
+        print("Doesn'multi_dimensional_list exists in vocab")
+
+    save_tuple_to_csv("idnes_top_" + str(topn) + "_similar_words_to_hokej_limit_" + str(limit) + ".csv", sims)
+
+    print("Word pairs evaluation FastText on iDNES.cz model:")
+    print(idnes_model.evaluate_word_pairs('research/word2vec/similarities/WordSim353-cs-cropped.tsv'))
+
+    overall_analogies_score, _ = idnes_model.evaluate_word_analogies(
+        "research/word2vec/analogies/questions-words-cs.txt")
+    print("Analogies evaluation of FastText on iDNES.cz model:")
+    print(overall_analogies_score)
+
+
+def eval_wiki():
+    topn = 30
+    limit = None
+
+    print("Loading Wikipedia full model...")
+    wiki_full_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full", limit=limit)
+
+    searched_word = 'hokej'
+    sims = wiki_full_model.most_similar(searched_word, topn=topn)  # get other similar words
+    print("TOP " + str(topn) + " similar Words from Wikipedia.cz for word " + searched_word + ":")
+    print(sims)
+
+    searched_word = 'zimák'
+    if searched_word in wiki_full_model.key_to_index:
+        print(searched_word)
+        print("Exists in vocab")
+    else:
+        print(searched_word)
+        print("Doesn'multi_dimensional_list exists in vocab")
+
+    # self.save_tuple_to_csv("research/word2vec/most_similar_words/cswiki_top_10_similar_words_to_hokej.csv", sims)
+    save_tuple_to_csv("cswiki_top_" + str(topn) + "_similar_words_to_hokej_limit_" + str(limit) + ".csv", sims)
+
+    print("Word pairs evaluation FastText on Wikipedia.cz model:")
+    print(wiki_full_model.evaluate_word_pairs('research/word2vec/similarities/WordSim353-cs-cropped.tsv'))
+
+    overall_analogies_score, _ = wiki_full_model.evaluate_word_analogies(
+        "research/word2vec/analogies/questions-words-cs.txt")
+    print("Analogies evaluation of FastText on Wikipedia.cz model:")
+    print(overall_analogies_score)
+
+
+def remove_stopwords_mongodb(force_update=False):
+    cursor_any_record = mongo_collection_stopwords_free.find_one()
+    if cursor_any_record is not None and force_update is False:
+        print("There are already records in MongoDB. Skipping stopwords removal.")
+        pass
+    else:
+        print("Removing stopwords...")
+        cursor = mongo_collection.find({})
+        number = 1
+        # clearing collection from all documents
+        mongo_collection_stopwords_free.delete_many({})
+        for doc in cursor:
+            print("Before:")
+            print(doc['text'])
+            removed_stopwords = remove_stopwords(doc['text'])
+            helper = Helper()
+            removed_stopwords = helper.flatten(removed_stopwords)
+            print("After removal:")
+            print(removed_stopwords)
+            save_to_mongo(number_of_processed_files=number, data=removed_stopwords,
+                          supplied_mongo_collection=mongo_collection_stopwords_free)
+            number = number + 1
+
+
+def preprocess_idnes_corpus(force_update=False):
+    print("Corpus lines are above")
+    cursor_any_record = mongo_collection.find_one()
+    if cursor_any_record is not None and force_update is False:
+        print("There are already records in MongoDB. Skipping Idnes preprocessing (1st phase)")
+        pass
+    else:
+        path_to_pickle = 'full_models/idnes/unprocessed/idnes.pkl'
+        corpus = pickle.load(open(path_to_pickle, 'rb'))
+        print("Corpus length:")
+        print(len(corpus))
+        time.sleep(120)
+        # preprocessing steps
+        czpreprocessing = CzPreprocess()
+        helper = Helper()
+
+        last_record = mongo_db.mongo_collection.find()
+        print("last_record")
+        print(last_record)
+        print("Fetching records for DB...")
+        cursor_any_record = mongo_collection.find_one()
+        # Checking the cursor is empty or not
+        if cursor_any_record is None:
+            number_of_documents = 0
+        else:
+            """
+            for record in cursor:
+                number_of_documents = record['number']
+            """
+            number_of_documents = mongo_collection.estimated_document_count()
+            print("Number_of_docs already in DB:")
+            print(number_of_documents)
+
+        if number_of_documents == 0:
+            print("No file with preprocessed articles was found. Starting from 0.")
+        else:
+            print("Starting another preprocessing from document where it was halted.")
+            print("Starting from doc. num: " + str(number_of_documents))
+
+        i = 0
+        num_of_preprocessed_docs = number_of_documents
+        # clearing collection from all documents
+        mongo_collection.delete_many({})
+        for doc in helper.generate_lines_from_mmcorpus(corpus):
+            if number_of_documents > 0:
+                number_of_documents -= 1
+                print("Skipping doc.")
+                print(doc[:10])
+                continue
+            print("Processing doc. num. " + str(num_of_preprocessed_docs))
+            print("Before:")
+            print(doc)
+            doc_string = ' '.join(doc)
+            doc_string_preprocessed = deaccent(czpreprocessing.preprocess(doc_string))
+            # tokens = doc_string_preprocessed.split(' ')
+
+            # removing words in greek, azbuka or arabian
+            # use only one of the following lines, whichever you prefer
+            tokens = [i for i in doc_string_preprocessed.split(' ') if regex.sub(r'[^\p{Latin}]', u'', i)]
+            # processed_data.append(tokens)
+            print("After:")
+            print(tokens)
+            i = i + 1
+            num_of_preprocessed_docs = num_of_preprocessed_docs + 1
+            # saving list to pickle evey Nth document
+
+            print("Preprocessing Idnes.cz doc. num. " + str(num_of_preprocessed_docs))
+            save_to_mongo(tokens, num_of_preprocessed_docs, mongo_collection)
+
+        print("Preprocessing Idnes has (finally) ended. All articles were preprocessed.")
+
+
+def get_client():
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+        # Enabling Word2Vec logging
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(message)s",
+                        level=logging.NOTSET)
+    logger = logging.getLogger()  # get the root logger
+    logger.info("Testing file write")
+    # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
+
+    client = MongoClient("localhost", 27017, maxPoolSize=50)
+    return client
+
+
+def create_dictionary_from_dataframe(force_update=False):
+    path_to_dict = "full_models/idnes/unprocessed/idnes.dict"
+    path_to_corpus = "full_models/idnes/unprocessed/idnes.mm"
+    if os.path.exists(path_to_dict) is False or os.path.exists(path_to_corpus) is False or force_update is True:
+        recommender_methods = RecommenderMethods()
+        post_df = recommender_methods.get_posts_dataframe()
+        post_df['full_text'] = post_df['full_text'].replace([None], '')
+
+        post_df['all_features_preprocessed'] = post_df['all_features_preprocessed'] + ' ' + post_df['full_text']
+
+        gc.collect()
+
+        # Preprocessing to small to calling
+        # post_df['all_features_preprocessed'] = post_df['all_features_preprocessed'].map(cz_preprocess.preprocess)
+        post_df['all_features_preprocessed'] = post_df.all_features_preprocessed.apply(lambda x: x.split(' '))
+        post_df['all_features_preprocessed'] = post_df[['all_features_preprocessed']]
+        print("post_df")
+        print(post_df['all_features_preprocessed'][:100])
+
+        all_features_preprocessed_list = post_df['all_features_preprocessed'].to_numpy()
+
+        path_to_pickle = 'full_models/idnes/unprocessed/idnes.pkl'
+        pickle.dump(all_features_preprocessed_list, open(path_to_pickle, 'wb'))
+        print("all_features_preprocessed_list:")
+        print(all_features_preprocessed_list[:100])
+        time.sleep(60)
+        tokenzized_texts = [document for document in all_features_preprocessed_list]
+
+        # remove words that appear only once
+        frequency = defaultdict(int)
+        for text in tokenzized_texts:
+            for token in text:
+                frequency[token] += 1
+
+        tokenzized_texts = [
+            [token for token in text if frequency[token] > 1]
+            for text in tokenzized_texts
+        ]
+        # all_features_preprocessed_list_of_lists = [[i] for i in all_features_preprocessed_list]
+        print("list of lists:")
+        print(tokenzized_texts[:1000])
+        time.sleep(50)
+        dictionary = corpora.Dictionary(line for line in tokenzized_texts)
+        path_to_dict = 'full_models/idnes/unprocessed/idnes.dict'
+        path_to_dict_folder = 'full_models/idnes/unprocessed/'
+        if not os.path.isfile(path_to_dict):
+            os.makedirs(path_to_dict_folder)
+        dictionary.save(path_to_dict)
+        corpus = [dictionary.doc2bow(text, allow_update=True) for text in tokenzized_texts]
+        print(corpus[:100])
+        word_counts = [[(dictionary[doc_id], count) for doc_id, count in line] for line in corpus]
+        print(word_counts[:100])
+        print("Serializing...")
+        corpora.MmCorpus.serialize(path_to_corpus, corpus)  # store to disk, for later use
+        print("Dictionary and  Corpus successfully saved on disk")
+
+    else:
+        print("Dictionary and train_corpus already exists")
+
+
+def create_corpus_from_mongo_idnes(dictionary, force_update=False):
+    path_part_1 = "precalc_vectors"
+    path_part_2 = "/corpus_idnes.mm"
+    path_to_corpus = path_part_1 + path_part_2
+
+    if os.path.isfile(path_to_corpus) is False or force_update is True:
+        corpus = MyCorpus(dictionary)
+        gc.collect()
+        print("Saving preprocessed train_corpus...")
+        corpora.MmCorpus.serialize(path_to_corpus, corpus)
+    else:
+        print("Corpus already exists. Loading...")
+        corpus = corpora.MmCorpus(path_to_corpus)
+    return corpus
+
+
+def get_preprocessed_dictionary(sentences, filter_extremes, path_to_dict):
+    mongo_reader = MongoReader()
+    return mongo_reader.get_preprocessed_dict_idnes(sentences=sentences, filter_extremes=filter_extremes,
+                                                    path_to_dict=path_to_dict)
+
+
+def create_dictionary_from_mongo_idnes(sentences=None, force_update=False, filter_extremes=False):
+    # a memory-friendly iterator
+    path_to_dict = 'precalc_vectors/dictionary_idnes.gensim'
+    if os.path.isfile(path_to_dict) is False or force_update is True:
+        preprocessed_dictionary = get_preprocessed_dictionary(sentences=sentences, path_to_dict=path_to_dict,
+                                                              filter_extremes=filter_extremes)
+        return preprocessed_dictionary
+    else:
+        print("Dictionary already exists. Loading...")
+        loaded_dict = corpora.Dictionary.load("full_models/idnes/preprocessed/dictionary")
+        return loaded_dict
 
 
 class Word2VecClass:
@@ -108,9 +425,10 @@ class Word2VecClass:
         self.df = None
         self.posts_df = None
         self.categories_df = None
+        self.w2v_model = None
 
     # @profile
-    def get_similar_word2vec(self, searched_slug, model=None, docsim_index=None, dictionary=None, docsim=None,
+    def get_similar_word2vec(self, searched_slug, model=None, docsim_index=None, dictionary=None,
                              force_update_data=False):
 
         recommender_methods = RecommenderMethods()
@@ -118,7 +436,7 @@ class Word2VecClass:
         self.posts_df = recommender_methods.get_posts_dataframe(force_update=force_update_data)
         self.categories_df = recommender_methods.get_categories_dataframe()
 
-        self.df = recommender_methods.join_posts_ratings_categories()
+        self.df = recommender_methods.get_posts_categories_dataframe()
 
         self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
         self.categories_df = self.categories_df.rename(columns={'slug': 'category_slug'})
@@ -145,7 +463,12 @@ class Word2VecClass:
         # documents_df["features_to_use"] = self.df["trigrams_full_text"]
         documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
             "all_features_preprocessed"] + " " + self.df["body_preprocessed"]
-        documents_df["searched_slug"] = self.df["post_slug"]
+
+        if 'slug_x' in self.df.columns:
+            self.df = self.df.rename(columns={'slug_x': 'slug'})
+        elif 'post_slug' in self.df.columns:
+            self.df = self.df.rename(columns={'post_slug': 'slug'})
+        documents_df["searched_slug"] = self.df["slug"]
         found_post = found_post_dataframe['features_to_use'].iloc[0]
 
         del self.df
@@ -190,13 +513,13 @@ class Word2VecClass:
             print(found_post)
             if docsim_index is None and dictionary is None:
                 print("Docsim or dictionary is not passed into method. Loading.")
-                docsim_index, dictionary = ds.load_docsim_index_and_dictionary(source=source)
+                docsim_index, dictionary = ds.load_docsim_index_and_dictionary(source=source, model=model)
             most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post, docsim_index,
                                                                                            dictionary,
                                                                                            list_of_document_features)[
                                                 :21]
         else:
-            ValueError("No from option is available.")
+            raise ValueError("No from option is available.")
         # removing post itself
         if len(most_similar_articles_with_scores) > 0:
             print("most_similar_articles_with_scores:")
@@ -208,7 +531,9 @@ class Word2VecClass:
             # workaround due to float32 error in while converting to JSON
             return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
         else:
-            return None
+            raise ValueError("Unexpected length of 'most_similar_articles_with_scores' JSON. "
+                             "Most similar articles is "
+                             "smaller than 0.")
 
     # @profile
     def get_similar_word2vec_full_text(self, searched_slug):
@@ -265,21 +590,6 @@ class Word2VecClass:
             del self.df
             del found_post_dataframe
 
-            print("Loading word2vec model...")
-
-            try:
-                word2vec_embedding = KeyedVectors.load("models/w2v_idnes.model")
-            except FileNotFoundError:
-                print("Downloading from Dropbox...")
-                dropbox_access_token = "njfHaiDhqfIAAAAAAAAAAX_9zCacCLdpxxXNThA69dVhAsqAa_EwzDUyH1ZHt5tY"
-                recommender_methods = RecommenderMethods()
-                # TODO: Rename file
-                recommender_methods.dropbox_file_download(dropbox_access_token, "models/w2v_model_limited.vectors.npy",
-                                                          "/w2v_model.vectors.npy")
-                word2vec_embedding = KeyedVectors.load("models/w2v_idnes.model")
-
-            ds = DocSim(word2vec_embedding)
-
             documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(';', ' ')
             documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(r'\r\n', '', regex=True)
             documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
@@ -287,41 +597,16 @@ class Word2VecClass:
             del documents_df
             # https://github.com/v1shwa/document-similarity with my edits
 
-            most_similar_articles_with_scores = calculate_similarity(found_post,
-                                                                        list_of_document_features)[:21]
+            calculatd_similarities_for_posts = calculate_similarity(found_post,
+                                                                    list_of_document_features)[:21]
             # removing post itself
-            del most_similar_articles_with_scores[0]  # removing post itself
+            del calculatd_similarities_for_posts[0]  # removing post itself
 
             # workaround due to float32 error in while converting to JSON
-            return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
+            return json.loads(json.dumps(calculatd_similarities_for_posts, cls=NumpyEncoder))
 
-    def flatten(self, multi_dimensional_list):
-        return [item for sublist in multi_dimensional_list for item in sublist]
-
-    def save_full_model_to_smaller(self, model="wiki"):
-        print("Saving full doc2vec_model to limited doc2vec_model...")
-        if model == "wiki":
-            word2vec_embedding = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full",
-                                                                   limit=87000)  #
-        elif model == "idnes":
-            word2vec_embedding = KeyedVectors.load_word2vec_format("full_models/idnes/word2vec/w2v_model_full",
-                                                                   limit=87000)  #
-        else:
-            word2vec_embedding = None
-        print("word2vec_embedding:")
-        print(word2vec_embedding)
-        word2vec_embedding.save("models/w2v_model_limited_test")  # write separately=[] for all_in_one model
-
-    def save_fast_text_to_w2v(self):
-        print("Loading and saving FastText pretrained model to Word2Vec model")
-        word2vec_model = gensim.models.fasttext.load_facebook_vectors("full_models/cswiki/word2vec/cc.cs.300.bin.gz",
-                                                                      encoding="utf-8")
-        print("FastText loaded...")
-        word2vec_model.fill_norms()
-        word2vec_model.save_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
-        print("Fast text saved...")
-
-    def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True, random_order=False, reversed=False):
+    def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True, random_order=False,
+                                       reversed_order=False):
 
         database = Database()
         if skip_already_filled is False:
@@ -331,12 +616,12 @@ class Word2VecClass:
 
         number_of_inserted_rows = 0
 
-        if reversed is True:
+        if reversed_order is True:
             print("Reversing list of posts...")
             posts.reverse()
 
         if random_order is True:
-            print("Starting random iteration...")
+            print("Starting random_order iteration...")
             t.sleep(5)
             random.shuffle(posts)
 
@@ -369,16 +654,20 @@ class Word2VecClass:
                             database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
                                                              article_id=post_id, full_text=False, db="pgsql",
                                                              method="word2vec")
-                        except:
+                        except psycopg2.Error as e:
                             print("Error in DB insert. Skipping.")
+                            print(e)
+                            print(traceback.format_exc())
                             pass
                     else:
                         try:
                             database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
                                                              article_id=post_id, full_text=True, db="pgsql",
                                                              method="word2vec")
-                        except:
+                        except psycopg2.Error as e:
                             print("Error in DB insert. Skipping.")
+                            print(e)
+                            print(traceback.format_exc())
                             pass
                     number_of_inserted_rows += 1
                     if number_of_inserted_rows > 20:
@@ -405,12 +694,14 @@ class Word2VecClass:
                                                      method="word2vec")
                 number_of_inserted_rows += 1
 
-    def prefilling_job(self, full_text, reverse, random=False):
+    def prefilling_job(self, full_text, reverse, random_order=False):
         if full_text is False:
             for i in range(100):
                 while True:
                     try:
-                        self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False)
+                        self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False,
+                                                            reversed_order=reverse,
+                                                            random_order=random_order)
                     except psycopg2.OperationalError:
                         print("DB operational error. Waiting few seconds before trying again...")
                         t.sleep(30)  # wait 30 seconds then try again
@@ -427,15 +718,10 @@ class Word2VecClass:
                         continue
                     break
 
-    def refresh_model(self):
-        self.save_fast_text_to_w2v()
-        print("Loading word2vec doc2vec_model...")
-        self.save_full_model_to_smaller()
-
     def evaluate_model(self, source, sentences=None, model_variant=None, negative_sampling_variant=None,
                        vector_size=None, window=None, min_count=None,
                        epochs=None, sample=None, force_update_model=True,
-                       use_defaul_model=False, save_model=True):
+                       use_default_model=False, save_model=True):
         global model_path
         if source == "idnes":
             model_path = "models/w2v_idnes.model"
@@ -450,30 +736,42 @@ class Word2VecClass:
             elif source == "cswiki":
                 print("Started training on cs.Wikipedia.cz dataset...")
 
-            if use_defaul_model is True:
+            if use_default_model is True:
                 # DEFAULT:
-                w2v_model = Word2Vec(sentences=sentences)
+                self.w2v_model = Word2Vec(sentences=sentences)
                 if save_model is True:
                     if source == "idnes":
-                        w2v_model.save("models/w2v_idnes.model")
+                        self.w2v_model.save("models/w2v_idnes.model")
                     elif source == "cswiki":
-                        w2v_model.save("models/w2v_cswiki.model")
+                        self.w2v_model.save("models/w2v_cswiki.model")
             else:
                 # CUSTOM:
-                w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
-                                     vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
-                                     sample=sample, workers=7)
+                self.w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
+                                          vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
+                                          sample=sample, workers=7)
                 if source == "idnes":
-                    w2v_model.save("models/w2v_idnes.model")
+                    self.w2v_model.save("models/w2v_idnes.model")
                 elif source == "cswiki":
-                    w2v_model.save("models/w2v_cswiki.model")
+                    self.w2v_model.save("models/w2v_cswiki.model")
         else:
             print("Loading Word2Vec model from saved model file")
-            w2v_model = Word2Vec.load(model_path)
+            self.w2v_model = Word2Vec.load(model_path)
 
+        overall_score, word_pairs_eval = self.prepare_and_run_evaluation()
+
+        if source == "idnes":
+            print("Analogies evaluation of iDnes.cz model:")
+        elif source == "cswiki":
+            print("Analogies evaluation of cs.wikipedia.org model:")
+
+        print(overall_score)
+
+        return overall_score, word_pairs_eval
+
+    def prepare_and_run_evaluation(self):
         path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
         if os.path.exists(path_to_cropped_wordsim_file):
-            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(
+            word_pairs_eval = self.w2v_model.wv.evaluate_word_pairs(
                 path_to_cropped_wordsim_file)
         else:
             df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
@@ -483,21 +781,16 @@ class Word2VecClass:
             df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
 
             df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
-            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
+            word_pairs_eval = self.w2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
 
-        overall_score, _ = w2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
-        if source == "idnes":
-            print("Analogies evaluation of iDnes.cz model:")
-        elif source == "cswiki":
-            print("Analogies evaluation of cs.wikipedia.org model:")
-
-        print(overall_score)
-
-        return word_pairs_eval, overall_score
+        overall_score, _ = self.w2v_model.wv.evaluate_word_analogies(
+            'research/word2vec/analogies/questions-words-cs.txt')
+        return overall_score, word_pairs_eval
 
     def find_optimal_model(self, source, random_search=False, number_of_trials=512):
         """
-        number_of_trials: default value according to random search study: https://dl.acm.org/doi/10.5555/2188385.2188395
+        number_of_trials: default value according to random_order search study:
+        https://dl.acm.org/doi/10.5555/2188385.2188395
         """
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
@@ -692,249 +985,12 @@ class Word2VecClass:
     def eval_model(self, source):
         print(self.evaluate_model(source=source, sentences=None, force_update_model=False))
 
-    def eval_idnes_basic(self):
-        topn = 30
-        limit = None
-
-        print("Loading iDNES.cz full model...")
-        idnes_model = KeyedVectors.load_word2vec_format("models/w2v_model_full.model", limit=limit)
-
-        searched_word = 'hokej'
-        sims = idnes_model.most_similar(searched_word, topn=topn)  # get other similar words
-        print("TOP " + str(topn) + " similar Words from iDNES.cz for word " + searched_word + ":")
-        print(sims)
-
-        searched_word = 'zimák'
-        if searched_word in idnes_model.key_to_index:
-            print(searched_word)
-            print("Exists in vocab")
-        else:
-            print(searched_word)
-            print("Doesn'multi_dimensional_list exists in vocab")
-
-        helper = Helper()
-        self.save_tuple_to_csv("idnes_top_" + str(topn) + "_similar_words_to_hokej_limit_" + str(limit) + ".csv", sims)
-
-        print("Word pairs evaluation FastText on iDNES.cz model:")
-        print(idnes_model.evaluate_word_pairs('research/word2vec/similarities/WordSim353-cs-cropped.tsv'))
-
-        overall_analogies_score, _ = idnes_model.evaluate_word_analogies(
-            "research/word2vec/analogies/questions-words-cs.txt")
-        print("Analogies evaluation of FastText on iDNES.cz model:")
-        print(overall_analogies_score)
-
-    def eval_wiki(self):
-        topn = 30
-        limit = None
-
-        print("Loading Wikipedia full model...")
-        wiki_full_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full", limit=limit)
-
-        searched_word = 'hokej'
-        sims = wiki_full_model.most_similar(searched_word, topn=topn)  # get other similar words
-        print("TOP " + str(topn) + " similar Words from Wikipedia.cz for word " + searched_word + ":")
-        print(sims)
-
-        searched_word = 'zimák'
-        if searched_word in wiki_full_model.key_to_index:
-            print(searched_word)
-            print("Exists in vocab")
-        else:
-            print(searched_word)
-            print("Doesn'multi_dimensional_list exists in vocab")
-
-        helper = Helper()
-        # self.save_tuple_to_csv("research/word2vec/most_similar_words/cswiki_top_10_similar_words_to_hokej.csv", sims)
-        self.save_tuple_to_csv("cswiki_top_" + str(topn) + "_similar_words_to_hokej_limit_" + str(limit) + ".csv", sims)
-
-        print("Word pairs evaluation FastText on Wikipedia.cz model:")
-        print(wiki_full_model.evaluate_word_pairs('research/word2vec/similarities/WordSim353-cs-cropped.tsv'))
-
-        overall_analogies_score, _ = wiki_full_model.evaluate_word_analogies(
-            "research/word2vec/analogies/questions-words-cs.txt")
-        print("Analogies evaluation of FastText on Wikipedia.cz model:")
-        print(overall_analogies_score)
-
-    def train_and_save_phrases_model_idnes(self):
-        path_to_phrases = 'models/idnes_bigrams.phrases'
-
-        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_bigrams')
-
-        print("Building sentences...")
-        sentences = [doc.get('text') for doc in reader.iterate()]
-
-        first_sentence = next(iter(sentences))
-        print("first_sentence[:10]")
-        print(first_sentence[:10])
-
-        print("Sentences sample:")
-        print(sentences[1500:1600])
-        time.sleep(40)
-        phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
-        phrase_model.save(path_to_phrases)
-
-    def build_bigrams_and_trigrams(self, force_update=False):
-        cursor_any_record = mongo_collection_bigrams.find_one()
-        if cursor_any_record is not None and force_update is False:
-            print("There are already records in MongoDB. Skipping bigrams building.")
-            pass
-        else:
-            print("Building bigrams...")
-            # mongo_collection_bigrams.delete_many({})
-            print("Loading stopwords free documents...")
-            # using 80% training set
-
-            reader = MongoReader(dbName='idnes', collName='preprocessed_articles_stopwords_free')
-
-            print("Building sentences...")
-            sentences = [doc.get('text') for doc in reader.iterate()]
-
-            first_sentence = next(iter(sentences))
-            print("first_sentence[:10]")
-            print(first_sentence[:10])
-
-            print("Sentences sample:")
-            print(sentences[1500:1600])
-            time.sleep(40)
-            phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
-
-            cursor = mongo_collection_stopwords_free.find({})
-            i = 1
-            for doc in cursor:
-                print("Building bigrams for document number " + str(i))
-                bigram_text = phrase_model[doc['text']]
-                print("bigram_text:")
-                print(bigram_text)
-                save_to_mongo(number_of_processed_files=i, data=bigram_text,
-                              supplied_mongo_collection=mongo_collection_bigrams)
-                i = i + 1
-
-    def save_tuple_to_csv(self, path, data):
-        with open(path, 'w+') as out:
-            csv_out = csv.writer(out)
-            csv_out.writerow(['word', 'sim'])
-            for row in data:
-                csv_out.writerow(row)
-
-    def save_corpus_dict(self, corpus, dictionary):
-        print("Saving train_corpus and dictionary...")
-        pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
-        dictionary.save('precalc_vectors/dictionary_idnes.gensim')
-
-    def remove_stopwords_mongodb(self, force_update=False):
-        cursor_any_record = mongo_collection_stopwords_free.find_one()
-        if cursor_any_record is not None and force_update is False:
-            print("There are already records in MongoDB. Skipping stopwords removal.")
-            pass
-        else:
-            print("Removing stopwords...")
-            cursor = mongo_collection.find({})
-            number = 1
-            # clearing collection from all documents
-            mongo_collection_stopwords_free.delete_many({})
-            for doc in cursor:
-                print("Before:")
-                print(doc['text'])
-                removed_stopwords = remove_stopwords(doc['text'])
-                removed_stopwords = self.flatten(removed_stopwords)
-                print("After removal:")
-                print(removed_stopwords)
-                save_to_mongo(number_of_processed_files=number, data=removed_stopwords,
-                              supplied_mongo_collection=mongo_collection_stopwords_free)
-                number = number + 1
-
-    def preprocess_idnes_corpus(self, force_update=False):
-
-        print("Corpus lines are above")
-        cursor_any_record = mongo_collection.find_one()
-        if cursor_any_record is not None and force_update is False:
-            print("There are already records in MongoDB. Skipping Idnes preprocessing (1st phase)")
-            pass
-        else:
-            path_to_corpus = 'full_models/idnes/unprocessed/idnes.mm'
-            path_to_pickle = 'full_models/idnes/unprocessed/idnes.pkl'
-            corpus = pickle.load(open(path_to_pickle, 'rb'))
-            print("Corpus length:")
-            print(len(corpus))
-            time.sleep(120)
-            # preprocessing steps
-            czpreprocessing = CzPreprocess()
-            helper = Helper()
-            processed_data = []
-
-            last_record = mongo_db.mongo_collection.find()
-            print("last_record")
-            print(last_record)
-            number_of_documents = 0
-            cursor = mongo_collection.find({})
-            print("Fetching records for DB...")
-            cursor_any_record = mongo_collection.find_one()
-            # Checking the cursor is empty or not
-            number_of_documents = 0
-            if cursor_any_record is None:
-                number_of_documents = 0
-            else:
-                """
-                for record in cursor:
-                    number_of_documents = record['number']
-                """
-                number_of_documents = mongo_collection.estimated_document_count()
-                print("Number_of_docs already in DB:")
-                print(number_of_documents)
-
-            if number_of_documents == 0:
-                print("No file with preprocessed articles was found. Starting from 0.")
-            else:
-                print("Starting another preprocessing from document where it was halted.")
-                print("Starting from doc. num: " + str(number_of_documents))
-
-            i = 0
-            num_of_preprocessed_docs = number_of_documents
-            # clearing collection from all documents
-            mongo_collection.delete_many({})
-            for doc in helper.generate_lines_from_mmcorpus(corpus):
-                if number_of_documents > 0:
-                    number_of_documents -= 1
-                    print("Skipping doc.")
-                    print(doc[:10])
-                    continue
-                print("Processing doc. num. " + str(num_of_preprocessed_docs))
-                print("Before:")
-                print(doc)
-                doc_string = ' '.join(doc)
-                doc_string_preprocessed = deaccent(czpreprocessing.preprocess(doc_string))
-                # tokens = doc_string_preprocessed.split(' ')
-
-                # removing words in greek, azbuka or arabian
-                # use only one of the following lines, whichever you prefer
-                tokens = [i for i in doc_string_preprocessed.split(' ') if regex.sub(r'[^\p{Latin}]', u'', i)]
-                # processed_data.append(tokens)
-                print("After:")
-                print(tokens)
-                i = i + 1
-                num_of_preprocessed_docs = num_of_preprocessed_docs + 1
-                # saving list to pickle evey Nth document
-
-                print("Preprocessing Idnes.cz doc. num. " + str(num_of_preprocessed_docs))
-                save_to_mongo(tokens, num_of_preprocessed_docs, mongo_collection)
-
-            print("Preprocessing Idnes has (finally) ended. All articles were preprocessed.")
-
     def final_training_model(self, source):
-        """
-        Method for running final evaluation based on selected parameters (i.e. through random search).
-        """
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
-        # Enabling Word2Vec logging
-        logging.basicConfig(format="%(asctime)s:%(levelname)s:%(message)s",
-                            level=logging.NOTSET)
-        logger = logging.getLogger()  # get the root logger
-        logger.info("Testing file write")
-        # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
+        client = get_client()
         sentences = []
-
-        client = MongoClient("localhost", 27017, maxPoolSize=50)
+        """
+        Method for running final evaluation based on selected parameters (i.e. through random_order search).
+        """
         global db
         if source == "idnes":
             db = client.idnes
@@ -1039,166 +1095,34 @@ class Word2VecClass:
     def compute_eval_values_idnes(self, sentences=None, model_variant=None, negative_sampling_variant=None,
                                   vector_size=None, window=None, min_count=None,
                                   epochs=None, sample=None, force_update_model=True,
-                                  model_path="models/w2v_idnes.model",
+                                  w2v_model_path="models/w2v_idnes.model",
                                   use_defaul_model=False, save_model=True):
         if os.path.isfile("models/w2v_idnes.model") is False or force_update_model is True:
             print("Started training on iDNES.cz dataset...")
 
             if use_defaul_model is True:
                 # DEFAULT:
-                w2v_model = Word2Vec(sentences=sentences)
+                self.w2v_model = Word2Vec(sentences=sentences)
                 if save_model is True:
-                    w2v_model.save("models/w2v_idnes.model")
+                    self.w2v_model.save("models/w2v_idnes.model")
             else:
                 # CUSTOM:
-                w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
-                                     vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
-                                     sample=sample, workers=7)
+                self.w2v_model = Word2Vec(sentences=sentences, sg=model_variant, negative=negative_sampling_variant,
+                                          vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
+                                          sample=sample, workers=7)
                 if save_model is True:
-                    w2v_model.save("models/w2v_idnes.model")
+                    self.w2v_model.save("models/w2v_idnes.model")
         else:
             print("Loading Word2Vec iDNES.cz model from saved model file")
-            w2v_model = Word2Vec.load(model_path)
+            self.w2v_model = Word2Vec.load(w2v_model_path)
 
-        path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
-        if os.path.exists(path_to_cropped_wordsim_file):
-            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(
-                path_to_cropped_wordsim_file)
-        else:
-            df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
-                             usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
-            cz_preprocess = CzPreprocess()
-            df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
-            df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+        overall_score, word_pairs_eval = self.evaluate_model(source="idnes", model_variant=model_variant,
+                                                             force_update_model=True, use_default_model=False)
 
-            df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
-            word_pairs_eval = w2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
-
-        overall_score, _ = w2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
         print("Analogies evaluation of iDnes.cz model:")
         print(overall_score)
 
         return word_pairs_eval, overall_score
-
-    def create_dictionary_from_dataframe(self, force_update=False, filter_extremes=False):
-        path_to_dict = "full_models/idnes/unprocessed/idnes.dict"
-        path_to_corpus = "full_models/idnes/unprocessed/idnes.mm"
-        if os.path.exists(path_to_dict) is False or os.path.exists(path_to_corpus) is False or force_update is True:
-            recommenderMethods = RecommenderMethods()
-            cz_preprocess = CzPreprocess()
-            post_df = recommenderMethods.join_posts_ratings_categories()
-            post_df['full_text'] = post_df['full_text'].replace([None], '')
-
-            post_df['all_features_preprocessed'] = post_df['all_features_preprocessed'] + ' ' + post_df['full_text']
-
-            gc.collect()
-
-            # Preprocessing to small to calling
-            # post_df['all_features_preprocessed'] = post_df['all_features_preprocessed'].map(cz_preprocess.preprocess)
-            post_df['all_features_preprocessed'] = post_df.all_features_preprocessed.apply(lambda x: x.split(' '))
-            post_df['all_features_preprocessed'] = post_df[['all_features_preprocessed']]
-            print("post_df")
-            print(post_df['all_features_preprocessed'][:100])
-
-            all_features_preprocessed_list = post_df['all_features_preprocessed'].to_numpy()
-
-            path_to_pickle = 'full_models/idnes/unprocessed/idnes.pkl'
-            pickle.dump(all_features_preprocessed_list, open(path_to_pickle, 'wb'))
-            print("all_features_preprocessed_list:")
-            print(all_features_preprocessed_list[:100])
-            time.sleep(60)
-            tokenzized_texts = [document for document in all_features_preprocessed_list]
-
-            # remove words that appear only once
-            frequency = defaultdict(int)
-            for text in tokenzized_texts:
-                for token in text:
-                    frequency[token] += 1
-
-            tokenzized_texts = [
-                [token for token in text if frequency[token] > 1]
-                for text in tokenzized_texts
-            ]
-            # all_features_preprocessed_list_of_lists = [[i] for i in all_features_preprocessed_list]
-            print("list of lists:")
-            print(tokenzized_texts[:1000])
-            time.sleep(50)
-            dictionary = corpora.Dictionary(line for line in tokenzized_texts)
-            path_to_dict = 'full_models/idnes/unprocessed/idnes.dict'
-            path_to_dict_folder = 'full_models/idnes/unprocessed/'
-            if not os.path.isfile(path_to_dict):
-                os.makedirs(path_to_dict_folder)
-            dictionary.save(path_to_dict)
-            corpus = [dictionary.doc2bow(text, allow_update=True) for text in tokenzized_texts]
-            print(corpus[:100])
-            word_counts = [[(dictionary[id], count) for id, count in line] for line in corpus]
-            print(word_counts[:100])
-            print("Serializing...")
-            corpora.MmCorpus.serialize(path_to_corpus, corpus)  # store to disk, for later use
-            print("Dictionary and  Corpus successfully saved on disk")
-
-        else:
-            print("Dictionary and train_corpus already exists")
-
-    def test_with_and_without_extremes(self):
-        # TODO: Test this
-        return False
-
-    def create_or_update_corpus_and_dict_from_mongo_idnes(self, source):
-        dict = self.create_dictionary_from_mongo_idnes(force_update=True)
-        corpus = self.create_corpus_from_mongo_idnes(dict, force_update=True)
-        gensim_methods = GensimMethods()
-        common_texts = gensim_methods.load_texts()
-        doc_sim = DocSim()
-        doc_sim.update_docsim_index(supplied_dictionary=dict, tfidf_corpus=corpus, common_texts=common_texts,
-                                    source=source)
-        # TODO: Update DOCSIM INDEX!!!!!!!!!
-
-    def create_dictionary_from_mongo_idnes(self, sentences=None, force_update=False, filter_extremes=False):
-        # a memory-friendly iterator
-        path_to_dict = 'precalc_vectors/dictionary_idnes.gensim'
-        if os.path.isfile(path_to_dict) is False or force_update is True:
-            if sentences is None:
-                print("Building sentences...")
-                sentences = []
-                client = MongoClient("localhost", 27017, maxPoolSize=50)
-                db = client.idnes
-                collection = db.preprocessed_articles_bigrams
-                cursor = collection.find({})
-                for document in cursor:
-                    # joined_string = ' '.join(document['text'])
-                    # sentences.append([joined_string])
-                    sentences.append(document['text'])
-            print("Creating dictionary...")
-            preprocessed_dictionary = corpora.Dictionary(line for line in sentences)
-            del sentences
-            gc.collect()
-            if filter_extremes is True:
-                preprocessed_dictionary.filter_extremes()
-            print("Saving dictionary...")
-            preprocessed_dictionary.save(path_to_dict)
-            print("Dictionary saved to: " + path_to_dict)
-            return preprocessed_dictionary
-        else:
-            print("Dictionary already exists. Loading...")
-            loaded_dict = corpora.Dictionary.load("full_models/idnes/preprocessed/dictionary")
-            return loaded_dict
-
-    def create_corpus_from_mongo_idnes(self, dictionary, sentences=None, force_update=False, preprocessed=False):
-        path_part_1 = "precalc_vectors"
-        path_part_2 = "/corpus_idnes.mm"
-        path_to_corpus = path_part_1 + path_part_2
-
-        if os.path.isfile(path_to_corpus) is False or force_update is True:
-            corpus = MyCorpus(dictionary)
-            del sentences
-            gc.collect()
-            print("Saving preprocessed train_corpus...")
-            corpora.MmCorpus.serialize(path_to_corpus, corpus)
-        else:
-            print("Corpus already exists. Loading...")
-            corpus = corpora.MmCorpus(path_to_corpus)
-        return corpus
 
 
 def preprocess_question_words_file():
