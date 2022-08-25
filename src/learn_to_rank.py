@@ -282,7 +282,7 @@ class LightGBM:
         self.test_query = test[user_col].value_counts().sort_index()
 
         study = optuna.create_study(direction='maximize',
-                                    sampler=optuna.samplers.TPESampler(seed=SEED)  # fix random seed
+                                    sampler=optuna.samplers.TPESampler(seed=SEED)  # fix random_order seed
                                     )
         study.optimize(self.objective, n_trials=10)
 

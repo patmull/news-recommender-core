@@ -75,8 +75,8 @@ tfidf.analyze('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
 # preprocess_question_words_file()
 
 """
-w2v_model = Word2VecClass()
-w2v_model.eval_wiki()
+w2vec = Word2VecClass()
+w2vec.eval_wiki()
 
 bigram_phrases = BigramPhrases()
 bigram_phrases.train_phrases_from_mongo_idnes()
