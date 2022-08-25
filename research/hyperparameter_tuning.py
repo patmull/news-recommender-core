@@ -113,14 +113,14 @@ class Anova():
         fs.fit(X_train, y_train)
         # transform train input data
         X_train_fs = fs.transform(X_train)
-        # transform test input data
+        # transform tests input data
         X_test_fs = fs.transform(X_test)
         return X_train_fs, X_test_fs, fs
 
     def run(self, run_on, col):
         # load the dataset
         X, y = self.load_dataset(self.filename, run_on, self.semicolon)
-        # split into train and test sets
+        # split into train and tests sets
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=1)
         # feature selection
         X_train_fs, X_test_fs, fs = self.select_features(X_train, y_train, X_test)

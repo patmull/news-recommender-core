@@ -6,18 +6,17 @@ import certifi
 import pandas as pd
 import urllib3
 
-from content_based_algorithms.data_queries import RecommenderMethods
-from content_based_algorithms.tfidf import TfIdf
-from pytranslate import google_translate
+from src.content_based_algorithms.tfidf import TfIdf
+from src.data_handling.data_queries import RecommenderMethods
 
 # Run with:
 # python -m pytest .\tests\test_user_preferences_methods.py::test_user_keywords -rP
-from user_based_recommendation import UserBasedRecommendation
+from src.user_based_recommendation import UserBasedRecommendation
 
 
 def test_user_keywords():
 
-    path_to_words_file = "datasets/english_words.txt"
+    path_to_words_file = "tests/datasets/english_words.txt"
     if not os.path.exists(path_to_words_file):
         word_url = "https://svnweb.freebsd.org/csrg/share/dict/words?view=co&content-type=text/plain"
         response = urllib.request.urlopen(word_url, cafile=certifi.where())
@@ -29,9 +28,11 @@ def test_user_keywords():
     # words = long_txt.splitlines()s)
     random_phrase = words[random.randint(0, len(words))] + ' ' + words[random.randint(0, len(words))]
 
-    translated_random_phrase = google_translate(random_phrase)
-    print("translated_random_phrase:")
-    print(translated_random_phrase)
+    # TODO: Check whether some currently working library exists
+    # translate = Translation()
+    # translated_random_phrase = translate.convert('en', 'cs', random_phrase)
+    # print("translated_random_phrase:")
+    # print(translated_random_phrase)
 
     tfidf = TfIdf()
     json_keywords = {"keywords": random_phrase}
@@ -49,7 +50,10 @@ def test_user_keywords():
 def test_user_categories():
     user_based_recommendation = UserBasedRecommendation()
     recommender_methods = RecommenderMethods()
+    # TODO: Repair Error
+    recommender_methods.database.connect()
     users = recommender_methods.get_users_dataframe()
+    recommender_methods.database.disconnect()
     print("users:")
     print(users)
     list_of_user_ids = users['id'].to_list()
