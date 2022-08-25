@@ -1,15 +1,13 @@
-from content_based_algorithms.doc2vec import Doc2VecClass
-from content_based_algorithms.doc_sim import DocSim
-from content_based_algorithms.lda import Lda
-from content_based_algorithms.tfidf import TfIdf
-from content_based_algorithms.word2vec import Word2VecClass
-from data_connection import Database
+from src.content_based_algorithms.doc2vec import Doc2VecClass
+from src.content_based_algorithms.doc_sim import DocSim
+from src.content_based_algorithms.lda import Lda
+from src.content_based_algorithms.tfidf import TfIdf
+from src.content_based_algorithms.word2vec import Word2VecClass
+from src.data_connection import Database
 
-# Run with:
-# python -m pytest .\tests\test_content_based_methods.py
-# python -m pytest .\tests\test_content_based_methods.py::TestClass::test_method
+# python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
 
-
+# python -m pytest .tests\test_content_based_methods.py::test_tfidf_method
 def test_tfidf_method():
     tfidf = TfIdf()
     # random article
@@ -54,10 +52,10 @@ def test_word2vec_method():
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
     random_post_slug = random_post['slug'].iloc[0]
-    list_of_models = ["idnes_1", "idnes_2", "idnes_3", "idnes_4"]
+    list_of_models = ["idnes_3"]
 
     ds = DocSim()
-    docsim_index, dictionary = ds.load_docsim_index_and_dictionary()
+    docsim_index, dictionary = ds.load_docsim_index_and_dictionary("idnes")
 
     for model in list_of_models:
         print("random_post slug:")
