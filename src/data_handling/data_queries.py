@@ -443,8 +443,6 @@ class TfIdfDataHandlers:
         # print(pd.DataFrame(closest).merge(items).head(k))
         return pd.DataFrame(closest).merge(items).head(k)
 
-    def flatten(self, t):
-        return [item for sublist in t for item in sublist]
 
 
 def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):

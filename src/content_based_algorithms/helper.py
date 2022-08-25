@@ -51,6 +51,9 @@ class Helper:
                 if line.strip():
                     outFile.write(line)
 
+    def flatten(self, multi_dimensional_list):
+        return [item for sublist in multi_dimensional_list for item in sublist]
+
 
 class NumpyEncoder(json.JSONEncoder):
     """ Special json encoder for numpy types """

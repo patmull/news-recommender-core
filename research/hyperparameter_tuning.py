@@ -48,7 +48,7 @@ class RandomForestRegression():
 
         # SETTING PARAMS
 
-        # Number of trees in random forest
+        # Number of trees in random_order forest
         n_estimators = [200, 500, 1000, 1500, 2000]
         # Number of features to consider at every split
         max_features = ['auto', 'sqrt']
@@ -60,7 +60,7 @@ class RandomForestRegression():
         # Minimum number of samples required at each leaf node
         min_samples_leaf = [1, 2, 4]
         # Method of selecting samples for training each tree
-        bootstrap = [True, False]# Create the random grid
+        bootstrap = [True, False]# Create the random_order grid
         random_grid = {'n_estimators': n_estimators,
                        'max_features': max_features,
                        'max_depth': max_depth,
@@ -82,10 +82,10 @@ class Anova():
         if dataset == "brute-force-word2vec":
             self.filename = 'word2vec/evaluation/idnes/word2vec_modely_srovnani_filtered.csv'
             self.semicolon = True
-        elif dataset == "random-search-word2vec":
+        elif dataset == "random_order-search-word2vec":
             self.filename = 'word2vec/evaluation/idnes/word2vec_tuning_results_random_search.csv'
             self.semicolon = False
-        elif dataset == "random-search-doc2vec":
+        elif dataset == "random_order-search-doc2vec":
             self.filename = 'doc2vec/evaluation/idnes/doc2vec_tuning_results_random_search.csv'
             self.semicolon = False
         else:
@@ -141,7 +141,7 @@ list_of_y_features = ['Analogies_test', 'Word_pairs_test_Out-of-vocab_ratio',
                       'Word_pairs_test_Spearman_coeff', 'Word_pairs_test_Pearson_coeff']
 
 fig, ax = pyplot.subplots(nrows=2, ncols=2)
-anova = Anova(dataset="random-search-doc2vec")
+anova = Anova(dataset="random_order-search-doc2vec")
 i = 0
 for row in ax:
     for col in row:
