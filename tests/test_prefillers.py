@@ -37,8 +37,8 @@ def test_db_connection(mockconnect):
 
 
 """
-def test_recommendation_prefiller(database, method, full_text, reverse, random):
-    prepare_and_run(database, method, full_text, reverse, random)
+def test_recommendation_prefiller(database, method, full_text, reverse, random_order):
+    prepare_and_run(database, method, full_text, reverse, random_order)
 """
 
 

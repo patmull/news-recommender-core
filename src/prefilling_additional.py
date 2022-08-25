@@ -29,7 +29,7 @@ class PreFillerAdditional():
             posts_categories.reverse()
 
         if random_order is True:
-            print("Starting random iteration...")
+            print("Starting random_order iteration...")
             time.sleep(5)
             random.shuffle(posts_categories)
 
@@ -112,7 +112,7 @@ class PreFillerAdditional():
             posts.reverse()
 
         if random_order is True:
-            print("Starting random iteration...")
+            print("Starting random_order iteration...")
             time.sleep(5)
             random.shuffle(posts)
 
@@ -179,7 +179,7 @@ class PreFillerAdditional():
             posts.reverse()
 
         if random_order is True:
-            print("Starting random iteration...")
+            print("Starting random_order iteration...")
             time.sleep(5)
             random.shuffle(posts)
 

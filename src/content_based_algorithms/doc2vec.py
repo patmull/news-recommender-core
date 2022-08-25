@@ -46,47 +46,6 @@ class Doc2VecClass:
         self.posts_df = self.posts_df.rename({'title': 'category_title'})
         return self.categories_df
 
-    """
-    def join_posts_ratings_categories(self, include_prefilled=False):
-        self.posts_df = self.prepare_posts_df()
-        self.categories_df = self.prepare_categories_df()
-        print("self.posts_df:")
-        print(self.posts_df)
-        print("self.categories_df:")
-        print(self.categories_df)
-        self.posts_df = self.posts_df.rename(columns={'title':'post_title'})
-        self.posts_df = self.posts_df.rename(columns={'slug':'post_slug'})
-        self.categories_df = self.categories_df.rename(columns={'title':'category_title'})
-        self.categories_df = self.categories_df.rename(columns={'slug':'category_slug'})
-
-        if include_prefilled is False:
-            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-            # clean up from unnecessary columns
-            self.df = self.df.rename(columns={'post_slug': 'slug'})
-            self.df = self.df[
-                ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-                 'all_features_preprocessed', 'body_preprocessed']]
-        else:
-            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-            # clean up from unnecessary columns
-            self.df = self.df.rename(columns={'post_slug': 'slug'})
-            try:
-                self.df = self.df[
-                    ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-                     'all_features_preprocessed', 'body_preprocessed',
-                     'recommended_tfidf_full_text']]
-            except KeyError:
-                self.df = self.database.insert_posts_dataframe_to_cache()
-                self.posts_df.drop_duplicates(subset=['title'], inplace=True)
-                print(self.df.columns.values)
-                self.df = self.df[
-                    ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-                     'all_features_preprocessed', 'body_preprocessed',
-                     'recommended_tfidf_full_text']]
-
-        return self.df
-    """
-
     def train_doc2vec(self, documents_all_features_preprocessed, body_text, limited=True, create_csv=False):
         print("documents_all_features_preprocessed")
         print(documents_all_features_preprocessed)
@@ -486,8 +445,8 @@ class Doc2VecClass:
         for i in range(0, number_of_trials):
 
             hs_softmax = 1
-            # hs_softmax = random.choice(hs_softmax_variants)
-            # TODO: Get Back random choice!!!
+            # hs_softmax = random_order.choice(hs_softmax_variants)
+            # TODO: Get Back random_order choice!!!
             # This is temporary due to adding softmax one values to results after fixed tab indent in else.
             model_variant = random.choice(model_variants)
             vector_size = random.choice(vector_size_range)
@@ -730,8 +689,8 @@ class Doc2VecClass:
                          }
         pbar = tqdm.tqdm(total=540)
 
-        # hs_softmax = random.choice(hs_softmax_variants)
-        # TODO: Get Back random choice!!!
+        # hs_softmax = random_order.choice(hs_softmax_variants)
+        # TODO: Get Back random_order choice!!!
         # This is temporary due to adding softmax one values to results after fixed tab indent in else.
         model_variant = model_variant
         vector_size = vector_size

@@ -44,7 +44,7 @@ class PreFiller:
             posts.reverse()
 
         if random_order is True:
-            print("Starting random iteration...")
+            print("Starting random_order iteration...")
             t.sleep(5)
             random.shuffle(posts)
 
@@ -82,7 +82,7 @@ class PreFiller:
                 ValueError("Wrong doc2vec_model name chosen.")
 
             ds = DocSim(w2v_model)
-            docsim_index, dictionary = ds.load_docsim_index_and_dictionary(source)
+            docsim_index, dictionary = ds.load_docsim_index_and_dictionary(source=source, model=model)
         elif method.startswith("doc2vec"):
             if method == "doc2vec_eval_cswiki_1":
                 path_to_folder = "full_models/cswiki/evaluated_models/doc2vec_model_cswiki_1/"
