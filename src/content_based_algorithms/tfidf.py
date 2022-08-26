@@ -32,22 +32,22 @@ class TfIdf:
     # @profile
     def keyword_based_comparison(self, keywords, number_of_recommended_posts=20, all_posts=False):
 
+        global post_recommendations
         if keywords == "":
             return {}
 
         keywords_splitted_1 = keywords.split(" ")  # splitting sentence into list of keywords by space
 
         # creating dictionary of words
-        wordDictA = dict.fromkeys(keywords_splitted_1, 0)
+        word_dict_a = dict.fromkeys(keywords_splitted_1, 0)
         for word in keywords_splitted_1:
-            wordDictA[word] += 1
+            word_dict_a[word] += 1
 
-        tfidf_data_handlers = TfIdfDataHandlers()
         recommender_methods = RecommenderMethods()
         recommender_methods.database.connect()
-        df = recommender_methods.get_posts_categories_dataframe()
-        tfidf_data_handlers.set_df(df)
+        self.df = recommender_methods.get_posts_categories_dataframe()
         recommender_methods.database.disconnect()
+        tfidf_data_handlers = TfIdfDataHandlers(self.df)
 
         cached_file_path = "precalc_vectors/all_features_preprocessed_vectorizer.pickle"
         if os.path.isfile(cached_file_path):
@@ -74,7 +74,7 @@ class TfIdf:
 
         if all_posts is True:
             post_recommendations = tfidf_data_handlers.most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
-                                                                                number_of_recommended_posts=len(tfidf_data_handlers.posts_df.index))
+                                                                                number_of_recommended_posts=len(self.posts_df.index))
         del tfidf_data_handlers
         return post_recommendations
 
@@ -157,7 +157,7 @@ class TfIdf:
 
         recommender_methods = RecommenderMethods()
         recommender_methods.database.connect()
-        df = recommender_methods.get_posts_categories_dataframe()
+        self.df = recommender_methods.get_posts_categories_dataframe()
         recommender_methods.database.disconnect()
 
         my_file = Path("models/tfidf_all_features_preprocessed.npz")
@@ -169,7 +169,8 @@ class TfIdf:
         my_file = Path("models/tfidf_category_title.npz")
         if my_file.exists() is False:
             # category_title = category
-            fit_by_title = recommender_methods.get_fit_by_feature_('category_title')
+            tf_idf_data_handlers = TfIdfDataHandlers(self.df)
+            fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
             self.save_sparse_csr(filename="models/tfidf_category_title.npz", array=fit_by_title)
         else:
             fit_by_title = self.load_sparse_csr(filename="models/tfidf_category_title.npz")
@@ -182,18 +183,18 @@ class TfIdf:
         print(tuple_of_fitted_matrices)
 
         try:
-            tfidf_data_handlers = TfIdfDataHandlers()
-            tfidf_data_handlers.set_df(df)
+            tfidf_data_handlers = TfIdfDataHandlers(self.df)
             post_recommendations = tfidf_data_handlers\
                 .recommend_by_more_features(slug=slug, tupple_of_fitted_matrices=tuple_of_fitted_matrices,
                                             num_of_recommendations=num_of_recommendations)
         except ValueError:
             fit_by_all_features_matrix = self.save_sparse_matrix(recommender_methods)
-            fit_by_title = recommender_methods.get_fit_by_feature_('category_title')
+            tfidf_data_handlers = TfIdfDataHandlers(self.df)
+            fit_by_title = tfidf_data_handlers.get_fit_by_feature_('category_title')
             self.save_sparse_csr(filename="models/tfidf_category_title.npz", array=fit_by_title)
             fit_by_title = self.load_sparse_csr(filename="models/tfidf_category_title.npz")
             tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
-            post_recommendations = recommender_methods.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
+            post_recommendations = tfidf_data_handlers.recommend_by_more_features(slug, tuple_of_fitted_matrices, num_of_recommendations=num_of_recommendations)
 
         del recommender_methods, tuple_of_fitted_matrices
         return post_recommendations
@@ -204,16 +205,18 @@ class TfIdf:
         recommender_methods = RecommenderMethods()
         print("Loading posts")
         recommender_methods.database.connect()
-        recommender_methods.get_posts_categories_dataframe()
+        self.df = recommender_methods.get_posts_categories_dataframe()
         recommender_methods.database.disconnect()
         gc.collect()
 
         # replacing None values with empty strings
         recommender_methods.df['full_text'] = recommender_methods.df['full_text'].replace([None], '')
 
-        fit_by_all_features_matrix = recommender_methods.get_fit_by_feature_('all_features_preprocessed')
-        fit_by_title = recommender_methods.get_fit_by_feature_('category_title')
-        fit_by_full_text = recommender_methods.get_fit_by_feature_('full_text')
+        tf_idf_data_handlers = TfIdfDataHandlers(self.df)
+
+        fit_by_all_features_matrix = tf_idf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
+        fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
+        fit_by_full_text = tf_idf_data_handlers.get_fit_by_feature_('full_text')
 
         # join feature tuples into one matrix
         tuple_of_fitted_matrices = (fit_by_title, fit_by_all_features_matrix, fit_by_full_text)
@@ -222,7 +225,8 @@ class TfIdf:
         del fit_by_full_text
         gc.collect()
 
-        post_recommendations = recommender_methods.recommend_by_more_features_with_full_text(slug,
+        tf_idf_data_handlers = TfIdfDataHandlers(self.df)
+        post_recommendations = tf_idf_data_handlers.recommend_by_more_features_with_full_text(slug,
                                                                                             tuple_of_fitted_matrices)
         del recommender_methods
         return post_recommendations
@@ -238,20 +242,22 @@ class TfIdf:
         # preprocessing
 
         # feature tuples of (document_id, token_id) and coefficient
-        fit_by_post_title_matrix = recommender_methods.get_fit_by_feature_('post_title', 'category_title')
+        tf_idf_data_handlers = TfIdfDataHandlers(self.df)
+        fit_by_post_title_matrix = tf_idf_data_handlers.get_fit_by_feature_('post_title', 'category_title')
         print("fit_by_post_title_matrix")
         print(fit_by_post_title_matrix)
         # fit_by_category_matrix = recommender_methods.get_fit_by_feature_('category_title')
-        fit_by_excerpt_matrix = recommender_methods.get_fit_by_feature_('excerpt')
+        fit_by_excerpt_matrix = tf_idf_data_handlers.get_fit_by_feature_('excerpt')
         print("fit_by_excerpt_matrix")
         print(fit_by_excerpt_matrix)
-        fit_by_keywords_matrix = recommender_methods.get_fit_by_feature_('keywords')
+        fit_by_keywords_matrix = tf_idf_data_handlers.get_fit_by_feature_('keywords')
         print("fit_by_keywords_matrix")
         print(fit_by_keywords_matrix)
 
         # join feature tuples into one matrix
         tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
-        post_recommendations = recommender_methods.recommend_by_more_features(slug, tuple_of_fitted_matrices)
+        tf_idf_data_handlers = TfIdfDataHandlers(self.df)
+        post_recommendations = tf_idf_data_handlers.recommend_by_more_features(slug, tuple_of_fitted_matrices)
 
         del recommender_methods
         return post_recommendations
@@ -278,8 +284,8 @@ class TfIdf:
                  indptr=array.indptr, shape=array.shape)
 
     def update_saved_matrix(self):
-        recommenderMethods = RecommenderMethods()
-        fit_by_all_features_matrix = recommenderMethods.get_fit_by_feature_('all_features_preprocessed')
+        tf_idf_data_handlers = TfIdfDataHandlers(self.df)
+        fit_by_all_features_matrix = tf_idf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
         self.save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
 
     def save_tfidf_vectorizer(self, vector, path="precalc_vectors/all_features_preprocessed_vectorizer.pickle"):

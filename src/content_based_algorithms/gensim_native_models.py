@@ -80,7 +80,7 @@ class GensimMethods:
     @PendingDeprecationWarning
     def get_fit_by_feature(self, feature_name, second_feature=None):
         tf_idf_data_handlers = TfIdfDataHandlers()
-        fit_by_feature = tf_idf_data_handlers.get_tfIdfVectorizer(feature_name, second_feature)
+        fit_by_feature = tf_idf_data_handlers.get_tfidf_vectorizer(feature_name, second_feature)
         return fit_by_feature
 
     @DeprecationWarning
