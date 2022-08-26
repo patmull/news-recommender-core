@@ -99,7 +99,9 @@ class RecommenderMethods:
         results_df.reset_index(inplace=True)
         print("self.results_df:")
         print(results_df)
-        results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name', 'model_variant', 'created_at']]
+        results_df_ = results_df[
+            ['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name', 'model_variant',
+             'created_at']]
         return results_df_
 
     @DeprecationWarning
@@ -121,7 +123,8 @@ class RecommenderMethods:
             # clean up from unnecessary columns
             try:
                 self.df = self.df[
-                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
+                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                     'description',
                      'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text', 'trigrams_full_text']]
             except KeyError:
@@ -138,8 +141,10 @@ class RecommenderMethods:
         if full_text is True:
             try:
                 self.df = self.df[
-                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-                     'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text', 'trigrams_full_text']]
+                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                     'description',
+                     'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text',
+                     'trigrams_full_text']]
             except KeyError as key_error:
                 self.df = self.get_df_from_sql_meanwhile_insert_cache()
                 print(key_error)
@@ -153,7 +158,8 @@ class RecommenderMethods:
                      'trigrams_full_text']]
         else:
             self.df = self.df[
-                ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
+                ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                 'description',
                  'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'trigrams_full_text']]
         return self.df
 
@@ -247,14 +253,14 @@ class RecommenderMethods:
         categories_df = recommender_methods.get_categories_dataframe()
         categories_df = categories_df.rename(columns={'title': 'category_title'})
 
-        df = self.posts_df.merge(categories_df, left_on='category_id', right_on='id')
+        self.df = self.posts_df.merge(categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         print("df.columns")
-        print(df.columns)
-        df = df[
+        print(self.df.columns)
+        self.df = self.df[
             ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
-        return df
+        return self.df
 
 
 class TfIdfDataHandlers:
@@ -268,7 +274,7 @@ class TfIdfDataHandlers:
         self.df = df
 
     def get_fit_by_feature_(self, feature_name, second_feature=None):
-        fit_by_feature = self.get_tfIdfVectorizer(feature_name, second_feature)
+        fit_by_feature = self.get_tfidf_vectorizer(feature_name, second_feature)
         return fit_by_feature
 
     def most_similar_by_keywords(self, keywords, tupple_of_fitted_matrices, number_of_recommended_posts=20):
@@ -308,7 +314,7 @@ class TfIdfDataHandlers:
         closest['index1'] = closest.index
         # closest.index.name = 'index1'
         closest.columns.name = 'index'
-        
+
         if 'slug_x' in closest.columns:
             closest.rename(columns={'slug_x': 'slug'})
         elif 'post_slug' in closest.columns:
@@ -320,9 +326,9 @@ class TfIdfDataHandlers:
     def get_cleaned_text(self, row):
         return row
 
-    def get_tfIdfVectorizer(self, fit_by, fit_by_2=None):
+    def get_tfidf_vectorizer(self, fit_by, fit_by_2=None):
 
-        self.set_tfIdfVectorizer()
+        self.set_tfid_vectorizer()
         if fit_by_2 is None:
             print("self.df")
             print(self.df)
@@ -335,13 +341,12 @@ class TfIdfDataHandlers:
 
         return self.tfidf_tuples  # tuples of (document_id, token_id) and tf-idf score for it
 
-    def set_tfIdfVectorizer(self):
+    def set_tfid_vectorizer(self):
         # load_texts czech stopwords from file
         filename = "src/preprocessing/stopwords/czech_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
-
 
         filename = "src/preprocessing/stopwords/general_stopwords.txt"
         with open(filename, encoding="utf-8") as file:
@@ -350,11 +355,9 @@ class TfIdfDataHandlers:
         # print(cz_stopwords)
         stopwords = cz_stopwords + general_stopwords
 
-        tfidf_vectorizer = TfidfVectorizer(dtype=np.float32,
-                                           stop_words=stopwords)  # transforms text to feature vectors that can be used as input to estimator
-        print("tfidf_vectorizer")
-        print(tfidf_vectorizer)
-        self.tfidf_vectorizer = tfidf_vectorizer
+        # transforms text to feature vectors that can be used as input to estimator
+        self.tfidf_vectorizer = TfidfVectorizer(dtype=np.float32,
+                                                stop_words=stopwords)
 
     # # @profile
     def recommend_by_more_features(self, slug, tupple_of_fitted_matrices, num_of_recommendations=20):
@@ -417,7 +420,8 @@ class TfIdfDataHandlers:
         # computing cosine similarity
         cosine_transform = CosineTransformer()
         print("Computing cosine similarity")
-        self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix(own_tfidf_matrix=combined_matrix1, df=self.df)
+        self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix(own_tfidf_matrix=combined_matrix1,
+                                                                            df=self.df)
 
         # getting posts with highest similarity
         combined_all = self.get_closest_posts(slug, self.cosine_sim_df,
@@ -442,7 +446,6 @@ class TfIdfDataHandlers:
         # print("pd.DataFrame(closest).merge(items).head(k)")
         # print(pd.DataFrame(closest).merge(items).head(k))
         return pd.DataFrame(closest).merge(items).head(k)
-
 
 
 def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
