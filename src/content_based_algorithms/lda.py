@@ -83,8 +83,13 @@ class Lda:
             self.train_lda(recommender_methods.df, display_dominant_topics=display_dominant_topics)
 
         dictionary, corpus, lda = self.load_lda(recommender_methods.df)
+        
+        if 'slug_x' in recommender_methods.df.columns:
+            recommender_methods.df = recommender_methods.df.rename({'slug_x': 'slug'})
+        elif 'post_slug' in recommender_methods.df.columns:
+            recommender_methods.df = recommender_methods.df.rename({'post_slug': 'slug'})
 
-        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['post_slug'] == searched_slug].tolist()
+        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['slug'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
         selected_by_index = recommender_methods.df.iloc[searched_doc_id]
         selected_by_column = selected_by_index['all_features_preprocessed']
