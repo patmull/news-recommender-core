@@ -178,7 +178,7 @@ class Doc2VecClass:
         del documents_all_features_preprocessed
         gc.collect()
 
-        doc2vec_model = Doc2Vec.load("models/d2v_full_text_limited.model_variant")
+        doc2vec_model = Doc2Vec.load("models/d2v_full_text_limited.model")
 
         recommendMethods = RecommenderMethods()
 
