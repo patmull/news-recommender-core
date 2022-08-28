@@ -1,0 +1,4 @@
+from user_based_recommendation import UserBasedRecommendation
+
+user_based_recommendation = UserBasedRecommendation()
+user_based_recommendation.load_recommended_posts_for_user(371)

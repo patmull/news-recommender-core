@@ -1,13 +1,15 @@
-import gensim
+import os
 
+import gensim
+from pathlib import Path
 
 def get_cz_stopwords_file_path():
-    cz_stopwords_file_name = "src/preprocessing/stopwords/czech_stopwords.txt"
+    cz_stopwords_file_name = Path("src/preprocessing/stopwords/czech_stopwords.txt")
     return cz_stopwords_file_name
 
 
 def get_general_stopwords_file_path():
-    general_stopwords_file_name = "src/preprocessing/stopwords/general_stopwords.txt"
+    general_stopwords_file_name = Path("src/preprocessing/stopwords/general_stopwords.txt")
     return general_stopwords_file_name
 
 
