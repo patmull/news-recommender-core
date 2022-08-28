@@ -257,6 +257,8 @@ class RecommenderMethods:
         # clean up from unnecessary columns
         print("df.columns")
         print(self.df.columns)
+        if 'post_title' in self.df.columns:
+            self.df = self.df.rename({'title': 'post_title', 'slug': 'post_slug'})
         self.df = self.df[
             ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
