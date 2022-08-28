@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.content_based_algorithms.doc2vec import Doc2VecClass
-from src.data_connection import Database
+from src.data_manipulation import Database
 
 # RUN WITH:
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method

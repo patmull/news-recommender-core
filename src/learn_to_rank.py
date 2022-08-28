@@ -33,7 +33,7 @@ from content_based_algorithms.data_queries import RecommenderMethods
 from content_based_algorithms.tfidf import TfIdf
 from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.lda import Lda
-from data_connection import Database
+from data_manipulation import Database
 from user_based_recommendation import UserBasedRecommendation
 from sklearn.linear_model import LinearRegression, LogisticRegression
 
@@ -64,8 +64,9 @@ class LightGBM:
 
     feature_list = []
 
-    def get_user_keywords_based(self, tfidf, user_based_recommendation, user_id):
-        user_keywords = user_based_recommendation.get_user_keywords(user_id)
+    def get_user_keywords_based(self, tfidf, user_id):
+        recommender_methods = RecommenderMethods()
+        user_keywords = recommender_methods.get_user_keywords(user_id)
         keyword_list = user_keywords['keyword_name'].tolist()
         tfidf_keywords = ''
         if len(keyword_list) > 0:
@@ -231,9 +232,7 @@ class LightGBM:
 
     def recommend_for_user(self, user, k, sample_anime_num):
         database = Database()
-        database.connect()
-        posts_df = database.get_posts_dataframe_from_sql(pd)
-        database.disconnect()
+        posts_df = database.get_posts_dataframe_from_sql()
         pred_df = posts_df.sample(sample_anime_num).reset_index(drop=True)  # sample recommend candidates
         results_df = self.get_results_single_coeff_user_as_query()
 
@@ -630,16 +629,12 @@ class LightGBM:
 
     def get_posts_df(self):
         database = Database()
-        database.connect()
         posts_df = database.get_posts_dataframe()
-        database.disconnect()
         return posts_df
 
     def get_categories_df(self):
         database = Database()
-        database.connect()
         posts_df = database.get_categories_dataframe()
-        database.disconnect()
         return posts_df
 
 

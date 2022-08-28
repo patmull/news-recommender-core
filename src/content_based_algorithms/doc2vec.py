@@ -2,13 +2,11 @@ import csv
 import gc
 import logging
 import os
-import pickle
 import random
 import warnings
 
 import gensim
 import pandas as pd
-import smart_open
 import tqdm
 from gensim import corpora
 from gensim.models import Word2Vec
@@ -19,7 +17,7 @@ from sklearn.model_selection import train_test_split
 from src.content_based_algorithms.tfidf import TfIdf
 from src.data_handling.data_queries import RecommenderMethods
 from src.preprocessing.cz_preprocessing import CzPreprocess
-from src.data_connection import Database
+from src.data_manipulation import Database
 
 DEFAULT_MODEL_LOCATION = "models/d2v_limited.model"
 
@@ -46,20 +44,9 @@ class Doc2VecClass:
         self.posts_df = self.posts_df.rename({'title': 'category_title'})
         return self.categories_df
 
-    def train_doc2vec(self, documents_all_features_preprocessed, body_text, limited=True, create_csv=False):
+    def train_doc2vec(self, documents_all_features_preprocessed, create_csv=False):
         print("documents_all_features_preprocessed")
         print(documents_all_features_preprocessed)
-
-        filename = "preprocessing/stopwords/czech_stopwords.txt"
-        with open(filename, encoding="utf-8") as file:
-            cz_stopwords = file.readlines()
-            cz_stopwords = [line.rstrip() for line in cz_stopwords]
-
-        filename = "preprocessing/stopwords/general_stopwords.txt"
-        with open(filename, encoding="utf-8") as file:
-            general_stopwords = file.readlines()
-            general_stopwords = [line.rstrip() for line in general_stopwords]
-        all_stopwords = cz_stopwords + general_stopwords
 
         tagged_data = []
         cz_lemma = CzPreprocess()
@@ -87,12 +74,9 @@ class Doc2VecClass:
 
         self.train(tagged_data)
 
-    def get_similar_doc2vec(self, slug, source=None, doc2vec_model=None, train=False, limited=True, number_of_recommended_posts=21, from_db=False):
+    def get_similar_doc2vec(self, slug, train=False, limited=True, number_of_recommended_posts=21):
         recommender_methods = RecommenderMethods()
-        recommender_methods.database.connect()
         self.df = recommender_methods.get_posts_categories_dataframe()
-
-        recommender_methods.database.disconnect()
         print("self.df")
         print(self.df.columns.values)
 
@@ -112,40 +96,37 @@ class Doc2VecClass:
         gc.collect()
 
         if 'post_slug' in self.df:
-            self.df = self.df.rename(columns={'post_slug':'slug'})
+            self.df = self.df.rename(columns={'post_slug': 'slug'})
         documents_slugs = self.df['slug'].tolist()
 
         if train is True:
-            self.train_doc2vec(documents_all_features_preprocessed, body_text=False, limited=False, create_csv=False)
+            self.train_doc2vec(documents_all_features_preprocessed, create_csv=False)
 
         del documents_all_features_preprocessed
         gc.collect()
 
         if limited is True:
-            doc2vec_model = Doc2Vec.load("models/d2v_limited.model")
+            doc2vec_loaded_model = Doc2Vec.load("models/d2v_limited.model")
         else:
-            doc2vec_model = Doc2Vec.load("models/d2v.model") # or download from Dropbox / AWS bucket
+            doc2vec_loaded_model = Doc2Vec.load("models/d2v.model")  # or download from Dropbox / AWS bucket
 
         recommender_methods = RecommenderMethods()
         # not necessary
         recommender_methods.database.connect()
         post_found = recommender_methods.find_post_by_slug(slug)
-        recommender_methods.database.disconnect()
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
 
         tokens = keywords_preprocessed + all_features_preprocessed
 
-        vector_source = doc2vec_model.infer_vector(tokens)
-        most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
+        vector_source = doc2vec_loaded_model.infer_vector(tokens)
+        most_similar = doc2vec_loaded_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
         return self.get_similar_by_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
     def get_similar_doc2vec_with_full_text(self, slug, train=False, number_of_recommended_posts=21):
         recommender_methods = RecommenderMethods()
-        recommender_methods.database.connect()
         self.df = recommender_methods.get_posts_categories_dataframe()
-        recommender_methods.database.disconnect()
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
         documents_df = pd.DataFrame()
@@ -174,26 +155,27 @@ class Doc2VecClass:
         documents_slugs = self.df['slug'].tolist()
 
         if train is True:
-            self.train_doc2vec(documents_all_features_preprocessed, body_text=True)
+            self.train_doc2vec(documents_all_features_preprocessed)
         del documents_all_features_preprocessed
         gc.collect()
 
-        doc2vec_model = Doc2Vec.load("models/d2v_full_text_limited.model")
+        doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text_limited.model")
 
-        recommendMethods = RecommenderMethods()
+        recommend_methods = RecommenderMethods()
 
         # not necessary
-        post_found = recommendMethods.find_post_by_slug(slug)
+        post_found = recommend_methods.find_post_by_slug(slug)
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
         full_text = post_found.iloc[0]['body_preprocessed'].split(" ")
         tokens = keywords_preprocessed + all_features_preprocessed + full_text
-        vector_source = doc2vec_model.infer_vector(tokens)
+        vector_source = doc2vec_loaded_model.infer_vector(tokens)
 
-        most_similar = doc2vec_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
+        most_similar = doc2vec_loaded_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
         return self.get_similar_by_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
+    @PendingDeprecationWarning
     def get_similar_doc2vec_by_keywords(self, slug, number_of_recommended_posts=21):
         warnings.warn("Method not tested properly yet...", PendingDeprecationWarning)
 
@@ -388,7 +370,7 @@ class Doc2VecClass:
         # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
         sentences = []
         client = MongoClient("localhost", 27017, maxPoolSize=50)
-        global db
+        global db, saved_file_name
         if source == "idnes":
             db = client.idnes
         elif source == "cswiki":
@@ -509,7 +491,7 @@ class Doc2VecClass:
             elif source == "cswiki":
                 saved_file_name = 'doc2vec_tuning_results_random_search_cswiki.csv'
             else:
-                ValueError("Source does not matech available options.")
+                raise ValueError("Source does not matech available options.")
 
             pd.DataFrame(model_results).to_csv(saved_file_name, index=False,
                                                mode="w")

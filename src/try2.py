@@ -1,6 +1,8 @@
+from content_based_algorithms.tfidf import TfIdf
 from data_handling.data_queries import RecommenderMethods
-from data_connection import Database
+from data_manipulation import Database
 from prefilling_all import prepare_and_run
+from user_based_recommendation import UserBasedRecommendation
 
 
 def try_word2vec_recommendation_prefiller(database, method, full_text, reverse, random):
@@ -12,7 +14,8 @@ def try_prefillers():
     method = "word2vec"
     reverse = True
     random = False
-    try_word2vec_recommendation_prefiller(database=database, method=method, full_text=False, reverse=reverse, random=random)
+    try_word2vec_recommendation_prefiller(database=database, method=method, full_text=False, reverse=reverse,
+                                          random=random)
 
 
 # try_prefillers()
@@ -88,7 +91,7 @@ bigram_phrases.train_phrases_from_mongo_idnes()
 # save_model_variant_relevances(crop_by_date=True, last_n_by_date=80)
 # print(print_model_variant_relevances_for_each_article(save_to_csv=True, crop_by_date=True))
 
-
+"""
 recommender_methods = RecommenderMethods()
 posts_df = recommender_methods.get_posts_dataframe()
 random_df_row = posts_df.sample(1)
@@ -97,3 +100,11 @@ print("random_slug:")
 print(random_slug.iloc[0])
 found_df = recommender_methods.find_post_by_slug(random_slug.iloc[0])
 print(found_df['slug'].iloc[0])
+"""
+
+"""
+user_based_recommendation = UserBasedRecommendation()
+user_based_recommendation.load_recommended_posts_for_user(371)
+"""
+tfidf = TfIdf()
+print(tfidf.keyword_based_comparison("banik ostrava"))

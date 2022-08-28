@@ -4,7 +4,7 @@ import operator
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
-from data_connection import Database
+from data_manipulation import Database
 from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
@@ -25,7 +25,6 @@ class SvdClass:
 
     def get_all_users_ids(self):
         database = Database()
-        database.connect()
         sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
         # LOAD INTO A DATAFRAME
         self.df_users = pd.read_sql_query(sql_select_all_users, database.get_cnx())
@@ -33,7 +32,6 @@ class SvdClass:
 
     def get_user_item_from_db(self):
         database = Database()
-        database.connect()
         ##Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
@@ -52,7 +50,6 @@ class SvdClass:
         sql_select_all_posts = """SELECT p.id AS post_id, p.slug FROM posts p;"""
         # LOAD INTO A DATAFRAME
         self.df_posts = pd.read_sql_query(sql_select_all_posts, database.get_cnx())
-        database.disconnect()
         # print("Posts:")
         # print(self.df_posts)
         user_item_table = self.combine_user_item(self.df_ratings)
@@ -64,7 +61,6 @@ class SvdClass:
 
     def get_average_post_rating(self):
         database = Database()
-        database.connect()
         ##Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
@@ -85,7 +81,6 @@ class SvdClass:
         sql_select_all_posts = """SELECT p.id AS post_id, p.slug FROM posts p;"""
         # LOAD INTO A DATAFRAME
         df_posts = pd.read_sql_query(sql_select_all_posts, database.get_cnx())
-        database.disconnect()
         # print("Posts:")
         # print(self.df_posts)
         print("df_ratings")
