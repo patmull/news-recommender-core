@@ -1,10 +1,7 @@
-import json
 import os.path
 import random
 import urllib.request
 import certifi
-import pandas as pd
-import urllib3
 
 from src.content_based_algorithms.tfidf import TfIdf
 from src.data_handling.data_queries import RecommenderMethods
