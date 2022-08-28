@@ -1,9 +1,9 @@
-from content_based_algorithms.doc2vec import Doc2VecClass
-from content_based_algorithms.doc_sim import DocSim
-from content_based_algorithms.lda import Lda
-from content_based_algorithms.tfidf import TfIdf
-from content_based_algorithms.word2vec import Word2VecClass
-from data_connection import Database
+from src.content_based_algorithms.doc2vec import Doc2VecClass
+from src.content_based_algorithms.doc_sim import DocSim
+from src.content_based_algorithms.lda import Lda
+from src.content_based_algorithms.tfidf import TfIdf
+from src.content_based_algorithms.word2vec import Word2VecClass
+from src.data_connection import Database
 
 
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
@@ -136,30 +136,6 @@ def test_tfidf_full_text_method():
     print(random_post_slug)
     similar_posts = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(random_post_slug)
     print("similar_posts")
-    print(similar_posts)
-    print("similar_posts type:")
-    print(type(similar_posts))
-
-    assert len(random_post.index) == 1
-    assert type(similar_posts) is list
-    assert len(similar_posts) > 0
-    print(type(similar_posts[0]['slug']))
-    assert type(similar_posts[0]['slug']) is str
-    assert type(similar_posts[0]['coefficient']) is float
-    assert len(similar_posts) > 0
-
-
-def test_word2vec_full_text_method():
-    word2vec = Word2VecClass()
-    # random_order article
-    database = Database()
-    posts = database.get_posts_dataframe()
-    random_post = posts.sample()
-    random_post_slug = random_post['slug'].iloc[0]
-    print("random_post slug:")
-    print(random_post_slug)
-    similar_posts = word2vec.get_similar_word2vec_full_text(random_post_slug)
-    print("similar_posts:")
     print(similar_posts)
     print("similar_posts type:")
     print(type(similar_posts))
