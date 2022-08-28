@@ -1,5 +1,7 @@
 # import psycopg2.connector
 import os
+from pathlib import Path
+
 import psycopg2
 import pandas as pd
 
@@ -106,10 +108,12 @@ class Database:
     def get_posts_dataframe_from_sql(self):
         print("Getting posts from SQL...")
         sql = """SELECT * FROM posts ORDER BY id;"""
-
+        # NOTICE: Connection is ok here. Need to stay here due to calling from function that's executing thread
+        # operation
+        self.connect()
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
-        # df = pd.read_sql_query(results, database.get_cnx())
+        self.disconnect()
         return df
 
     def get_posts_dataframe(self, from_cache=True):
@@ -137,23 +141,24 @@ class Database:
         outdir = './' + splitted_cache_file[0]
 
         if not os.path.exists(outdir):
-            os.mkdir(outdir)
+            os.mkdir(Path(outdir))
 
-        fullpath = os.path.join(outdir, outfile)
+        fullpath = os.path.join(Path(outdir), Path(outfile))
         df.to_pickle(fullpath)  # will be stored in current directory
+        print("fullpath")
+        print(fullpath)
         return df
 
     def get_posts_dataframe_from_cache(self):
         print("Reading cache file...")
         try:
-            df = pd.read_pickle('db_cache/cached_posts_dataframe.pkl')  # read from current directory
+            df = pd.read_pickle(os.path.relpath('db_cache\\cached_posts_dataframe.pkl'))
+            # read from current directory
         except Exception as e:
             print("Exception occured when reading cached file:")
             print(e)
             print("Getting posts from SQL.")
-            self.connect()
             df = self.get_posts_dataframe_from_sql()
-            self.disconnect()
         return df
 
     def get_categories_dataframe(self):
@@ -177,21 +182,31 @@ class Database:
 
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
-        # df = pd.read_sql_query(results, database.get_cnx())
         return df
 
-    def get_user_categories(self):
-        sql = """SELECT * FROM user_categories ORDER BY id;"""
+    def get_user_categories(self, user_id=None):
+        if user_id is None:
+            sql = """SELECT * FROM user_categories ORDER BY id;"""
 
-        # LOAD INTO A DATAFRAME
-        df = pd.read_sql_query(sql, self.get_cnx())
-        # df = pd.read_sql_query(results, database.get_cnx())
-        return df
+            # LOAD INTO A DATAFRAME
+            df_user_categories = pd.read_sql_query(sql, self.get_cnx())
+            # df = pd.read_sql_query(results, database.get_cnx())
+        else:
+            sql_user_categories = """SELECT c.slug AS "category_slug" FROM user_categories uc 
+            JOIN categories c ON c.id = uc.category_id WHERE uc.user_id = (%(user_id)s);"""
+            query_params = {'user_id': user_id}
+            df_user_categories = pd.read_sql_query(sql_user_categories, self.get_cnx(),
+                                                   params=query_params)
+
+            print("df_user_categories:")
+            print(df_user_categories)
+            return df_user_categories
+        return df_user_categories
 
     def insert_keywords(self, keyword_all_types_splitted, article_id):
         # PREPROCESSING
         try:
-            query = """UPDATE posts SET keywords=%s WHERE id=%s;"""
+            query = """UPDATE posts SET keywords = %s WHERE id = %s;"""
             inserted_values = (keyword_all_types_splitted, article_id)
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
@@ -203,11 +218,41 @@ class Database:
             print("Error:", s)  # errno, sqlstate, msg values
             self.cnx.rollback()
 
+    def get_user_rating_categories(self):
+
+        # EXTRACT RESULTS FROM CURSOR
+
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS rating_value, c.title AS category_title, c.slug AS category_slug, p.created_at AS post_created_at
+        FROM posts p
+        JOIN ratings r ON r.post_id = p.id
+        JOIN users u ON r.user_id = u.id
+        JOIN categories c ON c.id = p.category_id
+        LEFT JOIN user_categories uc ON uc.category_id = c.id;"""
+
+        df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
+        print("Loaded those ratings from DB.")
+        print(df_ratings)
+        print(df_ratings.columns)
+
+        if 'slug_y' in df_ratings.columns:
+            df_ratings = df_ratings.rename(columns={'slug': 'category_slug'})
+
+        return df_ratings
+
+    def get_user_keywords(self, user_id):
+        sql_user_keywords = """SELECT multi_dimensional_list.name AS "keyword_name" FROM tag_user tu JOIN tags 
+        multi_dimensional_list ON multi_dimensional_list.id = tu.tag_id WHERE tu.user_id = (%(user_id)s); """
+        query_params = {'user_id': user_id}
+        df_user_categories = pd.read_sql_query(sql_user_keywords, self.get_cnx(), params=query_params)
+        print("df_user_categories:")
+        print(df_user_categories)
+        return df_user_categories
+
     @DeprecationWarning
     def insert_recommended_tfidf_json(self, articles_recommended_json, article_id, db):
         if db == "pgsql":
             try:
-                query = """UPDATE posts SET recommended_tfidf=%s WHERE id=%s;"""
+                query = """UPDATE posts SET recommended_tfidf = %s WHERE id = %s;"""
                 inserted_values = (articles_recommended_json, article_id)
                 self.cursor.execute(query, inserted_values)
                 self.cnx.commit()
@@ -228,33 +273,33 @@ class Database:
         if db == "pgsql":
             try:
                 if method == "tfidf" and full_text is False:
-                    query = """UPDATE posts SET recommended_tfidf=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_tfidf = %s WHERE id = %s;"""
                 elif method == "tfidf" and full_text is True:
-                    query = """UPDATE posts SET recommended_tfidf_full_text=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_tfidf_full_text = %s WHERE id = %s;"""
                 elif method == "word2vec" and full_text is False:
-                    query = """UPDATE posts SET recommended_word2vec=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_word2vec = %s WHERE id = %s;"""
                 elif method == "word2vec" and full_text is True:
-                    query = """UPDATE posts SET recommended_word2vec_full_text=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_word2vec_full_text = %s WHERE id = %s;"""
                 elif method == "doc2vec" and full_text is False:
-                    query = """UPDATE posts SET recommended_doc2vec=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_doc2vec = %s WHERE id = %s;"""
                 elif method == "doc2vec" and full_text is True:
-                    query = """UPDATE posts SET recommended_doc2vec_full_text=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_doc2vec_full_text = %s WHERE id = %s;"""
                 elif method == "lda" and full_text is False:
-                    query = """UPDATE posts SET recommended_lda=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_lda = %s WHERE id = %s;"""
                 elif method == "lda" and full_text is True:
-                    query = """UPDATE posts SET recommended_lda_full_text=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_lda_full_text = %s WHERE id = %s;"""
                 elif method == "word2vec_eval_idnes_1" and full_text is True:
-                    query = """UPDATE posts SET recommended_word2vec_eval_1=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_word2vec_eval_1 = %s WHERE id = %s;"""
                 elif method == "word2vec_eval_idnes_2" and full_text is True:
-                    query = """UPDATE posts SET recommended_word2vec_eval_2=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_word2vec_eval_2 = %s WHERE id = %s;"""
                 elif method == "word2vec_eval_idnes_3" and full_text is True:
-                    query = """UPDATE posts SET recommended_word2vec_eval_3=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_word2vec_eval_3 = %s WHERE id = %s;"""
                 elif method == "word2vec_eval_idnes_4" and full_text is True:
-                    query = """UPDATE posts SET recommended_word2vec_eval_4=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_word2vec_eval_4 = %s WHERE id = %s;"""
                 elif method == "word2vec_eval_cswiki_1" and full_text is True:
-                    query = """UPDATE posts SET recommended_word2vec_eval_cswiki_1=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_word2vec_eval_cswiki_1 = %s WHERE id = %s;"""
                 elif method == "doc2vec_eval_cswiki_1" and full_text is True:
-                    query = """UPDATE posts SET recommended_doc2vec_eval_cswiki_1=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_doc2vec_eval_cswiki_1 = %s WHERE id = %s;"""
                 else:
                     raise Exception("Method not implemented.")
                 inserted_values = (articles_recommended_json, article_id)
@@ -276,7 +321,7 @@ class Database:
 
     @DeprecationWarning
     def insert_doc2vec_vector(self, doc2vec_vector, article_id):
-        query = """UPDATE posts SET doc2vec_representation=%s WHERE id=%s;"""
+        query = """UPDATE posts SET doc2vec_representation = %s WHERE id = %s;"""
         inserted_values = (doc2vec_vector, article_id)
         self.cursor.execute(query, inserted_values)
         self.cnx.commit()
@@ -284,12 +329,10 @@ class Database:
 
     def insert_preprocessed_combined(self, preprocessed_all_features, post_id):
         try:
-            query = """UPDATE posts SET all_features_preprocessed=%s WHERE id=%s;"""
+            query = """UPDATE posts SET all_features_preprocessed = %s WHERE id = %s;"""
             inserted_values = (preprocessed_all_features, post_id)
-            self.connect()
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
-            self.disconnect()
 
         except psycopg2.Error as e:
             print("NOT INSERTED")
@@ -302,7 +345,7 @@ class Database:
 
     def insert_preprocessed_body(self, preprocessed_body, article_id):
         try:
-            query = """UPDATE posts SET body_preprocessed=%s WHERE id=%s;"""
+            query = """UPDATE posts SET body_preprocessed = %s WHERE id = %s;"""
             inserted_values = (preprocessed_body, article_id)
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
@@ -319,9 +362,9 @@ class Database:
     def insert_phrases_text(self, bigram_text, article_id, full_text):
         try:
             if full_text is False:
-                query = """UPDATE posts SET trigrams_short_text=%s WHERE id=%s;"""
+                query = """UPDATE posts SET trigrams_short_text = %s WHERE id = %s;"""
             else:
-                query = """UPDATE posts SET trigrams_full_text=%s WHERE id=%s;"""
+                query = """UPDATE posts SET trigrams_full_text = %s WHERE id = %s;"""
             inserted_values = (bigram_text, article_id)
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
@@ -367,7 +410,7 @@ class Database:
             elif method == "lda":
                 sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id;"""
             elif method == "word2vec_eval_idnes_1":
-                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_idnes_1 IS NULL ORDER BY id;"""
+                sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_1 IS NULL ORDER BY id;"""
             elif method == "word2vec_eval_idnes_2":
                 sql = """SELECT * FROM posts WHERE recommended_word2vec_eval_2 IS NULL ORDER BY id;"""
             elif method == "word2vec_eval_idnes_3":
@@ -403,10 +446,8 @@ class Database:
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
         #  Parser module
         query = sql
-        self.connect()
         self.cursor.execute(query)
         rs = self.cursor.fetchall()
-        self.disconnect()
         return rs
 
     def get_posts_with_no_keywords(self):
@@ -414,10 +455,8 @@ class Database:
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
         #  Parser module
         query = sql
-        self.connect()
         self.cursor.execute(query)
         rs = self.cursor.fetchall()
-        self.disconnect()
         return rs
 
     def get_posts_with_no_all_features_preprocessed(self):
@@ -425,10 +464,8 @@ class Database:
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
         #  Parser module
         query = sql
-        self.connect()
         self.cursor.execute(query)
         rs = self.cursor.fetchall()
-        self.disconnect()
         return rs
 
     def get_posts_with_not_prefilled_ngrams_text(self, full_text=True):
@@ -444,3 +481,17 @@ class Database:
 
         rs = self.cursor.fetchall()
         return rs
+
+    def get_posts_users_categories_ratings(self):
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS rating_value, c.title AS category_title, c.slug AS category_slug, p.created_at AS post_created_at
+        FROM posts p
+        JOIN ratings r ON r.post_id = p.id
+        JOIN users u ON r.user_id = u.id
+        JOIN categories c ON c.id = p.category_id
+        LEFT JOIN user_categories uc ON uc.category_id = c.id;"""
+
+        df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
+        print("Loaded those ratings from DB.")
+        print(df_ratings)
+
+        return df_ratings

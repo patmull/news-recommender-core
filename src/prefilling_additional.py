@@ -4,7 +4,7 @@ import random
 import pandas as pd
 
 from src.content_based_algorithms.word2vec import CzPreprocess
-from src.data_connection import Database
+from src.data_manipulation import Database
 
 
 class PreFillerAdditional():
@@ -13,7 +13,6 @@ class PreFillerAdditional():
     # TODO:
     def fill_preprocessed(self, column_for_prefilling, skip_already_filled, reversed, random_order, db="pgsql"):
         database = Database()
-        database.connect()
         if skip_already_filled is False:
             pandas_df = pd.DataFrame()
             posts = database.get_all_posts()
@@ -99,7 +98,6 @@ class PreFillerAdditional():
 
     def fill_body_preprocessed(self, skip_already_filled, reversed, random_order, db="pgsql"):
         database = Database()
-        database.connect()
         if skip_already_filled is False:
             posts = database.get_all_posts()
         else:
@@ -166,7 +164,6 @@ class PreFillerAdditional():
 
     def fill_all_features_preprocessed(self, skip_already_filled, reversed, random_order, db="pgsql"):
         database = Database()
-        database.connect()
         if skip_already_filled is False:
             posts = database.get_all_posts()
         else:

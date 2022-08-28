@@ -2,7 +2,7 @@ from content_based_algorithms.doc2vec import Doc2VecClass
 from content_based_algorithms.doc_sim import DocSim
 from content_based_algorithms.word2vec import Word2VecClass
 from preprocessing.bigrams_phrases import BigramPhrases
-from data_connection import Database
+from data_manipulation import Database
 from prefilling_all import prepare_and_run, run_prefilling
 
 def try_word2vec_recommendation_prefiller(database, method, full_text, reverse, random):

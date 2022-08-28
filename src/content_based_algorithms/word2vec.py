@@ -25,7 +25,7 @@ from src.content_based_algorithms.helper import NumpyEncoder, Helper
 import pandas as pd
 import time as t
 
-from src.data_connection import Database
+from src.data_manipulation import Database
 from src.data_handling.data_queries import RecommenderMethods
 from src.preprocessing.cz_preprocessing import CzPreprocess
 from src.preprocessing.stopwords_loading import remove_stopwords
@@ -545,11 +545,9 @@ class Word2VecClass:
         """
         recommender_methods = RecommenderMethods()
 
-        recommender_methods.database.connect()
         self.posts_df = recommender_methods.get_posts_dataframe()
         self.categories_df = recommender_methods.get_categories_dataframe()
         self.df = recommender_methods.get_posts_categories_full_text()
-        recommender_methods.database.disconnect()
 
         found_post_dataframe = recommender_methods.find_post_by_slug(searched_slug, force_update=True)
 
@@ -607,12 +605,13 @@ class Word2VecClass:
 
     def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True, random_order=False,
                                        reversed_order=False):
-
-        database = Database()
+        recommender_methods = RecommenderMethods()
         if skip_already_filled is False:
-            posts = database.get_all_posts()
+            posts = recommender_methods.get_all_posts()
         else:
+            database.connect()
             posts = database.get_not_prefilled_posts(full_text, method="tfidf")
+            database.disconnect()
 
         number_of_inserted_rows = 0
 

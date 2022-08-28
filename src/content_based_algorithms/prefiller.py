@@ -9,7 +9,7 @@ from src.content_based_algorithms.doc_sim import DocSim
 from src.content_based_algorithms.lda import Lda
 from src.content_based_algorithms.tfidf import TfIdf
 from src.content_based_algorithms.word2vec import Word2VecClass
-from src.data_connection import Database
+from src.data_manipulation import Database
 
 val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
@@ -35,7 +35,9 @@ class PreFiller:
         if skip_already_filled is False:
             posts = database.get_all_posts()
         else:
+            database.connect()
             posts = database.get_not_prefilled_posts(full_text, method=method)
+            database.disconnect()
 
         number_of_inserted_rows = 0
 
