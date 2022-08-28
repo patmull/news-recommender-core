@@ -9,7 +9,7 @@ import pyLDAvis
 import regex
 import tqdm
 from gensim.corpora import WikiCorpus
-from gensim.utils import deaccent, simple_preprocess
+from gensim.utils import deaccent
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
 
@@ -130,10 +130,11 @@ class Lda:
 
         recommender_methods.get_posts_dataframe()
         recommender_methods.database.connect()
-        recommender_methods.join_posts_ratings_categories()
+        recommender_methods.get_posts_categories_dataframe()
         recommender_methods.database.disconnect()
 
-        recommender_methods.df['tokenized_keywords'] = recommender_methods.df['keywords'].apply(lambda x: x.split(', '))
+        recommender_methods.df['tokenized_keywords'] = recommender_methods.df['keywords']\
+            .apply(lambda x: x.split(', '))
         recommender_methods.df['tokenized'] = recommender_methods.df.apply(
             lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
             axis=1)
@@ -336,7 +337,7 @@ class Lda:
     def train_lda_full_text(self, data, display_dominant_topics=True, lst=None):
 
 
-        data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
+        data_words_nostops = remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
 
         self.df.assign(tokenized=data_words_bigrams)

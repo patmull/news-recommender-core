@@ -28,15 +28,26 @@ def load_general_stopwords():
         return flatten(general_stopwords)
 
 
-def remove_stopwords(texts):
-    stopwords_cz = load_cz_stopwords()
-    stopwords_general = load_general_stopwords()
-    stopwords = stopwords_cz + stopwords_general
-    stopwords = flatten(stopwords)
-    joined_stopwords = ' '.join(str(x) for x in stopwords)
-    stopwords = gensim.utils.deaccent(joined_stopwords)
-    stopwords = stopwords.split(' ')
-    return [[word for word in gensim.utils.simple_preprocess(doc) if word not in stopwords] for doc in texts]
+def remove_stopwords(texts, cz_punct=False):
+    if type(texts) is list:
+        cleaned_text_list = []
+        stopwords_cz = load_cz_stopwords(cz_punct)
+        stopwords_general = load_general_stopwords()
+        stopwords = stopwords_cz + stopwords_general
+        stopwords = flatten(stopwords)
+        for word in texts:
+            if word not in stopwords:
+                cleaned_text_list.append(word)
+        return cleaned_text_list
+    elif type(texts) is str:
+        stopwords_cz = load_cz_stopwords()
+        stopwords_general = load_general_stopwords()
+        stopwords = stopwords_cz + stopwords_general
+        stopwords = flatten(stopwords)
+        joined_stopwords = ' '.join(str(x) for x in stopwords)
+        stopwords = gensim.utils.deaccent(joined_stopwords)
+        stopwords = stopwords.split(' ')
+        return [[word for word in gensim.utils.simple_preprocess(doc) if word not in stopwords] for doc in texts]
 
 
 def flatten(t):
