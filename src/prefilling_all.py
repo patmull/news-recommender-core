@@ -1,7 +1,7 @@
 import traceback
 
 from src.content_based_algorithms.prefiller import PreFiller
-from src.data_connection import Database
+from src.data_manipulation import Database
 from src.data_handling.data_queries import RecommenderMethods
 from src.prefilling_additional import PreFillerAdditional
 
@@ -73,11 +73,13 @@ def run_prefilling():
 
 
 def prepare_and_run(database, method, full_text, reverse, random):
+    database.connect()
     not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)
+    database.disconnect()
     print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts in " + method + " full text: " + str(full_text))
     if len(not_prefilled_posts) > 0:
         try:
-            prefiller.prefilling_job(method=method, full_text=full_text)
+            prefiller.prefilling_job(method=method, full_text=full_text, reversed=reverse, random_order=random)
         except Exception as e:
             print("Exception occured " + str(e))
             print(traceback.print_exception(type(e), e, e.__traceback__))

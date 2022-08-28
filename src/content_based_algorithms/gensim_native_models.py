@@ -12,7 +12,7 @@ from src.preprocessing.czech_stemmer import cz_stem
 from gensim import corpora, models, similarities
 from scipy import sparse
 
-from src.data_connection import Database
+from src.data_manipulation import Database
 
 @DeprecationWarning
 def preprocess(sentence, stemming=False, lemma=True):
@@ -215,4 +215,4 @@ class GensimMethods:
         if json is False:
             return post_dataframe
         else:
-            return recommenderMethods.convert_df_to_json(post_dataframe)
+            return convert_df_to_json(post_dataframe)

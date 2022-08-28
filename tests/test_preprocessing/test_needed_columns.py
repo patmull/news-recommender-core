@@ -1,10 +1,11 @@
-from src.data_connection import Database
+from src.data_manipulation import Database
 
 
 def test_all_features_preprocessed_column():
     database = Database()
     database.connect()
     posts = database.get_posts_with_no_all_features_preprocessed()
+    database.disconnect()
     return len(posts)
 
 
@@ -12,6 +13,7 @@ def test_body_preprocessed_column():
     database = Database()
     database.connect()
     posts = database.get_posts_with_no_body_preprocessed()
+    database.disconnect()
     return len(posts)
 
 
@@ -19,6 +21,7 @@ def test_keywords_column():
     database = Database()
     database.connect()
     posts = database.get_posts_with_no_keywords()
+    database.disconnect()
     return len(posts)
 
 
