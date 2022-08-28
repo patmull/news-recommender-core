@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch, call
 
 import pytest
 
-from src.data_connection import Database
+from src.data_manipulation import Database
 import random
 
 method_options = ["tfidf", "word2vec", "doc2vec", "lda"]

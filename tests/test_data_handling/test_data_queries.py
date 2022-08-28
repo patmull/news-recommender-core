@@ -50,33 +50,25 @@ def test_get_df_from_sql_meanwhile_insert_cache():
 
 def test_users_dataframe():
     recommender_methods = RecommenderMethods()
-    recommender_methods.database.connect()
     users_df = recommender_methods.get_users_dataframe()
-    recommender_methods.database.disconnect()
     common_asserts_for_dataframes(users_df, CRITICAL_COLUMNS_USERS)
 
 
 def test_ratings_dataframe():
     recommender_methods = RecommenderMethods()
-    recommender_methods.database.connect()
     ratings_df = recommender_methods.get_ratings_dataframe()
-    recommender_methods.database.disconnect()
     common_asserts_for_dataframes(ratings_df, CRITICAL_COLUMNS_RATINGS)
 
 
 def test_categories_dataframe():
     recommender_methods = RecommenderMethods()
-    recommender_methods.database.connect()
     categories_df = recommender_methods.get_categories_dataframe()
-    recommender_methods.database.disconnect()
     common_asserts_for_dataframes(categories_df, CRITICAL_COLUMNS_CATEGORIES)
 
 
 def test_results_dataframe():
     recommender_methods = RecommenderMethods()
-    recommender_methods.database.connect()
     evaluation_results_df = recommender_methods.get_evaluation_results_dataframe()
-    recommender_methods.database.disconnect()
     common_asserts_for_dataframes(evaluation_results_df, CRITICAL_COLUMNS_EVALUATION_RESULTS)
 
 

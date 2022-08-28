@@ -25,7 +25,7 @@ from gensim.models import LdaModel, CoherenceModel
 from scipy.stats import entropy
 
 from src.content_based_algorithms.helper import Helper
-from src.data_connection import Database
+from src.data_manipulation import Database
 from src.preprocessing import cz_preprocessing
 from src.preprocessing.stopwords_loading import remove_stopwords
 from src.dataset_statistics.corpus_statistics import CorpusStatistics
@@ -71,16 +71,14 @@ class Lda:
 
     def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, N=21):
         recommender_methods = RecommenderMethods()
-        recommender_methods.database.connect()
         recommender_methods.get_posts_dataframe()
         recommender_methods.get_posts_categories_dataframe()
-        recommender_methods.database.disconnect()
 
         gc.collect()
 
         # if there is no LDA model, training will run anyway due to load_texts method handle
         if train is True:
-            self.train_lda(recommender_methods.df, display_dominant_topics=display_dominant_topics)
+            self.train_lda_full_text(recommender_methods.df, display_dominant_topics=display_dominant_topics)
 
         dictionary, corpus, lda = self.load_lda(recommender_methods.df)
         
@@ -129,9 +127,7 @@ class Lda:
         recommender_methods = RecommenderMethods()
 
         recommender_methods.get_posts_dataframe()
-        recommender_methods.database.connect()
         recommender_methods.get_posts_categories_dataframe()
-        recommender_methods.database.disconnect()
 
         recommender_methods.df['tokenized_keywords'] = recommender_methods.df['keywords']\
             .apply(lambda x: x.split(', '))
@@ -267,6 +263,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
+    @PendingDeprecationWarning
     def train_lda(self, data, display_dominant_topics=False):
         data_words_nostops = remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
@@ -442,10 +439,9 @@ class Lda:
         pyLDAvis.save_html(vis_data, 'research\LDA\LDA_Visualization.html')
 
     def display_lda_stats(self):
-        self.database.connect()
-        self.get_posts_dataframe()
-        self.join_posts_ratings_categories()
-        self.database.disconnect()
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_dataframe()
+        self.df = recommender_methods.get_posts_categories_dataframe()
 
         self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
 

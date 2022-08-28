@@ -48,9 +48,7 @@ def test_user_categories():
     user_based_recommendation = UserBasedRecommendation()
     recommender_methods = RecommenderMethods()
     # TODO: Repair Error
-    recommender_methods.database.connect()
     users = recommender_methods.get_users_dataframe()
-    recommender_methods.database.disconnect()
     print("users:")
     print(users)
     list_of_user_ids = users['id'].to_list()
