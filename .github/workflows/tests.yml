@@ -40,8 +40,10 @@ jobs:
         DB_RECOMMENDER_PASSWORD: '${{ secrets.DB_RECOMMENDER_PASSWORD }}'
         DB_RECOMMENDER_USER: '${{ secrets.DB_RECOMMENDER_USER }}'
       run: |
-        echo 'DB_RECOMMENDER_HOST=${{ secrets.DB_RECOMMENDER_HOST }}' >> $GITHUB_ENV
-        echo 'DB_RECOMMENDER_NAME=${{ secrets.DB_RECOMMENDER_NAME }}' >> $GITHUB_ENV
-        echo 'DB_RECOMMENDER_PASSWORD=${{ secrets.DB_RECOMMENDER_PASSWORD }}' >> $GITHUB_ENV
-        echo 'DB_RECOMMENDER_USER=${{ secrets.DB_RECOMMENDER_USER }}' >> $GITHUB_ENV
+        touch .env
+        echo 'DB_RECOMMENDER_HOST=${{ secrets.DB_RECOMMENDER_HOST }}' >> .env
+        echo 'DB_RECOMMENDER_NAME=${{ secrets.DB_RECOMMENDER_NAME }}' >> .env
+        echo 'DB_RECOMMENDER_PASSWORD=${{ secrets.DB_RECOMMENDER_PASSWORD }}' >> .env
+        echo 'DB_RECOMMENDER_USER=${{ secrets.DB_RECOMMENDER_USER }}' >> .env
+        cat .env
         tox
