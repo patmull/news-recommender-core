@@ -4,12 +4,6 @@ on:
   - push
   - pull_request
 
-env:
-  DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
-  DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
-  DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
-  DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
-
 jobs:
   test:
     environment: moje-clanky-api
@@ -30,9 +24,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install tox tox-gh-actions
-    - name: 'Env vars check'
-      run: |
-        echo "Enviromental vars check: ${{ secrets.DB_RECOMMENDER_HOST }}"
-        echo "${{ secrets.DB_RECOMMENDER_USER }}"
+    - name: 'Env vars setup'
+      env:
+        DB_RECOMMENDER_HOST: '${{ secrets.DB_RECOMMENDER_HOST }}'
+        DB_RECOMMENDER_NAME: '${{ secrets.DB_RECOMMENDER_NAME }}'
+        DB_RECOMMENDER_PASSWORD: '${{ secrets.DB_RECOMMENDER_PASSWORD }}'
+        DB_RECOMMENDER_USER: '${{ secrets.DB_RECOMMENDER_USER }}'
     - name: 'Test with tox'
       run: tox
