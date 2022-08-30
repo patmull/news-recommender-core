@@ -17,15 +17,17 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: 'Install dependencies'
       run: |
         python -m pip install --upgrade pip
         pip install tox tox-gh-actions
-    - name: Setting env vars
-      env:
-        DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
-        DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
-        DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
-        DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
+    - name: 'Create env file'
+      run: |
+        touch .env
+        echo DB_RECOMMENDER_HOST=${{ secrets.DB_RECOMMENDER_HOST }} >> .env
+        echo DB_RECOMMENDER_NAME=${{ secrets.DB_RECOMMENDER_NAME }} >> .env
+        echo DB_RECOMMENDER_PASSWORD=${{ secrets.DB_RECOMMENDER_PASSWORD }} >> .env
+        echo DB_RECOMMENDER_USER=${{ secrets.DB_RECOMMENDER_USER }} >> .env
+        cat .env
     - name: Test with tox
       run: tox
