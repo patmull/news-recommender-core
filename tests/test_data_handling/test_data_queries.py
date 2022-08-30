@@ -20,6 +20,8 @@ def test_posts_dataframe_good_day():
 
     recommender_methods = RecommenderMethods()
     # Scenario 1: Good Day
+    print('DB_RECOMMENDER_HOST')
+    print(os.environ.get('DB_RECOMMENDER_HOST'))
     posts_df = recommender_methods.get_posts_dataframe()
     assert posts_df[posts_df.columns[0]].count() > 1
     common_asserts_for_dataframes(posts_df, CRITICAL_COLUMNS_POSTS)
