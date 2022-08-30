@@ -84,7 +84,8 @@ class Doc2VecClass:
                 pass
 
         recommender_methods = RecommenderMethods()
-        if not recommender_methods.get_posts_dataframe()['slug'].str.contains(searched_slug):
+
+        if not searched_slug not in recommender_methods.get_posts_dataframe()['slug'].values:
             raise ValueError('Slug does not appear in dataframe.')
 
         self.df = recommender_methods.get_posts_categories_dataframe()
@@ -147,7 +148,8 @@ class Doc2VecClass:
         recommender_methods = RecommenderMethods()
         self.df = recommender_methods.get_posts_categories_dataframe()
 
-        if not self.df['slug'].str.contains(searched_slug):
+
+        if not searched_slug not in self.df['slug'].values:
             raise ValueError('Slug does not appear in dataframe.')
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
