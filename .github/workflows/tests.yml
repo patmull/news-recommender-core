@@ -12,9 +12,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11.0-beta.3']
-
-    environment: moje-clanky-api
-
     steps:
     - uses: actions/checkout@v3
     - name : Setting envs
