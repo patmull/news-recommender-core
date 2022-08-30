@@ -25,6 +25,7 @@ def test_tfidf_method_bad_input(tested_input):
 
 
 # python -m pytest .tests\test_content_based_methods.py::test_tfidf_method
+# py.test tests/test_recommender_methods/test_content_based_methods.py -k 'test_tfidf_method'
 def test_tfidf_method():
     tfidf = TfIdf()
     # random_order article
