@@ -236,8 +236,16 @@ class RecommenderMethods:
                  'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'trigrams_full_text']]
         return self.df
 
-    def find_post_by_slug(self, slug):
-        return self.get_posts_dataframe().loc[self.get_posts_dataframe()['slug'] == slug]
+    def find_post_by_slug(self, searched_slug):
+        if type(searched_slug) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if searched_slug == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
+
+        return self.get_posts_dataframe().loc[self.get_posts_dataframe()['slug'] == searched_slug]
 
     def get_posts_categories_dataframe(self):
         posts_df = self.get_posts_dataframe()
@@ -425,53 +433,14 @@ class TfIdfDataHandlers:
         print("combined_matrix1:")
         print(combined_matrix1)
 
-        # # print(combined_matrix1.shape)
-        # computing cosine similarity
         cosine_transform = CosineTransformer()
         self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix(combined_matrix1, self.df)
 
-        # getting posts with highest similarity
+        # getting posts with the highest similarity
         combined_all = self.get_closest_posts(slug, self.cosine_sim_df,
                                               self.df[['slug']], k=num_of_recommendations)
 
         recommended_posts_in_json = convert_dataframe_posts_to_json(combined_all, slug, self.cosine_sim_df)
-        return recommended_posts_in_json
-
-    def recommend_by_more_features_with_full_text(self, slug, tupple_of_fitted_matrices):
-        """
-        Example 1: solving linear system A*x=b where A is 5000x5000 but is block diagonal matrix constructed of 500 5x5
-        blocks. Setup code:
-
-        As = sparse(rand(5, 5));
-        for(i=1:999)
-           As = blkdiag(As, sparse(rand(5,5)));
-        end;                         %As is made up of 500 5x5 blocks along diagonal
-        Af = full(As); b = rand(5000, 1);
-
-        Then you can tests speed difference:
-
-        As \ b % operation on sparse As takes .0012 seconds
-        Af \ b % solving with full Af takes about 2.3 seconds
-
-        """
-        # combining results of all feature types
-        # combined_matrix1 = sparse.hstack(tuple_of_fitted_matrices)
-        # creating sparse matrix containing mostly zeroes from combined feature tuples
-        combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
-
-        # computing cosine similarity
-        cosine_transform = CosineTransformer()
-        print("Computing cosine similarity")
-        self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix(own_tfidf_matrix=combined_matrix1,
-                                                                            df=self.df)
-
-        # getting posts with highest similarity
-        combined_all = self.get_closest_posts(slug, self.cosine_sim_df,
-                                              self.df[['slug']])
-
-        # json conversion
-        recommended_posts_in_json = convert_dataframe_posts_to_json(combined_all, slug, self.cosine_sim_df)
-
         return recommended_posts_in_json
 
     def get_closest_posts(self, find_by_string, data_frame, items, k=20):
