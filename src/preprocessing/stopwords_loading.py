@@ -3,6 +3,7 @@ import os
 import gensim
 from pathlib import Path
 
+
 def get_cz_stopwords_file_path():
     cz_stopwords_file_name = Path("src/preprocessing/stopwords/czech_stopwords.txt")
     return cz_stopwords_file_name

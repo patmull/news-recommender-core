@@ -2,6 +2,7 @@ import os.path
 import random
 import urllib.request
 import certifi
+import pytest
 
 from src.content_based_algorithms.tfidf import TfIdf
 from src.data_handling.data_queries import RecommenderMethods
@@ -9,6 +10,20 @@ from src.data_handling.data_queries import RecommenderMethods
 # Run with:
 # python -m pytest .\tests\test_user_preferences_methods.py::test_user_keywords -rP
 from src.user_based_recommendation import UserBasedRecommendation
+
+
+# py.test tests/test_recommender_methods/test_user_preferences_methods.py -k 'test_user_keyword_bad_input'
+@pytest.mark.parametrize("tested_input", [
+    '',
+    4,
+    (),
+    None
+])
+def test_user_keyword_bad_input(tested_input):
+
+    with pytest.raises(ValueError):
+        tfidf = TfIdf()
+        tfidf.keyword_based_comparison(tested_input)
 
 
 def test_user_keywords():

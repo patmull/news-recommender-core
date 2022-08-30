@@ -72,6 +72,19 @@ def test_results_dataframe():
     common_asserts_for_dataframes(evaluation_results_df, CRITICAL_COLUMNS_EVALUATION_RESULTS)
 
 
+# py.test tests/test_data_handling/test_data_queries.py -k 'test_find_post_by_slug_bad_input'
+@pytest.mark.parametrize("tested_input", [
+    '',
+    4,
+    (),
+    None
+])
+def test_find_post_by_slug_bad_input(tested_input):
+    with pytest.raises(ValueError):
+        recommender_methods = RecommenderMethods()
+        recommender_methods.find_post_by_slug(tested_input)
+
+
 def test_find_post_by_slug():
     recommender_methods = RecommenderMethods()
     posts_df = recommender_methods.get_posts_dataframe()
