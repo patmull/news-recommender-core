@@ -34,7 +34,7 @@ jobs:
       uses: SpicyPizza/create-envfile@v1
       with:
         envkey_DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
-        envkey_DB_RECOMMENDER_NAME: ${{ steps.dotenv.outputs.DB_RECOMMENDER_NAME }}
+        envkey_DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
         envkey_DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
         envkey_DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
         file_name: .env
