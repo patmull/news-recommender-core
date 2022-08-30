@@ -6,6 +6,7 @@ on:
 
 jobs:
   test:
+    environment: moje-clanky-api
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
