@@ -8,20 +8,25 @@ jobs:
   test:
     environment: moje-clanky-api
     runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11.0-beta.3']
+
     services:
       postgres:
-        image: postgres:latest
+        image: postgres:10.8
         env:
-          DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
-          DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
-          DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
-          DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
-        ports: ['5432:5432']
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: github_actions
+
+        ports:
+          - 5433:5432
+
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
