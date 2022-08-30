@@ -82,6 +82,13 @@ class TfIdf:
 
     # @profile
     def keyword_based_comparison(self, keywords, number_of_recommended_posts=20, all_posts=False):
+        if type(keywords) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if keywords == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
 
         global post_recommendations
         if keywords == "":
@@ -192,11 +199,18 @@ class TfIdf:
         return fit_by_all_features_matrix
 
     # @profile
-    def recommend_posts_by_all_features_preprocessed(self, slug, num_of_recommendations=20):
+    def recommend_posts_by_all_features_preprocessed(self, searched_slug, num_of_recommendations=20):
         """
         This method differs from Fresh API module's method. This method is more optimized for "offline" use among
         prefillers
         """
+        if type(searched_slug) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if searched_slug == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
 
         recommender_methods = RecommenderMethods()
         self.df = recommender_methods.get_posts_categories_dataframe()
@@ -223,10 +237,13 @@ class TfIdf:
         print("tuple_of_fitted_matrices")
         print(tuple_of_fitted_matrices)
 
+        if not self.df['slug'].str.contains(searched_slug):
+            raise ValueError('Slug does not appear in dataframe.')
+
         try:
             tfidf_data_handlers = TfIdfDataHandlers(self.df)
             recommended_post_recommendations = tfidf_data_handlers \
-                .recommend_by_more_features(slug=slug, tupple_of_fitted_matrices=tuple_of_fitted_matrices,
+                .recommend_by_more_features(slug=searched_slug, tupple_of_fitted_matrices=tuple_of_fitted_matrices,
                                             num_of_recommendations=num_of_recommendations)
         except ValueError:
             fit_by_all_features_matrix = self.save_sparse_matrix()
@@ -236,19 +253,31 @@ class TfIdf:
             fit_by_title = load_sparse_csr(filename="models/tfidf_category_title.npz")
             tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
             recommended_post_recommendations = tfidf_data_handlers \
-                .recommend_by_more_features(slug, tuple_of_fitted_matrices,
+                .recommend_by_more_features(slug=searched_slug, tupple_of_fitted_matrices=tuple_of_fitted_matrices,
                                             num_of_recommendations=num_of_recommendations)
 
         del recommender_methods, tuple_of_fitted_matrices
         return recommended_post_recommendations
 
     # @profile
-    def recommend_posts_by_all_features_preprocessed_with_full_text(self, slug):
+    # TODO: Merge ful text and short text method into one method. Distinguish only with parameter.
+    def recommend_posts_by_all_features_preprocessed_with_full_text(self, searched_slug):
+
+        if type(searched_slug) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if searched_slug == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
 
         recommender_methods = RecommenderMethods()
         print("Loading posts")
         self.df = recommender_methods.get_posts_categories_dataframe()
         gc.collect()
+
+        if not self.df['slug'].str.contains(searched_slug):
+            raise ValueError('Slug does not appear in dataframe.')
 
         # replacing None values with empty strings
         recommender_methods.df['full_text'] = recommender_methods.df['full_text'].replace([None], '')
@@ -268,7 +297,7 @@ class TfIdf:
 
         tf_idf_data_handlers = TfIdfDataHandlers(self.df)
         recommended_post_recommendations = tf_idf_data_handlers\
-            .recommend_by_more_features_with_full_text(slug, tuple_of_fitted_matrices)
+            .recommend_by_more_features(searched_slug, tuple_of_fitted_matrices)
         del recommender_methods
         return recommended_post_recommendations
 

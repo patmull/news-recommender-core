@@ -431,12 +431,22 @@ class Word2VecClass:
     def get_similar_word2vec(self, searched_slug, model=None, docsim_index=None, dictionary=None,
                              force_update_data=False):
 
+        if type(searched_slug) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if searched_slug == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
+
         recommender_methods = RecommenderMethods()
 
         self.posts_df = recommender_methods.get_posts_dataframe(force_update=force_update_data)
         self.categories_df = recommender_methods.get_categories_dataframe()
-
         self.df = recommender_methods.get_posts_categories_dataframe()
+
+        if not self.df['slug'].str.contains(searched_slug):
+            raise ValueError('Slug does not appear in dataframe.')
 
         self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
         self.categories_df = self.categories_df.rename(columns={'slug': 'category_slug'})
@@ -603,6 +613,7 @@ class Word2VecClass:
             # workaround due to float32 error in while converting to JSON
             return json.loads(json.dumps(calculatd_similarities_for_posts, cls=NumpyEncoder))
 
+    @DeprecationWarning
     def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True, random_order=False,
                                        reversed_order=False):
         recommender_methods = RecommenderMethods()
