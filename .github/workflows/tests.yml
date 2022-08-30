@@ -32,8 +32,7 @@ jobs:
         pip install tox tox-gh-actions
     - name: 'Env vars check'
       run: |
-        echo "Enviromental vars check:"
-        echo ${{ secrets.DB_RECOMMENDER_HOST }}
-        echo ${{ secrets.DB_RECOMMENDER_USER }}
+        echo "Enviromental vars check: ${{ secrets.DB_RECOMMENDER_HOST }}"
+        echo "${{ secrets.DB_RECOMMENDER_USER }}"
     - name: 'Test with tox'
       run: tox
