@@ -30,19 +30,22 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install tox tox-gh-actions
-    - name: 'Test with tox'
+    - name: 'Using dotenv, setting id'
       id: dotenv
       uses: ./.github/actions/dotenv-action
+    - name: 'Setting envs'
       env:
-        DB_RECOMMENDER_HOST: '${{ steps.dotenv.outputs.DB_RECOMMENDER_HOST }}'
-        DB_RECOMMENDER_NAME: '${{ steps.dotenv.outputs.DB_RECOMMENDER_NAME }}'
-        DB_RECOMMENDER_PASSWORD: '${{ steps.dotenv.outputs.DB_RECOMMENDER_PASSWORD }}'
-        DB_RECOMMENDER_USER: '${{ steps.dotenv.outputs.DB_RECOMMENDER_USER }}'
+        DB_RECOMMENDER_HOST: ${{ steps.dotenv.outputs.DB_RECOMMENDER_HOST }}
+        DB_RECOMMENDER_NAME: ${{ steps.dotenv.outputs.DB_RECOMMENDER_NAME }}
+        DB_RECOMMENDER_PASSWORD: ${{ steps.dotenv.outputs.DB_RECOMMENDER_PASSWORD }}
+        DB_RECOMMENDER_USER: ${{ steps.dotenv.outputs.DB_RECOMMENDER_USER }}
+    - name: 'Make envfile'
+      with:
+        envkey_DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
+        envkey_DB_RECOMMENDER_NAME: ${{ steps.dotenv.outputs.DB_RECOMMENDER_NAME }}
+        envkey_DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
+        envkey_DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
+        file_name: .env
+    - name: 'Test with tox'
       run: |
-        touch .env
-        echo 'DB_RECOMMENDER_HOST=${{ secrets.DB_RECOMMENDER_HOST }}' >> .env
-        echo 'DB_RECOMMENDER_NAME=${{ secrets.DB_RECOMMENDER_NAME }}' >> .env
-        echo 'DB_RECOMMENDER_PASSWORD=${{ secrets.DB_RECOMMENDER_PASSWORD }}' >> .env
-        echo 'DB_RECOMMENDER_USER=${{ secrets.DB_RECOMMENDER_USER }}' >> .env
-        cat .env
         tox
