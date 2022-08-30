@@ -20,11 +20,6 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Decode base64 secrets
-      run: |
-        echo $DB_RECOMMENDER_HOST | base64 -d > lib/utils/secrets.dart
-        echo $DB_RECOMMENDER_NAME | base64 -d > lib/utils/secrets.dart
-        echo $DB_RECOMMENDER_PASSWORD | base64 -d > lib/utils/secrets.dart
-        echo $DB_RECOMMENDER_USER | base64 -d > lib/utils/secrets.dart
       env:
         DB_RECOMMENDER_HOST: '${{ secrets.DB_RECOMMENDER_HOST }}'
         DB_RECOMMENDER_NAME: '${{ secrets.DB_RECOMMENDER_NAME }}'
