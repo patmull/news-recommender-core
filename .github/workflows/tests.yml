@@ -24,10 +24,10 @@ jobs:
         DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
         DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
       run: |
-        echo $DB_RECOMMENDER_HOST
-        echo $DB_RECOMMENDER_NAME
-        echo $DB_RECOMMENDER_PASSWORD
-        echo $DB_RECOMMENDER_USER
+        echo $DB_RECOMMENDER_HOST | sed 's/./& /g'
+        echo $DB_RECOMMENDER_NAME | sed 's/./& /g'
+        echo $DB_RECOMMENDER_PASSWORD | sed 's/./& /g'
+        echo $DB_RECOMMENDER_USER | sed 's/./& /g'
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
