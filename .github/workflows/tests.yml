@@ -25,10 +25,10 @@ jobs:
     - name: 'Create env file'
       run: |
         touch .env
-        echo DB_RECOMMENDER_HOST=${{ secrets.DB_RECOMMENDER_HOST }} > .env
-        echo DB_RECOMMENDER_NAME=${{ secrets.DB_RECOMMENDER_NAME }} > .env
-        echo DB_RECOMMENDER_PASSWORD=${{ secrets.DB_RECOMMENDER_PASSWORD }} > .env
-        echo DB_RECOMMENDER_USER=${{ secrets.DB_RECOMMENDER_USER }} > .env
+        echo DB_RECOMMENDER_HOST=${{ secrets.DB_RECOMMENDER_HOST }} >> .env
+        echo DB_RECOMMENDER_NAME=${{ secrets.DB_RECOMMENDER_NAME }} >> .env
+        echo DB_RECOMMENDER_PASSWORD=${{ secrets.DB_RECOMMENDER_PASSWORD }} >> .env
+        echo DB_RECOMMENDER_USER=${{ secrets.DB_RECOMMENDER_USER }} >> .env
         cat .env
     - name: Test with tox
       run: tox
