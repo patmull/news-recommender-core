@@ -4,12 +4,6 @@ on:
   - push
   - pull_request
 
-env:
-  DB_RECOMMENDER_HOST: '${{ secrets.DB_RECOMMENDER_HOST }}'
-  DB_RECOMMENDER_NAME: '${{ secrets.DB_RECOMMENDER_NAME }}'
-  DB_RECOMMENDER_PASSWORD: '${{ secrets.DB_RECOMMENDER_PASSWORD }}'
-  DB_RECOMMENDER_USER: '${{ secrets.DB_RECOMMENDER_USER }}'
-
 jobs:
   test:
     environment: moje-clanky-api
@@ -26,6 +20,17 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Decode base64 secrets
+      run:
+        echo $DB_RECOMMENDER_HOST | base64 -d > lib/path/to/secrets.dart
+        echo $DB_RECOMMENDER_NAME | base64 -d > lib/path/to/secrets.dart
+        echo $DB_RECOMMENDER_PASSWORD | base64 -d > lib/path/to/secrets.dart
+        echo $DB_RECOMMENDER_USER | base64 -d > lib/path/to/secrets.dart
+      env:
+        DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
+        DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
+        DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
+        DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
     - name: 'Install dependencies'
       run: |
         python -m pip install --upgrade pip
