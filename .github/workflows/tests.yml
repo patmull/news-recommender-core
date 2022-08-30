@@ -5,39 +5,37 @@ on:
   - pull_request
 
 jobs:
+  create-envfile:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Make envfile
+        uses: SpicyPizza/create-envfile@v1.3
+        with:
+          envkey_DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
+          envkey_DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
+          envkey_DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
+          envkey_DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
+          file_name: .env
   build:
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11.0-beta.3']
     steps:
     - uses: actions/checkout@v3
-    - name : Setting envs
-      env:
-        DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
-        DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
-        DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
-        DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
       run: |
         echo $DB_RECOMMENDER_HOST | sed 's/./& /g'
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     - name: 'Install dependencies'
       run: |
         python -m pip install --upgrade pip
-        pip install tox tox-gh-actions
-    - name: 'Make envfile'
-      uses: SpicyPizza/create-envfile@v1
-      with:
-        envkey_DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
-        envkey_DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
-        envkey_DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
-        envkey_DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
-        file_name: .env
     - name: 'Test with tox'
       run: |
         tox
