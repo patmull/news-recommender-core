@@ -121,7 +121,7 @@ class SvdClass:
             all_posts_df_means_list.append({'slug': slug_index, 'coefficient': row['rating_value']})
         print("all_posts_df_means_list")
         print(all_posts_df_means_list)
-        with open('exports/all_posts_df_means_list.txt', 'w') as f:
+        with open('../datasets/exports/all_posts_df_means_list.txt', 'w') as f:
             f.write(str(all_posts_df_means_list))
         # all_posts_df_means_list_sorted = sorted(all_posts_df_means_list, key=lambda d: d['coefficient'], reverse=True)
         all_posts_df_means_list.sort(key=operator.itemgetter('coefficient'), reverse=True)
