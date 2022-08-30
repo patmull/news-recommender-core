@@ -12,13 +12,16 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         python-version: ['3.8', '3.9', '3.10', '3.11.0-beta.3']
-    env:
-      DB_RECOMMENDER_HOST: '${{ secrets.DB_RECOMMENDER_HOST }}'
-      DB_RECOMMENDER_NAME: '${{ secrets.DB_RECOMMENDER_NAME }}'
-      DB_RECOMMENDER_PASSWORD: '${{ secrets.DB_RECOMMENDER_PASSWORD }}'
-      DB_RECOMMENDER_USER: '${{ secrets.DB_RECOMMENDER_USER }}'
+
+    environment: moje-clanky-api
+
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+      env:
+        DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
+        DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
+        DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
+        DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
