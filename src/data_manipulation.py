@@ -152,7 +152,7 @@ class Database:
     def get_posts_dataframe_from_cache(self):
         print("Reading cache file...")
         try:
-            df = pd.read_pickle(os.path.relpath('db_cache\\cached_posts_dataframe.pkl'))
+            df = Path('db_cache/cached_posts_dataframe.pkl')
             # read from current directory
         except Exception as e:
             print("Exception occured when reading cached file:")
