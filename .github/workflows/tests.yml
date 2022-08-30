@@ -20,11 +20,8 @@ jobs:
           DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
           DB_RECOMMENDER_PASSWORD: ${{ secrets.DB_RECOMMENDER_PASSWORD }}
           DB_RECOMMENDER_USER: ${{ secrets.DB_RECOMMENDER_USER }}
-        ports:
-          - 5432:5432
-        # needed because the postgres container does not provide a healthcheck
+        ports: ['5432:5432']
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
     env:
       DB_RECOMMENDER_HOST: ${{ secrets.DB_RECOMMENDER_HOST }}
       DB_RECOMMENDER_NAME: ${{ secrets.DB_RECOMMENDER_NAME }}
