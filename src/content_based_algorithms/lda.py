@@ -70,9 +70,21 @@ class Lda:
     # @profile
 
     def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, N=21):
+        if type(searched_slug) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if searched_slug == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
+
         recommender_methods = RecommenderMethods()
+
         recommender_methods.get_posts_dataframe()
         recommender_methods.get_posts_categories_dataframe()
+
+        if not recommender_methods.df['slug'].str.contains(searched_slug):
+            raise ValueError('Slug does not appear in dataframe.')
 
         gc.collect()
 
@@ -124,10 +136,21 @@ class Lda:
 
     # @profile
     def get_similar_lda_full_text(self, searched_slug, N=21, train=False, display_dominant_topics=True):
+        if type(searched_slug) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if searched_slug == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
+
         recommender_methods = RecommenderMethods()
 
         recommender_methods.get_posts_dataframe()
         recommender_methods.get_posts_categories_dataframe()
+
+        if not recommender_methods.df['slug'].str.contains(searched_slug):
+            raise ValueError('Slug does not appear in dataframe.')
 
         recommender_methods.df['tokenized_keywords'] = recommender_methods.df['keywords']\
             .apply(lambda x: x.split(', '))

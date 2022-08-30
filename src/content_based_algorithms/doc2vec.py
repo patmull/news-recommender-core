@@ -74,8 +74,19 @@ class Doc2VecClass:
 
         self.train(tagged_data)
 
-    def get_similar_doc2vec(self, slug, train=False, limited=True, number_of_recommended_posts=21):
+    def get_similar_doc2vec(self, searched_slug, train=False, limited=True, number_of_recommended_posts=21):
+        if type(searched_slug) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if searched_slug == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
+
         recommender_methods = RecommenderMethods()
+        if not recommender_methods.get_posts_dataframe()['slug'].str.contains(searched_slug):
+            raise ValueError('Slug does not appear in dataframe.')
+
         self.df = recommender_methods.get_posts_categories_dataframe()
         print("self.df")
         print(self.df.columns.values)
@@ -113,7 +124,7 @@ class Doc2VecClass:
         recommender_methods = RecommenderMethods()
         # not necessary
         recommender_methods.database.connect()
-        post_found = recommender_methods.find_post_by_slug(slug)
+        post_found = recommender_methods.find_post_by_slug(searched_slug)
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
 
@@ -124,9 +135,20 @@ class Doc2VecClass:
 
         return self.get_similar_by_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
-    def get_similar_doc2vec_with_full_text(self, slug, train=False, number_of_recommended_posts=21):
+    def get_similar_doc2vec_with_full_text(self, searched_slug, train=False, number_of_recommended_posts=21):
+
+        if type(searched_slug) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if searched_slug == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
         recommender_methods = RecommenderMethods()
         self.df = recommender_methods.get_posts_categories_dataframe()
+
+        if not self.df['slug'].str.contains(searched_slug):
+            raise ValueError('Slug does not appear in dataframe.')
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
         documents_df = pd.DataFrame()
@@ -164,7 +186,7 @@ class Doc2VecClass:
         recommend_methods = RecommenderMethods()
 
         # not necessary
-        post_found = recommend_methods.find_post_by_slug(slug)
+        post_found = recommend_methods.find_post_by_slug(searched_slug)
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
         full_text = post_found.iloc[0]['body_preprocessed'].split(" ")
@@ -246,12 +268,20 @@ class Doc2VecClass:
         else:
             self.doc2vec_model = Doc2Vec.load(path_to_model)
 
-    def get_vector_representation(self, slug):
+    def get_vector_representation(self, searched_slug):
         """
         For Learn-to-Rank
         """
+        if type(searched_slug) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if searched_slug == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
+
         recommender_methods = RecommenderMethods()
-        return self.doc2vec_model.infer_vector(recommender_methods.find_post_by_slug(slug))
+        return self.doc2vec_model.infer_vector(recommender_methods.find_post_by_slug(searched_slug))
 
     def train(self, tagged_data):
 
