@@ -198,7 +198,6 @@ class TfIdf:
         save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
         return fit_by_all_features_matrix
 
-    # @profile
     def recommend_posts_by_all_features_preprocessed(self, searched_slug, num_of_recommendations=20):
         """
         This method differs from Fresh API module's method. This method is more optimized for "offline" use among
@@ -237,7 +236,7 @@ class TfIdf:
         print("tuple_of_fitted_matrices")
         print(tuple_of_fitted_matrices)
 
-        if not self.df['slug'].str.contains(searched_slug):
+        if searched_slug not in self.df['slug'].values:
             raise ValueError('Slug does not appear in dataframe.')
 
         try:
@@ -276,7 +275,7 @@ class TfIdf:
         self.df = recommender_methods.get_posts_categories_dataframe()
         gc.collect()
 
-        if not self.df['slug'].str.contains(searched_slug):
+        if searched_slug not in self.df['slug'].values:
             raise ValueError('Slug does not appear in dataframe.')
 
         # replacing None values with empty strings

@@ -13,6 +13,7 @@ from gensim.utils import deaccent
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
 
+from checks.data_types import accepts
 from src.data_handling import data_queries
 from src.data_handling.data_queries import RecommenderMethods
 from src.preprocessing.cz_preprocessing import CzPreprocess
@@ -83,7 +84,7 @@ class Lda:
         recommender_methods.get_posts_dataframe()
         recommender_methods.get_posts_categories_dataframe()
 
-        if not recommender_methods.df['slug'].str.contains(searched_slug):
+        if searched_slug not in self.df['slug'].values:
             raise ValueError('Slug does not appear in dataframe.')
 
         gc.collect()
@@ -149,7 +150,7 @@ class Lda:
         recommender_methods.get_posts_dataframe()
         recommender_methods.get_posts_categories_dataframe()
 
-        if not recommender_methods.df['slug'].str.contains(searched_slug):
+        if searched_slug not in self.df['slug'].values:
             raise ValueError('Slug does not appear in dataframe.')
 
         recommender_methods.df['tokenized_keywords'] = recommender_methods.df['keywords']\
