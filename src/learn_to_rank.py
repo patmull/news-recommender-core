@@ -10,32 +10,22 @@ from ast import literal_eval
 import numpy as np
 import redis
 import pandas as pd
-# import modin.pandas as pd
-# from modin.config import Engine
 
-# from matplotlib import pyplot
-from gensim.models import Doc2Vec
 from matplotlib import pyplot as plt
-from sklearn import preprocessing
-from sklearn.datasets import make_regression
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.inspection import permutation_importance
 from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.tree import DecisionTreeRegressor
 
-from xgboost import XGBRegressor, XGBClassifier
+from xgboost import XGBRegressor
 from lightgbm import LGBMRanker
 import evaluation_results
 from collaboration_based_recommendation import SvdClass
-from content_based_algorithms.data_queries import RecommenderMethods
-from content_based_algorithms.tfidf import TfIdf
-from content_based_algorithms.doc2vec import Doc2VecClass
-from content_based_algorithms.lda import Lda
+from data_handling.data_queries import RecommenderMethods
 from data_manipulation import Database
+from src.content_based_algorithms.tfidf import TfIdf
+from src.content_based_algorithms.doc2vec import Doc2VecClass
+from src.content_based_algorithms.lda import Lda
 from user_based_recommendation import UserBasedRecommendation
-from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.linear_model import LogisticRegression
 
 import optuna
 import seaborn
@@ -1040,13 +1030,6 @@ class LearnToRank:
 
         print(final_combined_results_list[0:20])
         return final_combined_results_list[0:20]
-
-    """
-    def plot_feature_importance(self, features_dict, importance, title):
-        pyplot.bar([features_dict[x] for x in range(len(importance))], importance)
-        pyplot.title(title)
-        pyplot.show()
-    """
 
     def intersect(self, a, b):
         return pd.merge(a, b, how='inner', on=['slug'])
