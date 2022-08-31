@@ -3,14 +3,15 @@ import traceback
 from threading import Thread
 
 from data_handling.data_queries import RecommenderMethods
+from learn_to_rank import LightGBM, LearnToRank
 from user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
-from flask_restful import Resource
-from content_based_algorithms.lda import Lda
-from content_based_algorithms.doc2vec import Doc2VecClass
-from content_based_algorithms.tfidf import TfIdf
-from content_based_algorithms.word2vec import Word2VecClass
-from collaboration_based_recommendation import SvdClass
+from flask_restful import Resource, Api
+from src.content_based_algorithms.lda import Lda
+from src.content_based_algorithms.doc2vec import Doc2VecClass
+from src.content_based_algorithms.tfidf import TfIdf
+from src.content_based_algorithms.word2vec import Word2VecClass
+from src.collaboration_based_recommendation import SvdClass
 
 
 def create_app():
@@ -18,16 +19,17 @@ def create_app():
     # checking needed parts...
     print("Creating posts cache file...")
     recommender_methods = RecommenderMethods()
+    recommender_methods.database.connect()
     recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
+    recommender_methods.database.disconnect()
     print("Crating flask app...")
     app = Flask(__name__)
     print("FLASK APP READY TO START!")
     return app
 
-"""
+
 app = create_app()
 api = Api(app)
-"""
 
 @app.route('/', methods=['GET'])
 def home():
