@@ -86,9 +86,9 @@ class Doc2VecClass:
         recommender_methods = RecommenderMethods()
 
         if not searched_slug not in recommender_methods.get_posts_dataframe()['slug'].values:
-            raise ValueError('Slug does not appear in dataframe.')
-
-        self.df = recommender_methods.get_posts_categories_dataframe()
+            self.df = recommender_methods.get_posts_categories_dataframe(force_update=True)
+        else:
+            self.df = recommender_methods.get_posts_categories_dataframe()
         print("self.df")
         print(self.df.columns.values)
 
@@ -126,6 +126,8 @@ class Doc2VecClass:
         # not necessary
         recommender_methods.database.connect()
         post_found = recommender_methods.find_post_by_slug(searched_slug)
+        # TODO: REPAIR
+        # IndexError: single positional indexer is out-of-bounds
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
 
@@ -148,7 +150,13 @@ class Doc2VecClass:
         recommender_methods = RecommenderMethods()
         self.df = recommender_methods.get_posts_categories_dataframe()
 
+        if 'post_slug' in self.df.columns:
+            self.df = self.df.rename(columns={'post_slug': 'slug'})
+        if 'slug_x' in self.df.columns:
+            self.df = self.df.rename(columns={'slug_x': 'slug'})
 
+        # TODO: REPAIR
+        # ValueError: Slug does not appear in dataframe.
         if not searched_slug not in self.df['slug'].values:
             raise ValueError('Slug does not appear in dataframe.')
 
@@ -189,6 +197,8 @@ class Doc2VecClass:
 
         # not necessary
         post_found = recommend_methods.find_post_by_slug(searched_slug)
+        # TODO: REPAIR
+        # IndexError: single positional indexer is out-of-bounds
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
         full_text = post_found.iloc[0]['body_preprocessed'].split(" ")
