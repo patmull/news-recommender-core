@@ -1,0 +1,2 @@
+test_word2vec_method
+test_doc2vec_method_bad_input

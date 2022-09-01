@@ -131,9 +131,13 @@ class Database:
             print("Cached file path is None. Using default location.")
             cached_file_path = 'db_cache/cached_posts_dataframe.pkl'
 
+        # Connection needs to stay here, otherwise does not make any sense due to threading of
+        # cache insert
+        self.connect()
         sql = """SELECT * FROM posts ORDER BY id;"""
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
+        self.disconnect()
 
         splitted_cache_file = cached_file_path.split('/')
 

@@ -247,8 +247,8 @@ class RecommenderMethods:
 
         return self.get_posts_dataframe().loc[self.get_posts_dataframe()['slug'] == searched_slug]
 
-    def get_posts_categories_dataframe(self):
-        posts_df = self.get_posts_dataframe()
+    def get_posts_categories_dataframe(self, force_update=False):
+        posts_df = self.get_posts_dataframe(force_update=True)
         categories_df = self.get_categories_dataframe()
 
         posts_df = posts_df.rename(columns={'title': 'post_title'})
