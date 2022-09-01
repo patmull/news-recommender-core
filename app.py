@@ -45,6 +45,7 @@ class GetPostsLearnToRank(Resource):
     def post(self):
         return {"data": "Posted"}
 
+
 class GetPostsByOtherPostTfIdf(Resource):
 
     def get(self, param):
