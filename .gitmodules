@@ -1,0 +1,3 @@
+[submodule "fresh-api"]
+	path = fresh-api
+	url = https://github.com/patmull/moje-clanky-api-fresh
