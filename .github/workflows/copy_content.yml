@@ -2,6 +2,7 @@ on:
   push:
      branches:
        - dev
+       - restructuring_project
 
 name: ⏫ Copy content to FRESH-API
 
