@@ -1,0 +1,27 @@
+on:
+  push:
+     branches:
+       - dev
+
+name: ⏫ Copy content to FRESH-API
+
+jobs:
+  copy-file:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    # Copy the 'src' folder
+    - name: Push
+      uses: dmnemec/copy_file_to_another_repo_action@main
+      env:
+        API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+      with:
+        source_file: 'src' # Folder to copy
+        destination_repo: 'patmull/moje-clanky-api-fresh' # Target repo
+        destination_folder: '/' # Folder where to copy it
+        user_email: 'patmull@seznam.cz'
+        user_name: 'patmull'
+        commit_message: "AUTO: Copying posts from MOJE CLANKY CORE to MOJE CLANKY FRESH-API"
+        git_server: 'github.com'
