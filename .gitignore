@@ -152,3 +152,5 @@ models/w2v_model_limited
 /db_cache
 /precalc_vectors
 precalc_vectors
+
+fresh-api/Environments
