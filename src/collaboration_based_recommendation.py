@@ -32,14 +32,12 @@ class SvdClass:
 
     def get_user_item_from_db(self):
         database = Database()
-        ##Step 1
+        # Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value AS rating_value
-                    FROM posts p
-                    JOIN ratings r ON r.post_id = p.id
-                    JOIN users u ON r.user_id = u.id;"""
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, 
+        r.value AS rating_value FROM posts p JOIN ratings r ON r.post_id = p.id JOIN users u ON r.user_id = u.id;"""
         # LOAD INTO A DATAFRAME
         self.df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
         sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
@@ -54,9 +52,6 @@ class SvdClass:
         # print(self.df_posts)
         user_item_table = self.combine_user_item(self.df_ratings)
         R_demeaned = self.convert_to_matrix(user_item_table)
-        # print("R_demeaned:")
-        # print(R_demeaned)
-
         return R_demeaned
 
     def get_average_post_rating(self):
