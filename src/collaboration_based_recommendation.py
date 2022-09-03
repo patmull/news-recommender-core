@@ -4,14 +4,14 @@ import operator
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
-from data_manipulation import Database
+from src.data_manipulation import Database
 from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
 from surprise import Reader, Dataset, SVD, KNNBasic
 from surprise.model_selection import cross_validate
 
-from data_handling.data_queries import RecommenderMethods
+from src.data_handling.data_queries import RecommenderMethods
 
 
 class SvdClass:
@@ -109,7 +109,7 @@ class SvdClass:
         all_posts_df = all_posts_df.set_index('slug')
         all_posts_df.to_csv("exports/all_posts_df.csv")
         df_ratings_means.to_csv("exports/df_ratings_means.csv")
-        all_posts_df_means = pd.merge(all_posts_df, df_ratings_means,left_index=True, right_index=True,how="left")
+        all_posts_df_means = pd.merge(all_posts_df, df_ratings_means, left_index=True, right_index=True, how="left")
         all_posts_df_means.to_csv("exports/all_posts_df_means.csv")
         print("all_posts_df_means.columns")
         print(all_posts_df_means.columns)
