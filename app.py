@@ -2,9 +2,9 @@ import traceback
 
 from threading import Thread
 
-from data_handling.data_queries import RecommenderMethods
-from learn_to_rank import LightGBM, LearnToRank
-from user_based_recommendation import UserBasedRecommendation
+from src.data_handling.data_queries import RecommenderMethods
+from src.learn_to_rank import LightGBM, LearnToRank
+from src.user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
 from flask_restful import Resource, Api
 from src.content_based_algorithms.lda import Lda
