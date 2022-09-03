@@ -19,5 +19,3 @@ with open('../research/word2vec/analogies/questions-words-cs-preprocessed.txt', 
             print(duplicated_counts)
             if all(i == 1 for i in duplicated_counts):
                 f2.write(line)
-
-
