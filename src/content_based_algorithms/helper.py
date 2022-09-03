@@ -2,7 +2,6 @@ import json
 import numpy as np
 from gensim.utils import deaccent
 
-from src.data_handling.data_queries import RecommenderMethods
 from src.preprocessing.cz_preprocessing import CzPreprocess
 
 

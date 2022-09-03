@@ -78,8 +78,10 @@ class Doc2VecClass:
     def get_similar_doc2vec(self, searched_slug, train=False, limited=True, number_of_recommended_posts=21,
                             full_text=False):
 
+        # TODO: Replace other duplicated code like this:
         helper = Helper()
-        helper.verify_searched_slug_sanity()
+        helper.verify_searched_slug_sanity(self.df, searched_slug)
+
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a string.")
         else:
@@ -90,7 +92,7 @@ class Doc2VecClass:
 
         recommender_methods = RecommenderMethods()
 
-        if not searched_slug not in recommender_methods.get_posts_dataframe()['slug'].to_list():
+        if searched_slug not in recommender_methods.get_posts_dataframe()['slug'].to_list():
             self.df = recommender_methods.get_posts_categories_dataframe(force_update=True)
         else:
             self.df = recommender_methods.get_posts_categories_dataframe()
@@ -103,7 +105,7 @@ class Doc2VecClass:
             self.df = self.df.rename(columns={'slug_x': 'slug'})
         print("self.df['slug'].to_list()")
         print(self.df['slug'].to_list())
-        if not searched_slug not in self.df['slug'].to_list():
+        if searched_slug not in self.df['slug'].to_list():
             raise ValueError('Slug does not appear in dataframe.')
 
         if full_text is False:
@@ -192,7 +194,7 @@ class Doc2VecClass:
             else:
                 pass
         recommender_methods = RecommenderMethods()
-        if not searched_slug not in recommender_methods.get_posts_dataframe()['slug'].to_list():
+        if searched_slug not in recommender_methods.get_posts_dataframe()['slug'].to_list():
             self.df = recommender_methods.get_posts_categories_dataframe(force_update=True)
         else:
             self.df = recommender_methods.get_posts_categories_dataframe()
@@ -204,7 +206,7 @@ class Doc2VecClass:
 
         # TODO: REPAIR
         # ValueError: Slug does not appear in dataframe.
-        if not searched_slug not in self.df['slug'].to_list():
+        if searched_slug not in self.df['slug'].to_list():
             raise ValueError('Slug does not appear in dataframe.')
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
