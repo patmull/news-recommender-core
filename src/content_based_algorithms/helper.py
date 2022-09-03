@@ -2,6 +2,7 @@ import json
 import numpy as np
 from gensim.utils import deaccent
 
+from src.data_handling.data_queries import RecommenderMethods
 from src.preprocessing.cz_preprocessing import CzPreprocess
 
 
@@ -54,7 +55,15 @@ class Helper:
     def flatten(self, multi_dimensional_list):
         return [item for sublist in multi_dimensional_list for item in sublist]
 
-
+    def verify_searched_slug_sanity(self, df, searched_slug):
+        if type(searched_slug) is not str:
+            raise ValueError("Entered slug must be a string.")
+        else:
+            if searched_slug == "":
+                raise ValueError("Entered string is empty.")
+            else:
+                pass
+            
 class NumpyEncoder(json.JSONEncoder):
     """ Special json encoder for numpy types """
 

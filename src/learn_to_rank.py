@@ -1,12 +1,9 @@
-import ast
-import functools
 import itertools
 import json
 import os
 import pickle
 import time
 from pathlib import Path
-from ast import literal_eval
 import numpy as np
 import redis
 import pandas as pd
@@ -106,7 +103,7 @@ class LightGBM:
         print(evaluation_results_df)
         dict_of_jsons = {}
         for index, row in evaluation_results_df.iterrows():
-            dict_of_jsons[row['id']] = [row['results_part_2'],row['user_id'],row['query_slug'], row['model_name']]
+            dict_of_jsons[row['id']] = [row['results_part_2'], row['user_id'], row['query_slug'], row['model_name']]
 
         print("dict_of_jsons:")
         print(dict_of_jsons)
@@ -443,6 +440,7 @@ class LightGBM:
 
 
     def get_posts_lightgbm(self, slug, use_categorical_columns=True):
+        global one_hot_encoder, categorical_columns_after_encoding
         consider_only_top_limit = 20
         if use_categorical_columns is True:
             one_hot_encoder = OneHotEncoder(sparse=False, dtype=np.int32)
@@ -661,6 +659,7 @@ class LearnToRank:
 
     def linear_regression(self, user_id, post_slug):
 
+        global tfidf_keywords_full, tfidf_keywords_full_df, tfidf_keywords_df
         tfidf = TfIdf()
         doc2vec = Doc2VecClass()
         lda = Lda()

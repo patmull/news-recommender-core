@@ -14,6 +14,7 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from pymongo import MongoClient
 from sklearn.model_selection import train_test_split
 
+from src.content_based_algorithms.helper import Helper
 from src.content_based_algorithms.tfidf import TfIdf
 from src.data_handling.data_queries import RecommenderMethods
 from src.preprocessing.cz_preprocessing import CzPreprocess
@@ -76,6 +77,9 @@ class Doc2VecClass:
 
     def get_similar_doc2vec(self, searched_slug, train=False, limited=True, number_of_recommended_posts=21,
                             full_text=False):
+
+        helper = Helper()
+        helper.verify_searched_slug_sanity()
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a string.")
         else:
@@ -250,41 +254,6 @@ class Doc2VecClass:
 
         most_similar = doc2vec_loaded_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
-        return self.get_similar_by_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
-
-    @PendingDeprecationWarning
-    def get_similar_doc2vec_by_keywords(self, slug, number_of_recommended_posts=21):
-        warnings.warn("Method not tested properly yet...", PendingDeprecationWarning)
-
-        recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe()
-        recommenderMethods.get_categories_dataframe()
-        self.df = recommenderMethods.join_posts_ratings_categories()
-
-        cols = ["keywords"]
-        documents_df = pd.DataFrame()
-        documents_df['keywords'] = self.df[cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
-        documents_slugs = self.df['slug'].tolist()
-
-        filename = "preprocessing/czech_stopwords.txt"
-        with open(filename, encoding="utf-8") as file:
-            cz_stopwords = file.readlines()
-            cz_stopwords = [line.rstrip() for line in cz_stopwords]
-
-        # to find the vector of a document which is not in training data
-        tfidf = TfIdf()
-        # not necessary
-        post_preprocessed = tfidf.preprocess_single_post(slug)
-        post_features_to_find = post_preprocessed.iloc[0]['keywords']
-
-        tokens = post_features_to_find.split()
-
-        global doc2vec_model
-
-        doc2vec_model = Doc2Vec.load("models/d2v.models")
-        vector = doc2vec_model.infer_vector(tokens)
-
-        most_similar = doc2vec_model.docvecs.most_similar([vector], topn=number_of_recommended_posts)
         return self.get_similar_by_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
     def get_similar_by_posts_slug(self, most_similar, documents_slugs, number_of_recommended_posts):
