@@ -74,7 +74,8 @@ class Doc2VecClass:
 
         self.train(tagged_data)
 
-    def get_similar_doc2vec(self, searched_slug, train=False, limited=True, number_of_recommended_posts=21):
+    def get_similar_doc2vec(self, searched_slug, train=False, limited=True, number_of_recommended_posts=21,
+                            full_text=False):
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a string.")
         else:
@@ -85,24 +86,53 @@ class Doc2VecClass:
 
         recommender_methods = RecommenderMethods()
 
-        if not searched_slug not in recommender_methods.get_posts_dataframe()['slug'].values:
+        if not searched_slug not in recommender_methods.get_posts_dataframe()['slug'].to_list():
             self.df = recommender_methods.get_posts_categories_dataframe(force_update=True)
         else:
             self.df = recommender_methods.get_posts_categories_dataframe()
         print("self.df")
         print(self.df.columns.values)
 
-        cols = ['keywords', 'all_features_preprocessed']
-        documents_df = pd.DataFrame()
-        self.df['all_features_preprocessed'] = self.df['all_features_preprocessed'].apply(
-            lambda x: x.replace(' ', ', '))
-        documents_df['all_features_preprocessed'] = self.df[cols].apply(lambda row: ' '.join(row.values.astype(str)),
-                                                                        axis=1)
-        documents_df['all_features_preprocessed'] = self.df['category_title'] + ', ' + documents_df[
-            'all_features_preprocessed']
+        if 'post_slug' in self.df.columns:
+            self.df = self.df.rename(columns={'post_slug': 'slug'})
+        if 'slug_x' in self.df.columns:
+            self.df = self.df.rename(columns={'slug_x': 'slug'})
+        print("self.df['slug'].to_list()")
+        print(self.df['slug'].to_list())
+        if not searched_slug not in self.df['slug'].to_list():
+            raise ValueError('Slug does not appear in dataframe.')
 
-        documents_all_features_preprocessed = list(
-            map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
+        if full_text is False:
+            cols = ['keywords', 'all_features_preprocessed']
+            documents_df = pd.DataFrame()
+            self.df['all_features_preprocessed'] = self.df['all_features_preprocessed'].apply(
+                lambda x: x.replace(' ', ', '))
+            documents_df['all_features_preprocessed'] = self.df[cols].apply(lambda row: ' '.join(row.values.astype(str)),
+                                                                            axis=1)
+            documents_df['all_features_preprocessed'] = self.df['category_title'] + ', ' + documents_df[
+                'all_features_preprocessed']
+
+            documents_all_features_preprocessed = list(
+                map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
+        else:
+            cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
+            documents_df = pd.DataFrame()
+            self.df['all_features_preprocessed'] = self.df['all_features_preprocessed'].apply(
+                lambda x: x.replace(' ', ', '))
+
+            self.df.fillna("", inplace=True)
+
+            self.df['body_preprocessed'] = self.df['body_preprocessed'].apply(
+                lambda x: x.replace(' ', ', '))
+            documents_df['all_features_preprocessed'] = self.df[cols].apply(
+                lambda row: ' '.join(row.values.astype(str)),
+                axis=1)
+
+            documents_df['all_features_preprocessed'] = self.df['category_title'] + ', ' + documents_df[
+                'all_features_preprocessed'] + ", " + self.df['body_preprocessed']
+
+            documents_all_features_preprocessed = list(
+                map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
 
         del documents_df
         gc.collect()
@@ -118,9 +148,15 @@ class Doc2VecClass:
         gc.collect()
 
         if limited is True:
-            doc2vec_loaded_model = Doc2Vec.load("models/d2v_limited.model")
+            if full_text is False:
+                doc2vec_loaded_model = Doc2Vec.load("models/d2v_limited.model")
+            else:
+                doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text_limited.model")
         else:
-            doc2vec_loaded_model = Doc2Vec.load("models/d2v.model")  # or download from Dropbox / AWS bucket
+            if full_text is False:
+                doc2vec_loaded_model = Doc2Vec.load("models/d2v.model")  # or download from Dropbox / AWS bucket
+            else:
+                doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text.model")
 
         recommender_methods = RecommenderMethods()
         # not necessary
@@ -131,7 +167,11 @@ class Doc2VecClass:
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
 
-        tokens = keywords_preprocessed + all_features_preprocessed
+        if full_text is False:
+            tokens = keywords_preprocessed + all_features_preprocessed
+        else:
+            full_text = post_found.iloc[0]['body_preprocessed'].split(" ")
+            tokens = keywords_preprocessed + all_features_preprocessed + full_text
 
         vector_source = doc2vec_loaded_model.infer_vector(tokens)
         most_similar = doc2vec_loaded_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
@@ -148,7 +188,10 @@ class Doc2VecClass:
             else:
                 pass
         recommender_methods = RecommenderMethods()
-        self.df = recommender_methods.get_posts_categories_dataframe()
+        if not searched_slug not in recommender_methods.get_posts_dataframe()['slug'].to_list():
+            self.df = recommender_methods.get_posts_categories_dataframe(force_update=True)
+        else:
+            self.df = recommender_methods.get_posts_categories_dataframe()
 
         if 'post_slug' in self.df.columns:
             self.df = self.df.rename(columns={'post_slug': 'slug'})
@@ -157,7 +200,7 @@ class Doc2VecClass:
 
         # TODO: REPAIR
         # ValueError: Slug does not appear in dataframe.
-        if not searched_slug not in self.df['slug'].values:
+        if not searched_slug not in self.df['slug'].to_list():
             raise ValueError('Slug does not appear in dataframe.')
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']

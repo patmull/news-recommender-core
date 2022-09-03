@@ -17,14 +17,15 @@ from sklearn.preprocessing import OneHotEncoder
 
 from xgboost import XGBRegressor
 from lightgbm import LGBMRanker
-import evaluation_results
-from collaboration_based_recommendation import SvdClass
-from data_handling.data_queries import RecommenderMethods
-from data_manipulation import Database
+import src.evaluation_results
+from src import evaluation_results
+from src.collaboration_based_recommendation import SvdClass
+from src.data_handling.data_queries import RecommenderMethods
+from src.data_manipulation import Database
 from src.content_based_algorithms.tfidf import TfIdf
 from src.content_based_algorithms.doc2vec import Doc2VecClass
 from src.content_based_algorithms.lda import Lda
-from user_based_recommendation import UserBasedRecommendation
+from src.user_based_recommendation import UserBasedRecommendation
 from sklearn.linear_model import LogisticRegression
 
 import optuna
