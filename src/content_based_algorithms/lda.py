@@ -83,7 +83,7 @@ class Lda:
         recommender_methods.get_posts_dataframe()
         recommender_methods.get_posts_categories_dataframe()
 
-        if searched_slug not in recommender_methods.df['slug'].values:
+        if searched_slug not in recommender_methods.df['slug'].to_list():
             raise ValueError('Slug does not appear in dataframe.')
 
         gc.collect()
@@ -149,7 +149,7 @@ class Lda:
         recommender_methods.get_posts_dataframe()
         recommender_methods.get_posts_categories_dataframe()
 
-        if searched_slug not in recommender_methods.df['slug'].values:
+        if searched_slug not in recommender_methods.df['slug'].to_list():
             raise ValueError('Slug does not appear in dataframe.')
 
         recommender_methods.df['tokenized_keywords'] = recommender_methods.df['keywords']\
