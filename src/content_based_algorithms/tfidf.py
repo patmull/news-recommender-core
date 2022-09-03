@@ -236,7 +236,7 @@ class TfIdf:
         print("tuple_of_fitted_matrices")
         print(tuple_of_fitted_matrices)
 
-        if searched_slug not in self.df['slug'].values:
+        if searched_slug not in self.df['slug'].to_list():
             raise ValueError('Slug does not appear in dataframe.')
 
         try:
@@ -275,7 +275,7 @@ class TfIdf:
         self.df = recommender_methods.get_posts_categories_dataframe()
         gc.collect()
 
-        if searched_slug not in self.df['slug'].values:
+        if searched_slug not in self.df['slug'].to_list():
             raise ValueError('Slug does not appear in dataframe.')
 
         # replacing None values with empty strings
