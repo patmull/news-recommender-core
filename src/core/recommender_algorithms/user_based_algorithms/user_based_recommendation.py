@@ -1,8 +1,8 @@
 import json
 
-from core.data_handling.data_manipulation import Database
+from src.core.data_handling.data_manipulation import Database
 
-from core.data_handling import RecommenderMethods
+from src.core.data_handling import RecommenderMethods
 
 
 def load_user_keywords(user_id):

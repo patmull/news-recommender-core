@@ -4,7 +4,7 @@ from collections import Counter
 import pandas as pd
 from nltk import FreqDist
 
-from core.data_handling.data_queries import RecommenderMethods
+from src.core.data_handling.data_queries import RecommenderMethods
 
 
 class CorpusStatistics:

@@ -10,8 +10,8 @@ from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from core.recommender_algorithms.content_based_algorithms import CosineTransformer
-from core.data_handling.data_manipulation import Database
+from src.core.recommender_algorithms.content_based_algorithms import CosineTransformer
+from src.core.data_handling.data_manipulation import Database
 import os
 
 CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"

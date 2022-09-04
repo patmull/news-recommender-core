@@ -1,6 +1,6 @@
-from core.recommender_algorithms.content_based_algorithms import Doc2VecClass
-from core.recommender_algorithms.content_based_algorithms import Word2VecClass
-from core.data_handling.data_manipulation import Database
+from src.core.recommender_algorithms.content_based_algorithms import Doc2VecClass
+from src.core.recommender_algorithms.content_based_algorithms import Word2VecClass
+from src.core.data_handling.data_manipulation import Database
 from prefillers.prefilling_all import prepare_and_run
 
 
