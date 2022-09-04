@@ -10,8 +10,8 @@ from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.core.recommender_algorithms.content_based_algorithms import CosineTransformer
-from src.core.data_handling.data_manipulation import Database
+from core.recommender_algorithms.content_based_algorithms.similarities import CosineTransformer
+from core.data_handling.data_manipulation import Database
 import os
 
 CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"
@@ -389,12 +389,12 @@ class TfIdfDataHandlers:
 
     def set_tfid_vectorizer(self):
         # load_texts czech stopwords from file
-        filename = Path("src/preprocessing/stopwords/czech_stopwords.txt")
+        filename = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
         with open(filename, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
 
-        filename = Path("src/preprocessing/stopwords/general_stopwords.txt")
+        filename = Path("src/prefillers/preprocessing/stopwords/general_stopwords.txt")
         with open(filename, encoding="utf-8") as file:
             general_stopwords = file.readlines()
             general_stopwords = [line.rstrip() for line in general_stopwords]

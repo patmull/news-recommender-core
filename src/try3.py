@@ -1,4 +1,4 @@
-from src.core.data_handling.data_manipulation import Database
+from core.data_handling.data_manipulation import Database
 from prefillers.prefilling_all import prepare_and_run
 
 

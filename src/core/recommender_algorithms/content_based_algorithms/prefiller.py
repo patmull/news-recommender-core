@@ -4,12 +4,12 @@ import time as t
 import psycopg2
 from gensim.models import KeyedVectors, Doc2Vec
 
-from src.core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from src.core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
-from src.core.recommender_algorithms.content_based_algorithms.lda import Lda
-from src.core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from src.core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from src.core.data_handling.data_manipulation import Database
+from core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
+from core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
+from core.recommender_algorithms.content_based_algorithms.lda import Lda
+from core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from core.data_handling.data_manipulation import Database
 
 val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."

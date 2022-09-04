@@ -1,4 +1,4 @@
-from src.core.data_handling.data_queries import RecommenderMethods
+from core.data_handling.data_queries import RecommenderMethods
 
 
 def get_results_dataframe():

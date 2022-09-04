@@ -13,8 +13,8 @@ from gensim.utils import deaccent
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
 
-from src.core.data_handling import data_queries
-from src.core.data_handling.data_queries import RecommenderMethods
+from core.data_handling import data_queries
+from core.data_handling.data_queries import RecommenderMethods
 from prefillers.preprocessing.cz_preprocessing import CzPreprocess
 
 import gensim
@@ -24,11 +24,11 @@ from gensim import corpora
 from gensim.models import LdaModel, CoherenceModel
 from scipy.stats import entropy
 
-from src.core.recommender_algorithms.content_based_algorithms.helper import Helper
-from src.core.data_handling.data_manipulation import Database
+from core.recommender_algorithms.content_based_algorithms.helper import Helper
+from core.data_handling.data_manipulation import Database
 from prefillers.preprocessing import cz_preprocessing
 from prefillers.preprocessing.stopwords_loading import remove_stopwords
-from src.core.dataset_statistics.corpus_statistics import CorpusStatistics
+from core.dataset_statistics.corpus_statistics import CorpusStatistics
 
 
 class Lda:
