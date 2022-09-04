@@ -7,9 +7,9 @@ import pytest
 
 # Run with:
 # python -m pytest .\tests\test_user_preferences_methods.py::test_user_keywords -rP
-from core.data_handling.data_queries import RecommenderMethods
-from core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
+from src.core.data_handling.data_queries import RecommenderMethods
+from src.core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
 
 
 # py.test tests/test_recommender_methods/test_user_preferences_methods.py -k 'test_user_keyword_bad_input'

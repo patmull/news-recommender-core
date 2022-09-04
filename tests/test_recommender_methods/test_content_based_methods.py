@@ -1,15 +1,14 @@
 import pytest
 
-from core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
-from core.recommender_algorithms.content_based_algorithms.lda import Lda
-from core.data_handling.data_manipulation import Database
+from src.core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
+from src.core.recommender_algorithms.content_based_algorithms.lda import Lda
+from src.core.data_handling.data_manipulation import Database
 
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
 
 # py.test tests/test_recommender_methods/test_content_based_methods.py -k 'test_tfidf_method_bad_input'
-from core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from src.core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 
 
 @pytest.mark.parametrize("tested_input", [
