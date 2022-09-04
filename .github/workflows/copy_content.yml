@@ -21,6 +21,7 @@ jobs:
         source_file: 'src' # Folder to copy
         destination_repo: 'patmull/moje-clanky-api-fresh' # Target repo
         destination_folder: '/' # Folder where to copy it
+        destination_branch: 'dev'
         user_email: 'patmull@seznam.cz'
         user_name: 'patmull'
         commit_message: "AUTO: Copying posts from MOJE CLANKY CORE to MOJE CLANKY FRESH-API"
