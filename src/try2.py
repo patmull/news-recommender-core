@@ -1,5 +1,5 @@
-from core.recommender_algorithms.content_based_algorithms import TfIdf
-from core.data_handling.data_manipulation import Database
+from src.core.recommender_algorithms.content_based_algorithms import TfIdf
+from src.core.data_handling.data_manipulation import Database
 from prefillers.prefilling_all import prepare_and_run
 
 
