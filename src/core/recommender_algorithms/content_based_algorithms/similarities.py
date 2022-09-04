@@ -6,8 +6,8 @@ from scipy import sparse
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from core.recommender_algorithms.content_based_algorithms.helper import Helper
-from core.data_handling.data_manipulation import Database
+from src.core.recommender_algorithms.content_based_algorithms.helper import Helper
+from src.core.data_handling.data_manipulation import Database
 
 
 class CosineTransformer:

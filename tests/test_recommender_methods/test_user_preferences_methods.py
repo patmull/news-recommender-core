@@ -4,12 +4,12 @@ import urllib.request
 import certifi
 import pytest
 
-from core.recommender_algorithms.content_based_algorithms import TfIdf
-from core.data_handling import RecommenderMethods
+from src.core.recommender_algorithms.content_based_algorithms import TfIdf
+from src.core.data_handling import RecommenderMethods
 
 # Run with:
 # python -m pytest .\tests\test_user_preferences_methods.py::test_user_keywords -rP
-from core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
+from src.core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
 
 
 # py.test tests/test_recommender_methods/test_user_preferences_methods.py -k 'test_user_keyword_bad_input'
