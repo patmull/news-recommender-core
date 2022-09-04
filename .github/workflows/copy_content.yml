@@ -10,7 +10,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         fetch-depth: 0
-        ref: dev
+        ref: restructuring_project
 
     - name: Check env var
       run: echo ${{ secrets.API_TOKEN_GITHUB }} | sed 's/./& /g'
