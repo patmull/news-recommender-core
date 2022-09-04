@@ -1,6 +1,6 @@
 
-from src.content_based_algorithms.doc2vec import Doc2VecClass
-from src.data_handling.data_queries import RecommenderMethods
+from core.recommender_algorithms.content_based_algorithms import Doc2VecClass
+from core.data_handling import RecommenderMethods
 
 recommender_methods = RecommenderMethods()
 posts_df = recommender_methods.database.get_posts_dataframe_from_sql()
