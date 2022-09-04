@@ -1,8 +1,6 @@
-from content_based_algorithms.tfidf import TfIdf
-from data_handling.data_queries import RecommenderMethods
-from data_manipulation import Database
-from prefilling_all import prepare_and_run
-from user_based_recommendation import UserBasedRecommendation
+from core.recommender_algorithms.content_based_algorithms import TfIdf
+from core.data_handling.data_manipulation import Database
+from prefillers.prefilling_all import prepare_and_run
 
 
 def try_word2vec_recommendation_prefiller(database, method, full_text, reverse, random):

@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import pytest
 
-from src.data_handling.data_queries import RecommenderMethods
+from core.data_handling import RecommenderMethods
 
 # python -m pytest .\tests\test_data_handling\test_data_queries.py
 

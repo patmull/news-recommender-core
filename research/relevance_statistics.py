@@ -1,4 +1,3 @@
-import ast
 import random
 import warnings
 
@@ -8,8 +7,8 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import average_precision_score, precision_score, balanced_accuracy_score, confusion_matrix, \
     dcg_score, f1_score, jaccard_score, ndcg_score, precision_recall_curve, top_k_accuracy_score
 import seaborn as sns
-import evaluation_results
-from data_handling.data_queries import RecommenderMethods
+from core.recommender_algorithms.hybrid import evaluation_results
+from core.data_handling import RecommenderMethods
 
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 
