@@ -154,3 +154,5 @@ models/w2v_model_limited
 precalc_vectors
 
 fresh-api/Environments
+
+drop_folder
