@@ -1,6 +1,6 @@
 import traceback
 
-from src.core.recommender_algorithms.content_based_algorithms.prefiller import PreFiller
+from core.recommender_algorithms.content_based_algorithms.prefiller import PreFiller
 
 prefiller = PreFiller()
 

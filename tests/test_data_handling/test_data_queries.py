@@ -3,10 +3,9 @@ import os
 import pandas as pd
 import pytest
 
-from src.core.data_handling import RecommenderMethods
 
 # python -m pytest .\tests\test_data_handling\test_data_queries.py
-
+from core.data_handling.data_queries import RecommenderMethods
 
 TEST_CACHED_PICKLE_PATH = 'db_cache/cached_posts_dataframe_test.pkl'
 CRITICAL_COLUMNS_POSTS = ['slug', 'all_features_preprocessed', 'body_preprocessed', 'trigrams_full_text']
