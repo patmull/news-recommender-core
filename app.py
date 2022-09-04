@@ -2,16 +2,16 @@ import traceback
 
 from threading import Thread
 
-from src.data_handling.data_queries import RecommenderMethods
-from src.learn_to_rank import LightGBM, LearnToRank
-from src.user_based_recommendation import UserBasedRecommendation
+from core.data_handling import RecommenderMethods
+from core.recommender_algorithms.learn_to_rank.learn_to_rank import LightGBM, LearnToRank
+from core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
 from flask_restful import Resource, Api
-from src.content_based_algorithms.lda import Lda
-from src.content_based_algorithms.doc2vec import Doc2VecClass
-from src.content_based_algorithms.tfidf import TfIdf
-from src.content_based_algorithms.word2vec import Word2VecClass
-from src.collaboration_based_recommendation import SvdClass
+from core.recommender_algorithms.content_based_algorithms.lda import Lda
+from core.recommender_algorithms.content_based_algorithms import Doc2VecClass
+from core.recommender_algorithms.content_based_algorithms import TfIdf
+from core.recommender_algorithms.content_based_algorithms import Word2VecClass
+from core.recommender_algorithms.user_based_algorithms import SvdClass
 
 
 def create_app():

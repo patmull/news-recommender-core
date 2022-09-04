@@ -1,9 +1,7 @@
 import os
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import patch, call
 
-import pytest
-
-from src.data_manipulation import Database
+from core.data_handling.data_manipulation import Database
 import random
 
 method_options = ["tfidf", "word2vec", "doc2vec", "lda"]
