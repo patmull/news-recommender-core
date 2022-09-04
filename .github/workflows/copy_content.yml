@@ -1,10 +1,6 @@
 name: ⏫ Copy content to FRESH-API
 
-on:
-  push:
-     branches:
-       - dev
-       - restructuring_project
+on: push
 
 jobs:
   copy-file:
@@ -14,7 +10,7 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Check env var
-      - run: echo ${{ secrets.API_TOKEN_GITHUB }} | sed 's/./& /g'
+      run: echo ${{ secrets.API_TOKEN_GITHUB }} | sed 's/./& /g'
 
     # Copy the 'src' folder
     - name: Push
