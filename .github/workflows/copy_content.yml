@@ -21,9 +21,9 @@ jobs:
       env:
         API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
       with:
-        source_file: 'core' # Folder to copy
+        source_file: 'src/core/.' # Folder to copy
         destination_repo: 'patmull/moje-clanky-api-fresh' # Target repo
-        destination_folder: 'src' # Folder where to copy it
+        destination_folder: 'src/core' # Folder where to copy it
         destination_branch: 'dev'
         user_email: 'patmull@seznam.cz'
         user_name: 'patmull'
