@@ -2,7 +2,7 @@ import json
 import numpy as np
 from gensim.utils import deaccent
 
-from prefillers.preprocessing.cz_preprocessing import CzPreprocess
+from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
 
 
 class Helper:

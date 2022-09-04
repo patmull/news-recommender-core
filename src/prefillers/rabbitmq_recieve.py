@@ -2,7 +2,7 @@ import ssl
 import traceback
 
 import pika, os
-from prefillers.prefilling_all import run_prefilling
+from src.prefillers.prefilling_all import run_prefilling
 
 ssl_enabled = os.environ.get("ssl", False)
 

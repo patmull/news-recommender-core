@@ -1,5 +1,5 @@
-from core.data_handling.data_manipulation import Database
-from prefillers.prefilling_all import prepare_and_run
+from src.core.data_handling.data_manipulation import Database
+from src.prefillers.prefilling_all import prepare_and_run
 
 
 def try_word2vec_recommendation_prefiller(database, method, full_text, reverse, random):
