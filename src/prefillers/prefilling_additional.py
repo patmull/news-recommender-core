@@ -3,8 +3,8 @@ import random
 
 import pandas as pd
 
-from src.core.recommender_algorithms.content_based_algorithms.word2vec import CzPreprocess
-from src.core.data_handling.data_manipulation import Database
+from core.recommender_algorithms.content_based_algorithms.word2vec import CzPreprocess
+from core.data_handling.data_manipulation import Database
 
 
 class PreFillerAdditional():

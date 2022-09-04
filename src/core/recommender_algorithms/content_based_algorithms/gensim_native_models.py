@@ -5,14 +5,14 @@ from pathlib import Path
 
 from nltk import RegexpTokenizer
 
-from src.core.recommender_algorithms.content_based_algorithms.similarities import CosineTransformer
-from src.core.data_handling.data_queries import RecommenderMethods, TfIdfDataHandlers
+from core.recommender_algorithms.content_based_algorithms.similarities import CosineTransformer
+from core.data_handling.data_queries import RecommenderMethods, TfIdfDataHandlers
 from prefillers.preprocessing.cz_preprocessing import CzPreprocess
 from prefillers.preprocessing.czech_stemmer import cz_stem
 from gensim import corpora, models, similarities
 from scipy import sparse
 
-from src.core.data_handling.data_manipulation import Database
+from core.data_handling.data_manipulation import Database
 
 @DeprecationWarning
 def preprocess(sentence, stemming=False, lemma=True):
@@ -137,7 +137,7 @@ class GensimMethods:
         self.df[['trigrams_full_text']] = self.df[['trigrams_full_text']].fillna('')
         self.documents = list(map(' '.join, self.df[["trigrams_full_text"]].values.tolist()))
 
-        cz_stopwords_filepath = "src/preprocessing/stopwords/czech_stopwords.txt"
+        cz_stopwords_filepath = "src/prefillers/preprocessing/stopwords/czech_stopwords.txt"
         with open(cz_stopwords_filepath, encoding="utf-8") as file:
             cz_stopwords = file.readlines()
             cz_stopwords = [line.rstrip() for line in cz_stopwords]

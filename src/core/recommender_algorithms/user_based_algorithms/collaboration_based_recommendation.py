@@ -4,14 +4,14 @@ import operator
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
-from src.core.data_handling.data_manipulation import Database
+from core.data_handling.data_manipulation import Database
 from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
 from surprise import Reader, Dataset, SVD, KNNBasic
 from surprise.model_selection import cross_validate
 
-from src.core.data_handling.data_queries import RecommenderMethods
+from core.data_handling.data_queries import RecommenderMethods
 
 
 class SvdClass:
