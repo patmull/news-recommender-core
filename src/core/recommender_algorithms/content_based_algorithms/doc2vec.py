@@ -13,10 +13,10 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from pymongo import MongoClient
 from sklearn.model_selection import train_test_split
 
-from core.recommender_algorithms.content_based_algorithms.helper import Helper
-from core.data_handling.data_queries import RecommenderMethods
+from src.core.recommender_algorithms.content_based_algorithms.helper import Helper
+from src.core.data_handling.data_queries import RecommenderMethods
 from prefillers.preprocessing.cz_preprocessing import CzPreprocess
-from core.data_handling.data_manipulation import Database
+from src.core.data_handling.data_manipulation import Database
 
 DEFAULT_MODEL_LOCATION = "models/d2v_limited.model"
 
