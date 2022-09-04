@@ -9,7 +9,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
       with:
-        fetch-depth: 0
         ref: restructuring_project
 
     - name: Check env var
