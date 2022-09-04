@@ -8,8 +8,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-      with:
-        ref: restructuring_project
 
     - name: Check env var
       run: echo ${{ secrets.API_TOKEN_GITHUB }} | sed 's/./& /g'
