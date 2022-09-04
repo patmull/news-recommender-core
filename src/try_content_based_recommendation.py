@@ -1,4 +1,4 @@
-from core.recommender_algorithms.content_based_algorithms import TfIdf
+from src.core.recommender_algorithms.content_based_algorithms import TfIdf
 
 word2vec_embedding = None
 doc2vec_model = None

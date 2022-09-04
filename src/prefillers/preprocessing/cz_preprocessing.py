@@ -2,7 +2,7 @@ import re, string
 from nltk import RegexpTokenizer
 import majka
 from html2text import html2text
-from prefillers.preprocessing.stopwords_loading import load_cz_stopwords, load_general_stopwords
+from src.prefillers.preprocessing.stopwords_loading import load_cz_stopwords, load_general_stopwords
 
 cz_stopwords = load_cz_stopwords()
 general_stopwords = load_general_stopwords()
