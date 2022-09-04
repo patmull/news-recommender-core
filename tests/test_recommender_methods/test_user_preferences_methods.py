@@ -26,38 +26,6 @@ def test_user_keyword_bad_input(tested_input):
         tfidf.keyword_based_comparison(tested_input)
 
 
-def test_user_keywords():
-
-    path_to_words_file = "tests/datasets/english_words.txt"
-    if not os.path.exists(path_to_words_file):
-        word_url = "https://svnweb.freebsd.org/csrg/share/dict/words?view=co&content-type=text/plain"
-        response = urllib.request.urlopen(word_url, cafile=certifi.where())
-        long_txt = response.read().decode()
-        words = long_txt.splitlines()
-    else:
-        with open(path_to_words_file, "r") as word_list:
-            words = word_list.read().split('\n')
-    # words = long_txt.splitlines()s)
-    random_phrase = words[random.randint(0, len(words))] + ' ' + words[random.randint(0, len(words))]
-
-    # TODO: Check whether some currently working library exists
-    # translate = Translation()
-    # translated_random_phrase = translate.convert('en', 'cs', random_phrase)
-    # print("translated_random_phrase:")
-    # print(translated_random_phrase)
-
-    tfidf = TfIdf()
-    json_keywords = {"keywords": random_phrase}
-    # input_json_keywords = json.dumps(json_keywords)
-    similar_posts = tfidf.keyword_based_comparison(json_keywords["keywords"])
-    assert type(similar_posts) is list
-    assert len(similar_posts) > 0
-    print(type(similar_posts[0]['slug']))
-    assert type(similar_posts[0]['slug']) is str
-    assert type(similar_posts[0]['coefficient']) is float
-    assert len(similar_posts) > 0
-
-
 # TODO:
 def test_user_categories():
     user_based_recommendation = UserBasedRecommendation()
