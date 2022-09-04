@@ -11,7 +11,7 @@ from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilari
 from gensim.similarities.annoy import AnnoyIndexer
 from scipy import spatial
 from sklearn.feature_extraction.text import HashingVectorizer
-from src.core.recommender_algorithms.content_based_algorithms.gensim_native_models import GensimMethods
+from core.recommender_algorithms.content_based_algorithms.gensim_native_models import GensimMethods
 
 
 def calculate_similarity(source_doc, target_docs=None, threshold=0.2):
