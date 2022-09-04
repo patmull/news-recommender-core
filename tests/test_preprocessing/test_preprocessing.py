@@ -1,6 +1,6 @@
 import os
 
-from src.preprocessing.stopwords_loading import get_cz_stopwords_file_path, get_general_stopwords_file_path, \
+from prefillers.preprocessing.stopwords_loading import get_cz_stopwords_file_path, get_general_stopwords_file_path, \
     load_general_stopwords, load_cz_stopwords
 
 
