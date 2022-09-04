@@ -148,7 +148,7 @@ class Database:
 
         outdir = './db_cache'
         if not os.path.exists(outdir):
-            os.mkdir(outdir)
+            os.makedirs(outdir)
 
         fullpath = os.path.join(outdir, outfile)
         df.to_pickle(fullpath)  # will be stored in current directory
