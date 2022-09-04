@@ -145,7 +145,7 @@ class Database:
         outdir = './' + splitted_cache_file[0]
 
         if not os.path.exists(outdir):
-            os.mkdir(Path(outdir))
+            os.makedirs(Path(outdir), exist_ok=True)
 
         fullpath = os.path.join(Path(outdir), Path(outfile))
         df.to_pickle(fullpath)  # will be stored in current directory
