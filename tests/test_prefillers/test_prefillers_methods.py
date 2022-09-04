@@ -11,7 +11,7 @@ random_reverse_options = [True, False]
 database = Database()
 
 
-# python -m pytest .\tests\test_prefillers.py::ConnectionTest::test_db_connection
+# python -m pytest .\tests\test_prefillers_methods.py::ConnectionTest::test_db_connection
 class TestConnection:
     @patch("psycopg2.connect")
     def test_db_connection(self, mockconnect):
@@ -43,7 +43,7 @@ def test_recommendation_prefiller(database, method, full_text, reverse, random_o
 """
 
 
-# python -m pytest .\tests\test_prefillers.py::test_not_prefilled_retriaval
+# python -m pytest .\tests\test_prefillers_methods.py::test_not_prefilled_retriaval
 class TestPrefillers:
 
     def test_prefillers(self):

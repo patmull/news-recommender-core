@@ -7,7 +7,7 @@ import re
 
 from gensim import corpora
 from pymongo import MongoClient
-from prefillers.preprocessing.cz_preprocessing import CzPreprocess
+from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
 
 
 logging.basicConfig(format='%(levelname)s : %(message)s', level=logging.INFO)
