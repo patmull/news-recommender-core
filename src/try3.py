@@ -1,4 +1,4 @@
-from src.core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import Database
 from src.prefillers.prefilling_all import prepare_and_run
 
 
