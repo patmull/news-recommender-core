@@ -156,5 +156,5 @@ precalc_vectors
 fresh-api/Environments
 
 drop_folder
-
-tests/test_only_local_working_methods/test_content_based_local.py
+test_only_local_working_methods
+/test_only_local_working_methods
