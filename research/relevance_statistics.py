@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import average_precision_score, precision_score, balanced_accuracy_score, confusion_matrix, \
     dcg_score, f1_score, jaccard_score, ndcg_score, precision_recall_curve, top_k_accuracy_score
 import seaborn as sns
-from src.core.recommender_algorithms.hybrid import evaluation_results
+from src.core.recommender_algorithms.hybrid import relevance_results
 from src.core.data_handling import RecommenderMethods
 
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
@@ -63,7 +63,7 @@ def try_statistics():
 
 
 def model_ap(investigate_by='model_name'):
-    evaluation_results_df = evaluation_results.get_results_dataframe()
+    evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
     list_of_models = []
@@ -89,7 +89,7 @@ def model_ap(investigate_by='model_name'):
 
 
 def model_variant_ap(variant=None):
-    evaluation_results_df = evaluation_results.get_results_dataframe()
+    evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
 
     if variant is not None:
@@ -121,7 +121,7 @@ def model_variant_ap(variant=None):
 
 def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=False, crop_by_date=False, last_n_by_date=None):
     global list_of_slugs, list_of_created_at
-    evaluation_results_df = evaluation_results.get_results_dataframe()
+    evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
 
     if crop_by_date:
         if last_n_by_date is not None:
@@ -326,7 +326,7 @@ def plot_confusion_matrix(cm, title):
 
 def show_confusion_matrix():
     print("Please be awware that confusion matrix is only ")
-    evaluation_results_df = evaluation_results.get_results_dataframe()
+    evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
     list_of_models = []
