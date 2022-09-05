@@ -313,6 +313,12 @@ class RecommenderMethods:
         self.database.disconnect()
         return posts_users_categories_ratings_df
 
+    def get_posts_users_categories_thumbs_ratings_df(self):
+        self.database.connect()
+        posts_users_categories_ratings_df = self.database.get_posts_users_categories_thumbs_ratings()
+        self.database.disconnect()
+        return posts_users_categories_ratings_df
+
 
 def get_cleaned_text(row):
     return row
