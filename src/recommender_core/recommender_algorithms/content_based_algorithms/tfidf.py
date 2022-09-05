@@ -10,8 +10,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer, C
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.core.data_handling.data_manipulation import Database
-from src.core.data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
+from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
 from research.visualisation.tfidf_visualisation import TfIdfVisualizer
 

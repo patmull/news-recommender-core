@@ -14,14 +14,15 @@ from sklearn.preprocessing import OneHotEncoder
 
 from xgboost import XGBRegressor
 from lightgbm import LGBMRanker
-from src.core.recommender_algorithms.hybrid import relevance_results
-from src.core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
-from src.core.data_handling.data_queries import RecommenderMethods
-from src.core.data_handling.data_manipulation import Database
-from src.core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from src.core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from src.core.recommender_algorithms.content_based_algorithms.lda import Lda
-from src.core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
+
+from src.recommender_core.recommender_algorithms.hybrid import evaluation_results
+from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
+from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
 from sklearn.linear_model import LogisticRegression
 
 import optuna

@@ -19,15 +19,15 @@ from gensim.models import KeyedVectors, Word2Vec
 from gensim.utils import deaccent
 from pymongo import MongoClient
 
-from src.core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity
-from src.core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder, Helper
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity
+from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder, Helper
 import pandas as pd
 import time as t
 
-from src.core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
-from src.core.data_handling.reader import MongoReader
+from src.recommender_core.data_handling.reader import MongoReader
 
 PATH_TO_UNPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs-unprocessed.txt'
 PATH_TO_PREPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs.txt'

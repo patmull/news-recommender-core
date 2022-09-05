@@ -1,4 +1,4 @@
-from src.core.recommender_algorithms.content_based_algorithms.prefiller import PreFiller
+from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import PreFiller
 
 prefiller = PreFiller()
 
