@@ -1,4 +1,4 @@
-from src.core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 
 word2vecClass = Word2VecClass()
 # 1. Create Dictionary
