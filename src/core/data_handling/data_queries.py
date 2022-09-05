@@ -165,9 +165,9 @@ class RecommenderMethods:
         df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
         return df_ratings
 
-    def get_evaluation_results_dataframe(self):
+    def get_ranking_evaluation_results_dataframe(self):
         self.database.connect()
-        results_df = self.database.get_results_dataframe()
+        results_df = self.database.get_relevance_testing_dataframe()
         self.database.disconnect()
         results_df.reset_index(inplace=True)
         print("self.results_df:")
@@ -176,6 +176,19 @@ class RecommenderMethods:
             ['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name', 'model_variant',
              'created_at']]
         return results_df_
+
+    def get_item_evaluation_results_dataframe(self):
+        self.database.connect()
+        results_df = self.database.get_thumbs_dataframe()
+        self.database.disconnect()
+        results_df.reset_index(inplace=True)
+        print("self.results_df:")
+        print(results_df)
+        results_df_ = results_df[
+            ['id', 'value', 'user_id', 'post_id',
+             'created_at']]
+        return results_df_
+
 
     @DeprecationWarning
     def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
