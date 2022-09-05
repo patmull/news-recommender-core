@@ -4,11 +4,11 @@ import urllib
 
 import certifi
 
-from src.core.data_handling.data_manipulation import Database
-from src.core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
-from src.core.recommender_algorithms.content_based_algorithms.lda import Lda
-from src.core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from src.core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
+from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 
 
 def test_user_keywords():
