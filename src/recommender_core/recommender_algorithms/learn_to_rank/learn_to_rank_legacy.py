@@ -15,7 +15,7 @@ from src.collaboration_based_algorithms.collaboration_based_recommendation impor
 from src.core.recommender_algorithms.content_based_algorithms.data_queries import RecommenderMethods
 from src.core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from data_connection import Database
-from src.core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
 #from memory_profiler import profile
 
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
