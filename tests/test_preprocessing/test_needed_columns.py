@@ -1,4 +1,4 @@
-from src.core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import Database
 
 
 def test_all_features_preprocessed_column():
