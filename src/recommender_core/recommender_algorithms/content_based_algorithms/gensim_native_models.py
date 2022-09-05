@@ -5,14 +5,14 @@ from pathlib import Path
 
 from nltk import RegexpTokenizer
 
-from src.core.recommender_algorithms.content_based_algorithms.similarities import CosineTransformer
-from src.core.data_handling.data_queries import RecommenderMethods, TfIdfDataHandlers, convert_df_to_json
+from src.recommender_core.recommender_algorithms.content_based_algorithms.similarities import CosineTransformer
+from src.recommender_core.data_handling.data_queries import RecommenderMethods, TfIdfDataHandlers, convert_df_to_json
 from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
 from src.prefillers.preprocessing.czech_stemmer import cz_stem
 from gensim import corpora, models, similarities
 from scipy import sparse
 
-from src.core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import Database
 
 @DeprecationWarning
 def preprocess(sentence, stemming=False, lemma=True):
