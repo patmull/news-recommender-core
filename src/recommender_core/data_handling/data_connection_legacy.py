@@ -204,7 +204,7 @@ class Database:
     def insert_keywords(self,keyword_all_types_splitted,article_id):
         # PREPROCESSING
         try:
-            query = """UPDATE posts SET keywords=%s WHERE id=%s;"""
+            query = """UPDATE posts SET keywords = %s WHERE id = %s;"""
             inserted_values = (keyword_all_types_splitted, article_id)
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
@@ -227,7 +227,7 @@ class Database:
     def insert_recommended_tfidf_json(self, articles_recommended_json, article_id, db):
         if db == "pgsql":
             try:
-                query = """UPDATE posts SET recommended_tfidf=%s WHERE id=%s;"""
+                query = """UPDATE posts SET recommended_tfidf = %s WHERE id = %s;"""
                 inserted_values = (articles_recommended_json, article_id)
                 self.cursor.execute(query, inserted_values)
                 self.cnx.commit()
@@ -251,17 +251,17 @@ class Database:
         if db == "pgsql":
             try:
                 if algorithm == "tfidf" and full_text is False:
-                    query = """UPDATE posts SET recommended_tfidf=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_tfidf = %s WHERE id = %s;"""
                 elif algorithm == "tfidf" and full_text is True:
-                    query = """UPDATE posts SET recommended_tfidf_full_text=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_tfidf_full_text = %s WHERE id = %s;"""
                 elif algorithm == "doc2vec" and full_text is False:
-                    query = """UPDATE posts SET recommended_doc2vec=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_doc2vec = %s WHERE id = %s;"""
                 elif algorithm == "doc2vec" and full_text is True:
-                    query = """UPDATE posts SET recommended_doc2vec_full_text=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_doc2vec_full_text = %s WHERE id = %s;"""
                 elif algorithm == "lda" and full_text is False:
-                    query = """UPDATE posts SET recommended_lda=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_lda = %s WHERE id = %s;"""
                 elif algorithm == "lda" and full_text is True:
-                    query = """UPDATE posts SET recommended_lda_full_text=%s WHERE id=%s;"""
+                    query = """UPDATE posts SET recommended_lda_full_text = %s WHERE id = %s;"""
 
                 inserted_values = (articles_recommended_json, article_id)
                 self.cursor.execute(query, inserted_values)
@@ -285,7 +285,7 @@ class Database:
 
     @DeprecationWarning
     def insert_doc2vec_vector(self, doc2vec_vector, article_id):
-        query = """UPDATE posts SET doc2vec_representation=%s WHERE id=%s;"""
+        query = """UPDATE posts SET doc2vec_representation = %s WHERE id = %s;"""
         inserted_values = (doc2vec_vector, article_id)
         self.cursor.execute(query, inserted_values)
         self.cnx.commit()
@@ -293,7 +293,7 @@ class Database:
 
     def insert_preprocessed_combined(self, preprocessed_all_features, post_id):
         try:
-            query = """UPDATE posts SET all_features_preprocessed=%s WHERE id=%s;"""
+            query = """UPDATE posts SET all_features_preprocessed = %s WHERE id = %s;"""
             inserted_values = (preprocessed_all_features, post_id)
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
@@ -390,7 +390,7 @@ class Database:
 
     def insert_preprocessed_body(self, preprocessed_body, article_id):
         try:
-            query = """UPDATE posts SET body_preprocessed=%s WHERE id=%s;"""
+            query = """UPDATE posts SET body_preprocessed = %s WHERE id = %s;"""
             inserted_values = (preprocessed_body, article_id)
             self.cursor.execute(query, inserted_values)
             self.cnx.commit()
