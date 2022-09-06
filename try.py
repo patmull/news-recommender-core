@@ -21,4 +21,4 @@ database.disconnect()
 """
 
 svm = SVM()
-svm.predict_ratings(show_only_sample_of=20)
+svm.predict_ratings(show_only_sample_of=20, user_id=371)
