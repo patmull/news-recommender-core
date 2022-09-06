@@ -492,7 +492,7 @@ class Database:
         rs = self.cursor.fetchall()
         return rs
 
-    def get_posts_users_categories_ratings(self):
+    def get_posts_users_categories_ratings(self, user_id=None):
         sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
         p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
         c.title AS category_title, c.slug AS category_slug, 
@@ -511,6 +511,9 @@ class Database:
         # Order by date of creation
         df_ratings = df_ratings.sort_values(by='ratings_created_at')
         df_ratings = df_ratings.drop_duplicates(['post_id', 'user_id'], keep='last')
+
+        if user_id is not None:
+            df_ratings = df_ratings.loc[df_ratings['user_id'] == user_id]
 
         print("df_ratings after drop_duplicates")
         print(df_ratings.to_string())
@@ -543,4 +546,3 @@ class Database:
         print(df_thumbs.to_string())
 
         return df_thumbs
-
