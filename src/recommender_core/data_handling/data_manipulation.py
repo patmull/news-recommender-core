@@ -128,7 +128,7 @@ class Database:
     def insert_posts_dataframe_to_cache(self, cached_file_path=None):
 
         if cached_file_path is None:
-            print("Cached file path is None. Using default location.")
+            print("Cached file path is None. Using default model_save_location.")
             cached_file_path = 'db_cache/cached_posts_dataframe.pkl'
 
         # Connection needs to stay here, otherwise does not make any sense due to threading of
@@ -235,7 +235,7 @@ class Database:
         LEFT JOIN user_categories uc ON uc.category_id = c.id;"""
 
         df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
-        print("Loaded those ratings from DB.")
+        print("Loaded ratings from DB.")
         print(df_ratings)
         print(df_ratings.columns)
 
@@ -493,7 +493,10 @@ class Database:
         return rs
 
     def get_posts_users_categories_ratings(self):
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS rating_value, c.title AS category_title, c.slug AS category_slug, p.created_at AS post_created_at
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
+        p.slug AS post_slug, r.value AS rating_value, r.created_at AS ratings_created_at,
+        c.title AS category_title, c.slug AS category_slug, 
+        p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed
         FROM posts p
         JOIN ratings r ON r.post_id = p.id
         JOIN users u ON r.user_id = u.id
@@ -501,8 +504,16 @@ class Database:
         LEFT JOIN user_categories uc ON uc.category_id = c.id;"""
 
         df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
-        print("Loaded those ratings from DB.")
-        print(df_ratings)
+        print("df_ratings")
+        print(df_ratings.to_string())
+
+        # ### Keep only newest records of same post_id + user_id combination
+        # Order by date of creation
+        df_ratings = df_ratings.sort_values(by='ratings_created_at')
+        df_ratings = df_ratings.drop_duplicates(['post_id', 'user_id'], keep='last')
+
+        print("df_ratings after drop_duplicates")
+        print(df_ratings.to_string())
 
         return df_ratings
 
@@ -530,13 +541,6 @@ class Database:
 
         print("df_thumbs after drop_duplicates")
         print(df_thumbs.to_string())
-
-        # TODO: This can cause potential bug!!! Values are sorted by rating creation
-        # but thumbs an be possible duplicated too...
-        print("df_thumbs_ratings.columns")
-        print(df_thumbs.columns)
-        df_thumbs = df_thumbs.sort_values(by='thumbs_created_at')
-        df_thumbs = df_thumbs.drop_duplicates(['post_id', 'user_id'], keep='last')
 
         return df_thumbs
 
