@@ -21,4 +21,4 @@ database.disconnect()
 """
 
 svm = SVM()
-svm.train_thumbs()
+svm.predict_ratings()
