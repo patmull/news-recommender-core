@@ -441,8 +441,13 @@ class Database:
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
-    def get_results_dataframe(self):
+    def get_relevance_testing_dataframe(self):
         sql = """SELECT * FROM relevance_testings ORDER BY id;"""
+        df = pd.read_sql_query(sql, self.get_cnx())
+        return df
+
+    def get_thumbs_dataframe(self):
+        sql = """SELECT * FROM thumbs ORDER BY id;"""
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
@@ -500,3 +505,61 @@ class Database:
         print(df_ratings)
 
         return df_ratings
+
+    def get_posts_users_categories_thumbs_ratings(self):
+        sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
+        t.value AS thumbs_value, c.title AS category_title, c.slug AS category_slug,
+        p.created_at AS post_created_at, t.created_at AS thumbs_created_at
+        FROM posts p
+        JOIN thumbs t ON t.post_id = p.id
+        JOIN users u ON t.user_id = u.id
+        JOIN categories c ON c.id = p.category_id;"""
+
+        sql_ratings = """SELECT DISTINCT r.id AS rating_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug, 
+        r.value AS rating_value, c.title AS category_title, c.slug AS category_slug,
+        p.created_at AS post_created_at, r.created_at AS ratings_created_at
+        FROM posts p
+        JOIN ratings r ON r.post_id = p.id
+        JOIN users u ON r.user_id = u.id
+        LEFT JOIN categories c ON c.id = p.category_id;"""
+
+        df_ratings = pd.read_sql_query(sql_ratings, self.get_cnx())
+        print("df_ratings")
+        print(df_ratings.to_string())
+
+        # ### Keep only newest records of same post_id + user_id combination
+        # Order by date of creation
+        df_ratings = df_ratings.sort_values(by='ratings_created_at')
+        df_ratings = df_ratings.drop_duplicates(['post_id', 'user_id'], keep='last')
+
+        print("df_ratings after drop_duplicates")
+        print(df_ratings.to_string())
+
+        df_thumbs = pd.read_sql_query(sql_thumbs, self.get_cnx())
+
+        print("df_thumbs")
+        print(df_thumbs.to_string())
+
+        # ### Keep only newest records of same post_id + user_id combination
+        # Order by date of creation
+        df_thumbs = df_thumbs.sort_values(by='thumbs_created_at')
+        df_thumbs = df_thumbs.drop_duplicates(['post_id', 'user_id'], keep='last')
+
+        print("df_thumbs after drop_duplicates")
+        print(df_thumbs.to_string())
+
+
+        df_thumbs_ratings = df_ratings.merge(df_thumbs, on='user_id', how='outer')
+        df_thumbs_ratings = df_thumbs_ratings.drop(columns=['post_id_y', 'post_slug_y', 'category_title_y', 'category_slug_y',
+                                                            'post_created_at_y'])
+
+        # TODO: This can cause potential bug!!! Values are sorted by rating creation
+        # but thumbs an be possible duplicated too...
+        print("df_thumbs_ratings.columns")
+        print(df_thumbs_ratings.columns)
+        df_thumbs_ratings = df_thumbs_ratings.rename(columns={'post_id_x': 'post_id'})
+        df_thumbs_ratings = df_thumbs_ratings.sort_values(by='ratings_created_at')
+        df_thumbs_ratings = df_thumbs_ratings.drop_duplicates(['post_id', 'user_id'], keep='last')
+
+        return df_thumbs_ratings
+
