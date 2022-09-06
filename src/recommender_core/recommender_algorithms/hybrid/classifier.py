@@ -15,7 +15,7 @@ class SVM:
         df = recommender_methods.get_posts_users_categories_thumbs_df()
         # TODO: Use multilingual model!
         # https://metatext.io/models/distilbert-base-multilingual-cased
-        bert_model = spacy_sentence_bert.load_model('cs_paraphrase_xlm_r_multilingual_v1')
+        bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
         df_predicted = pd.DataFrame()
         df_predicted['thumbs_value'] = df['thumbs_value']
 
