@@ -313,9 +313,9 @@ class RecommenderMethods:
         self.database.disconnect()
         return posts_users_categories_ratings_df
 
-    def get_posts_users_categories_thumbs_ratings_df(self):
+    def get_posts_users_categories_thumbs_df(self):
         self.database.connect()
-        posts_users_categories_ratings_df = self.database.get_posts_users_categories_thumbs_ratings()
+        posts_users_categories_ratings_df = self.database.get_posts_users_categories_thumbs()
         self.database.disconnect()
         return posts_users_categories_ratings_df
 
