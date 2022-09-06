@@ -22,10 +22,11 @@ class SVM:
     # TODO: Finish Python <--> PHP communication
 
     def __init__(self):
-        self.path_to_models_folder = "full_models/hybrid/classifiers/global_models"
+        self.path_to_models_global_folder = "full_models/hybrid/classifiers/global_models"
+        self.path_to_models_user_folder = "full_models/hybrid/classifiers/users_models"
         self.model_save_location = Path()
 
-    def train_classifiers(self, df, columns_to_combine, target_variable_name):
+    def train_classifiers(self, df, columns_to_combine, target_variable_name, user_id=None):
         # https://metatext.io/models/distilbert-base-multilingual-cased
         bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
         df_predicted = pd.DataFrame()
@@ -62,16 +63,6 @@ class SVM:
         print("SVC results accuracy score:")
         print(accuracy_score(y_test, y_pred))
 
-        print("Saving the SVC model...")
-        print("Folder: " + self.path_to_models_folder)
-        Path(self.path_to_models_folder).mkdir(parents=True, exist_ok=True)
-        model_file_name = 'svc_classifier_' + target_variable_name + '.pkl'
-        print(self.path_to_models_folder)
-        print(model_file_name)
-        path_to_models_pathlib = Path(self.path_to_models_folder)
-        path_to_save = Path.joinpath(path_to_models_pathlib, model_file_name)
-        joblib.dump(clf_svc, path_to_save)
-
         print("Training using RandomForest method...")
         clf_random_forest = RandomForestClassifier(max_depth=9, random_state=0)
         clf_random_forest.fit(X_train, y_train)
@@ -79,37 +70,72 @@ class SVM:
         print("Random Forest Classifier accuracy score:")
         print(accuracy_score(y_test, y_pred))
 
-        print("Saving the random forest model...")
-        print("Folder: " + self.path_to_models_folder)
-        Path(self.path_to_models_folder).mkdir(parents=True, exist_ok=True)
-        model_file_name = 'random_forest_classifier_' + target_variable_name + '.pkl'
-        print(self.path_to_models_folder)
-        print(model_file_name)
-        path_to_models_pathlib = Path(self.path_to_models_folder)
-        path_to_save = Path.joinpath(path_to_models_pathlib, model_file_name)
-        joblib.dump(clf_random_forest, path_to_save)
+        print("Saving the SVC model...")
+        if user_id is not None:
+            print("Folder: " + self.path_to_models_user_folder)
+            Path(self.path_to_models_user_folder).mkdir(parents=True, exist_ok=True)
+
+            model_file_name_svc = 'svc_classifier_' + target_variable_name + '_user_' + str(user_id) + '.pkl'
+            model_file_name_random_forest = 'random_forest_classifier_' + target_variable_name + '_user_' \
+                                            + str(user_id) + '.pkl'
+            print(self.path_to_models_global_folder)
+            print(model_file_name_svc)
+            print(model_file_name_random_forest)
+            path_to_models_pathlib = Path(self.path_to_models_user_folder)
+            path_to_save_svc = Path.joinpath(path_to_models_pathlib, model_file_name_svc)
+            joblib.dump(clf_random_forest, path_to_save_svc)
+            path_to_save_forest = Path.joinpath(path_to_models_pathlib, model_file_name_random_forest)
+            joblib.dump(clf_random_forest, path_to_save_forest)
+
+        else:
+            print("Folder: " + self.path_to_models_global_folder)
+            Path(self.path_to_models_global_folder).mkdir(parents=True, exist_ok=True)
+            model_file_name = 'svc_classifier_' + target_variable_name + '.pkl'
+            print(self.path_to_models_global_folder)
+            print(model_file_name)
+            path_to_models_pathlib = Path(self.path_to_models_global_folder)
+            path_to_save_svc = Path.joinpath(path_to_models_pathlib, model_file_name)
+            joblib.dump(clf_svc, path_to_save_svc)
+            print("Saving the random forest model...")
+            print("Folder: " + self.path_to_models_global_folder)
+            Path(self.path_to_models_global_folder).mkdir(parents=True, exist_ok=True)
+            model_file_name = 'random_forest_classifier_' + target_variable_name + '.pkl'
+            print(self.path_to_models_global_folder)
+            print(model_file_name)
+            path_to_models_pathlib = Path(self.path_to_models_global_folder)
+            path_to_save_forest = Path.joinpath(path_to_models_pathlib, model_file_name)
+            joblib.dump(clf_random_forest, path_to_save_forest)
 
         return clf_svc, clf_random_forest, X_validation, y_validation, bert_model
 
-    def load_classifiers(self, df, input_variables, predicted_variable):
+    def load_classifiers(self, df, input_variables, predicted_variable, user_id=None):
         # https://metatext.io/models/distilbert-base-multilingual-cased
+        print("Loading sentence bert multilingual model...")
         bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
         if predicted_variable == 'thumbs_values' or predicted_variable == 'ratings_values':
-            model_file_name_svc = 'svc_classifier_' + predicted_variable + '.pkl'
-            model_file_name_random_forest = 'random_forest_classifier_' + predicted_variable + '.pkl'
-            path_to_models_pathlib = Path(self.path_to_models_folder)
+            if user_id is None:
+                model_file_name_svc = 'svc_classifier_' + predicted_variable + '.pkl'
+                model_file_name_random_forest = 'random_forest_classifier_' + predicted_variable + '.pkl'
+                path_to_models_pathlib = Path(self.path_to_models_global_folder)
+            else:
+                print("Loading user's personalized classifier model for user " + str(user_id))
+                model_file_name_svc = 'svc_classifier_' + predicted_variable + '_user_' + str(user_id) + '.pkl'
+                model_file_name_random_forest = 'random_forest_classifier_' + predicted_variable + '_user_' \
+                                                + str(user_id) + '.pkl'
+                path_to_models_pathlib = Path(self.path_to_models_user_folder)
             path_to_load_svc = Path.joinpath(path_to_models_pathlib, model_file_name_svc)
             path_to_load_random_forest = Path.joinpath(path_to_models_pathlib, model_file_name_random_forest)
         else:
             raise ValueError("Loading of model with inserted name of predicted variable is not supported. Are you sure"
                              "about the value of the 'predicted_variable'?")
+
         try:
             clf_svc = joblib.load(path_to_load_svc)
         except FileNotFoundError as file_not_found_error:
             print(file_not_found_error)
             print("Model file was not found in the location, training from the start...")
             self.train_classifiers(df=df, columns_to_combine=input_variables,
-                                   target_variable_name=predicted_variable)
+                                   target_variable_name=predicted_variable, user_id=user_id)
             clf_svc = joblib.load(path_to_load_svc)
 
         try:
@@ -118,7 +144,7 @@ class SVM:
             print(file_not_found_error)
             print("Model file was not found in the location, training from the start...")
             self.train_classifiers(df=df, columns_to_combine=input_variables,
-                                   target_variable_name=predicted_variable)
+                                   target_variable_name=predicted_variable, user_id=user_id)
             clf_random_forest = joblib.load(path_to_load_random_forest)
 
         X_validation = df[input_variables]
@@ -148,20 +174,23 @@ class SVM:
         print("=========================")
         self.show_predicted(X_validation, columns_to_use, clf_random_forest, bert_model)
 
-    def predict_ratings(self, force_retraining=False, show_only_sample_of=None):
+    def predict_ratings(self, force_retraining=False, show_only_sample_of=None, user_id=None):
         recommender_methods = RecommenderMethods()
-        df = recommender_methods.get_posts_categories_dataframe()
+        if user_id is None:
+            df = recommender_methods.get_posts_categories_dataframe()
+        else:
+            df = recommender_methods.get_posts_users_categories_ratings_df()
         df = df.rename(columns={'title': 'category_title'})
         columns_to_use = ['category_title', 'all_features_preprocessed']
 
         if force_retraining is True:
             clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
                 = self.train_classifiers(df=df, columns_to_combine=columns_to_use,
-                                         target_variable_name='ratings_values')
+                                         target_variable_name='ratings_values',  user_id=user_id)
         else:
             clf_svc, clf_random_forest, X_validation, bert_model \
                 = self.load_classifiers(df=df, input_variables=columns_to_use,
-                                        predicted_variable='ratings_values')
+                                        predicted_variable='ratings_values', user_id=user_id)
         if not type(show_only_sample_of) is None:
             if type(show_only_sample_of) is int:
                 X_validation = X_validation.sample(show_only_sample_of)
