@@ -494,7 +494,7 @@ class Database:
 
     def get_posts_users_categories_ratings(self):
         sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
-        p.slug AS post_slug, r.value AS rating_value, r.created_at AS ratings_created_at,
+        p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
         c.title AS category_title, c.slug AS category_slug, 
         p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed
         FROM posts p
