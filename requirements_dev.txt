@@ -16,7 +16,6 @@ Jinja2==3.0.3
 joblib==1.1.0
 MarkupSafe==2.0.1
 nltk~=3.5
-numpy
 pandas~=1.4.2
 protobuf==3.19.1
 psycopg2==2.9.2
@@ -47,3 +46,4 @@ altair~=4.2.0
 xgboost~=1.5.2
 lightgbm~=3.3.2
 pika~=1.2.0
+numpy
