@@ -21,7 +21,7 @@ class SVM:
 
         # TOODO: Somehow combine multiple columns
         df = df.fillna('')
-        columns = ['category_title', 'trigrams_full_text']
+        columns = ['category_title', 'all_features_preprocessed']
         df['combined'] = df[columns].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
         print("df['combined']")
         print(df['combined'].iloc[0])
@@ -37,10 +37,10 @@ class SVM:
                                                             .tolist(), test_size=0.2)
 
         print("X_train:")
-        print(X_train)
+        print(X_train[:5])
 
         print("y_train")
-        print(y_train)
+        print(y_train[:5])
 
         clf = SVC(gamma='auto')
         clf.fit(X_train, y_train)
