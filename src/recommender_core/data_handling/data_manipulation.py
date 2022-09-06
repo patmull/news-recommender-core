@@ -532,8 +532,7 @@ class Database:
         # but thumbs an be possible duplicated too...
         print("df_thumbs_ratings.columns")
         print(df_thumbs.columns)
-        df_thumbs = df_thumbs.rename(columns={'post_id_x': 'post_id'})
-        df_thumbs = df_thumbs.sort_values(by='ratings_created_at')
+        df_thumbs = df_thumbs.sort_values(by='thumbs_created_at')
         df_thumbs = df_thumbs.drop_duplicates(['post_id', 'user_id'], keep='last')
 
         return df_thumbs
