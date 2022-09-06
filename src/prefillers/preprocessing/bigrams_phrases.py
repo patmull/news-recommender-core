@@ -4,7 +4,7 @@ import time
 import gensim
 import pymongo
 
-from reader import MongoReader
+from src.recommender_core.data_handling.reader import MongoReader
 
 myclient = pymongo.MongoClient('localhost', 27017)
 db = myclient.test

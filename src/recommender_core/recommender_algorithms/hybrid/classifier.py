@@ -91,61 +91,124 @@ class SVM:
 
         return clf_svc, clf_random_forest, X_validation, y_validation, bert_model
 
-    def predict_thumbs(self):
+    def load_classifiers(self, df, input_variables, predicted_variable):
+        # https://metatext.io/models/distilbert-base-multilingual-cased
+        bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
+        if predicted_variable == 'thumbs_values' or predicted_variable == 'ratings_values':
+            model_file_name_svc = 'svc_classifier_' + predicted_variable + '.pkl'
+            model_file_name_random_forest = 'random_forest_classifier_' + predicted_variable + '.pkl'
+            path_to_models_pathlib = Path(self.path_to_models_folder)
+            path_to_load_svc = Path.joinpath(path_to_models_pathlib, model_file_name_svc)
+            path_to_load_random_forest = Path.joinpath(path_to_models_pathlib, model_file_name_random_forest)
+        else:
+            raise ValueError("Loading of model with inserted name of predicted variable is not supported. Are you sure"
+                             "about the value of the 'predicted_variable'?")
+        try:
+            clf_svc = joblib.load(path_to_load_svc)
+        except FileNotFoundError as file_not_found_error:
+            print(file_not_found_error)
+            print("Model file was not found in the location, training from the start...")
+            self.train_classifiers(df=df, columns_to_combine=input_variables,
+                                   target_variable_name=predicted_variable)
+            clf_svc = joblib.load(path_to_load_svc)
+
+        try:
+            clf_random_forest = joblib.load(path_to_load_random_forest)
+        except FileNotFoundError as file_not_found_error:
+            print(file_not_found_error)
+            print("Model file was not found in the location, training from the start...")
+            self.train_classifiers(df=df, columns_to_combine=input_variables,
+                                   target_variable_name=predicted_variable)
+            clf_random_forest = joblib.load(path_to_load_random_forest)
+
+        X_validation = df[input_variables]
+        # y_validation = df[predicted_variable]
+
+        return clf_svc, clf_random_forest, X_validation, bert_model
+
+    def predict_thumbs(self, force_retraining=False):
         recommender_methods = RecommenderMethods()
         df = recommender_methods.get_posts_users_categories_thumbs_df()
-        columns_to_combine = ['category_title', 'all_features_preprocessed']
+        columns_to_use = ['category_title', 'all_features_preprocessed']
 
-        clf_svc, clf_random_forest, X_validation, y_validation, bert_model = self.train_classifiers(df=df,
-                                                                                                    columns_to_combine=columns_to_combine,
-                                                                                                    target_variable_name='thumbs_value')
+        if force_retraining is True:
+            clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
+                = self.train_classifiers(df=df, columns_to_combine=columns_to_use,
+                                         target_variable_name='thumbs_value')
+        else:
+            clf_svc, clf_random_forest, X_validation, bert_model \
+                = self.load_classifiers(df=df, input_variables=columns_to_use, predicted_variable='thumbs_value')
 
-        features_list = X_validation
-        contexts_list = y_validation
-
-        print("features_list")
-        print(features_list)
-
-        print("contexts_list")
-        print(contexts_list)
         print("=========================")
         print("Results of SVC:")
         print("=========================")
-        self.show_true_predicted(features_list, contexts_list, clf_svc, bert_model)
+        self.show_predicted(X_validation, columns_to_use, clf_svc, bert_model)
         print("=========================")
         print("Results of Random Forest Classifier:")
         print("=========================")
-        self.show_true_predicted(features_list, contexts_list, clf_random_forest, bert_model)
+        self.show_predicted(X_validation, columns_to_use, clf_random_forest, bert_model)
 
-    def predict_ratings(self):
+    def predict_ratings(self, force_retraining=False, show_only_sample_of=None):
         recommender_methods = RecommenderMethods()
-        df = recommender_methods.get_posts_users_categories_ratings_df()
+        df = recommender_methods.get_posts_categories_dataframe()
+        df = df.rename(columns={'title': 'category_title'})
+        columns_to_use = ['category_title', 'all_features_preprocessed']
 
-        columns_to_combine = ['category_title', 'all_features_preprocessed']
-        clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
-            = self.train_classifiers(df=df, columns_to_combine=columns_to_combine, target_variable_name='rating_value')
-
-        features_list = X_validation
-        contexts_list = y_validation
-
-        print("features_list")
-        print(features_list)
-
-        print("contexts_list")
-        print(contexts_list)
+        if force_retraining is True:
+            clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
+                = self.train_classifiers(df=df, columns_to_combine=columns_to_use,
+                                         target_variable_name='ratings_values')
+        else:
+            clf_svc, clf_random_forest, X_validation, bert_model \
+                = self.load_classifiers(df=df, input_variables=columns_to_use,
+                                        predicted_variable='ratings_values')
+        if not type(show_only_sample_of) is None:
+            if type(show_only_sample_of) is int:
+                X_validation = X_validation.sample(show_only_sample_of)
 
         print("=========================")
         print("Results of SVC:")
         print("=========================")
-        self.show_true_predicted(features_list, contexts_list, clf_svc, bert_model)
+        self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_svc,
+                            bert_model=bert_model)
         print("=========================")
         print("Results of Random Forest Classifier:")
         print("=========================")
-        self.show_true_predicted(features_list, contexts_list, clf_random_forest, bert_model)
+        self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_random_forest,
+                            bert_model=bert_model)
 
-    def show_true_predicted(self, features_list, contexts_list, clf, bert_model):
+    def show_true_vs_predicted(self, features_list, contexts_list, clf, bert_model):
+        """
+        Method for evaluation on validation dataset, not actual unseen dataset.
+        """
         for features_combined, context in zip(features_list, contexts_list):
             print(
-                f"True Label: {context}, Predicted Label: {clf.predict(bert_model(features_combined).vector.reshape(1, -1))[0]} \n")
+                f"True Label: {context}, "
+                f"Predicted Label: {clf.predict(bert_model(features_combined).vector.reshape(1, -1))[0]} \n")
             print("CONTENT:")
             print(features_combined)
+
+    def show_predicted(self, X_unseen_df, input_variables, clf, bert_model):
+        """
+        Method for evaluation on validation dataset, not actual unseen dataset.
+        """
+        print("Combining the selected columns")
+        X_unseen_df['combined'] = X_unseen_df[input_variables].apply(lambda row: ' '.join(row.values.astype(str)),
+                                                                     axis=1)
+        print("Vectorizing the selected columns...")
+        # TODO: Takes a lot of time... Probably pre-calculate.
+        y_pred_unseen = X_unseen_df['combined'].apply(lambda x: clf.predict(bert_model(x).vector.reshape(1, -1))[0])
+        y_pred_unseen = y_pred_unseen.rename('prediction')
+        # y_pred_df = pd.DataFrame({'article_index': y_pred_unseen.index, 'predictions': y_pred_unseen.values})
+        print(y_pred_unseen.head(20))
+        df_results = pd.merge(X_unseen_df,  pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
+        print(df_results.head(20))
+        df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
+
+        """
+        for features_combined in zip(features_list):
+            print(
+                f"Predicted Label: {clf.predict(bert_model(features_combined).vector.reshape(1, -1))[0]} \n")
+            print("CONTENT:")
+            print(features_combined)
+        """
