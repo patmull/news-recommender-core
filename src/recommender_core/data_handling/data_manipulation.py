@@ -509,7 +509,10 @@ class Database:
     def get_posts_users_categories_thumbs(self):
         sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
         t.value AS thumbs_value, c.title AS category_title, c.slug AS category_slug,
-        p.created_at AS post_created_at, t.created_at AS thumbs_created_at
+        p.created_at AS post_created_at, t.created_at AS thumbs_created_at, 
+        p.all_features_preprocessed AS all_features_preprocessed, p.body_preprocessed AS body_preprocessed,
+        p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title, p.keywords AS keywords,
+        p.doc2vec_representation AS doc2vec_representation
         FROM posts p
         JOIN thumbs t ON t.post_id = p.id
         JOIN users u ON t.user_id = u.id
