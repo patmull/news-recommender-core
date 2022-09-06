@@ -12,8 +12,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from lightgbm import LGBMRanker
 from src.collaboration_based_algorithms.collaboration_based_recommendation import SvdClass
-from content_based_algorithms.data_queries import RecommenderMethods
-from content_based_algorithms.tfidf import TfIdf
+from src.core.recommender_algorithms.content_based_algorithms.data_queries import RecommenderMethods
+from src.core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from data_connection import Database
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
 #from memory_profiler import profile
