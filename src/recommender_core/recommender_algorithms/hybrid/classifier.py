@@ -5,16 +5,17 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
-from recommender_core.data_handling.data_manipulation import Database
-from recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 
 class SVM:
 
     def train(self):
         recommender_methods = RecommenderMethods()
-        df = recommender_methods.get_posts_users_categories_thumbs_ratings_df()
-        nlp = spacy_sentence_bert.load_model('en_stsb_distilbert_base')
+        df = recommender_methods.get_posts_users_categories_thumbs_df()
+        # TODO: Use multilingual model!
+        # https://metatext.io/models/distilbert-base-multilingual-cased
+        nlp = spacy_sentence_bert.load_model('cs_paraphrase_xlm_r_multilingual_v1')
         df_predicted = pd.DataFrame()
         df_original = df
         df_predicted['original_context'] = df['original_context']

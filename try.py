@@ -11,9 +11,9 @@ print(tested_slug)
 print(doc2vec.get_similar_doc2vec(tested_slug))
 print(doc2vec.get_similar_doc2vec(tested_slug, full_text=True))
 """
-from recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import Database
 
 database = Database()
 database.connect()
-print(database.get_posts_users_categories_thumbs_ratings().to_string())
+print(database.get_posts_users_categories_thumbs().to_string())
 database.disconnect()
