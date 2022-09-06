@@ -69,7 +69,7 @@ def test_categories_dataframe():
 
 def test_results_dataframe():
     recommender_methods = RecommenderMethods()
-    evaluation_results_df = recommender_methods.get_evaluation_results_dataframe()
+    evaluation_results_df = recommender_methods.get_ranking_evaluation_results_dataframe()
     common_asserts_for_dataframes(evaluation_results_df, CRITICAL_COLUMNS_EVALUATION_RESULTS)
 
 
