@@ -1,4 +1,3 @@
-import os.path
 from pathlib import Path
 import joblib
 import pandas as pd
@@ -14,8 +13,13 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 class SVM:
     """
     Global models = models for all users
-
     """
+
+    # TODO: Model loading instead of re-training
+    # TODO: Splitting model by user, e.g.: user_models/user_XY/random_forest_classifier_rating_value_user_XY.pkl
+    # TODO: Hyperparameter tuning
+    # TODO: Prepare for integration to API
+    # TODO: Finish Python <--> PHP communication
 
     def __init__(self):
         self.path_to_models_folder = "full_models/hybrid/classifiers/global_models"
@@ -27,7 +31,6 @@ class SVM:
         df_predicted = pd.DataFrame()
         df_predicted[target_variable_name] = df[target_variable_name]
 
-        # TODO: Somehow combine multiple columns_to_combine
         df = df.fillna('')
 
         df['combined'] = df[columns_to_combine].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
@@ -39,7 +42,6 @@ class SVM:
         X_train, X_validation, y_train, y_validation = train_test_split(df['combined'].tolist(),
                                                                         df_predicted[target_variable_name]
                                                                         .tolist(), test_size=0.2)
-        # TODO: Preprocessing
         print("Converting text to vectors...")
         df['vector'] = df['combined'].apply(lambda x: bert_model(x).vector)
         print("Splitting dataset to train / test...")
@@ -80,7 +82,7 @@ class SVM:
         print("Saving the random forest model...")
         print("Folder: " + self.path_to_models_folder)
         Path(self.path_to_models_folder).mkdir(parents=True, exist_ok=True)
-        model_file_name = 'ranom_forest_classifier_' + target_variable_name + '.pkl'
+        model_file_name = 'random_forest_classifier_' + target_variable_name + '.pkl'
         print(self.path_to_models_folder)
         print(model_file_name)
         path_to_models_pathlib = Path(self.path_to_models_folder)
@@ -93,6 +95,7 @@ class SVM:
         recommender_methods = RecommenderMethods()
         df = recommender_methods.get_posts_users_categories_thumbs_df()
         columns_to_combine = ['category_title', 'all_features_preprocessed']
+
         clf_svc, clf_random_forest, X_validation, y_validation, bert_model = self.train_classifiers(df=df,
                                                                                                     columns_to_combine=columns_to_combine,
                                                                                                     target_variable_name='thumbs_value')
