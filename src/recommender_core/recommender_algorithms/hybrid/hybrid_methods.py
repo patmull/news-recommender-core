@@ -10,13 +10,13 @@ import pandas as pd
 import pytest
 from sklearn.preprocessing import OneHotEncoder
 
-from content_based_algorithms.data_queries import RecommenderMethods
-from content_based_algorithms.doc2vec import Doc2VecClass
-from content_based_algorithms.lda import LdaClass
-from content_based_algorithms.tfidf import TfIdf
-from content_based_algorithms.word2vec import Word2VecClass
-from evaluation.relevance_statistics import models_complete_statistics
-from learn_to_rank import LearnToRank, LightGBM
+from core.recommender_algorithms.content_based_algorithms.lda import Lda
+from core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import LightGBM
+from research.relevance_statistics import models_complete_statistics
+from src.core.data_handling.data_queries import RecommenderMethods
+from src.core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
+from src.core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 
 
 class HybridRecommendation:
@@ -24,6 +24,7 @@ class HybridRecommendation:
         self.NUM_OF_RESULTS = 20.0
 
     def get_hybrid_recommendation(self, slug, use_lightgbm=True, NUM_OF_CONSIDERED_MODEL_VARIANTS=4):
+
         stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=True)
 
         print(stats.columns)
@@ -118,9 +119,7 @@ class HybridRecommendation:
         else:
             ValueError("No variant selected matches available options.")
 
-        lda = LdaClass()
-        lda_results = lda.get_prefilled_full_text(slug, variant)
-        lda = LdaClass()
+        lda = Lda()
         lda_results = lda.get_prefilled_full_text(slug, variant)
         lda_results = ast.literal_eval(lda_results)
         json_data = json.loads(json.dumps(lda_results))
@@ -362,6 +361,7 @@ class HybridRecommendation:
             return final_df.head(num_of_recommended).to_json(orient='records')
 
     def get_posts_lightgbm(self, results, use_categorical_columns=True):
+
         lightgbm = LightGBM()
 
         consider_only_top_limit = 20

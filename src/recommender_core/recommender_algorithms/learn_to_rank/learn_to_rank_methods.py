@@ -14,6 +14,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 from xgboost import XGBRegressor
 from lightgbm import LGBMRanker
+
 from src.recommender_core.recommender_algorithms.hybrid import evaluation_results
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
@@ -64,7 +65,7 @@ class LightGBM:
         return tfidf_keywords
 
     def get_results_single_coeff_user_as_query(self):
-        evaluation_results_df = evaluation_results.get_results_dataframe()
+        evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
         print("evaluation_results_df:")
         print(evaluation_results_df)
         dict_of_jsons = {}
@@ -97,7 +98,7 @@ class LightGBM:
         return df_merged
 
     def get_results_single_coeff_searched_doc_as_query(self):
-        evaluation_results_df = evaluation_results.get_results_dataframe()
+        evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
         print("evaluation_results_df:")
         print(evaluation_results_df)
         dict_of_jsons = {}
@@ -583,7 +584,7 @@ class LightGBM:
                              eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
                          )
 
-        evaluation_results_df = evaluation_results.get_results_dataframe()
+        evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
         evaluation_results_df = evaluation_results_df.rename(columns={'id': 'query_id'})
 
         consider_only_top_limit = 1000
