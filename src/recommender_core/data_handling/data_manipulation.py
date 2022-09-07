@@ -621,6 +621,6 @@ class RedisMethods:
         print("redis creds")
         print(redis_password)
 
-        return redis.Redis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com', port=13695, db=0,
-                           username="admin",
-                           password=redis_password)
+        return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com', port=13695, db=0,
+                                 username="admin",
+                                 password=redis_password)
