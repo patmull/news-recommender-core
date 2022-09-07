@@ -159,8 +159,7 @@ class SVM:
                 = self.train_classifiers(df=df_posts_users_categories_thumbs, columns_to_combine=columns_to_use,
                                          target_variable_name='thumbs_value')
         else:
-            clf_svc, clf_random_forest, bert_model \
-                = self.load_classifiers(df=df_posts_categories, input_variables=columns_to_use,
+            clf_svc, clf_random_forest = self.load_classifiers(df=df_posts_categories, input_variables=columns_to_use,
                                         predicted_variable='thumbs_value')
 
         X_validation = df_posts_categories['bert_vector_representation']
@@ -269,15 +268,20 @@ class SVM:
             redis_methods = RedisMethods()
             r = redis_methods.get_redis_connection()
             user_redis_key = 'posts_by_pred_ratings_user_' + str(user_id)
-
+            # remove old records
+            r.delete(user_redis_key)
             print("iteration through records:")
             for row in zip(*df_results.to_dict("list").values()):
+                print(user_redis_key)
+                slug = "" + row[0] + ""
                 print(row[0])
-                # Saving individually
-                r.set(user_redis_key, row[0])
+                # Saving individually to set
+                res = r.sadd(user_redis_key, slug)
+                print(res)
 
+            # TODO: Think whether it wouldn't be more efficient to replace it with some SET operation
             print("Items saved for Redis:")
-            print(r.get(user_redis_key))
+            print(r.smembers(user_redis_key))
 
     def show_predicted(self, X_unseen_df, input_variables, clf, bert_model, save_testing_csv=False):
         """
