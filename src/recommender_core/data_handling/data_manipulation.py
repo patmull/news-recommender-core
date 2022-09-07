@@ -1,9 +1,11 @@
 # import psycopg2.connector
+import datetime
 import os
 from pathlib import Path
 
 import psycopg2
 import pandas as pd
+import redis
 
 DB_USER = os.environ.get('DB_RECOMMENDER_USER')
 DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
@@ -114,6 +116,15 @@ class Database:
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         self.disconnect()
+        return df
+
+    def get_posts_dataframe_only_with_bert_vectors(self):
+        print("Getting posts from SQL...")
+        sql = """SELECT * FROM posts WHERE bert_vector_representation IS NOT NULL ORDER BY id;"""
+        # NOTICE: Connection is ok here. Need to stay here due to calling from function that's executing thread
+        # operation
+        # LOAD INTO A DATAFRAME
+        df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
     def get_posts_dataframe(self, from_cache=True):
@@ -500,16 +511,28 @@ class Database:
         rs = self.cursor.fetchall()
         return rs
 
-    def get_posts_users_categories_ratings(self, user_id=None):
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
-        p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
-        c.title AS category_title, c.slug AS category_slug, 
-        p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed
-        FROM posts p
-        JOIN ratings r ON r.post_id = p.id
-        JOIN users u ON r.user_id = u.id
-        JOIN categories c ON c.id = p.category_id
-        LEFT JOIN user_categories uc ON uc.category_id = c.id;"""
+    def get_posts_users_categories_ratings(self, get_only_posts_with_prefilled_bert_vectors=False, user_id=None):
+        if get_only_posts_with_prefilled_bert_vectors is False:
+            sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
+            p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
+            c.title AS category_title, c.slug AS category_slug, 
+            p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed
+            FROM posts p
+            JOIN ratings r ON r.post_id = p.id
+            JOIN users u ON r.user_id = u.id
+            JOIN categories c ON c.id = p.category_id
+            LEFT JOIN user_categories uc ON uc.category_id = c.id;"""
+        else:
+            sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
+            p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
+            c.title AS category_title, c.slug AS category_slug, 
+            p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed
+            FROM posts p
+            JOIN ratings r ON r.post_id = p.id
+            JOIN users u ON r.user_id = u.id
+            JOIN categories c ON c.id = p.category_id
+            LEFT JOIN user_categories uc ON uc.category_id = c.id
+            WHERE bert_vector_representation IS NOT NULL;"""
 
         df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
         print("df_ratings")
@@ -528,17 +551,33 @@ class Database:
 
         return df_ratings
 
-    def get_posts_users_categories_thumbs(self):
-        sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
-        t.value AS thumbs_value, c.title AS category_title, c.slug AS category_slug,
-        p.created_at AS post_created_at, t.created_at AS thumbs_created_at, 
-        p.all_features_preprocessed AS all_features_preprocessed, p.body_preprocessed AS body_preprocessed,
-        p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title, p.keywords AS keywords,
-        p.doc2vec_representation AS doc2vec_representation
-        FROM posts p
-        JOIN thumbs t ON t.post_id = p.id
-        JOIN users u ON t.user_id = u.id
-        JOIN categories c ON c.id = p.category_id;"""
+    def get_posts_users_categories_thumbs(self, get_only_posts_with_prefilled_bert_vectors=False, user_id=None):
+
+        if get_only_posts_with_prefilled_bert_vectors is False:
+            sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
+            t.value AS thumbs_value, c.title AS category_title, c.slug AS category_slug,
+            p.created_at AS post_created_at, t.created_at AS thumbs_created_at, 
+            p.all_features_preprocessed AS all_features_preprocessed, p.body_preprocessed AS body_preprocessed,
+            p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title, 
+            p.keywords AS keywords,
+            p.doc2vec_representation AS doc2vec_representation
+            FROM posts p
+            JOIN thumbs t ON t.post_id = p.id
+            JOIN users u ON t.user_id = u.id
+            JOIN categories c ON c.id = p.category_id;"""
+        else:
+            sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
+            t.value AS thumbs_value, c.title AS category_title, c.slug AS category_slug,
+            p.created_at AS post_created_at, t.created_at AS thumbs_created_at, 
+            p.all_features_preprocessed AS all_features_preprocessed, p.body_preprocessed AS body_preprocessed,
+            p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title, 
+            p.keywords AS keywords,
+            p.doc2vec_representation AS doc2vec_representation
+            FROM posts p
+            JOIN thumbs t ON t.post_id = p.id
+            JOIN users u ON t.user_id = u.id
+            JOIN categories c ON c.id = p.category_id
+            WHERE bert_vector_representation IS NOT NULL;"""
 
         df_thumbs = pd.read_sql_query(sql_thumbs, self.get_cnx())
 
@@ -549,6 +588,9 @@ class Database:
         # Order by date of creation
         df_thumbs = df_thumbs.sort_values(by='thumbs_created_at')
         df_thumbs = df_thumbs.drop_duplicates(['post_id', 'user_id'], keep='last')
+
+        if user_id is not None:
+            df_ratings = df_thumbs.loc[df_thumbs['user_id'] == user_id]
 
         print("df_thumbs after drop_duplicates")
         print(df_thumbs.to_string())
@@ -570,3 +612,15 @@ class Database:
             s = str(e)
             print("Error:", s)  # errno, sqlstate, msg values
             self.cnx.rollback()
+
+
+class RedisMethods:
+
+    def get_redis_connection(self):
+        redis_password = os.environ.get('REDIS_PASSWORD')
+        print("redis creds")
+        print(redis_password)
+
+        return redis.Redis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com', port=13695, db=0,
+                           username="admin",
+                           password=redis_password)
