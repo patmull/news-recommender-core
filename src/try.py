@@ -1,7 +1,7 @@
 from src.recommender_core.recommender_algorithms.content_based_algorithms import Doc2VecClass
-from src.recommender_core.recommender_algorithms.content_based_algorithms import Word2VecClass
 from src.recommender_core.data_handling.data_manipulation import Database
 from src.prefillers.prefilling_all import prepare_and_run
+from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 
 
 def try_word2vec_recommendation_prefiller(database, method, full_text, reverse, random):
