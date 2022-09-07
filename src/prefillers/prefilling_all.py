@@ -21,6 +21,10 @@ def prefill_body_preprocessed():
     prefiller_additional.fill_body_preprocessed(skip_already_filled=True, reversed=True, random_order=False)
 
 
+def prefill_bert_vector_representation():
+    prefiller_additional.fill_bert_vector_representation()
+
+
 def run_prefilling():
     print("Refreshing post cache. Inserting recommender posts to cache...")
 

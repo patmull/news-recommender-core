@@ -434,6 +434,14 @@ class Database:
         rs = self.cursor.fetchall()
         return rs
 
+    def get_not_bert_vectors_filled_posts(self):
+        sql = """SELECT * FROM posts WHERE bert_vector_representation IS NULL ORDER BY id;"""
+        query = sql
+        self.cursor.execute(query)
+
+        rs = self.cursor.fetchall()
+        return rs
+
     def get_posts_dataframe_from_database(self):
         sql = """SELECT * FROM posts ORDER BY id;"""
 
@@ -546,3 +554,19 @@ class Database:
         print(df_thumbs.to_string())
 
         return df_thumbs
+
+    def insert_bert_vector_representation(self, bert_vector_representation, article_id):
+        try:
+            query = """UPDATE posts SET bert_vector_representation = %s WHERE id = %s;"""
+            inserted_values = (bert_vector_representation, article_id)
+            self.cursor.execute(query, inserted_values)
+            self.cnx.commit()
+
+        except psycopg2.Error as e:
+            print("NOT INSERTED")
+            print("Error code:", e.pgcode)  # error number
+            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
+            print("Error:", e)  # errno, sqlstate, msg values
+            s = str(e)
+            print("Error:", s)  # errno, sqlstate, msg values
+            self.cnx.rollback()
