@@ -72,7 +72,7 @@ class RecommenderMethods:
         self.categories_df = None
         self.df = None
 
-    def get_posts_dataframe(self, force_update=False):
+    def get_posts_dataframe(self, force_update=False, only_with_bert_vectors=False):
         print("4.1.1")
         if force_update is True:
             self.database.connect()
@@ -98,6 +98,13 @@ class RecommenderMethods:
         print("4.1.2")
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         print("4.1.3")
+        return self.posts_df
+
+    def get_posts_dataframe_only_with_bert(self):
+        self.database.connect()
+        self.posts_df = self.database.get_posts_dataframe_only_with_bert_vectors()
+        self.database.disconnect()
+
         return self.posts_df
 
     def get_df_from_sql_meanwhile_insert_cache(self):
@@ -260,8 +267,12 @@ class RecommenderMethods:
 
         return self.get_posts_dataframe().loc[self.get_posts_dataframe()['slug'] == searched_slug]
 
-    def get_posts_categories_dataframe(self, force_update=False):
-        posts_df = self.get_posts_dataframe(force_update=True)
+    def get_posts_categories_dataframe(self, only_with_bert_vectors=False, force_update=False):
+        if only_with_bert_vectors is False:
+            # Standard way
+            posts_df = self.get_posts_dataframe(force_update=True)
+        else:
+            posts_df = self.get_posts_dataframe_only_with_bert()
         categories_df = self.get_categories_dataframe()
 
         posts_df = posts_df.rename(columns={'title': 'post_title'})
@@ -307,15 +318,17 @@ class RecommenderMethods:
         self.database.disconnect()
         return all_posts_df
 
-    def get_posts_users_categories_ratings_df(self):
+    def get_posts_users_categories_ratings_df(self, user_id=None):
         self.database.connect()
-        posts_users_categories_ratings_df = self.database.get_posts_users_categories_ratings()
+        posts_users_categories_ratings_df = self.database.get_posts_users_categories_ratings(user_id)
         self.database.disconnect()
         return posts_users_categories_ratings_df
 
-    def get_posts_users_categories_thumbs_df(self):
+    def get_posts_users_categories_thumbs_df(self, user_id=None):
         self.database.connect()
-        posts_users_categories_ratings_df = self.database.get_posts_users_categories_thumbs()
+        posts_users_categories_ratings_df = self\
+            .database\
+            .get_posts_users_categories_thumbs(user_id)
         self.database.disconnect()
         return posts_users_categories_ratings_df
 
