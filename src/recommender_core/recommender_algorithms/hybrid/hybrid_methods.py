@@ -10,13 +10,13 @@ import pandas as pd
 import pytest
 from sklearn.preprocessing import OneHotEncoder
 
-from core.recommender_algorithms.content_based_algorithms.lda import Lda
-from core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import LightGBM
 from research.relevance_statistics import models_complete_statistics
-from src.core.data_handling.data_queries import RecommenderMethods
-from src.core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from src.core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from src.core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
+from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import LightGBM
 
 
 class HybridRecommendation:

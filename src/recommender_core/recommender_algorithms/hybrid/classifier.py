@@ -15,11 +15,9 @@ class SVM:
     Global models = models for all users
     """
 
-    # TODO: Model loading instead of re-training
-    # TODO: Splitting model by user, e.g.: user_models/user_XY/random_forest_classifier_rating_value_user_XY.pkl
-    # TODO: Hyperparameter tuning
     # TODO: Prepare for integration to API
     # TODO: Finish Python <--> PHP communication
+    # TODO: Hyperparameter tuning
 
     def __init__(self):
         self.path_to_models_global_folder = "full_models/hybrid/classifiers/global_models"
@@ -234,10 +232,9 @@ class SVM:
         print(df_results.head(20))
         df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
 
-        """
-        for features_combined in zip(features_list):
-            print(
-                f"Predicted Label: {clf.predict(bert_model(features_combined).vector.reshape(1, -1))[0]} \n")
-            print("CONTENT:")
-            print(features_combined)
-        """
+    def precalculate_bert_vectors(self, df, bert_model, columns_to_combine):
+        print("Vectorizing the selected columns...")
+        df['combined'] = df[columns_to_combine].apply(lambda row: ' '.join(row.values.astype(str)),
+                                                      axis=1)
+        y_pred_unseen = X_unseen_df['combined'].apply(lambda x: clf.predict(bert_model(x).vector.reshape(1, -1))[0])
+        df.to_hdf('precalc_vectors/bert_vectors_posts.h5')
