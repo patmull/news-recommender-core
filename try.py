@@ -34,4 +34,10 @@ now = datetime.now()
 test_value = 'test_' + str(now.strftime("%m/%d/%Y %H:%M:%S"))
 r.set('test_pair', test_value)
 assert r.get('test_pair').decode() == test_value
+r.delete("posts_by_pred_ratings_user_371")
+test_value = "vytvorili-prvni-rib-eye-steak-ze-zkumavky-chutna-jako-prave-maso"
+test_user = "posts_by_pred_ratings_user_371"
+res = r.sadd(test_value, test_user)
+print(res)
+print(r.smembers(test_value))
 """
