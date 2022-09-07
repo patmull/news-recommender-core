@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 
 import pandas as pd
@@ -5,6 +6,7 @@ import pytest
 
 
 # python -m pytest .\tests\test_data_handling\test_data_queries.py
+from src.recommender_core.data_handling.data_manipulation import RedisMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 TEST_CACHED_PICKLE_PATH = 'db_cache/cached_posts_dataframe_test.pkl'
@@ -102,6 +104,15 @@ def common_asserts_for_dataframes(df, critical_columns):
     assert isinstance(df, pd.DataFrame)
     assert len(df.index) > 1
     assert set(critical_columns).issubset(df.columns)
+
+
+def test_redis():
+    redis_methods = RedisMethods()
+    r = redis_methods.get_redis_connection()
+    now = datetime.now()
+    test_value = 'test_' + str(now.strftime("%m/%d/%Y %H:%M:%S"))
+    r.set('test_pair', test_value)
+    assert r.get('test_pair').decode() == test_value
 
 
 @pytest.fixture(scope='session', autouse=True)
