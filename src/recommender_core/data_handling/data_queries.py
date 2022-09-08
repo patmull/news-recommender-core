@@ -72,7 +72,7 @@ class RecommenderMethods:
         self.categories_df = None
         self.df = None
 
-    def get_posts_dataframe(self, force_update=False, only_with_bert_vectors=False):
+    def get_posts_dataframe(self, force_update=False, from_cache=True):
         print("4.1.1")
         if force_update is True:
             self.database.connect()
@@ -83,17 +83,13 @@ class RecommenderMethods:
             if os.path.isfile(self.cached_file_path):
                 try:
                     print("Reading from cache...")
-                    self.posts_df = self.database.get_posts_dataframe_from_cache()
+                    self.posts_df = self.database.get_posts_dataframe(from_cache=from_cache)
                 except Exception as e:
                     print(e)
                     print(traceback.format_exc())
-                    self.database.connect()
                     self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
-                    self.database.disconnect()
             else:
-                self.database.connect()
                 self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
-                self.database.disconnect()
 
         print("4.1.2")
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
@@ -267,10 +263,10 @@ class RecommenderMethods:
 
         return self.get_posts_dataframe().loc[self.get_posts_dataframe()['slug'] == searched_slug]
 
-    def get_posts_categories_dataframe(self, only_with_bert_vectors=False, force_update=False):
+    def get_posts_categories_dataframe(self, only_with_bert_vectors=False, from_cache=True):
         if only_with_bert_vectors is False:
-            # Standard way
-            posts_df = self.get_posts_dataframe(force_update=True)
+            # Standard way. Does not support BERT vector loading from cached file.
+            posts_df = self.get_posts_dataframe(from_cache=from_cache)
         else:
             posts_df = self.get_posts_dataframe_only_with_bert()
         categories_df = self.get_categories_dataframe()
@@ -318,18 +314,24 @@ class RecommenderMethods:
         self.database.disconnect()
         return all_posts_df
 
-    def get_posts_users_categories_ratings_df(self, user_id=None):
+    def get_posts_users_categories_ratings_df(self, only_with_bert_vectors, user_id=None):
         self.database.connect()
-        posts_users_categories_ratings_df = self.database.get_posts_users_categories_ratings(user_id)
+        posts_users_categories_ratings_df = self.database.get_posts_users_categories_ratings(user_id=user_id,
+                                                   get_only_posts_with_prefilled_bert_vectors=only_with_bert_vectors)
         self.database.disconnect()
         return posts_users_categories_ratings_df
 
-    def get_posts_users_categories_thumbs_df(self, user_id=None):
-        self.database.connect()
-        posts_users_categories_ratings_df = self\
-            .database\
-            .get_posts_users_categories_thumbs(user_id)
-        self.database.disconnect()
+    def get_posts_users_categories_thumbs_df(self, only_with_bert_vectors, user_id=None):
+        try:
+            self.database.connect()
+            posts_users_categories_ratings_df = self\
+                .database\
+                .get_posts_users_categories_thumbs(user_id=user_id,
+                                                   get_only_posts_with_prefilled_bert_vectors=only_with_bert_vectors)
+            self.database.disconnect()
+        except ValueError as e:
+            self.database.disconnect()
+            raise ValueError("Value error had occured when trying to get posts for user.")
         return posts_users_categories_ratings_df
 
 

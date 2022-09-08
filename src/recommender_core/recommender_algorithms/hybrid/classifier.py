@@ -34,6 +34,9 @@ class Classifier:
 
         df = df.fillna('')
 
+        print("df.columns:")
+        print(df.columns)
+
         df['combined'] = df[columns_to_combine].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
         print("df['combined']")
         print(df['combined'].iloc[0])
@@ -117,7 +120,7 @@ class Classifier:
                 model_file_name_random_forest = 'random_forest_classifier_' + predicted_variable + '.pkl'
                 path_to_models_pathlib = Path(self.path_to_models_global_folder)
             else:
-                print("Loading user's personalized classifier model for user " + str(user_id))
+                print("Loading user's personalized classifiers models for user " + str(user_id))
                 model_file_name_svc = 'svc_classifier_' + predicted_variable + '_user_' + str(user_id) + '.pkl'
                 model_file_name_random_forest = 'random_forest_classifier_' + predicted_variable + '_user_' \
                                                 + str(user_id) + '.pkl'
@@ -129,6 +132,7 @@ class Classifier:
                              "about the value of the 'predicted_variable'?")
 
         try:
+            print("Loading SVC...")
             clf_svc = joblib.load(path_to_load_svc)
         except FileNotFoundError as file_not_found_error:
             print(file_not_found_error)
@@ -138,6 +142,7 @@ class Classifier:
             clf_svc = joblib.load(path_to_load_svc)
 
         try:
+            print("Loading Random Forest...")
             clf_random_forest = joblib.load(path_to_load_random_forest)
         except FileNotFoundError as file_not_found_error:
             print(file_not_found_error)
@@ -148,6 +153,7 @@ class Classifier:
 
         return clf_svc, clf_random_forest
 
+    @DeprecationWarning
     def predict_thumbs(self, user_id=None, force_retraining=False, experiment_mode=False):
         recommender_methods = RecommenderMethods()
         df_posts_categories = recommender_methods.get_posts_categories_dataframe(only_with_bert_vectors=True)
@@ -157,10 +163,10 @@ class Classifier:
         if force_retraining is True:
             clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
                 = self.train_classifiers(df=df_posts_users_categories_thumbs, columns_to_combine=columns_to_use,
-                                         target_variable_name='thumbs_value')
+                                         target_variable_name='thumbs_values')
         else:
             clf_svc, clf_random_forest = self.load_classifiers(df=df_posts_categories, input_variables=columns_to_use,
-                                        predicted_variable='thumbs_value')
+                                                               predicted_variable='thumbs_values')
 
         X_validation = df_posts_categories['bert_vector_representation']
 
@@ -181,60 +187,79 @@ class Classifier:
         else:
             self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc)
 
-    def predict_ratings_for_user(self, force_retraining=False, use_only_sample_of=None, user_id=None, experiment_mode=False):
-        recommender_methods = RecommenderMethods()
+    def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
+                                   experiment_mode=False, only_with_bert_vectors=True, bert_model=None):
+        if only_with_bert_vectors is False:
+            if bert_model is None:
+                raise ValueError("Loaded BERT model needs to be supplied if only_with_bert_vectors parameter"
+                                 "is set to False")
+        columns_to_combine = ['category_title', 'all_features_preprocessed', 'full_text']
 
-        df_posts_categories = recommender_methods.get_posts_categories_dataframe(only_with_bert_vectors=True)
-        df_posts_users_categories_ratings = recommender_methods.get_posts_users_categories_ratings_df(user_id)
+        recommender_methods = RecommenderMethods()
+        if relevance_by == 'thumbs':
+            df_posts_users_categories_relevance = recommender_methods \
+                .get_posts_users_categories_thumbs_df(user_id=user_id, only_with_bert_vectors=only_with_bert_vectors)
+            target_variable_name = 'thumbs_values'
+            predicted_var_for_redis_key_name = 'thumbs'
+        elif relevance_by == 'stars':
+            df_posts_users_categories_relevance = recommender_methods \
+                .get_posts_users_categories_ratings_df(user_id=user_id, only_with_bert_vectors=only_with_bert_vectors)
+            target_variable_name = 'ratings_values'
+            predicted_var_for_redis_key_name = 'ratings'
+        else:
+            raise ValueError("No options from allowed relevance options selected.")
+
+        df_posts_categories = recommender_methods \
+            .get_posts_categories_dataframe(only_with_bert_vectors=only_with_bert_vectors,
+                                            from_cache=False)
 
         df_posts_categories = df_posts_categories.rename(columns={'title': 'category_title'})
-        columns_to_use = ['category_title', 'all_features_preprocessed']
 
         if force_retraining is True:
             clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
-                = self.train_classifiers(df=df_posts_users_categories_ratings, columns_to_combine=columns_to_use,
-                                         target_variable_name='ratings_values',  user_id=user_id)
+                = self.train_classifiers(df=df_posts_users_categories_relevance, columns_to_combine=columns_to_combine,
+                                         target_variable_name=target_variable_name, user_id=user_id)
         else:
             clf_svc, clf_random_forest \
-                = self.load_classifiers(df=df_posts_users_categories_ratings, input_variables=columns_to_use,
-                                        predicted_variable='ratings_values', user_id=user_id)
+                = self.load_classifiers(df=df_posts_users_categories_relevance, input_variables=columns_to_combine,
+                                        predicted_variable=target_variable_name, user_id=user_id)
 
-        print("=========================")
-        print("Results of SVC:")
-        print("=========================")
         if experiment_mode is True:
-            X_validation = df_posts_categories[columns_to_use]
+            X_validation = df_posts_categories[columns_to_combine]
             if not type(use_only_sample_of) is None:
                 if type(use_only_sample_of) is int:
                     X_validation = X_validation.sample(use_only_sample_of)
             print("Loading sentence bert multilingual model...")
             bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
-            self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_svc,
+            print("=========================")
+            print("Results of SVC:")
+            print("=========================")
+            self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_svc,
+                                bert_model=bert_model)
+            print("=========================")
+            print("Results of Random Forest:")
+            print("=========================")
+            self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_random_forest,
                                 bert_model=bert_model)
         else:
-            X_validation = df_posts_categories[['slug', 'bert_vector_representation']]
+            columns_to_select = columns_to_combine.append(['slug', 'bert_vector_representation'])
+            X_validation = df_posts_categories[columns_to_select]
             if not type(use_only_sample_of) is None:
                 if type(use_only_sample_of) is int:
                     X_validation = X_validation.sample(use_only_sample_of)
-            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id)
-        print("=========================")
-        print("Results of Random Forest Classifier:")
-        print("=========================")
-        if experiment_mode is True:
-            X_validation = df_posts_categories[columns_to_use]
-            if not type(use_only_sample_of) is None:
-                if type(use_only_sample_of) is int:
-                    X_validation = X_validation.sample(use_only_sample_of)
-            print("Loading sentence bert multilingual model...")
-            bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
-            self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_random_forest,
-                                bert_model=bert_model)
-        else:
-            X_validation = df_posts_categories[['slug', 'bert_vector_representation']]
-            if not type(use_only_sample_of) is None:
-                if type(use_only_sample_of) is int:
-                    X_validation = X_validation.sample(use_only_sample_of)
-            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_random_forest, user_id=user_id)
+            print("=========================")
+            print("Inserting by SVC:")
+            print("=========================")
+            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
+                                      predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
+                                      bert_model=bert_model, col_to_combine=columns_to_combine)
+
+            print("=========================")
+            print("Inserting by Random Forest:")
+            print("=========================")
+            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_random_forest, user_id=user_id,
+                                      predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
+                                      bert_model=bert_model, col_to_combine=columns_to_combine)
 
     def show_true_vs_predicted(self, features_list, contexts_list, clf, bert_model):
         """
@@ -247,7 +272,12 @@ class Classifier:
             print("CONTENT:")
             print(features_combined)
 
-    def predict_from_vectors(self, X_unseen_df, clf, user_id=None, save_testing_csv=False):
+    def predict_from_vectors(self, X_unseen_df, clf, predicted_var_for_redis_key_name, user_id=None,
+                             save_testing_csv=False, bert_model=None, col_to_combine=None):
+        if bert_model is not None:
+            if col_to_combine is None:
+                raise ValueError("If BERT model is supplied, then column list needs "
+                                 "to be supplied to col_to_combine_parameter!")
         """
         Method for actual live, deployed use. This uses the already filled vectors from PostgreSQL.
         """
@@ -255,7 +285,13 @@ class Classifier:
         # TODO: Takes a lot of time... Probably pre-calculate.
         print("X_unseen_df:")
         print(X_unseen_df)
-        y_pred_unseen = X_unseen_df['bert_vector_representation'].apply(lambda x: clf.predict(pickle.loads(x))[0])
+        y_pred_unseen = X_unseen_df\
+            .apply(lambda x: clf
+                   .predict(pickle
+                            .loads(x['bert_vector_representation']))[0]
+        if pd.notnull(x['bert_vector_representation'])
+        else clf.predict(bert_model(' '.join(x[col_to_combine])).vector.reshape(1, -1))[0])
+
         y_pred_unseen = y_pred_unseen.rename('prediction')
         print(y_pred_unseen.head(20))
         df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
@@ -266,7 +302,7 @@ class Classifier:
         if user_id is not None:
             redis_methods = RedisMethods()
             r = redis_methods.get_redis_connection()
-            user_redis_key = 'posts_by_pred_ratings_user_' + str(user_id)
+            user_redis_key = 'posts_by_pred_' + predicted_var_for_redis_key_name + '_user_' + str(user_id)
             # remove old records
             r.delete(user_redis_key)
             print("iteration through records:")
@@ -301,8 +337,7 @@ class Classifier:
         y_pred_unseen = X_unseen_df['combined'].apply(lambda x: clf.predict(bert_model(x).vector.reshape(1, -1))[0])
         y_pred_unseen = y_pred_unseen.rename('prediction')
         print(y_pred_unseen.head(20))
-        df_results = pd.merge(X_unseen_df,  pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
+        df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
         print(df_results.head(20))
         if save_testing_csv is True:
             df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
-
