@@ -108,6 +108,9 @@ class Database:
         return rs
 
     def get_posts_dataframe_from_sql(self):
+        """
+        Slower, does load the database with query, but supports BERT vectors loading.
+        """
         print("Getting posts from SQL...")
         sql = """SELECT * FROM posts ORDER BY id;"""
         # NOTICE: Connection is ok here. Need to stay here due to calling from function that's executing thread
@@ -128,7 +131,6 @@ class Database:
         return df
 
     def get_posts_dataframe(self, from_cache=True):
-        # self.database.insert_posts_dataframe_to_cache() # uncomment for UPDATE of DB records
         if from_cache is True:
             self.posts_df = self.get_posts_dataframe_from_cache()
         else:
@@ -140,7 +142,7 @@ class Database:
 
         if cached_file_path is None:
             print("Cached file path is None. Using default model_save_location.")
-            cached_file_path = 'db_cache/cached_posts_dataframe.pkl'
+            cached_file_path = "db_cache/cached_posts_dataframe.pkl"
 
         # Connection needs to stay here, otherwise does not make any sense due to threading of
         # cache insert
@@ -149,19 +151,18 @@ class Database:
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         self.disconnect()
-
-        splitted_cache_file = cached_file_path.split('/')
-
-        outfile = splitted_cache_file[1]
-        outdir = './' + splitted_cache_file[0]
-
-        if not os.path.exists(outdir):
-            os.makedirs(Path(outdir), exist_ok=True)
-
-        fullpath = os.path.join(Path(outdir), Path(outfile))
-        df.to_pickle(fullpath)  # will be stored in current directory
-        print("fullpath")
-        print(fullpath)
+        path_to_save_cache = Path(cached_file_path)
+        str_path = path_to_save_cache.as_posix()
+        # TODO: Try to do som workaround. (Convert bytearray to string?)
+        print("Column types of df:")
+        print(df.dtypes)
+        # Removing bert_vector_representation for not supported column type of pickle
+        df_for_save = df.drop(columns=['bert_vector_representation'])
+        print("str_path:")
+        print(str_path)
+        print("df:")
+        print(df_for_save)
+        df_for_save.to_pickle(str_path)  # dataframe of posts will be stored in selected directory
         return df
 
     def get_posts_dataframe_from_cache(self):
@@ -551,13 +552,14 @@ class Database:
 
         return df_ratings
 
-    def get_posts_users_categories_thumbs(self, get_only_posts_with_prefilled_bert_vectors=False, user_id=None):
+    def get_posts_users_categories_thumbs(self, user_id=None, get_only_posts_with_prefilled_bert_vectors=False):
 
         if get_only_posts_with_prefilled_bert_vectors is False:
             sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
-            t.value AS thumbs_value, c.title AS category_title, c.slug AS category_slug,
+            t.value AS thumbs_values, c.title AS category_title, c.slug AS category_slug,
             p.created_at AS post_created_at, t.created_at AS thumbs_created_at, 
             p.all_features_preprocessed AS all_features_preprocessed, p.body_preprocessed AS body_preprocessed,
+            p.full_text AS full_text,
             p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title, 
             p.keywords AS keywords,
             p.doc2vec_representation AS doc2vec_representation
@@ -567,9 +569,10 @@ class Database:
             JOIN categories c ON c.id = p.category_id;"""
         else:
             sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
-            t.value AS thumbs_value, c.title AS category_title, c.slug AS category_slug,
+            t.value AS thumbs_values, c.title AS category_title, c.slug AS category_slug,
             p.created_at AS post_created_at, t.created_at AS thumbs_created_at, 
             p.all_features_preprocessed AS all_features_preprocessed, p.body_preprocessed AS body_preprocessed,
+            p.full_text AS full_text,
             p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title, 
             p.keywords AS keywords,
             p.doc2vec_representation AS doc2vec_representation
@@ -582,18 +585,24 @@ class Database:
         df_thumbs = pd.read_sql_query(sql_thumbs, self.get_cnx())
 
         print("df_thumbs")
-        print(df_thumbs.to_string())
+        print(df_thumbs)
+        print(df_thumbs.columns)
 
         # ### Keep only newest records of same post_id + user_id combination
         # Order by date of creation
         df_thumbs = df_thumbs.sort_values(by='thumbs_created_at')
         df_thumbs = df_thumbs.drop_duplicates(['post_id', 'user_id'], keep='last')
 
-        if user_id is not None:
-            df_ratings = df_thumbs.loc[df_thumbs['user_id'] == user_id]
 
-        print("df_thumbs after drop_duplicates")
-        print(df_thumbs.to_string())
+        if user_id is not None:
+            df_thumbs = df_thumbs.loc[df_thumbs['user_id'] == user_id]
+
+        print("df_thumbs after dropping duplicates")
+        print(df_thumbs)
+
+        if df_thumbs.empty:
+            print("Dataframe empty. Current user has no thumbs clicks in DB.")
+            raise ValueError("There are no thumbs for a given user.")
 
         return df_thumbs
 
