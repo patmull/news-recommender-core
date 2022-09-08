@@ -11,6 +11,11 @@ from sklearn.metrics import accuracy_score
 from src.recommender_core.data_handling.data_manipulation import RedisMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
+import logging, sys
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+
 
 class Classifier:
     """
@@ -26,11 +31,22 @@ class Classifier:
         self.path_to_models_user_folder = "full_models/hybrid/classifiers/users_models"
         self.model_save_location = Path()
 
-    def train_classifiers(self, df, columns_to_combine, target_variable_name, user_id=None):
-        # https://metatext.io/models/distilbert-base-multilingual-cased
+    def load_bert_model(self):
         bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
+        return bert_model
+
+    def get_df_predicted(self, df, target_variable_name):
         df_predicted = pd.DataFrame()
         df_predicted[target_variable_name] = df[target_variable_name]
+
+        # leaving out 20% for validation set
+        logging.debug("Splitting dataset to train / validation...")
+        return df_predicted
+
+    def train_classifiers(self, df, columns_to_combine, target_variable_name, user_id=None):
+        # https://metatext.io/models/distilbert-base-multilingual-cased
+        bert_model = self.load_bert_model()
+        df_predicted = self.get_df_predicted(df, target_variable_name)
 
         df = df.fillna('')
 
@@ -41,49 +57,47 @@ class Classifier:
         print("df['combined']")
         print(df['combined'].iloc[0])
 
-        # leaving out 20% for validation set
-        print("Splitting dataset to train / validation...")
         X_train, X_validation, y_train, y_validation = train_test_split(df['combined'].tolist(),
                                                                         df_predicted[target_variable_name]
                                                                         .tolist(), test_size=0.2)
-        print("Converting text to vectors...")
+        logging.debug("Converting text to vectors...")
         df['vector'] = df['combined'].apply(lambda x: bert_model(x).vector)
-        print("Splitting dataset to train / test...")
+        logging.debug("Splitting dataset to train / test...")
         X_train, X_test, y_train, y_test = train_test_split(df['vector'].tolist(),
                                                             df_predicted[target_variable_name]
                                                             .tolist(), test_size=0.2)
 
-        print("X_train:")
-        print(X_train[:5])
+        logging.debug("X_train:")
+        logging.debug(X_train[:5])
 
-        print("y_train")
-        print(y_train[:5])
+        logging.debug("y_train")
+        logging.debug(y_train[:5])
 
-        print("Training using SVC method...")
+        logging.debug("Training using SVC method...")
         clf_svc = SVC(gamma='auto')
         clf_svc.fit(X_train, y_train)
         y_pred = clf_svc.predict(X_test)
-        print("SVC results accuracy score:")
-        print(accuracy_score(y_test, y_pred))
+        logging.debug("SVC results accuracy score:")
+        logging.debug(accuracy_score(y_test, y_pred))
 
-        print("Training using RandomForest method...")
+        logging.debug("Training using RandomForest method...")
         clf_random_forest = RandomForestClassifier(max_depth=9, random_state=0)
         clf_random_forest.fit(X_train, y_train)
         y_pred = clf_random_forest.predict(X_test)
-        print("Random Forest Classifier accuracy score:")
-        print(accuracy_score(y_test, y_pred))
+        logging.debug("Random Forest Classifier accuracy score:")
+        logging.debug(accuracy_score(y_test, y_pred))
 
-        print("Saving the SVC model...")
+        logging.debug("Saving the SVC model...")
         if user_id is not None:
-            print("Folder: " + self.path_to_models_user_folder)
+            logging.debug("Folder: " + self.path_to_models_user_folder)
             Path(self.path_to_models_user_folder).mkdir(parents=True, exist_ok=True)
 
             model_file_name_svc = 'svc_classifier_' + target_variable_name + '_user_' + str(user_id) + '.pkl'
             model_file_name_random_forest = 'random_forest_classifier_' + target_variable_name + '_user_' \
                                             + str(user_id) + '.pkl'
-            print(self.path_to_models_global_folder)
-            print(model_file_name_svc)
-            print(model_file_name_random_forest)
+            logging.debug(self.path_to_models_global_folder)
+            logging.debug(model_file_name_svc)
+            logging.debug(model_file_name_random_forest)
             path_to_models_pathlib = Path(self.path_to_models_user_folder)
             path_to_save_svc = Path.joinpath(path_to_models_pathlib, model_file_name_svc)
             joblib.dump(clf_random_forest, path_to_save_svc)
@@ -91,20 +105,20 @@ class Classifier:
             joblib.dump(clf_random_forest, path_to_save_forest)
 
         else:
-            print("Folder: " + self.path_to_models_global_folder)
+            logging.debug("Folder: " + self.path_to_models_global_folder)
             Path(self.path_to_models_global_folder).mkdir(parents=True, exist_ok=True)
             model_file_name = 'svc_classifier_' + target_variable_name + '.pkl'
-            print(self.path_to_models_global_folder)
-            print(model_file_name)
+            logging.debug(self.path_to_models_global_folder)
+            logging.debug(model_file_name)
             path_to_models_pathlib = Path(self.path_to_models_global_folder)
             path_to_save_svc = Path.joinpath(path_to_models_pathlib, model_file_name)
             joblib.dump(clf_svc, path_to_save_svc)
-            print("Saving the random forest model...")
-            print("Folder: " + self.path_to_models_global_folder)
+            logging.debug("Saving the random forest model...")
+            logging.debug("Folder: " + self.path_to_models_global_folder)
             Path(self.path_to_models_global_folder).mkdir(parents=True, exist_ok=True)
             model_file_name = 'random_forest_classifier_' + target_variable_name + '.pkl'
-            print(self.path_to_models_global_folder)
-            print(model_file_name)
+            logging.debug(self.path_to_models_global_folder)
+            logging.debug(model_file_name)
             path_to_models_pathlib = Path(self.path_to_models_global_folder)
             path_to_save_forest = Path.joinpath(path_to_models_pathlib, model_file_name)
             joblib.dump(clf_random_forest, path_to_save_forest)
@@ -120,7 +134,7 @@ class Classifier:
                 model_file_name_random_forest = 'random_forest_classifier_' + predicted_variable + '.pkl'
                 path_to_models_pathlib = Path(self.path_to_models_global_folder)
             else:
-                print("Loading user's personalized classifiers models for user " + str(user_id))
+                logging.debug("Loading user's personalized classifiers models for user " + str(user_id))
                 model_file_name_svc = 'svc_classifier_' + predicted_variable + '_user_' + str(user_id) + '.pkl'
                 model_file_name_random_forest = 'random_forest_classifier_' + predicted_variable + '_user_' \
                                                 + str(user_id) + '.pkl'
@@ -132,21 +146,21 @@ class Classifier:
                              "about the value of the 'predicted_variable'?")
 
         try:
-            print("Loading SVC...")
+            logging.debug("Loading SVC...")
             clf_svc = joblib.load(path_to_load_svc)
         except FileNotFoundError as file_not_found_error:
-            print(file_not_found_error)
-            print("Model file was not found in the location, training from the start...")
+            logging.debug(file_not_found_error)
+            logging.debug("Model file was not found in the location, training from the start...")
             self.train_classifiers(df=df, columns_to_combine=input_variables,
                                    target_variable_name=predicted_variable, user_id=user_id)
             clf_svc = joblib.load(path_to_load_svc)
 
         try:
-            print("Loading Random Forest...")
+            logging.debug("Loading Random Forest...")
             clf_random_forest = joblib.load(path_to_load_random_forest)
         except FileNotFoundError as file_not_found_error:
-            print(file_not_found_error)
-            print("Model file was not found in the location, training from the start...")
+            logging.debug(file_not_found_error)
+            logging.debug("Model file was not found in the location, training from the start...")
             self.train_classifiers(df=df, columns_to_combine=input_variables,
                                    target_variable_name=predicted_variable, user_id=user_id)
             clf_random_forest = joblib.load(path_to_load_random_forest)
@@ -170,17 +184,17 @@ class Classifier:
 
         X_validation = df_posts_categories['bert_vector_representation']
 
-        print("=========================")
-        print("Results of SVC:")
-        print("=========================")
+        logging.debug("=========================")
+        logging.debug("Results of SVC:")
+        logging.debug("=========================")
         if experiment_mode is True:
             self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_svc,
                                 bert_model=bert_model)
         else:
             self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc)
-        print("=========================")
-        print("Results of Random Forest Classifier:")
-        print("=========================")
+        logging.debug("=========================")
+        logging.debug("Results of Random Forest Classifier:")
+        logging.debug("=========================")
         if experiment_mode is True:
             self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_random_forest,
                                 bert_model=bert_model)
@@ -229,73 +243,86 @@ class Classifier:
             if not type(use_only_sample_of) is None:
                 if type(use_only_sample_of) is int:
                     X_validation = X_validation.sample(use_only_sample_of)
-            print("Loading sentence bert multilingual model...")
+            logging.debug("Loading sentence bert multilingual model...")
             bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
-            print("=========================")
-            print("Results of SVC:")
-            print("=========================")
+            logging.debug("=========================")
+            logging.debug("Results of SVC:")
+            logging.debug("=========================")
             self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_svc,
                                 bert_model=bert_model)
-            print("=========================")
-            print("Results of Random Forest:")
-            print("=========================")
+            logging.debug("=========================")
+            logging.debug("Results of Random Forest:")
+            logging.debug("=========================")
             self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_random_forest,
                                 bert_model=bert_model)
         else:
-            columns_to_select = columns_to_combine.append(['slug', 'bert_vector_representation'])
+            columns_to_select = columns_to_combine + ['slug', 'bert_vector_representation']
             X_validation = df_posts_categories[columns_to_select]
             if not type(use_only_sample_of) is None:
                 if type(use_only_sample_of) is int:
                     X_validation = X_validation.sample(use_only_sample_of)
-            print("=========================")
-            print("Inserting by SVC:")
-            print("=========================")
+            logging.debug("=========================")
+            logging.debug("Inserting by SVC:")
+            logging.debug("=========================")
             self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
                                       predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
-                                      bert_model=bert_model, col_to_combine=columns_to_combine)
+                                      bert_model=bert_model, col_to_combine=columns_to_combine,
+                                      save_testing_csv=True)
 
-            print("=========================")
-            print("Inserting by Random Forest:")
-            print("=========================")
+            logging.debug("=========================")
+            logging.debug("Inserting by Random Forest:")
+            logging.debug("=========================")
             self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_random_forest, user_id=user_id,
                                       predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
-                                      bert_model=bert_model, col_to_combine=columns_to_combine)
+                                      bert_model=bert_model, col_to_combine=columns_to_combine,
+                                      save_testing_csv=True)
 
     def show_true_vs_predicted(self, features_list, contexts_list, clf, bert_model):
         """
         Method for evaluation on validation dataset, not actual unseen dataset.
         """
         for features_combined, context in zip(features_list, contexts_list):
-            print(
+            logging.debug(
                 f"True Label: {context}, "
                 f"Predicted Label: {clf.predict(bert_model(features_combined).vector.reshape(1, -1))[0]} \n")
-            print("CONTENT:")
-            print(features_combined)
+            logging.debug("CONTENT:")
+            logging.debug(features_combined)
 
     def predict_from_vectors(self, X_unseen_df, clf, predicted_var_for_redis_key_name, user_id=None,
                              save_testing_csv=False, bert_model=None, col_to_combine=None):
+        """
+        Method for actual live, deployed use. This uses the already filled vectors from PostgreSQL but if doesn't
+        exists, calculate new ones from passed BERT model.
+
+        If this method takes a lot of time, use BERT vector prefilling function fill_bert_vector_representation().
+        """
+
+        if predicted_var_for_redis_key_name == 'thumbs':
+            threshold = 1  # binary relevance rating
+        elif predicted_var_for_redis_key_name == 'ratings':
+            threshold = 3  # the Likert scale
+        else:
+            raise ValueError("No from passed predicted rating key names matches the available options!")
+
         if bert_model is not None:
             if col_to_combine is None:
                 raise ValueError("If BERT model is supplied, then column list needs "
                                  "to be supplied to col_to_combine_parameter!")
-        """
-        Method for actual live, deployed use. This uses the already filled vectors from PostgreSQL.
-        """
-        print("Vectorizing the selected columns...")
+
+        logging.debug("Vectorizing the selected columns...")
         # TODO: Takes a lot of time... Probably pre-calculate.
-        print("X_unseen_df:")
-        print(X_unseen_df)
+        logging.debug("X_unseen_df:")
+        logging.debug(X_unseen_df)
+        logging.debug("Loading vectors or creating new if does not exists...")
         y_pred_unseen = X_unseen_df\
             .apply(lambda x: clf
                    .predict(pickle
                             .loads(x['bert_vector_representation']))[0]
         if pd.notnull(x['bert_vector_representation'])
-        else clf.predict(bert_model(' '.join(x[col_to_combine])).vector.reshape(1, -1))[0])
+        else clf.predict(bert_model(' '.join(x[col_to_combine])).vector.reshape(1, -1))[0], axis=1)
 
         y_pred_unseen = y_pred_unseen.rename('prediction')
-        print(y_pred_unseen.head(20))
         df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
-        print(df_results.head(20))
         if save_testing_csv is True:
             df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
 
@@ -305,39 +332,48 @@ class Classifier:
             user_redis_key = 'posts_by_pred_' + predicted_var_for_redis_key_name + '_user_' + str(user_id)
             # remove old records
             r.delete(user_redis_key)
-            print("iteration through records:")
+            logging.debug("iteration through records:")
             i = 0
             # fetch Redis set with a new set of recommended posts
             for row in zip(*df_results.to_dict("list").values()):
-                print(user_redis_key)
-                slug = "" + row[0] + ""
-                print(row[0])
-                print("Predicted value:")
-                print(row[2])
-                # If predicted rating is > 3 stars
-                if row[2] > 3:
-                    # Saving individually to set
-                    res = r.sadd(user_redis_key, slug)
-                    print(res)
-                    print("Inserted record num. " + str(i))
-                    i = i + 1
+                logging.debug("len(row):")
+                logging.debug(len(row))
+                logging.debug(user_redis_key)
+                slug = "" + row[3] + ""
+                logging.debug("-------------------")
+                logging.debug("Predicted rating for slug | " + slug + ":")
+                logging.debug(row[5])
+                logging.debug(int(row[5]))
 
-            print("Items saved for Redis:")
-            print(r.smembers(user_redis_key))
+                if row[5] is not None:
+                    # If predicted rating is == 1 (= relevant)
+                    if int(row[5]) >= threshold:
+                        # Saving individually to set
+                        res = r.sadd(user_redis_key, slug)
+                        logging.debug(res)
+                        logging.debug(r.smembers(user_redis_key))
+                        logging.debug("Inserted record num. " + str(i))
+                        i = i + 1
+                else:
+                    logging.debug("No predicted values found. Skipping this record.")
+                    pass
+
+            logging.debug("Items saved for Redis:")
+            logging.debug(r.smembers(user_redis_key))
 
     def show_predicted(self, X_unseen_df, input_variables, clf, bert_model, save_testing_csv=False):
         """
         Method for evaluation on validation dataset, not actual unseen dataset.
         Use for experimentation with features.
         """
-        print("Combining the selected columns")
+        logging.debug("Combining the selected columns")
         X_unseen_df['combined'] = X_unseen_df[input_variables].apply(lambda row: ' '.join(row.values.astype(str)),
                                                                      axis=1)
-        print("Vectorizing the selected columns...")
+        logging.debug("Vectorizing the selected columns...")
         y_pred_unseen = X_unseen_df['combined'].apply(lambda x: clf.predict(bert_model(x).vector.reshape(1, -1))[0])
         y_pred_unseen = y_pred_unseen.rename('prediction')
-        print(y_pred_unseen.head(20))
+        logging.debug(y_pred_unseen.head(20))
         df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
-        print(df_results.head(20))
+        logging.debug(df_results.head(20))
         if save_testing_csv is True:
             df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
