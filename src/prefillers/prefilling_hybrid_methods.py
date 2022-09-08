@@ -32,7 +32,6 @@ def predict_ratings_for_all_users_store_to_redis():
             pass
 
 
-
 def fill_bert_vector_representation(skip_already_filled=True, reversed=False, random_order=False, db="pgsql"):
     print("Loading sentence bert multilingual model...")
     bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
