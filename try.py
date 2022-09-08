@@ -24,7 +24,7 @@ database.disconnect()
 
 """
 svm = Classifier()
-svm.predict_ratings_for_user(use_only_sample_of=20, user_id=371)
+svm.predict_relevance_for_user(use_only_sample_of=20, user_id=371)
 """
 
 """
