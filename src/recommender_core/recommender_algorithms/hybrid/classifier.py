@@ -279,7 +279,6 @@ class SVM:
                 res = r.sadd(user_redis_key, slug)
                 print(res)
 
-            # TODO: Think whether it wouldn't be more efficient to replace it with some SET operation
             print("Items saved for Redis:")
             print(r.smembers(user_redis_key))
 
