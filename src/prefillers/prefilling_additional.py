@@ -1,9 +1,7 @@
-import pickle
 import time
 import random
 
 import pandas as pd
-import spacy_sentence_bert
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import CzPreprocess
 from src.recommender_core.data_handling.data_manipulation import Database
@@ -227,76 +225,3 @@ class PreFillerAdditional:
                     print("Refreshing list of posts for finding only not prefilled posts.")
                     self.fill_all_features_preprocessed(db=db, skip_already_filled=True, reversed=reversed,
                                                         random_order=random_order)
-
-    def fill_bert_vector_representation(self, skip_already_filled=True, reversed=False, random_order=False, db="pgsql"):
-        print("Loading sentence bert multilingual model...")
-        bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
-
-        database = Database()
-        if skip_already_filled is False:
-            database.connect()
-            posts = database.get_all_posts()
-            database.disconnect()
-        else:
-            database.connect()
-            posts = database.get_not_bert_vectors_filled_posts()
-            database.disconnect()
-
-        number_of_inserted_rows = 0
-
-        if reversed is True:
-            print("Reversing list of posts...")
-            posts.reverse()
-
-        if random_order is True:
-            print("Starting random_order iteration...")
-            time.sleep(5)
-            random.shuffle(posts)
-
-        for post in posts:
-            if len(posts) < 1:
-                break
-            post_id = post[0]
-            slug = post[3]
-            article_title = post[2]
-            article_excerpt = post[4]
-            article_full_text = post[20]
-            current_bert_vector_representation = post[41]
-            # TODO: Category should be there too
-
-            print("Prefilling body pre-processed in article: " + slug)
-
-            if skip_already_filled is True:
-                if current_bert_vector_representation is None:
-                    if db == "pgsql":
-                        bert_vector_representation_of_current_post = bert_model(article_full_text).vector.reshape(1, -1)
-                        bert_vector_representation_of_current_post = pickle\
-                            .dumps(bert_vector_representation_of_current_post)
-                        database.connect()
-                        database.insert_bert_vector_representation(
-                            bert_vector_representation=bert_vector_representation_of_current_post,
-                            article_id=post_id)
-                        database.disconnect()
-                    else:
-                        raise NotImplementedError
-                else:
-                    print("Skipping.")
-            else:
-                if db == "pgsql":
-                    bert_vector_representation_of_current_post = bert_model(article_full_text).vector.reshape(1, -1)
-                    print("article_title")
-                    print(article_title)
-                    print("bert_vector_representation_of_current_post (full_text)")
-                    print(bert_vector_representation_of_current_post)
-                    database.connect()
-                    database.insert_bert_vector_representation(
-                        bert_vector_representation=bert_vector_representation_of_current_post,
-                        article_id=post_id)
-                    database.disconnect()
-                else:
-                    raise NotImplementedError
-                number_of_inserted_rows += 1
-                if number_of_inserted_rows > 20:
-                    print("Refreshing list of posts for finding only not prefilled posts.")
-                    self.fill_bert_vector_representation(db=db, skip_already_filled=skip_already_filled, reversed=reversed,
-                                                         random_order=random_order)
