@@ -317,7 +317,7 @@ class RecommenderMethods:
     def get_posts_users_categories_ratings_df(self, only_with_bert_vectors, user_id=None):
         self.database.connect()
         posts_users_categories_ratings_df = self.database.get_posts_users_categories_ratings(user_id=user_id,
-                                                   get_only_posts_with_prefilled_bert_vectors=only_with_bert_vectors)
+                                                                                             get_only_posts_with_prefilled_bert_vectors=only_with_bert_vectors)
         self.database.disconnect()
         return posts_users_categories_ratings_df
 
