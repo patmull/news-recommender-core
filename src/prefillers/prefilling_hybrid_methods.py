@@ -4,19 +4,33 @@ import time
 
 import spacy_sentence_bert
 
-from recommender_core.data_handling.data_manipulation import Database
-from recommender_core.data_handling.data_queries import RecommenderMethods
-from recommender_core.recommender_algorithms.hybrid.classifier import Classifier
+from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
 
 
 def predict_ratings_for_all_users_store_to_redis():
     recommender_methods = RecommenderMethods()
     all_users_df = recommender_methods.get_users_dataframe()
     classifier = Classifier()
+    print("Loading BERT multilingual model...")
+    bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
     for user_row in zip(*all_users_df.to_dict("list").values()):
         print("user_id:")
         print(user_row[0])
-        classifier.predict_ratings_for_user(user_id=user_row[0])
+        try:
+            classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='thumbs', bert_model=bert)
+        except ValueError:
+            print("Value error occured when trying to get relevant thumbs for user. Skipping "
+                  "this user.")
+            pass
+        try:
+            classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='ratings', bert_model=bert)
+        except ValueError:
+            print("Value error occured when trying to get relevant thumbs for user. Skipping "
+                  "this user.")
+            pass
+
 
 
 def fill_bert_vector_representation(skip_already_filled=True, reversed=False, random_order=False, db="pgsql"):
