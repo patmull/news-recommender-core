@@ -12,7 +12,7 @@ from src.recommender_core.data_handling.data_manipulation import RedisMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 
-class SVM:
+class Classifier:
     """
     Global models = models for all users
     """
@@ -171,7 +171,7 @@ class SVM:
             self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_svc,
                                 bert_model=bert_model)
         else:
-            self.show_predicted_from_vectors(X_unseen_df=X_validation, clf=clf_svc)
+            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc)
         print("=========================")
         print("Results of Random Forest Classifier:")
         print("=========================")
@@ -179,9 +179,9 @@ class SVM:
             self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_random_forest,
                                 bert_model=bert_model)
         else:
-            self.show_predicted_from_vectors(X_unseen_df=X_validation, clf=clf_svc)
+            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc)
 
-    def predict_ratings(self, force_retraining=False, show_only_sample_of=None, user_id=None, experiment_mode=False):
+    def predict_ratings_for_user(self, force_retraining=False, use_only_sample_of=None, user_id=None, experiment_mode=False):
         recommender_methods = RecommenderMethods()
 
         df_posts_categories = recommender_methods.get_posts_categories_dataframe(only_with_bert_vectors=True)
@@ -199,43 +199,42 @@ class SVM:
                 = self.load_classifiers(df=df_posts_users_categories_ratings, input_variables=columns_to_use,
                                         predicted_variable='ratings_values', user_id=user_id)
 
-
         print("=========================")
         print("Results of SVC:")
         print("=========================")
         if experiment_mode is True:
             X_validation = df_posts_categories[columns_to_use]
-            if not type(show_only_sample_of) is None:
-                if type(show_only_sample_of) is int:
-                    X_validation = X_validation.sample(show_only_sample_of)
+            if not type(use_only_sample_of) is None:
+                if type(use_only_sample_of) is int:
+                    X_validation = X_validation.sample(use_only_sample_of)
             print("Loading sentence bert multilingual model...")
             bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
             self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_svc,
                                 bert_model=bert_model)
         else:
             X_validation = df_posts_categories[['slug', 'bert_vector_representation']]
-            if not type(show_only_sample_of) is None:
-                if type(show_only_sample_of) is int:
-                    X_validation = X_validation.sample(show_only_sample_of)
-            self.show_predicted_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id)
+            if not type(use_only_sample_of) is None:
+                if type(use_only_sample_of) is int:
+                    X_validation = X_validation.sample(use_only_sample_of)
+            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id)
         print("=========================")
         print("Results of Random Forest Classifier:")
         print("=========================")
         if experiment_mode is True:
             X_validation = df_posts_categories[columns_to_use]
-            if not type(show_only_sample_of) is None:
-                if type(show_only_sample_of) is int:
-                    X_validation = X_validation.sample(show_only_sample_of)
+            if not type(use_only_sample_of) is None:
+                if type(use_only_sample_of) is int:
+                    X_validation = X_validation.sample(use_only_sample_of)
             print("Loading sentence bert multilingual model...")
             bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
             self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_random_forest,
                                 bert_model=bert_model)
         else:
             X_validation = df_posts_categories[['slug', 'bert_vector_representation']]
-            if not type(show_only_sample_of) is None:
-                if type(show_only_sample_of) is int:
-                    X_validation = X_validation.sample(show_only_sample_of)
-            self.show_predicted_from_vectors(X_unseen_df=X_validation, clf=clf_random_forest, user_id=user_id)
+            if not type(use_only_sample_of) is None:
+                if type(use_only_sample_of) is int:
+                    X_validation = X_validation.sample(use_only_sample_of)
+            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_random_forest, user_id=user_id)
 
     def show_true_vs_predicted(self, features_list, contexts_list, clf, bert_model):
         """
@@ -248,7 +247,7 @@ class SVM:
             print("CONTENT:")
             print(features_combined)
 
-    def show_predicted_from_vectors(self, X_unseen_df, clf, user_id=None, save_testing_csv=False):
+    def predict_from_vectors(self, X_unseen_df, clf, user_id=None, save_testing_csv=False):
         """
         Method for actual live, deployed use. This uses the already filled vectors from PostgreSQL.
         """
@@ -271,13 +270,21 @@ class SVM:
             # remove old records
             r.delete(user_redis_key)
             print("iteration through records:")
+            i = 0
+            # fetch Redis set with a new set of recommended posts
             for row in zip(*df_results.to_dict("list").values()):
                 print(user_redis_key)
                 slug = "" + row[0] + ""
                 print(row[0])
-                # Saving individually to set
-                res = r.sadd(user_redis_key, slug)
-                print(res)
+                print("Predicted value:")
+                print(row[2])
+                # If predicted rating is > 3 stars
+                if row[2] > 3:
+                    # Saving individually to set
+                    res = r.sadd(user_redis_key, slug)
+                    print(res)
+                    print("Inserted record num. " + str(i))
+                    i = i + 1
 
             # TODO: Think whether it wouldn't be more efficient to replace it with some SET operation
             print("Items saved for Redis:")

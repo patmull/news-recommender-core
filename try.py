@@ -13,7 +13,7 @@ print(doc2vec.get_similar_doc2vec(tested_slug, full_text=True))
 """
 
 from src.recommender_core.data_handling.data_manipulation import RedisMethods
-from src.recommender_core.recommender_algorithms.hybrid.classifier import SVM
+from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
 from datetime import datetime
 """
 database = Database()
@@ -22,10 +22,10 @@ print(database.get_posts_users_categories_thumbs().to_string())
 database.disconnect()
 """
 
-
-svm = SVM()
-svm.predict_ratings(show_only_sample_of=20, user_id=371)
-
+"""
+svm = Classifier()
+svm.predict_ratings_for_user(use_only_sample_of=20, user_id=371)
+"""
 
 """
 redis_methods = RedisMethods()
@@ -41,3 +41,5 @@ res = r.sadd(test_value, test_user)
 print(res)
 print(r.smembers(test_value))
 """
+
+predict_ratings_for_all_users

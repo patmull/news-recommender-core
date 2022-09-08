@@ -1,4 +1,4 @@
-from src.core.data_handling.data_queries import RecommenderMethods
+from recommender_core.data_handling.data_queries import RecommenderMethods
 
 
 def get_admin_evaluation_results_dataframe():
