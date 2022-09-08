@@ -517,7 +517,8 @@ class Database:
             sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
             p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
             c.title AS category_title, c.slug AS category_slug, 
-            p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed
+            p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed,
+            p.full_text AS full_text
             FROM posts p
             JOIN ratings r ON r.post_id = p.id
             JOIN users u ON r.user_id = u.id
@@ -526,7 +527,7 @@ class Database:
         else:
             sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
             p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
-            c.title AS category_title, c.slug AS category_slug, 
+            c.title AS category_title, c.slug AS category_slug,
             p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed
             FROM posts p
             JOIN ratings r ON r.post_id = p.id
@@ -627,8 +628,6 @@ class RedisMethods:
 
     def get_redis_connection(self):
         redis_password = os.environ.get('REDIS_PASSWORD')
-        print("redis creds")
-        print(redis_password)
 
         return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com', port=13695, db=0,
                                  username="admin",
