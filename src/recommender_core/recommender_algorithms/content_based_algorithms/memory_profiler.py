@@ -1,3 +1,8 @@
+import cProfile
+import io
+import pstats
+
+
 def profile(fnc):
     # A decorator that uses cProfile to profile a function
 

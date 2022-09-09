@@ -3,7 +3,6 @@ from nltk import RegexpTokenizer
 import majka
 from html2text import html2text
 from src.prefillers.preprocessing.stopwords_loading import load_cz_stopwords, load_general_stopwords
-
 cz_stopwords = load_cz_stopwords()
 general_stopwords = load_general_stopwords()
 
@@ -61,18 +60,6 @@ class CzPreprocess:
 
         return " ".join(edited_words)
 
-    @DeprecationWarning
-    def preprocess_single_post_find_by_slug(self, slug, json=False, stemming=False):
-        # recommender_methods = RecommenderMethods()
-        recommender_methods = None
-        post_dataframe = recommender_methods.find_post_by_slug(slug)
-        post_dataframe["title"] = post_dataframe["title"].map(lambda s: self.preprocess(s, stemming))
-        post_dataframe["excerpt"] = post_dataframe["excerpt"].map(lambda s: self.preprocess(s, stemming))
-        if json is False:
-            return post_dataframe
-        else:
-            return recommender_methods.convert_df_to_json(post_dataframe)
-
     def preprocess_feature(self, feature_text, stemming=False):
         post_excerpt_preprocessed = self.preprocess(feature_text, stemming)
         return post_excerpt_preprocessed
@@ -108,6 +95,8 @@ class CzPreprocess:
                 return str(ls[0]['lemma'])
         else:
             return ls
+        
+    # TODO: Will stemming be supported?
 
 
 def main():

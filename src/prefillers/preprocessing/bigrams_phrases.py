@@ -23,7 +23,7 @@ class BigramPhrases():
         print("Loading stopwords free documents...")
         # using 80% training set
 
-        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_stopwords_free')
+        reader = MongoReader(db_name='idnes', col_name='preprocessed_articles_stopwords_free')
 
         print("Building sentences...")
         sentences = [doc.get('text') for doc in reader.iterate()]

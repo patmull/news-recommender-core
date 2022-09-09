@@ -1,8 +1,8 @@
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 
 def test_all_features_preprocessed_column():
-    database = Database()
+    database = DatabaseMethods()
     database.connect()
     posts = database.get_posts_with_no_all_features_preprocessed()
     database.disconnect()
@@ -10,7 +10,7 @@ def test_all_features_preprocessed_column():
 
 
 def test_body_preprocessed_column():
-    database = Database()
+    database = DatabaseMethods()
     database.connect()
     posts = database.get_posts_with_no_body_preprocessed()
     database.disconnect()
@@ -18,7 +18,7 @@ def test_body_preprocessed_column():
 
 
 def test_keywords_column():
-    database = Database()
+    database = DatabaseMethods()
     database.connect()
     posts = database.get_posts_with_no_keywords()
     database.disconnect()

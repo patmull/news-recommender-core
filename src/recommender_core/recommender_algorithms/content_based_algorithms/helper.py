@@ -8,11 +8,8 @@ from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
 class Helper:
     # helper functions
 
-    def get_id_from_title(self, title, df):
-        return self.df[df.title == title]["row_num"].values[0]
-
     def get_id_from_slug(self, slug, df):
-        return self.df[df.slug == slug]["row_num"].values[0]
+        return df[df.slug == slug]["row_num"].values[0]
 
     def get_title_from_id(self, id, df):
         data_frame_row = df.loc[df['row_num'] == id]

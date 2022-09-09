@@ -4,6 +4,6 @@ prefiller = PreFiller()
 
 while True:
     try:
-        prefiller.prefilling_job("doc2vec", "pgsql", full_text=True, reverse=False, random=True)
+        prefiller.prefilling_job("doc2vec", "pgsql")
     except Exception as e:
         print("Exception occured" + str(e))

@@ -6,7 +6,7 @@ prefiller = PreFiller()
 
 while True:
     try:
-        prefiller.prefilling_job("lda", "pgsql", full_text=False, reverse=False, random=True)
+        prefiller.prefilling_job("lda", "pgsql")
     except Exception as e:
         print("Exception occured " + str(e))
         print(traceback.print_exception(type(e), e, e.__traceback__))

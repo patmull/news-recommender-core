@@ -10,7 +10,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer, C
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
 from research.visualisation.tfidf_visualisation import TfIdfVisualizer
@@ -74,7 +74,7 @@ class TfIdf:
         self.ratings_df = None
         self.categories_df = None
         self.df = None
-        self.database = Database()
+        self.database = DatabaseMethods()
         self.user_categories_df = None
         self.tfidf_tuples = None
         self.tfidf_vectorizer = None
@@ -157,32 +157,6 @@ class TfIdf:
         cosine_sim = cosine_similarity(self.tfidf_tuples)
         cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug_x'], columns=self.df['slug_x'])
         self.cosine_sim_df = cosine_sim_df
-
-    # # @profile
-
-    # @profile
-
-    @DeprecationWarning
-    def get_recommended_posts_for_keywords(self, keywords, data_frame, k=10):
-
-        keywords_list = [keywords]
-        txt_cleaned = get_cleaned_text(self.df,
-                                       self.df['title_x'] + self.df['category_title'] + self.df['keywords'] + self.df[
-                                           'excerpt'])
-        tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
-        tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
-        cosine_similarities = cosine_similarity(tfidf_keywords_input, tfidf).flatten()
-
-        data_frame['coefficient'] = cosine_similarities
-
-        closest = data_frame.sort_values('coefficient', ascending=False)[:k]
-
-        closest.reset_index(inplace=True)
-        closest['index1'] = closest.index
-        closest.columns.name = 'index'
-
-        return closest[["slug_x", "coefficient"]]
-        # return pd.DataFrame(closest).merge(items).head(k)
 
     def prepare_dataframes(self):
         recommender_methods = RecommenderMethods()
@@ -471,3 +445,23 @@ class TfIdf:
         tfidf_visualizer = TfIdfVisualizer()
         tfidf_visualizer.prepare_for_heatmap(tfidf_vectors, text_titles, tfidf_vectorizer)
         tfidf_visualizer.plot_tfidf_heatmap()
+
+    def get_prefilled_full_text(self, slug, variant):
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
+        recommender_methods.get_categories_dataframe()  # load categories to dataframe
+        recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
+
+        found_post = recommender_methods.find_post_by_slug(slug)
+        global column_name
+        if variant == "short-text":
+            # short text (iDNES.cz)
+            column_name = 'recommended_tfidf_full_text'
+        elif variant == "full-text":
+            # full text (iDNES.cz)
+            column_name = 'recommended_tfidf'
+        else:
+            ValueError("No variant is selected from options.")
+        returned_posts = found_post[column_name].iloc[0]
+        print(returned_posts)
+        return returned_posts
