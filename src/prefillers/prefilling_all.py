@@ -2,7 +2,7 @@ import traceback
 
 from prefillers.prefilling_hybrid_methods import fill_bert_vector_representation
 from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import PreFiller
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.prefilling_additional import PreFillerAdditional
 
@@ -34,7 +34,7 @@ def run_prefilling():
 
     print("Check needed columns posts...")
 
-    database = Database()
+    database = DatabaseMethods()
     columns_needing_prefill = check_needed_columns(database)
 
     if len(columns_needing_prefill) > 0:

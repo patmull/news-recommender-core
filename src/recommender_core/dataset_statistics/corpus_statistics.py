@@ -104,6 +104,7 @@ class CorpusStatistics:
         result_df['stopwords_removal'] = stopwords_removal
         """
         print(result_df)
+        # noinspection PyTypeChecker
         result_df.to_csv("research/corpus_stats/corpus_overall_stats_idnes.csv")
 
 

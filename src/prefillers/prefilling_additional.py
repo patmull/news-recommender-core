@@ -4,7 +4,7 @@ import random
 import pandas as pd
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import CzPreprocess
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 
 class PreFillerAdditional:
@@ -12,7 +12,7 @@ class PreFillerAdditional:
     # universal common method
     # TODO:
     def fill_preprocessed(self, column_for_prefilling, skip_already_filled, reversed, random_order, db="pgsql"):
-        database = Database()
+        database = DatabaseMethods()
         if skip_already_filled is False:
             pandas_df = pd.DataFrame()
             posts = database.get_all_posts()
@@ -97,7 +97,7 @@ class PreFillerAdditional:
                                                         random_order=random_order)
 
     def fill_body_preprocessed(self, skip_already_filled, reversed, random_order, db="pgsql"):
-        database = Database()
+        database = DatabaseMethods()
         if skip_already_filled is False:
             posts = database.get_all_posts()
         else:
@@ -163,7 +163,7 @@ class PreFillerAdditional:
         pass
 
     def fill_all_features_preprocessed(self, skip_already_filled, reversed, random_order, db="pgsql"):
-        database = Database()
+        database = DatabaseMethods()
         if skip_already_filled is False:
             posts = database.get_all_posts()
         else:
@@ -204,7 +204,7 @@ class PreFillerAdditional:
                         print("preprocessed_text:")
                         print(preprocessed_text)
 
-                        database.insert_preprocessed_combined(preprocessed_body=preprocessed_text, article_id=post_id)
+                        database.insert_preprocessed_combined()
                     else:
                         raise NotImplementedError
                 else:
