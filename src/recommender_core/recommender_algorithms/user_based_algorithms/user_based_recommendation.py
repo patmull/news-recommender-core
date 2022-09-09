@@ -1,7 +1,7 @@
 import json
 
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 
 def load_user_keywords(user_id):
@@ -44,12 +44,13 @@ class UserBasedRecommendation:
 
         # EXTRACT RESULTS FROM CURSOR
         recommender_methods = RecommenderMethods()
-        posts_users_categories_ratings_df = recommender_methods.get_posts_users_categories_ratings_df()
+        posts_users_categories_ratings_df = recommender_methods.get_posts_users_categories_ratings_df(
+            only_with_bert_vectors=True)
         return posts_users_categories_ratings_df
 
     # loads posts for user based on his id and favourite categories
     def load_recommended_posts_for_user(self, user_id, num_of_recommendations=5):
-        self.database = Database()
+        self.database = DatabaseMethods()
         df_posts_users_of_categories = self.load_ratings()[self.load_ratings()
             .category_slug.isin(self.load_user_categories(user_id)['category_slug'].tolist())]
         df_filter_current_user = df_posts_users_of_categories[df_posts_users_of_categories
@@ -60,6 +61,9 @@ class UserBasedRecommendation:
         print("df_sorted_results[['post_slug']]")
         print(df_sorted_results[['post_id', 'post_slug']])
         return convert_to_json(df_sorted_results.head(num_of_recommendations))
+
+    def get_user_keywords(self, user_id):
+        pass
 
 
 def main():

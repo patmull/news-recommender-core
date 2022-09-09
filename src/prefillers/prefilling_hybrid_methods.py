@@ -4,7 +4,7 @@ import time
 
 import spacy_sentence_bert
 
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
 
@@ -36,7 +36,7 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed=False, ra
     print("Loading sentence bert multilingual model...")
     bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
 
-    database = Database()
+    database = DatabaseMethods()
     if skip_already_filled is False:
         database.connect()
         posts = database.get_all_posts()

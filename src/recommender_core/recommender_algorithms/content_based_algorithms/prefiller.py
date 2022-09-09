@@ -9,7 +9,7 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_si
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
@@ -30,8 +30,8 @@ class PreFiller:
 
     def fill_recommended(self, method, skip_already_filled, full_text=True, random_order=False, reversed=False):
 
-        global d2v_model, path_to_folder, source, w2v_model
-        database = Database()
+        global d2v_model, path_to_folder, source, w2v_model, docsim_index, dictionary, selected_model_name, docsim_index, dictionary
+        database = DatabaseMethods()
         if skip_already_filled is False:
             posts = database.get_all_posts()
         else:
@@ -52,18 +52,26 @@ class PreFiller:
 
         if method.startswith("word2vec"):
             if method == "word2vec_eval_idnes_1":
+                selected_model_name = "idnes_1"
+                model_name = "idnes"
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
             elif method == "word2vec_eval_idnes_2":
+                selected_model_name = "idnes_2"
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_2_default_parameters/"
             elif method == "word2vec_eval_idnes_3":
+                selected_model_name = "idnes_3"
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
             elif method == "word2vec_eval_idnes_4":
+                selected_model_name = "idnes_4"
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
             elif method == "word2vec_limited_fasttext":
+                selected_model_name = "fasttext_limited"
                 path_to_folder = "full_models/cswiki/word2vec_fassttext_model/"
             elif method == "word2vec_limited_fasttext_full_text":
+                selected_model_name = "fasttext_full_text"
                 path_to_folder = "full_models/cswiki/word2vec_fassttext_full_text_model/"
             elif method == "word2vec_eval_cswiki_1":
+                selected_model_name = "cswiki"
                 path_to_folder = "full_models/cswiki/evaluated_models/word2vec_model_cswiki_1/"
             else:
                 path_to_folder = None
@@ -84,7 +92,7 @@ class PreFiller:
                 ValueError("Wrong doc2vec_model name chosen.")
 
             ds = DocSim(w2v_model)
-            docsim_index, dictionary = ds.load_docsim_index_and_dictionary(source=source, model=model)
+            docsim_index, dictionary = ds.load_docsim_index_and_dictionary(source=source, model_name=selected_model_name)
         elif method.startswith("doc2vec"):
             if method == "doc2vec_eval_cswiki_1":
                 path_to_folder = "full_models/cswiki/evaluated_models/doc2vec_model_cswiki_1/"
@@ -155,17 +163,20 @@ class PreFiller:
                             tfidf = TfIdf()
                             actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
                         elif method == "word2vec":
+                            if docsim_index is None:
+                                raise ValueError("DocSim index is not set.")
+                            if dictionary is None:
+                                raise ValueError("Dictionary is not set")
                             word2vec = Word2VecClass()
                             path_to_model = "models/w2v_model_limited"
                             w2v_model = KeyedVectors.load(path_to_model)
-                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model=w2v_model,
+                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+                                                                                    model_name=w2v_model,
                                                                                     docsim_index=docsim_index,
-                                                                                    dictionary=dictionary, docsim=ds)
+                                                                                    dictionary=dictionary)
                         elif method == "doc2vec":
                             doc2vec = Doc2VecClass()
-                            actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug,
-                                                                                  doc2vec_model=d2v_model,
-                                                                                  source=source)
+                            actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug)
                         elif method == "lda":
                             lda = Lda()
                             actual_recommended_json = lda.get_similar_lda(slug)
@@ -178,11 +189,7 @@ class PreFiller:
                                 slug)
                         elif method == "word2vec":
                             word2vec = Word2VecClass()
-                            actual_recommended_json = word2vec.get_similar_word2vec_full_text(searched_slug=slug,
-                                                                                              model=w2v_model,
-                                                                                              docsim_index=docsim_index,
-                                                                                              dictionary=dictionary,
-                                                                                              docsim=ds)
+                            actual_recommended_json = word2vec.get_similar_word2vec_full_text(searched_slug=slug)
                         elif method == "doc2vec":
                             doc2vec = Doc2VecClass()
                             actual_recommended_json = doc2vec.get_similar_doc2vec_with_full_text(slug)
@@ -191,44 +198,42 @@ class PreFiller:
                             actual_recommended_json = lda.get_similar_lda_full_text(slug)
                         elif method == "word2vec_eval_idnes_1":
                             word2vec = Word2VecClass()
-                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model=w2v_model,
+                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model_name=w2v_model,
                                                                                     docsim_index=docsim_index,
-                                                                                    dictionary=dictionary, docsim=ds)
+                                                                                    dictionary=dictionary)
                         elif method == "word2vec_eval_idnes_2":
                             word2vec = Word2VecClass()
-                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model=w2v_model,
+                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model_name=w2v_model,
                                                                                     docsim_index=docsim_index,
-                                                                                    dictionary=dictionary, docsim=ds)
+                                                                                    dictionary=dictionary)
                         elif method == "word2vec_eval_idnes_3":
                             word2vec = Word2VecClass()
-                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model=w2v_model,
+                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model_name=w2v_model,
                                                                                     docsim_index=docsim_index,
-                                                                                    dictionary=dictionary, docsim=ds)
+                                                                                    dictionary=dictionary)
                         elif method == "word2vec_eval_idnes_4":
                             word2vec = Word2VecClass()
-                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model=w2v_model,
+                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model_name=w2v_model,
                                                                                     docsim_index=docsim_index,
-                                                                                    dictionary=dictionary, docsim=ds)
+                                                                                    dictionary=dictionary)
                         elif method == "word2vec_fasttext":
                             word2vec = Word2VecClass()
-                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model=w2v_model,
+                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model_name=w2v_model,
                                                                                     docsim_index=docsim_index,
-                                                                                    dictionary=dictionary, docsim=ds)
+                                                                                    dictionary=dictionary)
                         elif method == "word2vec_fasttext_full_text":
                             word2vec = Word2VecClass()
-                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model=w2v_model,
+                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model_name=w2v_model,
                                                                                     docsim_index=docsim_index,
-                                                                                    dictionary=dictionary, docsim=ds)
+                                                                                    dictionary=dictionary)
                         elif method == "word2vec_eval_cswiki_1":
                             word2vec = Word2VecClass()
-                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model=w2v_model,
+                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug, model_name=w2v_model,
                                                                                     docsim_index=docsim_index,
-                                                                                    dictionary=dictionary, docsim=ds)
+                                                                                    dictionary=dictionary)
                         elif method == "doc2vec_eval_cswiki_1":
                             doc2vec = Doc2VecClass()
-                            actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug,
-                                                                                  doc2vec_model=d2v_model,
-                                                                                  source=source)
+                            actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug)
                         else:
                             actual_recommended_json = None
                     if len(actual_recommended_json) == 0:

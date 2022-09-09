@@ -8,25 +8,23 @@ import numpy as np
 import redis
 import pandas as pd
 
-from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 
 from xgboost import XGBRegressor
 from lightgbm import LGBMRanker
 
+from research.hybrid.learn_to_rank import recommend_posts
 from src.recommender_core.recommender_algorithms.hybrid import evaluation_results
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
 from sklearn.linear_model import LogisticRegression
 
-import optuna
-import seaborn
 
 """
 from dask.distributed import Client
@@ -51,6 +49,14 @@ class LightGBM:
     svd = SvdClass()
 
     feature_list = []
+
+    def __init__(self):
+        self.features = None
+        self.test_query = None
+        self.test = None
+        self.train_query = None
+        self.target_col = None
+        self.train = None
 
     def get_user_keywords_based(self, tfidf, user_id):
         recommender_methods = RecommenderMethods()
@@ -219,7 +225,7 @@ class LightGBM:
         return merged_df
 
     def recommend_for_user(self, user, k, sample_anime_num):
-        database = Database()
+        database = DatabaseMethods()
         posts_df = database.get_posts_dataframe_from_sql()
         pred_df = posts_df.sample(sample_anime_num).reset_index(drop=True)  # sample recommend candidates
         results_df = self.get_results_single_coeff_user_as_query()
@@ -233,7 +239,7 @@ class LightGBM:
         pred_df = self.make_post_feature(pred_df)
 
         # recommend
-        model = self.recommend_posts()
+        model = recommend_posts()
         preds = model.predict(pred_df[self.features])
         topk_idx = np.argsort(preds)[::-1][:k]
         recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
@@ -250,56 +256,6 @@ class LightGBM:
 
         return recommend_df
 
-
-    def recommend_posts(self):
-        self.features = ['coefficient', 'rating_count', 'rating_mean']
-
-        df_results = self.get_results_single_coeff_user_as_query()
-
-        train, test = train_test_split(df_results, test_size=0.2, random_state=SEED)
-        print('train shape: ', train.shape)
-        print('tests shape: ', test.shape)
-        user_col = 'user_id'
-        item_col = 'slug'
-        self.target_col = 'relevance'
-        self.train = train.sort_values('user_id').reset_index(drop=True)
-        self.test = test.sort_values('user_id').reset_index(drop=True)
-        # model query data
-        self.train_query = train[user_col].value_counts().sort_index()
-        self.test_query = test[user_col].value_counts().sort_index()
-
-        study = optuna.create_study(direction='maximize',
-                                    sampler=optuna.samplers.TPESampler(seed=SEED)  # fix random_order seed
-                                    )
-        study.optimize(self.objective, n_trials=10)
-
-        print('Number of finished trials:', len(study.trials))
-        print('Best trial:', study.best_trial.params)
-
-        best_params = study.best_trial.params
-        model = LGBMRanker(n_estimators=1000, **best_params, random_state=SEED, )
-        model.fit(
-            train[self.features],
-            train[self.target_col],
-            group=self.train_query,
-            eval_set=[(test[self.features], test[self.target_col])],
-            eval_group=[list(self.test_query)],
-            eval_at=[1, 3, 5, 10, 20],
-            early_stopping_rounds=50,
-            verbose=10
-        )
-
-        TOP_N = 20
-        model.predict(test.iloc[:TOP_N][self.features])
-
-        # feature imporance
-        plt.figure(figsize=(10, 7))
-        df_plt = pd.DataFrame({'feature_name': self.features, 'feature_importance': model.feature_importances_})
-        df_plt.sort_values('feature_importance', ascending=False, inplace=True)
-        seaborn.barplot(x="feature_importance", y="feature_name", data=df_plt)
-        plt.title('feature importance')
-
-        return model
 
     def preprocess_one_hot(self, df, one_hot_encoder, num_cols, cat_cols):
         df = df.copy()
@@ -617,14 +573,17 @@ class LightGBM:
         """
 
     def get_posts_df(self):
-        database = Database()
+        database = DatabaseMethods()
         posts_df = database.get_posts_dataframe()
         return posts_df
 
     def get_categories_df(self):
-        database = Database()
+        database = DatabaseMethods()
         posts_df = database.get_categories_dataframe()
         return posts_df
+
+    def recommend_posts(self):
+        pass
 
 
 class LearnToRank:
@@ -678,7 +637,8 @@ class LearnToRank:
         print("tfidf_all_posts")
         print(tfidf_all_posts)
 
-        user_keywords = user_based_recommendation.get_user_keywords(user_id)
+        recommender_methods = RecommenderMethods()
+        user_keywords = recommender_methods.get_user_keywords(user_id)
         keyword_list = user_keywords['keyword_name'].tolist()
         tfidf_keywords = ''
         if len(keyword_list) > 0:

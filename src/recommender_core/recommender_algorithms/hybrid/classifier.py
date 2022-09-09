@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score
 from src.recommender_core.data_handling.data_manipulation import RedisMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
-import logging, sys
+import logging
 
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
@@ -167,39 +167,6 @@ class Classifier:
 
         return clf_svc, clf_random_forest
 
-    @DeprecationWarning
-    def predict_thumbs(self, user_id=None, force_retraining=False, experiment_mode=False):
-        recommender_methods = RecommenderMethods()
-        df_posts_categories = recommender_methods.get_posts_categories_dataframe(only_with_bert_vectors=True)
-        df_posts_users_categories_thumbs = recommender_methods.get_posts_users_categories_thumbs_df(user_id)
-        columns_to_use = ['category_title', 'all_features_preprocessed']
-
-        if force_retraining is True:
-            clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
-                = self.train_classifiers(df=df_posts_users_categories_thumbs, columns_to_combine=columns_to_use,
-                                         target_variable_name='thumbs_values')
-        else:
-            clf_svc, clf_random_forest = self.load_classifiers(df=df_posts_categories, input_variables=columns_to_use,
-                                                               predicted_variable='thumbs_values')
-
-        X_validation = df_posts_categories['bert_vector_representation']
-
-        logging.debug("=========================")
-        logging.debug("Results of SVC:")
-        logging.debug("=========================")
-        if experiment_mode is True:
-            self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_svc,
-                                bert_model=bert_model)
-        else:
-            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc)
-        logging.debug("=========================")
-        logging.debug("Results of Random Forest Classifier:")
-        logging.debug("=========================")
-        if experiment_mode is True:
-            self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_use, clf=clf_random_forest,
-                                bert_model=bert_model)
-        else:
-            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc)
 
     def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
                                    experiment_mode=False, only_with_bert_vectors=True, bert_model=None):
@@ -313,6 +280,7 @@ class Classifier:
         # TODO: Takes a lot of time... Probably pre-calculate.
         logging.debug("X_unseen_df:")
         logging.debug(X_unseen_df)
+
         logging.debug("Loading vectors or creating new if does not exists...")
         y_pred_unseen = X_unseen_df\
             .apply(lambda x: clf
@@ -324,6 +292,7 @@ class Classifier:
         y_pred_unseen = y_pred_unseen.rename('prediction')
         df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
         if save_testing_csv is True:
+            # noinspection PyTypeChecker
             df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
 
         if user_id is not None:
@@ -376,4 +345,5 @@ class Classifier:
         df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
         logging.debug(df_results.head(20))
         if save_testing_csv is True:
+            # noinspection PyTypeChecker
             df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')

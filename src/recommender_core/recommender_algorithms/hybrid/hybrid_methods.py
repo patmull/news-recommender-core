@@ -2,12 +2,10 @@ import ast
 import gc
 import json
 import pickle
-import traceback
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import pytest
 from sklearn.preprocessing import OneHotEncoder
 
 from research.relevance_statistics import models_complete_statistics
@@ -62,6 +60,8 @@ class HybridRecommendation:
             raise ValueError("No from selected variants matches available options.")
 
         tfidf = TfIdf()
+        recommender_methods = RecommenderMethods()
+        # TODO: Fix this
         tf_idf_results = tfidf.get_prefilled_full_text(slug=slug, variant=variant)
 
         tf_idf_results = ast.literal_eval(tf_idf_results)
@@ -89,8 +89,8 @@ class HybridRecommendation:
         else:
             ValueError("No variant selected matches available options.")
 
-        word2vec_results = Word2VecClass()
-        word2vec_results = word2vec_results.get_prefilled_full_text(slug, variant)
+        word2vec = Word2VecClass()
+        word2vec_results = word2vec.get_prefilled_full_text(slug, variant)
         word2vec_results = ast.literal_eval(word2vec_results)
         json_data = json.loads(json.dumps(word2vec_results))
         word2vec_results = pd.json_normalize(json_data)
@@ -134,8 +134,6 @@ class HybridRecommendation:
         print("lda_results:")
         print(lda_results)
 
-        recommender_methods = RecommenderMethods()
-        relevance_results = recommender_methods.get_relevance_results_dataframe()
         recommender_methods = RecommenderMethods()
         relevance_results = recommender_methods.get_relevance_results_dataframe()
         print("Relevance results:")
@@ -357,11 +355,15 @@ class HybridRecommendation:
         else:
             result = final_df.to_json(orient="records")
             parsed = json.loads(result)
+
+            # TODO: Try if this variant works better:
+            # return final_df.head(num_of_recommended).to_json(orient='records')
             return json.dumps(parsed, indent=4)
-            return final_df.head(num_of_recommended).to_json(orient='records')
+
 
     def get_posts_lightgbm(self, results, use_categorical_columns=True):
 
+        global one_hot_encoder, categorical_columns_after_encoding
         lightgbm = LightGBM()
 
         consider_only_top_limit = 20

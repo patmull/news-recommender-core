@@ -1,5 +1,5 @@
-from src.recommender_core.recommender_algorithms.content_based_algorithms import Doc2VecClass
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.prefillers.prefilling_all import prepare_and_run
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 
@@ -9,11 +9,12 @@ def try_word2vec_recommendation_prefiller(database, method, full_text, reverse, 
 
 
 def try_prefillers():
-    database = Database()
+    database = DatabaseMethods()
     method = "word2vec"
     reverse = True
     random = False
-    try_word2vec_recommendation_prefiller(database=database, method=method, full_text=False, reverse=reverse, random=random)
+    try_word2vec_recommendation_prefiller(database=database, method=method, full_text=False,
+                                          reverse=reverse, random=random)
 
 
 # try_prefillers()
