@@ -4,7 +4,7 @@ import operator
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
@@ -24,14 +24,14 @@ class SvdClass:
         self.user_item_table = None  # = R_df_
 
     def get_all_users_ids(self):
-        database = Database()
+        database = DatabaseMethods()
         sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
         # LOAD INTO A DATAFRAME
         self.df_users = pd.read_sql_query(sql_select_all_users, database.get_cnx())
         return self.df_users
 
     def get_user_item_from_db(self):
-        database = Database()
+        database = DatabaseMethods()
         # Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
@@ -55,7 +55,7 @@ class SvdClass:
         return R_demeaned
 
     def get_average_post_rating(self):
-        database = Database()
+        database = DatabaseMethods()
         ##Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
@@ -105,6 +105,7 @@ class SvdClass:
         all_posts_df.to_csv("exports/all_posts_df.csv")
         df_ratings_means.to_csv("exports/df_ratings_means.csv")
         all_posts_df_means = pd.merge(all_posts_df, df_ratings_means, left_index=True, right_index=True, how="left")
+        # noinspection PyTypeChecker
         all_posts_df_means.to_csv("exports/all_posts_df_means.csv")
         print("all_posts_df_means.columns")
         print(all_posts_df_means.columns)

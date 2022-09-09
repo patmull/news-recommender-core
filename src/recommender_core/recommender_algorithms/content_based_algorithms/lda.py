@@ -25,7 +25,7 @@ from gensim.models import LdaModel, CoherenceModel
 from scipy.stats import entropy
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import Helper
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.prefillers.preprocessing import cz_preprocessing
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
 from src.recommender_core.dataset_statistics.corpus_statistics import CorpusStatistics
@@ -39,29 +39,7 @@ class Lda:
         self.df = None
         self.posts_df = None
         self.categories_df = None
-        self.database = Database()
-
-    @DeprecationWarning
-    def join_posts_ratings_categories(self):
-        self.get_categories_dataframe()
-        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-        # clean up from unnecessary columns
-        self.df = self.df[
-            ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-             'all_features_preprocessed', 'body_preprocessed']]
-        return self.df
-
-    @DeprecationWarning
-    def get_categories_dataframe(self):
-        self.categories_df = self.database.get_categories_dataframe()
-        return self.categories_df
-
-    @DeprecationWarning
-    def get_posts_dataframe(self):
-        # self.database.insert_posts_dataframe_to_cache()  # uncomment for UPDATE of DB records
-        self.posts_df = self.database.get_posts_dataframe_from_database()
-        self.posts_df.drop_duplicates(subset=['title'], inplace=True)
-        return self.posts_df
+        self.database = DatabaseMethods()
 
     def apply_tokenize(self, text):
         print("text")
@@ -246,13 +224,8 @@ class Lda:
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus_idnes.pkl', 'rb'))
         except Exception as e:
-            print("Could not load_texts LDA models or precalculated vectors. Reason:")
+            raise Exception("Could not load_texts LDA models or precalculated vectors. Reason:")
             print(e)
-            self.train_lda(data)
-
-            lda_model = LdaModel.load("models/lda_model")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus_idnes.pkl', 'rb'))
 
         return dictionary, corpus, lda_model
 
@@ -262,7 +235,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'))
         dictionary.save('precalc_vectors/dictionary_idnes.gensim')
 
-    def load_lda_full_text(self, data, display_dominant_topics, training_now=False, retrain=False, ):
+    def load_lda_full_text(self, data, display_dominant_topics):
 
         try:
             lda_model = LdaModel.load("models/lda_model_full_text")
@@ -286,76 +259,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
-    @PendingDeprecationWarning
-    def train_lda(self, data, display_dominant_topics=False):
-        data_words_nostops = remove_stopwords(data['tokenized'])
-        data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
-
-        self.df.assign(tokenized=data_words_bigrams)
-
-        dictionary = corpora.Dictionary(data['tokenized'])
-        dictionary.filter_extremes()
-        corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-        num_topics = 100 # set according visualise_lda() method (Coherence value) = 100
-        chunksize = 1000
-        iterations = 200
-        passes = 20 # evaluated on 20
-        t1 = time.time()
-
-        # low alpha means each document is only represented by a small number of topics, and vice versa
-        # low eta means
-        # each topic is only represented by a small number of words, and vice versa
-
-        print("LDA training...")
-        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.0,
-                             chunksize=chunksize, eta='auto', alpha='auto',
-                             passes=passes)
-        t2 = time.time()
-        print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
-
-        # native gensim method (abandoned due to not storing to single file like it should with separately=[] option)
-        lda_model.save("models/lda_model")
-        # pickle.dump(lda_model_local, open("lda_all_in_one", "wb"))
-        print("Model Saved")
-        # lda_model = LdaModel.load_texts("models/lda_model")
-        # lda_model_local = pickle.load_texts(smart_open.smart_open("lda_all_in_one"))
-        self.get_posts_dataframe()
-        self.join_posts_ratings_categories()
-
-        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-        self.df['tokenized'] = self.df.apply(
-            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
-            axis=1)
-        self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized']
-        all_words = [word for item in list(self.df["tokenized"]) for word in item]
-
-        top_k_words, _ = CorpusStatistics.most_common_words(all_words)
-
-        self.top_k_words = set(top_k_words)
-
-        self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
-
-        minimum_amount_of_words = 2
-        self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
-        # make sure all tokenized items are lists
-        self.df = self.df[self.df['tokenized'].map(type) == list]
-        self.df.reset_index(drop=True, inplace=True)
-        print("After cleaning and excluding short aticles, the dataframe now has:", len(self.df), "articles")
-
-        self.save_corpus_dict(corpus, dictionary)
-
-        lda = lda_model.load("models/lda_model")
-        doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
-        print("np.save")
-        # save doc_topic_dist
-        # https://stackoverflow.com/questions/9619199/best-way-to-preserve-numpy-arrays-on-disk
-        np.save('precalc_vectors/lda_doc_topic_dist.npy',
-                doc_topic_dist)  # IndexError: index 14969 is out of bounds for axis 1 with size 14969
-        print("LDA model and documents topic distribution saved")
-
     def train_lda_full_text(self, data, display_dominant_topics=True, lst=None):
-
 
         data_words_nostops = remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
@@ -571,7 +475,7 @@ class Lda:
         processed_data = self.build_bigrams_and_trigrams(data_words_nostops)
         print("Creating dictionary...")
         print("TOP WORDS (after bigrams and stopwords removal):")
-        top_k_words, _ = CorpusStatistics.most_common_words(processed_data)
+        top_k_words, _ = CorpusStatistics.most_common_words()
         preprocessed_dictionary = corpora.Dictionary(processed_data)
         print("Saving dictionary...")
         preprocessed_dictionary.save("full_models/cswiki/lda/preprocessed/dictionary")
@@ -666,6 +570,7 @@ class Lda:
                                 model_results['Iterations'].append(iterations)
 
                                 pbar.update(1)
+                                # noinspection PyTypeChecker
                                 pd.DataFrame(model_results).to_csv('lda_tuning_results.csv', index=False, mode="a")
                                 print("Saved training results...")
         pbar.close()
@@ -739,7 +644,7 @@ class Lda:
         df_dominant_topics = pd.concat([topic_num_keywords, topic_counts, topic_contribution], axis=1)
         # Change Column names
         df_dominant_topics.columns = ['Dominant_Topic', 'Topic_Keywords', 'Num_Documents', 'Perc_Documents']
-
+        # noinspection PyTypeChecker
         df_dominant_topics.to_csv("exports/dominant_topics.csv", sep=';', encoding='iso8859_2', errors='replace')
         print("Results saved to csv")
 
@@ -844,6 +749,7 @@ class Lda:
         print("Saving to CSV...")
         if pandas is True:
             my_df = pd.DataFrame(list_to_save)
+            # noinspection PyTypeChecker
             my_df.to_csv('full_models/cswiki/lda/preprocessed/preprocessed_articles.csv', index=False, header=False)
         else:
             with open("full_models/cswiki/lda/preprocessed/preprocessed_articles.csv", "w", newline="", encoding="utf-8") as f:

@@ -1,14 +1,14 @@
 import os
 from unittest.mock import patch, call
 
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 import random
 
 method_options = ["tfidf", "word2vec", "doc2vec", "lda"]
 full_text_options = [True, False]
 random_reverse_options = [True, False]
 
-database = Database()
+database = DatabaseMethods()
 
 
 # python -m pytest .\tests\test_prefillers_methods.py::ConnectionTest::test_db_connection
@@ -54,7 +54,7 @@ class TestPrefillers:
                    is True
 
     def not_prefilled_retriaval(self, method, full_text):
-        database = Database()
+        database = DatabaseMethods()
         database.connect()
         not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)
         database.disconnect()
