@@ -242,7 +242,11 @@ class Classifier:
             self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_random_forest,
                                 bert_model=bert_model)
         else:
-            columns_to_select = columns_to_combine.append(['slug', 'bert_vector_representation'])
+            columns_to_select = columns_to_combine + ['slug', 'bert_vector_representation']
+            print("columns_to_select:")
+            print(columns_to_select)
+            print("df_posts_categories.columns:")
+            print(df_posts_categories.columns)
             X_validation = df_posts_categories[columns_to_select]
             if not type(use_only_sample_of) is None:
                 if type(use_only_sample_of) is int:
@@ -289,8 +293,8 @@ class Classifier:
             .apply(lambda x: clf
                    .predict(pickle
                             .loads(x['bert_vector_representation']))[0]
-        if pd.notnull(x['bert_vector_representation'])
-        else clf.predict(bert_model(' '.join(x[col_to_combine])).vector.reshape(1, -1))[0])
+        if pd.notnull(x.bert_vector_representation)
+        else clf.predict(bert_model(' '.join(x[col_to_combine])).vector.reshape(1, -1))[0], axis=1)
 
         y_pred_unseen = y_pred_unseen.rename('prediction')
         print(y_pred_unseen.head(20))
