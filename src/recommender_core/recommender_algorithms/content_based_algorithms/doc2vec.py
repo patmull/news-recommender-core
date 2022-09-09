@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import Helper
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 DEFAULT_MODEL_LOCATION = "models/d2v_limited.model"
 
@@ -28,7 +28,7 @@ class Doc2VecClass:
         self.df = None
         self.posts_df = None
         self.categories_df = None
-        self.database = Database()
+        self.database = DatabaseMethods()
         self.doc2vec_model = None
 
     def prepare_posts_df(self):
@@ -91,7 +91,7 @@ class Doc2VecClass:
         recommender_methods = RecommenderMethods()
 
         if searched_slug not in recommender_methods.get_posts_dataframe()['slug'].to_list():
-            self.df = recommender_methods.get_posts_categories_dataframe(force_update=True)
+            self.df = recommender_methods.get_posts_categories_dataframe()
         else:
             self.df = recommender_methods.get_posts_categories_dataframe()
         print("self.df")
@@ -193,7 +193,7 @@ class Doc2VecClass:
                 pass
         recommender_methods = RecommenderMethods()
         if searched_slug not in recommender_methods.get_posts_dataframe()['slug'].to_list():
-            self.df = recommender_methods.get_posts_categories_dataframe(force_update=True)
+            self.df = recommender_methods.get_posts_categories_dataframe()
         else:
             self.df = recommender_methods.get_posts_categories_dataframe()
 
@@ -547,6 +547,7 @@ class Doc2VecClass:
             else:
                 raise ValueError("Source does not matech available options.")
 
+            # noinspection PyTypeChecker
             pd.DataFrame(model_results).to_csv(saved_file_name, index=False,
                                                mode="w")
 
@@ -782,3 +783,23 @@ class Doc2VecClass:
         pd.DataFrame(model_results).to_csv(final_results_file_name, index=False,
                                            mode="w")
         print("Saved training results...")
+
+    # TODO: get into common method (possibly data_queries)
+    def get_prefilled_full_text(self, slug, variant):
+        global column_name
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
+        recommender_methods.get_categories_dataframe()  # load categories to dataframe
+        recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
+
+        found_post = recommender_methods.find_post_by_slug(slug)
+
+        if variant == "idnes_short_text":
+            column_name = 'recommended_doc2vec'
+        elif variant == "idnes_full_text":
+            column_name = 'recommended_doc2vec_full_text'
+        elif variant == "wiki_eval_1":
+            column_name = 'recommended_doc2vec_wiki_eval_1'
+
+        returned_post = found_post[column_name].iloc[0]
+        return returned_post

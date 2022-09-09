@@ -7,7 +7,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import Helper
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 
 class CosineTransformer:
@@ -17,7 +17,7 @@ class CosineTransformer:
         self.count_matrix = None
         self.similar_articles = None
         self.sorted_similar_articles = None
-        self.database = Database()
+        self.database = DatabaseMethods()
         self.helper = Helper()
         self.posts_df = None
 
@@ -70,6 +70,7 @@ class CosineTransformer:
 
     ## Step 6: Get id of this article from its title
 
+    @DeprecationWarning
     def article_user_likes(self, slug):
         helper = Helper()
         article_id = helper.get_id_from_slug(slug, self.posts_df)
