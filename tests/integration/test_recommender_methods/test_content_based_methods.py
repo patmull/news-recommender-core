@@ -2,7 +2,7 @@ import pytest
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
 
@@ -29,7 +29,7 @@ def test_tfidf_method_bad_input(tested_input):
 def test_tfidf_method():
     tfidf = TfIdf()
     # random_order article
-    database = Database()
+    database = DatabaseMethods()
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
     random_post_slug = random_post['slug'].iloc[0]
@@ -96,7 +96,7 @@ def test_doc2vec_method_bad_input(tested_input):
 def test_doc2vec_method():
     doc2vec = Doc2VecClass()
     # random_order article
-    database = Database()
+    database = DatabaseMethods()
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
     random_post_slug = random_post['slug'].iloc[0]
@@ -162,7 +162,7 @@ def test_tfidf_full_text_method_bad_input(tested_input):
 def test_tfidf_full_text_method():
     tfidf = TfIdf()
     # random_order article
-    database = Database()
+    database = DatabaseMethods()
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
     random_post_slug = random_post['slug'].iloc[0]
@@ -200,7 +200,7 @@ def test_doc2vec_full_text_method_bad_inputs(tested_input):
 def test_doc2vec_full_text_method():
     doc2vec = Doc2VecClass()
     # random_order article
-    database = Database()
+    database = DatabaseMethods()
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
     random_post_slug = random_post['slug'].iloc[0]

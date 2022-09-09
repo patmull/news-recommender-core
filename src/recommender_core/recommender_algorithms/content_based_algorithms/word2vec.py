@@ -52,7 +52,7 @@ class MyCorpus(object):
 
     def __iter__(self):
         print("Loading bigrams from preprocessed articles...")
-        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_bigrams')
+        reader = MongoReader(db_name='idnes', col_name='preprocessed_articles_bigrams')
         print("Creating Doc2Bow...")
         i = 1
         for doc in reader.iterate():
@@ -105,7 +105,7 @@ def build_bigrams_and_trigrams(force_update=False):
         print("Loading stopwords free documents...")
         # using 80% training set
 
-        reader = MongoReader(dbName='idnes', collName='preprocessed_articles_stopwords_free')
+        reader = MongoReader(db_name='idnes', col_name='preprocessed_articles_stopwords_free')
 
         print("Building sentences...")
         sentences = [doc.get('text') for doc in reader.iterate()]
@@ -426,7 +426,7 @@ class Word2VecClass:
         self.w2v_model = None
 
     # @profile
-    def get_similar_word2vec(self, searched_slug, model=None, docsim_index=None, dictionary=None,
+    def get_similar_word2vec(self, searched_slug, model_name=None, docsim_index=None, dictionary=None,
                              force_update_data=False):
 
         if type(searched_slug) is not str:
@@ -489,7 +489,7 @@ class Word2VecClass:
         # https://github.com/v1shwa/document-similarity with my edits
 
         global most_similar_articles_with_scores
-        if model == "wiki":
+        if model_name == "wiki":
             source = "cswiki"
             w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
             print("Similarities on Wikipedia.cz model:")
@@ -497,17 +497,17 @@ class Word2VecClass:
             most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
                                                                                           list_of_document_features)[
                                                 :21]
-        elif model.startswith("idnes_"):
+        elif model_name.startswith("idnes_"):
             source = "idnes"
-            if model.startswith("idnes_1"):
+            if model_name.startswith("idnes_1"):
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
-            elif model.startswith("idnes_2"):
+            elif model_name.startswith("idnes_2"):
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_2_default_parameters/"
-            elif model.startswith("idnes_3"):
+            elif model_name.startswith("idnes_3"):
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
-            elif model.startswith("idnes_4"):
+            elif model_name.startswith("idnes_4"):
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
-            elif model.startswith("idnes"):
+            elif model_name.startswith("idnes"):
                 path_to_folder = "w2v_idnes.model"
             else:
                 path_to_folder = None
@@ -521,7 +521,7 @@ class Word2VecClass:
             print(found_post)
             if docsim_index is None and dictionary is None:
                 print("Docsim or dictionary is not passed into method. Loading.")
-                docsim_index, dictionary = ds.load_docsim_index_and_dictionary(source=source, model=model)
+                docsim_index, dictionary = ds.load_docsim_index_and_dictionary(source=source, model_name=model_name)
             most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post, docsim_index,
                                                                                            dictionary,
                                                                                            list_of_document_features)[
@@ -557,7 +557,7 @@ class Word2VecClass:
         self.categories_df = recommender_methods.get_categories_dataframe()
         self.df = recommender_methods.get_posts_categories_full_text()
 
-        found_post_dataframe = recommender_methods.find_post_by_slug(searched_slug, force_update=True)
+        found_post_dataframe = recommender_methods.find_post_by_slug(searched_slug)
 
         print("found_post_dataframe")
         print(found_post_dataframe)
@@ -610,121 +610,6 @@ class Word2VecClass:
 
             # workaround due to float32 error in while converting to JSON
             return json.loads(json.dumps(calculatd_similarities_for_posts, cls=NumpyEncoder))
-
-    @DeprecationWarning
-    def fill_recommended_for_all_posts(self, skip_already_filled, full_text=True, random_order=False,
-                                       reversed_order=False):
-        recommender_methods = RecommenderMethods()
-        if skip_already_filled is False:
-            posts = recommender_methods.get_all_posts()
-        else:
-            database.connect()
-            posts = database.get_not_prefilled_posts(full_text, method="tfidf")
-            database.disconnect()
-
-        number_of_inserted_rows = 0
-
-        if reversed_order is True:
-            print("Reversing list of posts...")
-            posts.reverse()
-
-        if random_order is True:
-            print("Starting random_order iteration...")
-            t.sleep(5)
-            random.shuffle(posts)
-
-        for post in posts:
-            if len(posts) < 1:
-                break
-            print("post")
-            print(post[22])
-            post_id = post[0]
-            slug = post[3]
-            if full_text is False:
-                current_recommended = post[22]
-            else:
-                current_recommended = post[23]
-
-            print("Searching similar articles for article: " + slug)
-
-            if skip_already_filled is True:
-                if current_recommended is None:
-                    if full_text is False:
-                        actual_recommended_json = self.get_similar_word2vec(slug)
-                    else:
-                        actual_recommended_json = self.get_similar_word2vec_full_text(slug)
-                    if actual_recommended_json is None:
-                        print("No recommended post found. Skipping.")
-                        continue
-                    actual_recommended_json = json.dumps(actual_recommended_json)
-                    if full_text is False:
-                        try:
-                            database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
-                                                             article_id=post_id, full_text=False, db="pgsql",
-                                                             method="word2vec")
-                        except psycopg2.Error as e:
-                            print("Error in DB insert. Skipping.")
-                            print(e)
-                            print(traceback.format_exc())
-                            pass
-                    else:
-                        try:
-                            database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
-                                                             article_id=post_id, full_text=True, db="pgsql",
-                                                             method="word2vec")
-                        except psycopg2.Error as e:
-                            print("Error in DB insert. Skipping.")
-                            print(e)
-                            print(traceback.format_exc())
-                            pass
-                    number_of_inserted_rows += 1
-                    if number_of_inserted_rows > 20:
-                        print("Refreshing list of posts for finding only not prefilled posts.")
-                        if full_text is False:
-                            self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False)
-                        else:
-                            self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=True)
-                else:
-                    print("Skipping.")
-            else:
-                if full_text is False:
-                    actual_recommended_json = self.get_similar_word2vec(slug)
-                else:
-                    actual_recommended_json = self.get_similar_word2vec_full_text(slug)
-                actual_recommended_json = json.dumps(actual_recommended_json)
-                if full_text is False:
-                    database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
-                                                     article_id=post_id, full_text=False, db="pgsql",
-                                                     method="word2vec")
-                else:
-                    database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
-                                                     article_id=post_id, full_text=True, db="pgsql",
-                                                     method="word2vec")
-                number_of_inserted_rows += 1
-
-    def prefilling_job(self, full_text, reverse, random_order=False):
-        if full_text is False:
-            for i in range(100):
-                while True:
-                    try:
-                        self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=False,
-                                                            reversed_order=reverse,
-                                                            random_order=random_order)
-                    except psycopg2.OperationalError:
-                        print("DB operational error. Waiting few seconds before trying again...")
-                        t.sleep(30)  # wait 30 seconds then try again
-                        continue
-                    break
-        else:
-            for i in range(100):
-                while True:
-                    try:
-                        self.fill_recommended_for_all_posts(skip_already_filled=True, full_text=True)
-                    except psycopg2.OperationalError:
-                        print("DB operational error. Waiting few seconds before trying again...")
-                        t.sleep(30)  # wait 30 seconds then try again
-                        continue
-                    break
 
     def evaluate_model(self, source, sentences=None, model_variant=None, negative_sampling_variant=None,
                        vector_size=None, window=None, min_count=None,
@@ -925,6 +810,7 @@ class Word2VecClass:
                                                 csv_file_name = 'word2vec_tuning_results_idnes.csv'
                                             else:
                                                 ValueError("Bad source specified")
+                                            # noinspection PyTypeChecker
                                             pd.DataFrame(model_results).to_csv(csv_file_name, index=False,
                                                                                mode="w")
                                             print("Saved training results...")
@@ -979,10 +865,12 @@ class Word2VecClass:
 
                 pbar.update(1)
                 if source == "idnes":
+                    # noinspection PyTypeChecker
                     pd.DataFrame(model_results).to_csv('word2vec_tuning_results_random_search_idnes.csv', index=False,
                                                        mode="w")
                     print("Saved training results...")
                 elif source == "cswiki":
+                    # noinspection PyTypeChecker
                     pd.DataFrame(model_results).to_csv('word2vec_tuning_results_random_search_cswiki.csv', index=False,
                                                        mode="w")
                     print("Saved training results...")
@@ -1089,9 +977,11 @@ class Word2VecClass:
 
         pbar.update(1)
         if source == "idnes":
+            # noinspection PyTypeChecker
             pd.DataFrame(model_results).to_csv('word2vec_final_evaluation_results_idnes.csv', index=False,
                                                mode="a")
         elif source == "cswiki":
+            # noinspection PyTypeChecker
             pd.DataFrame(model_results).to_csv('word2vec_final_evaluation_results_cswiki.csv', index=False,
                                                mode="a")
         else:

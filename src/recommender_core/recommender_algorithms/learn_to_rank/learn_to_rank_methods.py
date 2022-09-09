@@ -18,7 +18,7 @@ from lightgbm import LGBMRanker
 from src.recommender_core.recommender_algorithms.hybrid import evaluation_results
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
@@ -219,7 +219,7 @@ class LightGBM:
         return merged_df
 
     def recommend_for_user(self, user, k, sample_anime_num):
-        database = Database()
+        database = DatabaseMethods()
         posts_df = database.get_posts_dataframe_from_sql()
         pred_df = posts_df.sample(sample_anime_num).reset_index(drop=True)  # sample recommend candidates
         results_df = self.get_results_single_coeff_user_as_query()
@@ -617,12 +617,12 @@ class LightGBM:
         """
 
     def get_posts_df(self):
-        database = Database()
+        database = DatabaseMethods()
         posts_df = database.get_posts_dataframe()
         return posts_df
 
     def get_categories_df(self):
-        database = Database()
+        database = DatabaseMethods()
         posts_df = database.get_categories_dataframe()
         return posts_df
 

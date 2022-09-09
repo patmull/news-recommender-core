@@ -87,6 +87,7 @@ class DocSim:
 
         docsim_index = SoftCosineSimilarity(bow_corpus, similarity_matrix, num_best=21)
         print("source_doc:")
+        # noinspection PyTypeChecker
         sims = self.create_docsim_index(source_doc=source_doc, docsim_index=docsim_index, dictionary=dictionary)
 
         results = []
@@ -122,7 +123,7 @@ class DocSim:
 
         return results
 
-    def load_docsim_index_and_dictionary(self, source, model, force_update=True):
+    def load_docsim_index_and_dictionary(self, source, model_name, force_update=True):
         global path_to_docsim_index, dictionary
         gensim_methods = GensimMethods()
         common_texts = gensim_methods.load_texts()
@@ -141,7 +142,7 @@ class DocSim:
         else:
             print("Docsim index not found or forced to update. Will create a new from available articles.")
             # TODO: This can be preloaded
-            docsim_index = self.update_docsim_index(model=model, common_texts=common_texts)
+            docsim_index = self.update_docsim_index(model=model_name, common_texts=common_texts)
         return docsim_index, dictionary
 
     def update_docsim_index(self, model, supplied_dictionary=None, common_texts=None, tfidf_corpus=None):
@@ -193,19 +194,14 @@ class DocSim:
         tfidf = TfidfModel(dictionary=dictionary)
         words = [word for word, count in dictionary.most_common()]
 
+        # produce vectors for words in train_corpus
+        # TODO: This is None Type, found out why!
         try:
-            word_vectors = self.w2v_model.wv.vectors_for_all(words,
-                                                             allow_inference=False)
-            # produce vectors for words in train_corpus
-        except AttributeError:
-            # TODO: This is None Type, found out why!
-            try:
-                word_vectors = self.w2v_model.vectors_for_all(words,
-                                                              allow_inference=False)
-            except AttributeError as e:
-                print(e)
-                print(traceback.format_exc())
-                raise AttributeError
+            word_vectors = self.w2v_model.vectors_for_all(words, allow_inference=False)
+        except AttributeError as e:
+            print(e)
+            print(traceback.format_exc())
+            raise AttributeError
 
         indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
         termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})  # for similarity index
