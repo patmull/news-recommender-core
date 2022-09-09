@@ -41,5 +41,3 @@ res = r.sadd(test_value, test_user)
 print(res)
 print(r.smembers(test_value))
 """
-
-predict_ratings_for_all_users

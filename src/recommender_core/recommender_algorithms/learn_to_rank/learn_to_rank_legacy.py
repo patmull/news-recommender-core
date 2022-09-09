@@ -11,12 +11,13 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from lightgbm import LGBMRanker
-from src.collaboration_based_algorithms.collaboration_based_recommendation import SvdClass
-from src.core.recommender_algorithms.content_based_algorithms.data_queries import RecommenderMethods
-from src.core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from data_connection import Database
+
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
+    SvdClass
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
-#from memory_profiler import profile
 
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
 
@@ -479,14 +480,12 @@ class LightGBM:
         """
 
     def get_posts_df(self):
-        database = Database()
-        database.connect()
+        database = DatabaseMethods()
         posts_df = database.get_posts_dataframe()
-        database.disconnect()
         return posts_df
 
     def get_categories_df(self):
-        database = Database()
+        database = DatabaseMethods()
         database.connect()
         posts_df = database.get_categories_dataframe()
         database.disconnect()

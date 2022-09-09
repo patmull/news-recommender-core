@@ -10,8 +10,9 @@ from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
 from src.recommender_core.recommender_algorithms.content_based_algorithms.similarities import CosineTransformer
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 import os
 
 CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"
@@ -66,8 +67,8 @@ def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
 class RecommenderMethods:
 
     def __init__(self):
-        self.database = Database()
-        self.cached_file_path = CACHED_FILE_PATH
+        self.database = DatabaseMethods()
+        self.cached_file_path = Path(CACHED_FILE_PATH)
         self.posts_df = None
         self.categories_df = None
         self.df = None
@@ -157,7 +158,7 @@ class RecommenderMethods:
 
     @DeprecationWarning
     def get_user_posts_ratings(self):
-        database = Database()
+        database = DatabaseMethods()
 
         sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value 
         AS rating_value
@@ -314,6 +315,18 @@ class RecommenderMethods:
         self.database.disconnect()
         return all_posts_df
 
+    def preprocess_single_post_find_by_slug(self, slug, json=False, stemming=False):
+        recommender_methods = RecommenderMethods()
+        cz_preprocess = CzPreprocess()
+        post_dataframe = recommender_methods.find_post_by_slug(slug)
+        post_dataframe["title"] = post_dataframe["title"].map(lambda s: cz_preprocess.preprocess(s, stemming))
+        post_dataframe["excerpt"] = post_dataframe["excerpt"].map(lambda s: cz_preprocess.preprocess(s, stemming))
+        if json is False:
+            return post_dataframe
+        else:
+            # evaluate if this ok
+            return post_dataframe.to_json()
+
     def get_posts_users_categories_ratings_df(self, only_with_bert_vectors, user_id=None):
         self.database.connect()
         posts_users_categories_ratings_df = self.database.get_posts_users_categories_ratings(user_id=user_id,
@@ -333,6 +346,22 @@ class RecommenderMethods:
             self.database.disconnect()
             raise ValueError("Value error had occured when trying to get posts for user.")
         return posts_users_categories_ratings_df
+
+    def get_sql_columns(self):
+        self.database.connect()
+        df_columns = self.database.get_sql_columns()
+        self.database.disconnect()
+        return df_columns
+
+    def get_relevance_results_dataframe(self):
+        self.database.connect()
+        results_df = self.database.get_results_dataframe()
+        results_df.reset_index(inplace=True)
+        self.database.disconnect()
+        print("self.results_df:")
+        print(results_df)
+        results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'results_part_3', 'user_id', 'model_name']]
+        return results_df_
 
 
 def get_cleaned_text(row):
@@ -482,11 +511,8 @@ class TfIdfDataHandlers:
         print(self.cosine_sim_df)
         ix = data_frame.loc[:, find_by_string].to_numpy().argpartition(range(-1, -k, -1))
         closest = data_frame.columns[ix[-1:-(k + 2):-1]]
-        # print("closest")
-        # print(closest)
+
         # drop post itself
         closest = closest.drop(find_by_string, errors='ignore')
 
-        # print("pd.DataFrame(closest).merge(items).head(k)")
-        # print(pd.DataFrame(closest).merge(items).head(k))
         return pd.DataFrame(closest).merge(items).head(k)

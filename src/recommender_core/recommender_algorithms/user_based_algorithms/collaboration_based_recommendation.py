@@ -4,7 +4,7 @@ import operator
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
@@ -24,14 +24,14 @@ class SvdClass:
         self.user_item_table = None  # = R_df_
 
     def get_all_users_ids(self):
-        database = Database()
+        database = DatabaseMethods()
         sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
         # LOAD INTO A DATAFRAME
         self.df_users = pd.read_sql_query(sql_select_all_users, database.get_cnx())
         return self.df_users
 
     def get_user_item_from_db(self):
-        database = Database()
+        database = DatabaseMethods()
         # Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
@@ -55,7 +55,7 @@ class SvdClass:
         return R_demeaned
 
     def get_average_post_rating(self):
-        database = Database()
+        database = DatabaseMethods()
         ##Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
@@ -105,6 +105,7 @@ class SvdClass:
         all_posts_df.to_csv("exports/all_posts_df.csv")
         df_ratings_means.to_csv("exports/df_ratings_means.csv")
         all_posts_df_means = pd.merge(all_posts_df, df_ratings_means, left_index=True, right_index=True, how="left")
+        # noinspection PyTypeChecker
         all_posts_df_means.to_csv("exports/all_posts_df_means.csv")
         print("all_posts_df_means.columns")
         print(all_posts_df_means.columns)
@@ -150,11 +151,7 @@ class SvdClass:
 
     # @profile
     def run_svd(self, user_id, num_of_recommendations=10):
-        U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
-        sigma = np.diag(sigma)
-        all_user_predicted_ratings = np.dot(np.dot(U, sigma), Vt) + self.user_ratings_mean.reshape(-1, 1)
-        print("all_user_predicted_ratings")
-        print(all_user_predicted_ratings)
+        all_user_predicted_ratings = self.get_all_users_predicted_ratings()
         preds_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
 
         print("preds_df")
@@ -241,7 +238,6 @@ class SvdClass:
         print(self.cross_validate_dataframe(ratings, user_id))
 
 
-    # cosine similarity of the ratingssimilarity_matrix = cosine_similarity(df_ratings_dummy, df_ratings_dummy)similarity_matrix_df = pd.DataFrame(similarity_matrix, index=df_ratings.index, columns=df_ratings.index)#calculate ratings using weighted sum of cosine similarity#function to calculate ratings
     def calculate_ratings(self, id_post, id_user, df_ratings, similarity_matrix_df):
             if id_post in df_ratings:
                 cosine_scores = similarity_matrix_df[id_user]  # similarity of id_user with every other user
@@ -281,12 +277,14 @@ class SvdClass:
         print(ratings[ratings['user_id'] == users_id])
         print(svd.predict(users_id, 734909))
 
-    def rmse_all_users(self):
+    def get_all_users_predicted_ratings(self):
         U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
         sigma = np.diag(sigma)
         all_user_predicted_ratings = np.dot(np.dot(U, sigma), Vt) + self.user_ratings_mean.reshape(-1, 1)
-        print("all_user_predicted_ratings")
-        print(all_user_predicted_ratings)
+        return all_user_predicted_ratings
+
+    def rmse_all_users(self):
+        all_user_predicted_ratings = self.get_all_users_predicted_ratings()
         print(all_user_predicted_ratings.size)
 
         predictions_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
