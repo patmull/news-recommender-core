@@ -13,6 +13,7 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from pymongo import MongoClient
 from sklearn.model_selection import train_test_split
 
+from recommender_core.checks.data_types import accepts, check_empty_string
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import Helper
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
@@ -73,27 +74,16 @@ class Doc2VecClass:
 
         self.train(tagged_data)
 
+    @accepts(str)
+    @check_empty_string
     def get_similar_doc2vec(self, searched_slug, train=False, limited=True, number_of_recommended_posts=21,
                             full_text=False):
 
         # TODO: Replace other duplicated code like this:
         helper = Helper()
         helper.verify_searched_slug_sanity(self.df, searched_slug)
-
-        if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
-        else:
-            if searched_slug == "":
-                raise ValueError("Entered string is empty.")
-            else:
-                pass
-
         recommender_methods = RecommenderMethods()
-
-        if searched_slug not in recommender_methods.get_posts_dataframe()['slug'].to_list():
-            self.df = recommender_methods.get_posts_categories_dataframe()
-        else:
-            self.df = recommender_methods.get_posts_categories_dataframe()
+        self.df = recommender_methods.get_posts_categories_dataframe()
         print("self.df")
         print(self.df.columns.values)
 
@@ -108,37 +98,11 @@ class Doc2VecClass:
 
         if full_text is False:
             cols = ['keywords', 'all_features_preprocessed']
-            documents_df = pd.DataFrame()
-            self.df['all_features_preprocessed'] = self.df['all_features_preprocessed'].apply(
-                lambda x: x.replace(' ', ', '))
-            documents_df['all_features_preprocessed'] = self.df[cols].apply(lambda row: ' '.join(row.values.astype(str)),
-                                                                            axis=1)
-            documents_df['all_features_preprocessed'] = self.df['category_title'] + ', ' + documents_df[
-                'all_features_preprocessed']
-
-            documents_all_features_preprocessed = list(
-                map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
+            documents_all_features_preprocessed = helper.preprocess_columns(self.df, cols)
         else:
             cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
-            documents_df = pd.DataFrame()
-            self.df['all_features_preprocessed'] = self.df['all_features_preprocessed'].apply(
-                lambda x: x.replace(' ', ', '))
+            documents_all_features_preprocessed = helper.preprocess_columns(self.df, cols)
 
-            self.df.fillna("", inplace=True)
-
-            self.df['body_preprocessed'] = self.df['body_preprocessed'].apply(
-                lambda x: x.replace(' ', ', '))
-            documents_df['all_features_preprocessed'] = self.df[cols].apply(
-                lambda row: ' '.join(row.values.astype(str)),
-                axis=1)
-
-            documents_df['all_features_preprocessed'] = self.df['category_title'] + ', ' + documents_df[
-                'all_features_preprocessed'] + ", " + self.df['body_preprocessed']
-
-            documents_all_features_preprocessed = list(
-                map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
-
-        del documents_df
         gc.collect()
 
         if 'post_slug' in self.df:
@@ -182,20 +146,12 @@ class Doc2VecClass:
 
         return self.get_similar_by_posts_slug(most_similar, documents_slugs, number_of_recommended_posts)
 
+    @accepts(str)
+    @check_empty_string
     def get_similar_doc2vec_with_full_text(self, searched_slug, train=False, number_of_recommended_posts=21):
 
-        if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
-        else:
-            if searched_slug == "":
-                raise ValueError("Entered string is empty.")
-            else:
-                pass
         recommender_methods = RecommenderMethods()
-        if searched_slug not in recommender_methods.get_posts_dataframe()['slug'].to_list():
-            self.df = recommender_methods.get_posts_categories_dataframe()
-        else:
-            self.df = recommender_methods.get_posts_categories_dataframe()
+        self.df = recommender_methods.get_posts_categories_dataframe()
 
         if 'post_slug' in self.df.columns:
             self.df = self.df.rename(columns={'post_slug': 'slug'})
@@ -208,24 +164,9 @@ class Doc2VecClass:
             raise ValueError('Slug does not appear in dataframe.')
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
-        documents_df = pd.DataFrame()
-        self.df['all_features_preprocessed'] = self.df['all_features_preprocessed'].apply(
-            lambda x: x.replace(' ', ', '))
+        helper = Helper()
+        documents_all_features_preprocessed = helper.preprocess_columns(self.df, cols)
 
-        self.df.fillna("", inplace=True)
-
-        self.df['body_preprocessed'] = self.df['body_preprocessed'].apply(
-            lambda x: x.replace(' ', ', '))
-        documents_df['all_features_preprocessed'] = self.df[cols].apply(lambda row: ' '.join(row.values.astype(str)),
-                                                                        axis=1)
-
-        documents_df['all_features_preprocessed'] = self.df['category_title'] + ', ' + documents_df[
-            'all_features_preprocessed'] + ", " + self.df['body_preprocessed']
-
-        documents_all_features_preprocessed = list(
-            map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
-
-        del documents_df
         gc.collect()
 
         print("self.df.columns")
@@ -307,19 +248,7 @@ class Doc2VecClass:
         recommender_methods = RecommenderMethods()
         return self.doc2vec_model.infer_vector(recommender_methods.find_post_by_slug(searched_slug))
 
-    def train(self, tagged_data):
-
-        max_epochs = 20
-        vec_size = 8
-        alpha = 0.025
-        minimum_alpha = 0.0025
-        reduce_alpha = 0.0002
-
-        model = Doc2Vec(vector_size=vec_size,
-                        alpha=alpha,
-                        min_count=0,
-                        dm=0)
-
+    def init_and_start_training(self, model, tagged_data, max_epochs):
         model.build_vocab(tagged_data)
 
         for epoch in range(max_epochs):
@@ -339,6 +268,22 @@ class Doc2VecClass:
         model.alpha -= 0.0002
         # fix the learning rate, no decay
         model.min_alpha = model.alpha
+        return model
+
+    def train(self, tagged_data):
+
+        max_epochs = 20
+        vec_size = 8
+        alpha = 0.025
+        minimum_alpha = 0.0025
+        reduce_alpha = 0.0002
+
+        model = Doc2Vec(vector_size=vec_size,
+                        alpha=alpha,
+                        min_count=0,
+                        dm=0)
+
+        model = self.init_and_start_training(model, tagged_data, max_epochs)
 
         model.save("models/d2v_mini_vectors.model")
         print("Doc2Vec model Saved")
@@ -357,25 +302,7 @@ class Doc2VecClass:
                             min_count=1,
                             dm=0)
 
-        model.build_vocab(tagged_data)
-
-        for epoch in range(max_epochs):
-            print('iteration {0}'.format(epoch))
-            model.train(tagged_data,
-                        total_examples=model.corpus_count,
-                        epochs=model.epochs)
-            # decrease the learning rate
-            model.alpha -= 0.0002
-            # fix the learning rate, no decay
-            model.min_alpha = model.alpha
-
-        model.train(tagged_data,
-                    total_examples=model.corpus_count,
-                    epochs=model.epochs)
-        # decrease the learning rate
-        model.alpha -= 0.0002
-        # fix the learning rate, no decay
-        model.min_alpha = model.alpha
+        model = self.init_and_start_training(model, tagged_data, max_epochs)
 
         if full_body is True:
             if limited is True:

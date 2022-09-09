@@ -29,6 +29,7 @@ class Reader(object):
         # lower cased all text
         texts = text.lower()
         # tokenize
+        # noinspection
         texts = re.split(r'(?![\.|\$])[^\w\d]', texts)
         texts = [w.strip('.') for w in texts]
         # remove words that are too short
