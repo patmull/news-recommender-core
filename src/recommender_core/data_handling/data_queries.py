@@ -193,7 +193,7 @@ class RecommenderMethods:
              'created_at']]
         return results_df_
 
-
+    # noinspection DuplicatedCode
     @DeprecationWarning
     def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
 
@@ -400,6 +400,7 @@ class TfIdfDataHandlers:
 
         return recommended_posts_in_json
 
+    # noinspection DuplicatedCode
     def get_recommended_posts_for_keywords(self, keywords, data_frame, k=10):
 
         keywords_list = [keywords]

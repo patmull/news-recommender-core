@@ -365,6 +365,7 @@ class DatabaseMethods:
             print("Error:", s)  # errno, sqlstate, msg values
             self.cnx.rollback()
 
+    # noinspection DuplicatedCode
     def insert_preprocessed_body(self, preprocessed_body, article_id):
         try:
             query = """UPDATE posts SET body_preprocessed = %s WHERE id = %s;"""

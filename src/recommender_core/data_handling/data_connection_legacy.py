@@ -161,6 +161,7 @@ class Database:
         self.cnx.commit()
         print("Inserted")
 
+    # noinspection DuplicatedCode
     @DeprecationWarning
     def get_not_prefilled_posts(self, full_text, method):
         self.connect()
@@ -215,6 +216,7 @@ class Database:
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
+    # noinspection DuplicatedCode
     @DeprecationWarning
     def insert_preprocessed_body(self, preprocessed_body, article_id):
         try:
