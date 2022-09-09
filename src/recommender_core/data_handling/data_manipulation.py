@@ -1,5 +1,4 @@
 # import psycopg2.connector
-import datetime
 import os
 from pathlib import Path
 
@@ -13,7 +12,7 @@ DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
 DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
 
 
-class Database:
+class DatabaseMethods:
     cnx = None
     cursor = None
     df = None
@@ -26,10 +25,16 @@ class Database:
         self.cnx = None
 
     def connect(self):
+        keepalive_kwargs = {
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 5,
+            "keepalives_count": 5,
+        }
         self.cnx = psycopg2.connect(user=DB_USER,
                                     password=DB_PASSWORD,
                                     host=DB_HOST,
-                                    dbname=DB_NAME)
+                                    dbname=DB_NAME, **keepalive_kwargs)
 
         self.cursor = self.cnx.cursor()
 
@@ -517,7 +522,8 @@ class Database:
             sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
             p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
             c.title AS category_title, c.slug AS category_slug, 
-            p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed
+            p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed,
+            p.full_text AS full_text
             FROM posts p
             JOIN ratings r ON r.post_id = p.id
             JOIN users u ON r.user_id = u.id
@@ -526,7 +532,7 @@ class Database:
         else:
             sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
             p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
-            c.title AS category_title, c.slug AS category_slug, 
+            c.title AS category_title, c.slug AS category_slug,
             p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed
             FROM posts p
             JOIN ratings r ON r.post_id = p.id
@@ -606,6 +612,13 @@ class Database:
 
         return df_thumbs
 
+    def get_sql_columns(self):
+        sql = """SELECT * FROM posts LIMIT 1;"""
+
+        # LOAD INTO A DATAFRAME
+        df = pd.read_sql_query(sql, self.get_cnx())
+        return df.columns
+
     def insert_bert_vector_representation(self, bert_vector_representation, article_id):
         try:
             query = """UPDATE posts SET bert_vector_representation = %s WHERE id = %s;"""
@@ -626,10 +639,13 @@ class Database:
 class RedisMethods:
 
     def get_redis_connection(self):
-        redis_password = os.environ.get('REDIS_PASSWORD')
-        print("redis creds")
-        print(redis_password)
+        if 'REDIS_PASSWORD' in os.environ:
+            redis_password = os.environ.get('REDIS_PASSWORD')
+        else:
+            raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
+                                   "Not possible to connect to Redis.")
 
-        return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com', port=13695, db=0,
+        return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',
+                                 port=13695, db=0,
                                  username="admin",
                                  password=redis_password)
