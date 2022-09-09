@@ -54,9 +54,10 @@ class SvdClass:
         R_demeaned = self.convert_to_matrix(user_item_table)
         return R_demeaned
 
+    # noinspection DuplicatedCode
     def get_average_post_rating(self):
         database = DatabaseMethods()
-        ##Step 1
+        # # Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
 
@@ -237,7 +238,7 @@ class SvdClass:
         print(test_set_score)
         print(self.cross_validate_dataframe(ratings, user_id))
 
-
+    # noinspection DuplicatedCode
     def calculate_ratings(self, id_post, id_user, df_ratings, similarity_matrix_df):
             if id_post in df_ratings:
                 cosine_scores = similarity_matrix_df[id_user]  # similarity of id_user with every other user
@@ -250,6 +251,7 @@ class SvdClass:
                 return 2.5
             return ratings_post
 
+    # noinspection DuplicatedCode
     def score_on_test_set(self, X_test, df_ratings, similarity_matrix_df):
         user_post_pairs = zip(X_test['post_id'], X_test['user_id'])
         predicted_ratings = np.array(
