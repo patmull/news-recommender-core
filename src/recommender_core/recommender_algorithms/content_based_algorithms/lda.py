@@ -13,7 +13,6 @@ from gensim.utils import deaccent
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
 
-from src.recommender_core.data_handling import data_queries
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
 
@@ -25,7 +24,7 @@ from gensim.models import LdaModel, CoherenceModel
 from scipy.stats import entropy
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import Helper
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.prefillers.preprocessing import cz_preprocessing
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
 from src.recommender_core.dataset_statistics.corpus_statistics import CorpusStatistics
@@ -39,29 +38,7 @@ class Lda:
         self.df = None
         self.posts_df = None
         self.categories_df = None
-        self.database = Database()
-
-    @DeprecationWarning
-    def join_posts_ratings_categories(self):
-        self.get_categories_dataframe()
-        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-        # clean up from unnecessary columns
-        self.df = self.df[
-            ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-             'all_features_preprocessed', 'body_preprocessed']]
-        return self.df
-
-    @DeprecationWarning
-    def get_categories_dataframe(self):
-        self.categories_df = self.database.get_categories_dataframe()
-        return self.categories_df
-
-    @DeprecationWarning
-    def get_posts_dataframe(self):
-        # self.database.insert_posts_dataframe_to_cache()  # uncomment for UPDATE of DB records
-        self.posts_df = self.database.get_posts_dataframe_from_database()
-        self.posts_df.drop_duplicates(subset=['title'], inplace=True)
-        return self.posts_df
+        self.database = DatabaseMethods()
 
     def apply_tokenize(self, text):
         print("text")
@@ -103,6 +80,7 @@ class Lda:
         searched_doc_id = searched_doc_id_list[0]
         selected_by_index = recommender_methods.df.iloc[searched_doc_id]
         selected_by_column = selected_by_index['all_features_preprocessed']
+        # noinspection PyUnresolvedReferences
         new_bow = dictionary.doc2bow([selected_by_column])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
@@ -135,6 +113,7 @@ class Lda:
         return self.flatten(list_of_articles)
 
     # @profile
+    # noinspection PyUnresolvedReferences
     def get_similar_lda_full_text(self, searched_slug, N=21, train=False, display_dominant_topics=True):
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a string.")
@@ -173,7 +152,8 @@ class Lda:
         if train is True:
             self.train_lda_full_text(recommender_methods.df, display_dominant_topics=display_dominant_topics)
 
-        dictionary, corpus, lda = self.load_lda_full_text(recommender_methods.df, retrain=train, display_dominant_topics=display_dominant_topics)
+        dictionary, corpus, lda = self.load_lda_full_text(recommender_methods.df,
+                                                          display_dominant_topics=display_dominant_topics)
         recommender_methods.df = recommender_methods.df.rename(columns={'post_slug':'slug'})
         searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['slug'] == searched_slug].tolist()
         searched_doc_id = searched_doc_id_list[0]
@@ -246,13 +226,8 @@ class Lda:
             dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
             corpus = pickle.load(open('precalc_vectors/corpus_idnes.pkl', 'rb'))
         except Exception as e:
-            print("Could not load_texts LDA models or precalculated vectors. Reason:")
             print(e)
-            self.train_lda(data)
-
-            lda_model = LdaModel.load("models/lda_model")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus_idnes.pkl', 'rb'))
+            raise Exception("Could not load_texts LDA models or precalculated vectors. Reason:")
 
         return dictionary, corpus, lda_model
 
@@ -262,7 +237,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'))
         dictionary.save('precalc_vectors/dictionary_idnes.gensim')
 
-    def load_lda_full_text(self, data, display_dominant_topics, training_now=False, retrain=False, ):
+    def load_lda_full_text(self, data, display_dominant_topics):
 
         try:
             lda_model = LdaModel.load("models/lda_model_full_text")
@@ -286,76 +261,7 @@ class Lda:
         pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
         dictionary.save('precalc_vectors/dictionary_full_text.gensim')
 
-    @PendingDeprecationWarning
-    def train_lda(self, data, display_dominant_topics=False):
-        data_words_nostops = remove_stopwords(data['tokenized'])
-        data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
-
-        self.df.assign(tokenized=data_words_bigrams)
-
-        dictionary = corpora.Dictionary(data['tokenized'])
-        dictionary.filter_extremes()
-        corpus = [dictionary.doc2bow(doc) for doc in data['tokenized']]
-        num_topics = 100 # set according visualise_lda() method (Coherence value) = 100
-        chunksize = 1000
-        iterations = 200
-        passes = 20 # evaluated on 20
-        t1 = time.time()
-
-        # low alpha means each document is only represented by a small number of topics, and vice versa
-        # low eta means
-        # each topic is only represented by a small number of words, and vice versa
-
-        print("LDA training...")
-        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary, minimum_probability=0.0,
-                             chunksize=chunksize, eta='auto', alpha='auto',
-                             passes=passes)
-        t2 = time.time()
-        print("Time to train LDA model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
-
-        # native gensim method (abandoned due to not storing to single file like it should with separately=[] option)
-        lda_model.save("models/lda_model")
-        # pickle.dump(lda_model_local, open("lda_all_in_one", "wb"))
-        print("Model Saved")
-        # lda_model = LdaModel.load_texts("models/lda_model")
-        # lda_model_local = pickle.load_texts(smart_open.smart_open("lda_all_in_one"))
-        self.get_posts_dataframe()
-        self.join_posts_ratings_categories()
-
-        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-        self.df['tokenized'] = self.df.apply(
-            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
-            axis=1)
-        self.df['tokenized'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized']
-        all_words = [word for item in list(self.df["tokenized"]) for word in item]
-
-        top_k_words, _ = CorpusStatistics.most_common_words(all_words)
-
-        self.top_k_words = set(top_k_words)
-
-        self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
-
-        minimum_amount_of_words = 2
-        self.df = self.df[self.df['tokenized'].map(len) >= minimum_amount_of_words]
-        # make sure all tokenized items are lists
-        self.df = self.df[self.df['tokenized'].map(type) == list]
-        self.df.reset_index(drop=True, inplace=True)
-        print("After cleaning and excluding short aticles, the dataframe now has:", len(self.df), "articles")
-
-        self.save_corpus_dict(corpus, dictionary)
-
-        lda = lda_model.load("models/lda_model")
-        doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
-        print("np.save")
-        # save doc_topic_dist
-        # https://stackoverflow.com/questions/9619199/best-way-to-preserve-numpy-arrays-on-disk
-        np.save('precalc_vectors/lda_doc_topic_dist.npy',
-                doc_topic_dist)  # IndexError: index 14969 is out of bounds for axis 1 with size 14969
-        print("LDA model and documents topic distribution saved")
-
     def train_lda_full_text(self, data, display_dominant_topics=True, lst=None):
-
 
         data_words_nostops = remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
@@ -488,7 +394,7 @@ class Lda:
             'tokenized_full_text']
         data = self.df
 
-        data_words_nostops = data_queries.remove_stopwords(data['tokenized'])
+        data_words_nostops = remove_stopwords(data['tokenized'])
         data_words_bigrams = self.build_bigrams_and_trigrams(data_words_nostops)
         # Term Document Frequency
 
@@ -571,7 +477,8 @@ class Lda:
         processed_data = self.build_bigrams_and_trigrams(data_words_nostops)
         print("Creating dictionary...")
         print("TOP WORDS (after bigrams and stopwords removal):")
-        top_k_words, _ = CorpusStatistics.most_common_words(processed_data)
+        corpus_statistics = CorpusStatistics()
+        top_k_words, _ = corpus_statistics.most_common_words()
         preprocessed_dictionary = corpora.Dictionary(processed_data)
         print("Saving dictionary...")
         preprocessed_dictionary.save("full_models/cswiki/lda/preprocessed/dictionary")
@@ -666,6 +573,7 @@ class Lda:
                                 model_results['Iterations'].append(iterations)
 
                                 pbar.update(1)
+                                # noinspection PyTypeChecker
                                 pd.DataFrame(model_results).to_csv('lda_tuning_results.csv', index=False, mode="a")
                                 print("Saved training results...")
         pbar.close()
@@ -739,7 +647,7 @@ class Lda:
         df_dominant_topics = pd.concat([topic_num_keywords, topic_counts, topic_contribution], axis=1)
         # Change Column names
         df_dominant_topics.columns = ['Dominant_Topic', 'Topic_Keywords', 'Num_Documents', 'Perc_Documents']
-
+        # noinspection PyTypeChecker
         df_dominant_topics.to_csv("exports/dominant_topics.csv", sep=';', encoding='iso8859_2', errors='replace')
         print("Results saved to csv")
 
@@ -835,7 +743,9 @@ class Lda:
                     print(file_path)
         print("Example of 100th loaded document:")
         print(preprocessed_data_from_pickles[100:101])
-        top_k_words, _ = RecommenderMethods.most_common_words([item for sublist in preprocessed_data_from_pickles for item in sublist])
+        top_k_words, _ = CorpusStatistics.most_common_words_from_supplied_words([item for sublist
+                                                                                 in preprocessed_data_from_pickles
+                                                                                 for item in sublist])
         print("TOP WORDS:")
         print(top_k_words[:500])
         return preprocessed_data_from_pickles
@@ -844,6 +754,7 @@ class Lda:
         print("Saving to CSV...")
         if pandas is True:
             my_df = pd.DataFrame(list_to_save)
+            # noinspection PyTypeChecker
             my_df.to_csv('full_models/cswiki/lda/preprocessed/preprocessed_articles.csv', index=False, header=False)
         else:
             with open("full_models/cswiki/lda/preprocessed/preprocessed_articles.csv", "w", newline="", encoding="utf-8") as f:
@@ -854,3 +765,25 @@ class Lda:
         with open('full_models/cswiki/lda/preprocessed/preprocessed_articles.txt', 'w') as f:
             for item in list_to_save:
                 f.write("%s\n" % item)
+
+    def get_prefilled_full_text(self, slug, variant):
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
+        recommender_methods.get_categories_dataframe()  # load categories to dataframe
+        recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
+
+        found_post = recommender_methods.find_post_by_slug(slug)
+        print("found_post.columns")
+        print(found_post['recommended_lda_full_text'].iloc[0])
+        global column_name
+        if variant == "idnes_short_text":
+            column_name = 'recommended_lda'
+        elif variant == "idnes_full_text":
+            column_name = 'recommended_lda'
+        elif variant == "wiki_eval_1":
+            column_name = 'recommended_lda_wiki_eval_1'
+        else:
+            ValueError("No variant is selected from options.")
+        returned_posts = found_post[column_name].iloc[0]
+        print(returned_posts)
+        return returned_posts

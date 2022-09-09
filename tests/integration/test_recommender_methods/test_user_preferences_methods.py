@@ -1,7 +1,4 @@
-import os.path
 import random
-import urllib.request
-import certifi
 import pytest
 
 

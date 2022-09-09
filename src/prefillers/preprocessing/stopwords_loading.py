@@ -1,4 +1,3 @@
-import os
 
 import gensim
 from pathlib import Path

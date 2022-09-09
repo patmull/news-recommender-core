@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 # RUN WITH:
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
@@ -23,7 +23,7 @@ def test_user_keyword_bad_input(tested_input):
 
 
 def test_doc2vec_vector_representation():
-    database = Database()
+    database = DatabaseMethods()
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
     random_post_slug = random_post['slug'].iloc[0]
