@@ -35,7 +35,9 @@ class LightGBM:
         recommender_methods = RecommenderMethods()
         return recommender_methods.get_relevance_results_dataframe()  # load posts to dataframe
 
+    @DeprecationWarning
     def get_user_keywords_based(self, tfidf, user_based_recommendation, user_id):
+        # noinspection DuplicatedCode
         user_keywords = user_based_recommendation.get_user_keywords(user_id)
         keyword_list = user_keywords['keyword_name'].tolist()
         tfidf_keywords = ''
@@ -298,6 +300,7 @@ class LightGBM:
         pickle.dump(model, open('models/lightgbm.pkl', 'wb'))
 
     # @profile
+    @DeprecationWarning
     def get_posts_lightgbm(self, slug, variant="full-text", use_categorical_columns=True):
         global one_hot_encoder, categorical_columns_after_encoding
         consider_only_top_limit = 20
@@ -321,6 +324,7 @@ class LightGBM:
         print("tf_idf_results.dtypes:")
         print(tf_idf_results.dtypes)
 
+        # noinspection DuplicatedCode
         recommender_methods = RecommenderMethods()
         gc.collect()
         post_category_df = recommender_methods.get_posts_categories_dataframe()
@@ -338,6 +342,7 @@ class LightGBM:
 
         tf_idf_results = tf_idf_results.merge(post_category_df, on='slug')
 
+        # noinspection DuplicatedCode
         tf_idf_results = tf_idf_results.rename({"doc2vec_representation": "doc2vec"}, axis=1)
         df2 = pd.DataFrame(tf_idf_results)
         doc2vec_column_name_base = "doc2vec_col_"

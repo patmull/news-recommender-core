@@ -60,6 +60,7 @@ class LightGBM:
 
     def get_user_keywords_based(self, tfidf, user_id):
         recommender_methods = RecommenderMethods()
+
         user_keywords = recommender_methods.get_user_keywords(user_id)
         keyword_list = user_keywords['keyword_name'].tolist()
         tfidf_keywords = ''

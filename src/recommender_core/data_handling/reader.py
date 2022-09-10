@@ -159,6 +159,19 @@ class MongoReader(Reader):
             loaded_dict = corpora.Dictionary.load(path_to_dict)
             return loaded_dict
 
+    def build_sentences(self):
+        print("Building sentences...")
+        sentences = []
+        client = MongoClient("localhost", 27017, maxPoolSize=50)
+        db = client.idnes
+        collection = db.preprocessed_articles_bigrams
+        cursor = collection.find({})
+        for document in cursor:
+            # joined_string = ' '.join(document['text'])
+            # sentences.append([joined_string])
+            sentences.append(document['text'])
+        return sentences
+
 
 if __name__ == "__main__":
     pass
