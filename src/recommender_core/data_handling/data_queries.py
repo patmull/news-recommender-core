@@ -6,6 +6,7 @@ from pathlib import Path
 from threading import Thread
 
 import dropbox
+import gensim
 import numpy as np
 import pandas as pd
 from scipy import sparse
@@ -196,7 +197,6 @@ class RecommenderMethods:
         return results_df_
 
     # noinspection DuplicatedCode
-    @DeprecationWarning
     def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
 
         self.posts_df = self.get_posts_dataframe()
@@ -397,6 +397,23 @@ class RecommenderMethods:
         sample_range = [0.0, 1.0 * (10.0 ** -1.0), 1.0 * (10.0 ** -2.0), 1.0 * (10.0 ** -3.0), 1.0 * (10.0 ** -4.0),
                         1.0 * (10.0 ** -5.0)]
 
+        corpus_title, model_results = self.get_eval_results_header()
+
+        return negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
+               epochs_range, sample_range, corpus_title, model_results
+
+    def random_hyperparameter_choice(self, model_variants, vector_size_range, window_range, min_count_range,
+                                     epochs_range, sample_range, negative_sampling_variants):
+        model_variant = random.choice(model_variants)
+        vector_size = random.choice(vector_size_range)
+        window = random.choice(window_range)
+        min_count = random.choice(min_count_range)
+        epochs = random.choice(epochs_range)
+        sample = random.choice(sample_range)
+        negative_sampling_variant = random.choice(negative_sampling_variants)
+        return model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant
+
+    def get_eval_results_header(self):
         corpus_title = ['100% Corpus']
         model_results = {'Validation_Set': [],
                          'Model_Variant': [],
@@ -414,21 +431,57 @@ class RecommenderMethods:
                          'Word_pairs_test_Out-of-vocab_ratio': [],
                          'Analogies_test': []
                          }
+        return corpus_title, model_results
 
-        return negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
-               epochs_range, sample_range, corpus_title, model_results
+    # TODO: get into common method (possibly data_queries)
+    def get_prefilled_full_text(self, slug, variant):
+        global column_name
+        self.get_posts_dataframe(force_update=False)  # load posts to dataframe
+        self.get_categories_dataframe()  # load categories to dataframe
+        self.join_posts_ratings_categories()  # joining posts and categories into one table
 
-    def random_hyperparameter_choice(self, model_variants, vector_size_range, window_range, min_count_range,
-                                     epochs_range, sample_range, negative_sampling_variants):
-        model_variant = random.choice(model_variants)
-        vector_size = random.choice(vector_size_range)
-        window = random.choice(window_range)
-        min_count = random.choice(min_count_range)
-        epochs = random.choice(epochs_range)
-        sample = random.choice(sample_range)
-        negative_sampling_variant = random.choice(negative_sampling_variants)
-        return model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant
+        found_post = self.find_post_by_slug(slug)
 
+        if variant == "idnes_short_text":
+            column_name = 'recommended_doc2vec'
+        elif variant == "idnes_full_text":
+            column_name = 'recommended_doc2vec_full_text'
+        elif variant == "wiki_eval_1":
+            column_name = 'recommended_doc2vec_wiki_eval_1'
+
+        returned_post = found_post[column_name].iloc[0]
+        return returned_post
+
+    def save_wordsim(self, path_to_cropped_wordsim_file):
+        df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
+                         usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
+        cz_preprocess = CzPreprocess()
+        df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+        df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
+
+        df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
+
+
+    def append_training_results(self, source, corpus_title, model_variant, negative_sampling_variant, vector_size, window,
+                                min_count, epochs, sample, hs_softmax, pearson_coeff_word_pairs_eval,
+                                pearson_p_val_word_pairs_eval, spearman_p_val_word_pairs_eval,
+                                spearman_coeff_word_pairs_eval, out_of_vocab_ratio, analogies_eval, model_results):
+        model_results['Validation_Set'].append(source + " " + corpus_title)
+        model_results['Model_Variant'].append(model_variant)
+        model_results['Negative'].append(negative_sampling_variant)
+        model_results['Vector_size'].append(vector_size)
+        model_results['Window'].append(window)
+        model_results['Min_count'].append(min_count)
+        model_results['Epochs'].append(epochs)
+        model_results['Sample'].append(sample)
+        model_results['Softmax'].append(hs_softmax)
+        model_results['Word_pairs_test_Pearson_coeff'].append(pearson_coeff_word_pairs_eval)
+        model_results['Word_pairs_test_Pearson_p-val'].append(pearson_p_val_word_pairs_eval)
+        model_results['Word_pairs_test_Spearman_coeff'].append(spearman_coeff_word_pairs_eval)
+        model_results['Word_pairs_test_Spearman_p-val'].append(spearman_p_val_word_pairs_eval)
+        model_results['Word_pairs_test_Out-of-vocab_ratio'].append(out_of_vocab_ratio)
+        model_results['Analogies_test'].append(analogies_eval)
+        return model_results
 
 def get_cleaned_text(row):
     return row
@@ -583,4 +636,5 @@ class TfIdfDataHandlers:
         closest = closest.drop(find_by_string, errors='ignore')
 
         return pd.DataFrame(closest).merge(items).head(k)
+
 
