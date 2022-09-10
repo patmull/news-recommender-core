@@ -17,7 +17,7 @@ from src.presentation.data_logging import get_logger
 from src.recommender_core.checks.data_types import accepts, check_empty_string
 from src.recommender_core.data_handling.reader import MongoReader
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import Helper
-from src.recommender_core.data_handling.data_queries import RecommenderMethods, random_hyperparameter_choice
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
@@ -564,23 +564,8 @@ class Doc2VecClass:
         sample = 0.0
         hs_softmax = 0
 
-        corpus_title = ['100% Corpus']
-        model_results = {'Validation_Set': [],
-                         'Model_Variant': [],
-                         'Negative': [],
-                         'Vector_size': [],
-                         'Window': [],
-                         'Min_count': [],
-                         'Epochs': [],
-                         'Sample': [],
-                         'Softmax': [],
-                         'Word_pairs_test_Pearson_coeff': [],
-                         'Word_pairs_test_Pearson_p-val': [],
-                         'Word_pairs_test_Spearman_coeff': [],
-                         'Word_pairs_test_Spearman_p-val': [],
-                         'Word_pairs_test_Out-of-vocab_ratio': [],
-                         'Analogies_test': []
-                         }
+        recommender_methods = RecommenderMethods()
+        corpus_title, model_results = recommender_methods.get_eval_results_header()
         pbar = tqdm.tqdm(total=540)
 
         # hs_softmax = random_order.choice(hs_softmax_variants)
@@ -617,8 +602,9 @@ class Doc2VecClass:
                                                                        epochs=epochs,
                                                                        sample=sample,
                                                                        source=source)
-        helper = Helper()
-        helper.save_model_results(source=source, corpus_title=corpus_title[0], model_variant=model_variant,
+        # noinspection DuplicatedCode
+        recommender_methods = RecommenderMethods()
+        recommender_methods.append_training_results(source=source, corpus_title=corpus_title[0], model_variant=model_variant,
                                   negative_sampling_variant=negative_sampling_variant, vector_size=vector_size,
                                   window=window, min_count=min_count, epochs=epochs, sample=sample,
                                   hs_softmax=hs_softmax,
@@ -636,44 +622,6 @@ class Doc2VecClass:
                                            mode="w")
         print("Saved training results...")
 
-    # TODO: get into common method (possibly data_queries)
-    def get_prefilled_full_text(self, slug, variant):
-        global column_name
-        recommender_methods = RecommenderMethods()
-        recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
-        recommender_methods.get_categories_dataframe()  # load categories to dataframe
-        recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
-
-        found_post = recommender_methods.find_post_by_slug(slug)
-
-        if variant == "idnes_short_text":
-            column_name = 'recommended_doc2vec'
-        elif variant == "idnes_full_text":
-            column_name = 'recommended_doc2vec_full_text'
-        elif variant == "wiki_eval_1":
-            column_name = 'recommended_doc2vec_wiki_eval_1'
-
-        returned_post = found_post[column_name].iloc[0]
-        return returned_post
-
-    def save_training_results(self, model_results, model_variant, negative_sampling_variant, vector_size,
-                              window, min_count, epochs, sample, hs_softmax, word_pairs_eval, analogies_eval,
-                              source):
-        model_results['Model_Variant'].append(model_variant)
-        model_results['Negative'].append(negative_sampling_variant)
-        model_results['Vector_size'].append(vector_size)
-        model_results['Window'].append(window)
-        model_results['Min_count'].append(min_count)
-        model_results['Epochs'].append(epochs)
-        model_results['Sample'].append(sample)
-        model_results['Softmax'].append(hs_softmax)
-        model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
-        model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
-        model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
-        model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
-        model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
-        model_results['Analogies_test'].append(analogies_eval)
-
         if source == "idnes":
             saved_file_name = 'doc2vec_tuning_results_random_search_idnes.csv'
         elif source == "cswiki":
@@ -685,11 +633,4 @@ class Doc2VecClass:
         pd.DataFrame(model_results).to_csv(saved_file_name, index=False,
                                            mode="w")
 
-    def save_wordsim(self, path_to_cropped_wordsim_file):
-        df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
-                         usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
-        cz_preprocess = CzPreprocess()
-        df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
-        df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
 
-        df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
