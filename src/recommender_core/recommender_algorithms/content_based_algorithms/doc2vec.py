@@ -432,9 +432,23 @@ class Doc2VecClass:
             else:
                 ValueError("No source from available options selected")
 
-            self.save_training_results(model_results, model_variant, negative_sampling_variant, vector_size,
-                                       window, min_count, epochs, sample, hs_softmax, word_pairs_eval, analogies_eval,
-                                       source)
+            recommender_methods = RecommenderMethods()
+            recommender_methods.append_training_results(source=source, corpus_title=corpus_title[0],
+                                                        model_variant=model_variant,
+                                                        negative_sampling_variant=negative_sampling_variant,
+                                                        vector_size=vector_size,
+                                                        window=window, min_count=min_count, epochs=epochs,
+                                                        sample=sample,
+                                                        hs_softmax=hs_softmax,
+                                                        pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
+                                                        pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
+                                                        spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
+                                                        spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
+                                                        out_of_vocab_ratio=word_pairs_eval[2],
+                                                        analogies_eval=analogies_eval,
+                                                        model_results=model_results)
+            pd.DataFrame(model_results).to_csv('doc2vec_final_evaluation_results' + source + '.csv', index=False,
+                                               mode="a")
             pbar.update(1)
 
             print("Saved training results...")
@@ -483,7 +497,8 @@ class Doc2VecClass:
             word_pairs_eval = d2v_model.wv.evaluate_word_pairs(
                 path_to_cropped_wordsim_file)
         else:
-            self.save_wordsim(path_to_cropped_wordsim_file)
+            recommender_methods = RecommenderMethods()
+            recommender_methods.save_wordsim(path_to_cropped_wordsim_file)
             word_pairs_eval = d2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
 
         overall_score, _ = d2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
@@ -632,5 +647,10 @@ class Doc2VecClass:
         # noinspection PyTypeChecker
         pd.DataFrame(model_results).to_csv(saved_file_name, index=False,
                                            mode="w")
+
+    def get_prefilled_full_text(self, slug, variant):
+        global column_name
+        recommender_methods = RecommenderMethods()
+        return recommender_methods.get_prefilled_full_text()
 
 
