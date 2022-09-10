@@ -272,9 +272,6 @@ class LightGBMMethods:
         ], axis=1)
         return df_preprocessed
 
-    # TODO: Remove completely in the next code review
-    # noinspection DuplicatedCode
-    @DeprecationWarning
     def train_lightgbm_user_based(self):
 
         # TODO: Remove user id if it's needed
