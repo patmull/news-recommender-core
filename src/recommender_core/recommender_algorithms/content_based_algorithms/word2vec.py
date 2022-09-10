@@ -714,12 +714,29 @@ class Word2VecClass:
                                             else:
                                                 ValueError("Bad ource specified")
                                             model_results['Validation_Set'].append(set_title + " " + corpus_title[0])
+                                            # noinspection DuplicatedCode
                                             recommender_methods = RecommenderMethods()
-                                            recommender_methods.append_training_results(model_results, model_variant,
-                                                                       negative_sampling_variant, vector_size,
-                                                                       window, min_count, epochs, sample, hs_softmax,
-                                                                       word_pairs_eval, analogies_eval,
-                                                                       source)
+                                            recommender_methods.append_training_results(source=source,
+                                                                                        corpus_title=corpus_title[0],
+                                                                                        model_variant=model_variant,
+                                                                                        negative_sampling_variant=negative_sampling_variant,
+                                                                                        vector_size=vector_size,
+                                                                                        window=window,
+                                                                                        min_count=min_count,
+                                                                                        epochs=epochs, sample=sample,
+                                                                                        hs_softmax=hs_softmax,
+                                                                                        pearson_coeff_word_pairs_eval=
+                                                                                        word_pairs_eval[0][0],
+                                                                                        pearson_p_val_word_pairs_eval=
+                                                                                        word_pairs_eval[0][1],
+                                                                                        spearman_p_val_word_pairs_eval=
+                                                                                        word_pairs_eval[1][1],
+                                                                                        spearman_coeff_word_pairs_eval=
+                                                                                        word_pairs_eval[1][0],
+                                                                                        out_of_vocab_ratio=
+                                                                                        word_pairs_eval[2],
+                                                                                        analogies_eval=analogies_eval,
+                                                                                        model_results=model_results)
 
                                             pbar.update(1)
                                             if source == "idnes":
@@ -768,12 +785,22 @@ class Word2VecClass:
 
                 print(word_pairs_eval[0][0])
                 model_results['Validation_Set'].append("cs.wikipedia.org " + corpus_title[0])
+                # noinspection DuplicatedCode
                 recommender_methods = RecommenderMethods()
-                recommender_methods.append_training_results(model_results, model_variant, negative_sampling_variant, vector_size,
-                                           window, min_count, epochs, sample, hs_softmax, word_pairs_eval,
-                                           analogies_eval,
-                                           source)
-
+                recommender_methods.append_training_results(source=source, corpus_title=corpus_title[0],
+                                                            model_variant=model_variant,
+                                                            negative_sampling_variant=negative_sampling_variant,
+                                                            vector_size=vector_size,
+                                                            window=window, min_count=min_count, epochs=epochs,
+                                                            sample=sample,
+                                                            hs_softmax=hs_softmax,
+                                                            pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
+                                                            pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
+                                                            spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
+                                                            spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
+                                                            out_of_vocab_ratio=word_pairs_eval[2],
+                                                            analogies_eval=analogies_eval,
+                                                            model_results=model_results)
                 pbar.update(1)
                 if source == "idnes":
                     # noinspection PyTypeChecker
@@ -814,6 +841,7 @@ class Word2VecClass:
         print(sentences[0:100])
 
         model_variant = 1  # sg parameter: 0 = CBOW; 1 = Skip-Gram
+        # noinspection DuplicatedCode
         negative_sampling_variant = 10  # 0 = no negative sampling
         no_negative_sampling = 0  # use with hs_soft_max
         vector_size = 200
@@ -919,12 +947,12 @@ class Word2VecClass:
         return word_pairs_eval, overall_score
 
     def get_prefilled_full_text(self, slug, variant):
-        recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe(force_update=False)  # load posts to dataframe
-        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
-        recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
+        recommender_methods.get_categories_dataframe()  # load categories to dataframe
+        recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
 
-        found_post = recommenderMethods.find_post_by_slug(slug)
+        found_post = recommender_methods.find_post_by_slug(slug)
         global column_name
         if variant == "idnes_short_text":
             column_name = 'recommended_word2vec'
@@ -981,36 +1009,3 @@ def preprocess_question_words_file():
 
     # close the file2
     file2.close()
-
-
-def get_prefilled_full_text(self, slug, variant):
-    recommender_methods = RecommenderMethods()
-    recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
-    recommender_methods.get_categories_dataframe()  # load categories to dataframe
-    recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
-
-    found_post = recommender_methods.find_post_by_slug(slug)
-    global column_name
-    if variant == "idnes_short_text":
-        column_name = 'recommended_word2vec'
-    elif variant == "idnes_full_text":
-        column_name = 'recommended_word2vec_full_text'
-    elif variant == "idnes_eval_1":
-        column_name = 'recommended_word2vec_eval_1'
-    elif variant == "idnes_eval_2":
-        column_name = 'recommended_word2vec_eval_2'
-    elif variant == "idnes_eval_3":
-        column_name = 'recommended_word2vec_eval_3'
-    elif variant == "idnes_eval_4":
-        column_name = 'recommended_word2vec_eval_4'
-    elif variant == 'fasttext_limited':
-        column_name = 'recommended_word2vec_limited_fasttext'
-    elif variant == "fasttext_limited_full_text":
-        column_name = 'recommended_word2vec_limited_fasttext_full_text'
-    elif variant == 'wiki_eval_1':
-        column_name = 'recommended_word2vec_wiki_eval_1'
-    else:
-        ValueError("No variant selected matches available options.")
-
-    returned_post = found_post[column_name].iloc[0]
-    return returned_post
