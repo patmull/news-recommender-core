@@ -60,6 +60,7 @@ class LightGBM:
         print("evaluation_results_df:")
         print(evaluation_results_df)
         dict_of_jsons = {}
+        # noinspection DuplicatedCode
         for index, row in evaluation_results_df.iterrows():
             dict_of_jsons[row['user_id']] = row['results_part_2']
 
@@ -113,6 +114,7 @@ class LightGBM:
             df_from_json['model_variant'] = json_dict[4]
 
             # converting binary relevance to 0-7 relevance and sorting by relevance
+            # noinspection DuplicatedCode
             df_from_json.sort_values(by=['relevance', 'coefficient'], inplace=True, ascending=False)
             df_from_json.reset_index(inplace=True)
             df_from_json['relevance_val'] = 0
