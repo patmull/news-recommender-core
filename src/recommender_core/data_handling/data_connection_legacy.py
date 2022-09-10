@@ -10,11 +10,15 @@ DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
 DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
 DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
 
+
 @DeprecationWarning
 class Database:
     cnx = None
     cursor = None
     df = None
+
+    def __init__(self):
+        self.category_df = None
 
     def connect(self):
         self.cnx = psycopg2.connect(user=DB_USER,
@@ -123,11 +127,11 @@ class Database:
             print("Exception occured when reading file:")
             print(e)
             raise e
+
     def get_categories_dataframe(self):
         sql = """SELECT * FROM categories ORDER BY id;"""
-
-        # LOAD INTO A DATAFRAME
         self.category_df = pd.read_sql_query(sql, self.get_cnx())
+        # LOAD INTO A DATAFRAME
         # df = pd.read_sql_query(results, database.get_cnx())
         return self.category_df
 

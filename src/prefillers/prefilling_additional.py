@@ -1,8 +1,6 @@
 import time
 import random
 
-import pandas as pd
-
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import CzPreprocess
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
@@ -11,19 +9,19 @@ class PreFillerAdditional:
 
     # universal common method
     # TODO:
-    def fill_preprocessed(self, column_for_prefilling, skip_already_filled, reversed, random_order, db="pgsql"):
+    def fill_preprocessed(self, skip_already_filled, reversed, random_order, db="pgsql"):
+        global posts
         database = DatabaseMethods()
         if skip_already_filled is False:
-            pandas_df = pd.DataFrame()
             posts = database.get_all_posts()
-            categories = database.get_all_categories()
             posts_categories = database.join_posts_ratings_categories()
+            self.shuffle_and_reverse(posts=posts, reversed_order=reversed, random_order=random_order)
+
         else:
             posts_categories = database.get_not_preprocessed_posts()
+            self.shuffle_and_reverse(posts=posts_categories, reversed_order=reversed, random_order=random_order)
 
         number_of_inserted_rows = 0
-
-        self.shuffle_and_reverse(posts=posts, reversed_order=reversed, random_order=random_order)
 
         cz_lemma = CzPreprocess()
 
@@ -146,7 +144,7 @@ class PreFillerAdditional:
                     print("Skipping.")
             else:
                 self.start_preprocessed_features_prefilling(self, db, cz_lemma, article_full_text, database, post_id,
-                                                       number_of_inserted_rows, random_order)
+                                                       number_of_inserted_rows)
 
     def shuffle_and_reverse(self, posts, reversed_order, random_order):
         number_of_inserted_rows = 0

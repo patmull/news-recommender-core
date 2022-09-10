@@ -35,6 +35,7 @@ class Lda:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/lda_all_in_one"
 
     def __init__(self):
+        self.top_k_words = None
         self.documents = None
         self.df = None
         self.posts_df = None
@@ -243,6 +244,7 @@ class Lda:
         k = 15000
         top_k_words, _ = zip(*fdist.most_common(k))
         self.top_k_words = set(top_k_words)
+
 
         self.df['tokenized'] = self.df['tokenized'].apply(self.keep_top_k_words)
 

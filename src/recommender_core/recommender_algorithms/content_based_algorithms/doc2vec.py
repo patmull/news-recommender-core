@@ -328,9 +328,7 @@ class Doc2VecClass:
 
         res = []
         for elem in sims:
-            inner = {}
-            inner['index'] = elem[0]
-            inner['distance'] = elem[1]
+            inner = {'index': elem[0], 'distance': elem[1]}
             res.append(inner)
 
         return (res[:20])
@@ -432,6 +430,7 @@ class Doc2VecClass:
             else:
                 ValueError("No source from available options selected")
 
+            # noinspection DuplicatedCode
             recommender_methods = RecommenderMethods()
             recommender_methods.append_training_results(source=source, corpus_title=corpus_title[0],
                                                         model_variant=model_variant,
@@ -570,9 +569,7 @@ class Doc2VecClass:
         # noinspection DuplicatedCode
         negative_sampling_variant = 10  # 0 = no negative sampling
         no_negative_sampling = 0  # use with hs_soft_max
-        # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
         vector_size = 200
-        # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
         window = 16
         min_count = 3
         epoch = 25
@@ -651,6 +648,6 @@ class Doc2VecClass:
     def get_prefilled_full_text(self, slug, variant):
         global column_name
         recommender_methods = RecommenderMethods()
-        return recommender_methods.get_prefilled_full_text()
+        return recommender_methods.get_prefilled_full_text(slug, variant)
 
 
