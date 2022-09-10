@@ -183,6 +183,9 @@ class LightGBM:
         ], axis=1)
         return df_preprocessed
 
+    # TODO: Remove completely in the next code review
+    # noinspection DuplicatedCode
+    @DeprecationWarning
     def train_lightgbm_user_based(self):
 
         # TODO: Remove user id if it's needed
@@ -236,6 +239,7 @@ class LightGBM:
         print(df_results_merged.dtypes)
         # df_results_merged = df_results_merged.columns.drop("doc2vec")
 
+        # noinspection DuplicatedCode
         df_results_merged_old = df_results_merged
 
         print("Splitting dataset.")
@@ -429,7 +433,6 @@ class LightGBM:
 
     # TODO: Remove completely in the next code review
     # noinspection DuplicatedCode
-    # noinspection DuplicatedCode
     @DeprecationWarning
     def train_lightgbm_document_based(self, slug, k=20):
 
@@ -512,16 +515,11 @@ class LightGBM:
 
 class LearnToRank:
 
+    # noinspection DuplicatedCode
     def get_user_keywords_based(self, tfidf, user_based_recommendation, user_id):
-        user_keywords = user_based_recommendation.get_user_keywords(user_id)
-        keyword_list = user_keywords['keyword_name'].tolist()
-        tfidf_keywords = ''
-        if len(keyword_list) > 0:
-            keywords = ' '.join(keyword_list)
-            print(keywords)
-            tfidf_keywords = tfidf.keyword_based_comparison(keywords, all_posts=True)
-
-        return tfidf_keywords
+        # noinspection DuplicatedCode
+        learn_to_rank = LearnToRank()
+        return learn_to_rank.get_user_keywords_based()
 
     def get_tfidf(self, tfidf, slug):
         tfidf.prepare_dataframes()

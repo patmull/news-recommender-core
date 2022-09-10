@@ -11,7 +11,7 @@ prefiller_additional = PreFillerAdditional()
 
 
 def prefill_all_features_preprocessed():
-    prefiller_additional.fill_all_features_preprocessed(skip_already_filled=True, reversed=True, random_order=False)
+    prefiller_additional.fill_all_features_preprocessed(skip_already_filled=True, reversed_order=True, random_order=False)
 
 
 def prefill_keywords():
@@ -49,32 +49,15 @@ def run_prefilling():
     random = False
 
     full_text = False
+    methods = ["tfidf", "word2vec", "doc2vec", "lda"]
 
-    method = "tfidf"
-    prepare_and_run(database, method, full_text, reverse, random)
-
-    method = "word2vec"
-    prepare_and_run(database, method, full_text, reverse, random)
-
-    method = "doc2vec"
-    prepare_and_run(database, method, full_text, reverse, random)
-
-    method = "lda"
-    prepare_and_run(database, method, full_text, reverse, random)
+    for method in methods:
+        prepare_and_run(database, method, full_text, reverse, random)
 
     full_text = True
 
-    method = "tfidf"
-    prepare_and_run(database, method, full_text, reverse, random)
-
-    method = "word2vec"
-    prepare_and_run(database, method, full_text, reverse, random)
-
-    method = "doc2vec"
-    prepare_and_run(database, method, full_text, reverse, random)
-
-    method = "lda"
-    prepare_and_run(database, method, full_text, reverse, random)
+    for method in methods:
+        prepare_and_run(database, method, full_text, reverse, random)
 
 
 def prepare_and_run(database, method, full_text, reverse, random):

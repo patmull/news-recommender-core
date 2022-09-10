@@ -714,7 +714,8 @@ class Word2VecClass:
                                             else:
                                                 ValueError("Bad ource specified")
                                             model_results['Validation_Set'].append(set_title + " " + corpus_title[0])
-                                            self.save_training_results(model_results, model_variant,
+                                            recommender_methods = RecommenderMethods()
+                                            recommender_methods.append_training_results(model_results, model_variant,
                                                                        negative_sampling_variant, vector_size,
                                                                        window, min_count, epochs, sample, hs_softmax,
                                                                        word_pairs_eval, analogies_eval,
@@ -767,7 +768,8 @@ class Word2VecClass:
 
                 print(word_pairs_eval[0][0])
                 model_results['Validation_Set'].append("cs.wikipedia.org " + corpus_title[0])
-                self.save_training_results(model_results, model_variant, negative_sampling_variant, vector_size,
+                recommender_methods = RecommenderMethods()
+                recommender_methods.append_training_results(model_results, model_variant, negative_sampling_variant, vector_size,
                                            window, min_count, epochs, sample, hs_softmax, word_pairs_eval,
                                            analogies_eval,
                                            source)
@@ -824,23 +826,9 @@ class Word2VecClass:
 
         # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
 
-        corpus_title = ['100% Corpus']
-        model_results = {'Validation_Set': [],
-                         'Model_Variant': [],
-                         'Negative': [],
-                         'Vector_size': [],
-                         'Window': [],
-                         'Min_count': [],
-                         'Epochs': [],
-                         'Sample': [],
-                         'Softmax': [],
-                         'Word_pairs_test_Pearson_coeff': [],
-                         'Word_pairs_test_Pearson_p-val': [],
-                         'Word_pairs_test_Spearman_coeff': [],
-                         'Word_pairs_test_Spearman_p-val': [],
-                         'Word_pairs_test_Out-of-vocab_ratio': [],
-                         'Analogies_test': []
-                         }  # Can take a long time to run
+        recommender_methods = RecommenderMethods()
+        corpus_title, model_results = recommender_methods.get_eval_results_header()
+
         pbar = tqdm.tqdm(total=540)
 
         if hs_softmax == 1:
