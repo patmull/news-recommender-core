@@ -28,6 +28,7 @@ class CzPreprocess:
 
         a_string = cleantext.split('=References=')[0]  # remove references and everything afterwards
         a_string = html2text(a_string).lower()  # remove HTML tags, convert to lowercase
+        # noinspection
         a_string = re.sub(r'https?:\/\/.*?[\s]', '', a_string)  # remove URLs
 
         # 'ToktokTokenizer' does divide by '|' and '\n', but retaining this
