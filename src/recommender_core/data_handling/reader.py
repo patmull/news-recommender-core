@@ -107,17 +107,7 @@ class MongoReader(Reader):
             yield doc
 
     def get_preprocessed_dict_idnes(self, sentences, filter_extremes, path_to_dict):
-        if sentences is None:
-            print("Building sentences...")
-            sentences = []
-            client = MongoClient("localhost", 27017, maxPoolSize=50)
-            db = client.idnes
-            collection = db.preprocessed_articles_bigrams
-            cursor = collection.find({})
-            for document in cursor:
-                # joined_string = ' '.join(document['text'])
-                # sentences.append([joined_string])
-                sentences.append(document['text'])
+        sentences = self.build_sentences()
         print("Creating dictionary...")
         preprocessed_dictionary = corpora.Dictionary(line for line in sentences)
         del sentences
@@ -133,27 +123,7 @@ class MongoReader(Reader):
         # a memory-friendly iterator
         path_to_dict = 'precalc_vectors/dictionary_idnes.gensim'
         if os.path.isfile(path_to_dict) is False or force_update is True:
-            if sentences is None:
-                print("Building sentences...")
-                sentences = []
-                client = MongoClient("localhost", 27017, maxPoolSize=50)
-                db = client.idnes
-                collection = db.preprocessed_articles_bigrams
-                cursor = collection.find({})
-                for document in cursor:
-                    # joined_string = ' '.join(document['text'])
-                    # sentences.append([joined_string])
-                    sentences.append(document['text'])
-            print("Creating dictionary...")
-            preprocessed_dictionary = corpora.Dictionary(line for line in sentences)
-            del sentences
-            gc.collect()
-            if filter_extremes is True:
-                preprocessed_dictionary.filter_extremes()
-            print("Saving dictionary...")
-            preprocessed_dictionary.save(path_to_dict)
-            print("Dictionary saved to: " + path_to_dict)
-            return preprocessed_dictionary
+            return self.get_preprocessed_dict_idnes(sentences, filter_extremes, path_to_dict)
         else:
             print("Dictionary already exists. Loading...")
             loaded_dict = corpora.Dictionary.load(path_to_dict)

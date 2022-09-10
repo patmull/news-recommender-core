@@ -18,6 +18,7 @@ def convert_to_json(df):
 class UserBasedRecommendation:
 
     def __init__(self):
+        self.database = None
         self.user_id = None
 
     def get_user_id(self):
@@ -25,6 +26,7 @@ class UserBasedRecommendation:
 
     @DeprecationWarning
     def set_database(self, database):
+        # noinspection DuplicatedCod
         self.database = database
 
     def get_database(self):
@@ -51,6 +53,7 @@ class UserBasedRecommendation:
     # loads posts for user based on his id and favourite categories
     def load_recommended_posts_for_user(self, user_id, num_of_recommendations=5):
         self.database = DatabaseMethods()
+
         df_posts_users_of_categories = self.load_ratings()[self.load_ratings()
             .category_slug.isin(self.load_user_categories(user_id)['category_slug'].tolist())]
         df_filter_current_user = df_posts_users_of_categories[df_posts_users_of_categories
