@@ -1,4 +1,6 @@
+import gc
 import json
+import random
 import traceback
 from pathlib import Path
 from threading import Thread
@@ -363,6 +365,70 @@ class RecommenderMethods:
         results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'results_part_3', 'user_id', 'model_name']]
         return results_df_
 
+    def tokenize_text(self):
+
+        self.df['tokenized_keywords'] = self.df['keywords'] \
+            .apply(lambda x: x.split(', '))
+        self.df['tokenized'] = self.df.apply(
+            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
+            axis=1)
+        self.df['tokenized_full_text'] = self.df.apply(
+            lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
+            axis=1)
+
+        gc.collect()
+
+        self.df[
+            'tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(
+            lambda x: x.split(' '))
+        gc.collect()
+        self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(
+            lambda x: x.split(' '))
+        return self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
+            'tokenized_full_text']
+
+    def prepare_hyperparameters_grid(self):
+        negative_sampling_variants = range(5, 20, 5)  # 0 = no negative sampling
+        no_negative_sampling = 0  # use with hs_soft_max
+        vector_size_range = [50, 100, 158, 200, 250, 300, 450]
+        window_range = [1, 2, 4, 5, 8, 12, 16, 20]
+        min_count_range = [0, 1, 2, 3, 5, 8, 12]
+        epochs_range = [20, 25, 30]
+        sample_range = [0.0, 1.0 * (10.0 ** -1.0), 1.0 * (10.0 ** -2.0), 1.0 * (10.0 ** -3.0), 1.0 * (10.0 ** -4.0),
+                        1.0 * (10.0 ** -5.0)]
+
+        corpus_title = ['100% Corpus']
+        model_results = {'Validation_Set': [],
+                         'Model_Variant': [],
+                         'Negative': [],
+                         'Vector_size': [],
+                         'Window': [],
+                         'Min_count': [],
+                         'Epochs': [],
+                         'Sample': [],
+                         'Softmax': [],
+                         'Word_pairs_test_Pearson_coeff': [],
+                         'Word_pairs_test_Pearson_p-val': [],
+                         'Word_pairs_test_Spearman_coeff': [],
+                         'Word_pairs_test_Spearman_p-val': [],
+                         'Word_pairs_test_Out-of-vocab_ratio': [],
+                         'Analogies_test': []
+                         }
+
+        return negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
+               epochs_range, sample_range, corpus_title, model_results
+
+    def random_hyperparameter_choice(self, model_variants, vector_size_range, window_range, min_count_range,
+                                     epochs_range, sample_range, negative_sampling_variants):
+        model_variant = random.choice(model_variants)
+        vector_size = random.choice(vector_size_range)
+        window = random.choice(window_range)
+        min_count = random.choice(min_count_range)
+        epochs = random.choice(epochs_range)
+        sample = random.choice(sample_range)
+        negative_sampling_variant = random.choice(negative_sampling_variants)
+        return model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant
+
 
 def get_cleaned_text(row):
     return row
@@ -517,3 +583,4 @@ class TfIdfDataHandlers:
         closest = closest.drop(find_by_string, errors='ignore')
 
         return pd.DataFrame(closest).merge(items).head(k)
+

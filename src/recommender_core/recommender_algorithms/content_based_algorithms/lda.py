@@ -13,6 +13,7 @@ from gensim.utils import deaccent
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
 
+from src.recommender_core.checks.data_types import check_empty_string, accepts
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
 
@@ -45,18 +46,11 @@ class Lda:
         return text.split(" ")
 
     # @profile
-
+    @accepts(str)
+    @check_empty_string
     def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, N=21):
-        if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
-        else:
-            if searched_slug == "":
-                raise ValueError("Entered string is empty.")
-            else:
-                pass
 
         recommender_methods = RecommenderMethods()
-
         recommender_methods.get_posts_dataframe()
         recommender_methods.get_posts_categories_dataframe()
 
@@ -114,39 +108,13 @@ class Lda:
 
     # @profile
     # noinspection PyUnresolvedReferences
+    @accepts(str)
+    @check_empty_string
     def get_similar_lda_full_text(self, searched_slug, N=21, train=False, display_dominant_topics=True):
-        if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
-        else:
-            if searched_slug == "":
-                raise ValueError("Entered string is empty.")
-            else:
-                pass
-
         recommender_methods = RecommenderMethods()
-
         recommender_methods.get_posts_dataframe()
         recommender_methods.get_posts_categories_dataframe()
-
-        if searched_slug not in recommender_methods.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
-
-        recommender_methods.df['tokenized_keywords'] = recommender_methods.df['keywords']\
-            .apply(lambda x: x.split(', '))
-        recommender_methods.df['tokenized'] = recommender_methods.df.apply(
-            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
-            axis=1)
-        recommender_methods.df['tokenized_full_text'] = recommender_methods.df.apply(
-            lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
-            axis=1)
-
-        gc.collect()
-
-        recommender_methods.df['tokenized_all_features_preprocessed'] = recommender_methods.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-        gc.collect()
-        recommender_methods.df['tokenized_full_text'] = recommender_methods.df.tokenized_full_text.apply(lambda x: x.split(' '))
-        recommender_methods.df['tokenized'] = recommender_methods.df['tokenized_keywords'] + recommender_methods.df['tokenized_all_features_preprocessed'] + recommender_methods.df[
-            'tokenized_full_text']
+        recommender_methods.df['tokenized'] = recommender_methods.tokenize_text()
         gc.collect()
 
         if train is True:
@@ -372,22 +340,7 @@ class Lda:
         recommender_methods.get_posts_dataframe()
         self.df = recommender_methods.get_posts_categories_dataframe()
 
-        self.df['tokenized_keywords'] = self.df['keywords'].apply(lambda x: x.split(', '))
-
-        self.df['tokenized'] = self.df.apply(
-            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
-            axis=1)
-
-        self.df['tokenized_full_text'] = self.df.apply(
-            lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
-            axis=1)
-
-        gc.collect()
-        self.df['tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(lambda x: x.split(' '))
-
-        gc.collect()
-
-        self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(lambda x: x.split(' '))
+        self.df['tokenized_keywords'] = recommender_methods.tokenize_text()
         print("self.df['tokenized']")
 
         self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
