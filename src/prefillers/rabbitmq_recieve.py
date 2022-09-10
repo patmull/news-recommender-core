@@ -1,5 +1,6 @@
 import traceback
 
+from recommender_core.data_handling.data_connection import init_rabbitmq
 from src.prefillers.prefilling_all import run_prefilling
 
 rabbit_connection = init_rabbitmq()

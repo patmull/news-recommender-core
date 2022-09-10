@@ -435,13 +435,12 @@ class RecommenderMethods:
 
     # TODO: get into common method (possibly data_queries)
     def get_prefilled_full_text(self, slug, variant):
-        global column_name
         self.get_posts_dataframe(force_update=False)  # load posts to dataframe
         self.get_categories_dataframe()  # load categories to dataframe
         self.join_posts_ratings_categories()  # joining posts and categories into one table
 
         found_post = self.find_post_by_slug(slug)
-
+        column_name = None
         if variant == "idnes_short_text":
             column_name = 'recommended_doc2vec'
         elif variant == "idnes_full_text":
@@ -636,5 +635,20 @@ class TfIdfDataHandlers:
         closest = closest.drop(find_by_string, errors='ignore')
 
         return pd.DataFrame(closest).merge(items).head(k)
+
+    def get_tupple_of_fitted_matrices(self, fit_by_post_title_matrix):
+        print("fit_by_post_title_matrix")
+        print(fit_by_post_title_matrix)
+        # fit_by_category_matrix = recommender_methods.get_fit_by_feature_('category_title')
+        fit_by_excerpt_matrix = self.get_fit_by_feature_('excerpt')
+        print("fit_by_excerpt_matrix")
+        print(fit_by_excerpt_matrix)
+        fit_by_keywords_matrix = self.get_fit_by_feature_('keywords')
+        print("fit_by_keywords_matrix")
+        print(fit_by_keywords_matrix)
+
+        # join feature tuples into one matrix
+        tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
+        return tuple_of_fitted_matrices
 
 

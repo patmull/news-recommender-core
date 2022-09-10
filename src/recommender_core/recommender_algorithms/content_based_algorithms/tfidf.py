@@ -285,18 +285,7 @@ class TfIdf:
         # feature tuples of (document_id, token_id) and coefficient
         tf_idf_data_handlers = TfIdfDataHandlers(self.df)
         fit_by_post_title_matrix = tf_idf_data_handlers.get_fit_by_feature_('post_title', 'category_title')
-        print("fit_by_post_title_matrix")
-        print(fit_by_post_title_matrix)
-        # fit_by_category_matrix = recommender_methods.get_fit_by_feature_('category_title')
-        fit_by_excerpt_matrix = tf_idf_data_handlers.get_fit_by_feature_('excerpt')
-        print("fit_by_excerpt_matrix")
-        print(fit_by_excerpt_matrix)
-        fit_by_keywords_matrix = tf_idf_data_handlers.get_fit_by_feature_('keywords')
-        print("fit_by_keywords_matrix")
-        print(fit_by_keywords_matrix)
-
-        # join feature tuples into one matrix
-        tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
+        tuple_of_fitted_matrices = tf_idf_data_handlers.get_tupple_of_fitted_matrices(fit_by_post_title_matrix)
         tf_idf_data_handlers = TfIdfDataHandlers(self.df)
         recommended_posts = tf_idf_data_handlers.recommend_by_more_features(slug, tuple_of_fitted_matrices)
 
@@ -394,26 +383,14 @@ class TfIdf:
                 print("----------------")
                 print("Simple example:")
                 word_count = cv.fit_transform(found_posts)
-                print(word_count.shape)
-                print(word_count)
-                print(word_count.toarray())
-                tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
-                tfidf_transformer.fit(word_count)
-                df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
-                print(df_idf.sort_values(by=['idf_weights']).head(40))
+                self.display_top(word_count, cv)
             else:
                 print("No matches found")
 
         print("---------------")
         print("From whole dataset:")
         word_count = cv.fit_transform(posts['all_features_preprocessed'])
-        print(word_count.shape)
-        print(word_count)
-        print(word_count.toarray())
-        tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
-        tfidf_transformer.fit(word_count)
-        df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
-        print(df_idf.sort_values(by=['idf_weights']).head(40))
+        self.display_top(word_count, cv)
 
         print("----------------")
         print("TF-IDF values:")
@@ -465,3 +442,12 @@ class TfIdf:
         returned_posts = found_post[column_name].iloc[0]
         print(returned_posts)
         return returned_posts
+
+    def display_top(self, word_count, cv):
+        print(word_count.shape)
+        print(word_count)
+        print(word_count.toarray())
+        tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
+        tfidf_transformer.fit(word_count)
+        df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
+        print(df_idf.sort_values(by=['idf_weights']).head(40))
