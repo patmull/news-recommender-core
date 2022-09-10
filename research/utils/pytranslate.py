@@ -1,4 +1,3 @@
-import time
 from deep_translator import GoogleTranslator
 
 

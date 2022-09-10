@@ -1,14 +1,9 @@
 # load the dataset and split it into training and testing sets
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_selection import SelectKBest, f_classif
-from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC, SVR
 
 
 # TODO: Not finished yet. Not clear how can be useful!

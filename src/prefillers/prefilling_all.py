@@ -1,6 +1,6 @@
 import traceback
 
-from prefillers.prefilling_hybrid_methods import fill_bert_vector_representation
+from src.prefillers.prefilling_hybrid_methods import fill_bert_vector_representation
 from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import PreFiller
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
