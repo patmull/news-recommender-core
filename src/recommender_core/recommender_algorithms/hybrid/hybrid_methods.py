@@ -17,6 +17,7 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.word2v
 from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import LightGBM
 
 
+# noinspection DuplicatedCode
 class HybridRecommendation:
     def __init__(self):
         self.NUM_OF_RESULTS = 20.0
@@ -270,26 +271,18 @@ class HybridRecommendation:
         print(percentage_total)
 
         number_of_recommended = 20
-        number_of_recommended_tfidf = round((tfidf_rate / 100) * number_of_recommended)
-        number_of_recommended_word2vec = round((word2vec_rate / 100) * number_of_recommended)
-        number_of_recommended_doc2vec = round((doc2vec_rate / 100) * number_of_recommended)
-        number_of_recommended_lda = round((lda_rate / 100) * number_of_recommended)
 
-        print("number_of_recommended_tfidf")
-        print(number_of_recommended_tfidf)
-        print("number_of_recommended_word2vec")
-        print(number_of_recommended_word2vec)
-        print("number_of_recommended_doc2vec")
-        print(number_of_recommended_doc2vec)
-        print("number_of_recommended_lda")
-        print(number_of_recommended_lda)
+        tf_idf_additional_selection, word2vec_additional_selection, doc2vec_additional_selection, \
+        lda_additional_selection, number_of_recommended_tfidf, number_of_recommended_word2vec, \
+        number_of_recommended_doc2vec, number_of_recommended_lda = self.model_selection(tfidf_rate, word2vec_rate,
+                                                                                        doc2vec_rate, lda_rate,
+                                                                                        number_of_recommended,
+                                                                                        tf_idf_results,
+                                                                                        word2vec_results,
+                                                                                        doc2vec_results, lda_results)
 
-        tf_idf_additional_selection = tf_idf_results.head(number_of_recommended_tfidf)
-        word2vec_additional_selection = word2vec_results.head(number_of_recommended_word2vec)
-        doc2vec_additional_selection = doc2vec_results.head(number_of_recommended_doc2vec)
-        lda_additional_selection = lda_results.head(number_of_recommended_lda)
-
-        final_df = pd.concat([tf_idf_additional_selection, word2vec_additional_selection, doc2vec_additional_selection, lda_additional_selection])
+        final_df = pd.concat([tf_idf_additional_selection, word2vec_additional_selection, doc2vec_additional_selection,
+                              lda_additional_selection])
 
         tf_idf_selection = tf_idf_results.head(number_of_recommended_tfidf)
         word2vec_selection = word2vec_results.head(number_of_recommended_word2vec)
@@ -302,7 +295,8 @@ class HybridRecommendation:
         print(final_df)
 
         # normalisation of coefficient
-        final_df["coefficient"] = (final_df["coefficient"] - final_df["coefficient"].mean()) / final_df["coefficient"].std()
+        final_df["coefficient"] = (final_df["coefficient"] - final_df["coefficient"].mean()) / final_df[
+            "coefficient"].std()
 
         print("final_df_normalized")
         print(final_df)
@@ -325,26 +319,19 @@ class HybridRecommendation:
             num_of_free_places = 20 - final_df.index
             # recalculating
 
-            number_of_recommended_tfidf = round((tfidf_rate / 100) * num_of_free_places)
-            number_of_recommended_word2vec = round((word2vec_rate / 100) * num_of_free_places)
-            number_of_recommended_doc2vec = round((doc2vec_rate / 100) * num_of_free_places)
-            number_of_recommended_lda = round((lda_rate / 100) * num_of_free_places)
+            tf_idf_additional_selection, word2vec_additional_selection, doc2vec_additional_selection, \
+            lda_additional_selection, number_of_recommended_tfidf, number_of_recommended_word2vec, \
+            number_of_recommended_doc2vec, number_of_recommended_lda = self.model_selection(tfidf_rate, word2vec_rate,
+                                                                                            doc2vec_rate, lda_rate,
+                                                                                            number_of_recommended,
+                                                                                            tf_idf_results,
+                                                                                            word2vec_results,
+                                                                                            doc2vec_results,
+                                                                                            lda_results)
 
-            print("number_of_recommended_tfidf")
-            print(number_of_recommended_tfidf)
-            print("number_of_recommended_word2vec")
-            print(number_of_recommended_word2vec)
-            print("number_of_recommended_doc2vec")
-            print(number_of_recommended_doc2vec)
-            print("number_of_recommended_lda")
-            print(number_of_recommended_lda)
-
-            tf_idf_additional_selection = tf_idf_results.head(number_of_recommended_tfidf)
-            word2vec_additional_selection = word2vec_results.head(number_of_recommended_word2vec)
-            doc2vec_additional_selection = doc2vec_results.head(number_of_recommended_doc2vec)
-            lda_additional_selection = lda_results.head(number_of_recommended_lda)
-
-            final_df = pd.concat([final_df, tf_idf_additional_selection, word2vec_additional_selection, doc2vec_additional_selection, lda_additional_selection])
+            final_df = pd.concat(
+                [final_df, tf_idf_additional_selection, word2vec_additional_selection, doc2vec_additional_selection,
+                 lda_additional_selection])
 
         final_df = final_df.sort_values(by=['coefficient'], ascending=False)
         print("final_df:")
@@ -360,7 +347,7 @@ class HybridRecommendation:
             # return final_df.head(num_of_recommended).to_json(orient='records')
             return json.dumps(parsed, indent=4)
 
-
+    # noinspection DuplicatedCode
     def get_posts_lightgbm(self, results, use_categorical_columns=True):
 
         global one_hot_encoder, categorical_columns_after_encoding
@@ -380,15 +367,7 @@ class HybridRecommendation:
         print("tf_idf_results.dtypes:")
         print(results.dtypes)
 
-        recommender_methods = RecommenderMethods()
-        gc.collect()
-        post_category_df = recommender_methods.get_posts_categories_dataframe()
-
-        gc.collect()
-
-        post_category_df = post_category_df.rename(columns={'slug_x': 'slug'})
-        post_category_df = post_category_df.rename(columns={'title_y': 'category'})
-        post_category_df['model_name'] = 'tfidf'
+        post_category_df = self.prepare_categories()
 
         print("results.columns:")
         print(results.columns)
@@ -418,14 +397,15 @@ class HybridRecommendation:
         tf_idf_results_old = results
         if use_categorical_columns is True:
             numerical_columns = [
-                "coefficient", "views", 'doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5',
-                 'doc2vec_col_6', 'doc2vec_col_7'
+                "coefficient", "views", 'doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3',
+                'doc2vec_col_4', 'doc2vec_col_5',
+                'doc2vec_col_6', 'doc2vec_col_7'
             ]
             one_hot_encoder.fit(post_category_df[categorical_columns])
             del post_category_df
             gc.collect()
             results = lightgbm.preprocess_one_hot(results, one_hot_encoder, numerical_columns,
-                                                     categorical_columns)
+                                                  categorical_columns)
             results['slug'] = tf_idf_results_old['slug']
         else:
             del post_category_df
@@ -433,7 +413,9 @@ class HybridRecommendation:
 
         features_X = ['coefficient', 'views']
 
-        all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'title_x', 'excerpt', 'body', 'views', 'keywords', 'category', 'description', 'all_features_preprocessed', 'body_preprocessed']
+        all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'title_x',
+                       'excerpt', 'body', 'views', 'keywords', 'category', 'description', 'all_features_preprocessed',
+                       'body_preprocessed']
         if use_categorical_columns is True:
             categorical_columns_after_encoding = [x for x in all_columns if x.startswith("category_")]
             features.extend(categorical_columns_after_encoding)
@@ -467,3 +449,41 @@ class HybridRecommendation:
 
     def test_hybrid(self):
         self.get_hybrid_recommendation("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
+
+    def model_selection(self, tfidf_rate, word2vec_rate, doc2vec_rate, lda_rate, number_of_recommended,
+                        tf_idf_results, word2vec_results, doc2vec_results, lda_results):
+        number_of_recommended_tfidf = round((tfidf_rate / 100) * number_of_recommended)
+        number_of_recommended_word2vec = round((word2vec_rate / 100) * number_of_recommended)
+        number_of_recommended_doc2vec = round((doc2vec_rate / 100) * number_of_recommended)
+        number_of_recommended_lda = round((lda_rate / 100) * number_of_recommended)
+
+        print("number_of_recommended_tfidf")
+        print(number_of_recommended_tfidf)
+        print("number_of_recommended_word2vec")
+        print(number_of_recommended_word2vec)
+        print("number_of_recommended_doc2vec")
+        print(number_of_recommended_doc2vec)
+        print("number_of_recommended_lda")
+        print(number_of_recommended_lda)
+
+        tf_idf_additional_selection = tf_idf_results.head(number_of_recommended_tfidf)
+        word2vec_additional_selection = word2vec_results.head(number_of_recommended_word2vec)
+        doc2vec_additional_selection = doc2vec_results.head(number_of_recommended_doc2vec)
+        lda_additional_selection = lda_results.head(number_of_recommended_lda)
+
+        return tf_idf_additional_selection, word2vec_additional_selection, doc2vec_additional_selection, \
+               lda_additional_selection, number_of_recommended_tfidf, number_of_recommended_word2vec, \
+               number_of_recommended_doc2vec, number_of_recommended_lda
+
+    def prepare_categories(self):
+        recommender_methods = RecommenderMethods()
+        gc.collect()
+        post_category_df = recommender_methods.get_posts_categories_dataframe()
+
+        gc.collect()
+
+        post_category_df = post_category_df.rename(columns={'slug_x': 'slug'})
+        post_category_df = post_category_df.rename(columns={'title_y': 'category'})
+        post_category_df['model_name'] = 'tfidf'
+
+        return post_category_df

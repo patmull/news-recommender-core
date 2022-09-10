@@ -674,35 +674,10 @@ class Word2VecClass:
 
         model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
         hs_softmax_variants = [0]  # 1 = Hierarchical SoftMax
-        negative_sampling_variants = range(5, 20, 5)  # 0 = no negative sampling
-        no_negative_sampling = 0  # use with hs_soft_max
-        # vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        # window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        min_count_range = [0, 1, 2, 3, 5, 8, 12]
-        epochs_range = [20, 25, 30]
-        sample_range = [0.0, 1.0 * (10.0 ** -1.0), 1.0 * (10.0 ** -2.0), 1.0 * (10.0 ** -3.0), 1.0 * (10.0 ** -4.0),
-                        1.0 * (10.0 ** -5.0)]
-        # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
+        recommender_methods = RecommenderMethods()
+        negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
+        epochs_range, sample_range, corpus_title, model_results = recommender_methods.prepare_hyperparameters_grid()
 
-        corpus_title = ['100% Corpus']
-        model_results = {'Validation_Set': [],
-                         'Model_Variant': [],
-                         'Negative': [],
-                         'Vector_size': [],
-                         'Window': [],
-                         'Min_count': [],
-                         'Epochs': [],
-                         'Sample': [],
-                         'Softmax': [],
-                         'Word_pairs_test_Pearson_coeff': [],
-                         'Word_pairs_test_Pearson_p-val': [],
-                         'Word_pairs_test_Spearman_coeff': [],
-                         'Word_pairs_test_Spearman_p-val': [],
-                         'Word_pairs_test_Out-of-vocab_ratio': [],
-                         'Analogies_test': []
-                         }  # Can take a long time to run
         pbar = tqdm.tqdm(total=540)
         global set_title, csv_file_name
         if random_search is False:
@@ -917,22 +892,18 @@ class Word2VecClass:
                                                                              )
 
         print(word_pairs_eval[0][0])
-
-        model_results['Validation_Set'].append(source + " " + corpus_title[0])
-        model_results['Model_Variant'].append(model_variant)
-        model_results['Negative'].append(negative_sampling_variant)
-        model_results['Vector_size'].append(vector_size)
-        model_results['Window'].append(window)
-        model_results['Min_count'].append(min_count)
-        model_results['Epochs'].append(epochs)
-        model_results['Sample'].append(sample)
-        model_results['Softmax'].append(hs_softmax)
-        model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
-        model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
-        model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
-        model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
-        model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
-        model_results['Analogies_test'].append(analogies_eval)
+        helper = Helper()
+        helper.save_model_results(source=source, corpus_title=corpus_title[0], model_variant=model_variant,
+                                  negative_sampling_variant=negative_sampling_variant, vector_size=vector_size,
+                                  window=window, min_count=min_count, epochs=epochs, sample=sample,
+                                  hs_softmax=hs_softmax,
+                                  pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
+                                  pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
+                                  spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
+                                  spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
+                                  out_of_vocab_ratio=word_pairs_eval[2],
+                                  analogies_eval=analogies_eval,
+                                  model_results=model_results)
 
         pbar.update(1)
         if source == "idnes":

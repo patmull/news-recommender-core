@@ -1,6 +1,6 @@
 import pandas as pd
 
-from recommender_core.recommender_algorithms.hybrid.classifier import Classifier
+from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
 
 # RUN WITH: python -m pytest tests/unit/test_classifiers.py
 
