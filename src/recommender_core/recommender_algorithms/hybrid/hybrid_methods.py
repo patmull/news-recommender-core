@@ -14,7 +14,7 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2ve
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import LightGBM
+from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import LightGBMMethods
 
 
 # noinspection DuplicatedCode
@@ -351,7 +351,7 @@ class HybridRecommendation:
     def get_posts_lightgbm(self, results, use_categorical_columns=True):
 
         global one_hot_encoder, categorical_columns_after_encoding
-        lightgbm = LightGBM()
+        lightgbm = LightGBMMethods()
 
         consider_only_top_limit = 20
         if use_categorical_columns is True:
@@ -430,7 +430,7 @@ class HybridRecommendation:
         if lightgbm_model_file.exists():
             model = pickle.load(open('models/lightgbm.pkl', 'rb'))
         else:
-            print("LightGBM model not found. Training from available relevance testing results datasets...")
+            print("LightGBMMethods model not found. Training from available relevance testing results datasets...")
             lightgbm.train_lightgbm_user_based()
             model = pickle.load(open('models/lightgbm.pkl', 'rb'))
         predictions = model.predict(results[features_X])  # .values.reshape(-1,1) when single feature is used

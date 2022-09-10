@@ -626,13 +626,8 @@ class Word2VecClass:
             word_pairs_eval = self.w2v_model.wv.evaluate_word_pairs(
                 path_to_cropped_wordsim_file)
         else:
-            df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
-                             usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
-            cz_preprocess = CzPreprocess()
-            df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
-            df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
-
-            df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
+            recommender_methods = RecommenderMethods()
+            recommender_methods.save_wordsim(path_to_cropped_wordsim_file)
             word_pairs_eval = self.w2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
 
         overall_score, _ = self.w2v_model.wv.evaluate_word_analogies(
@@ -719,23 +714,11 @@ class Word2VecClass:
                                             else:
                                                 ValueError("Bad ource specified")
                                             model_results['Validation_Set'].append(set_title + " " + corpus_title[0])
-                                            model_results['Model_Variant'].append(model_variant)
-                                            model_results['Negative'].append(negative_sampling_variant)
-                                            model_results['Vector_size'].append(vector_size)
-                                            model_results['Window'].append(window)
-                                            model_results['Min_count'].append(min_count)
-                                            model_results['Epochs'].append(epochs)
-                                            model_results['Sample'].append(sample)
-                                            model_results['Softmax'].append(hs_softmax)
-                                            model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
-                                            model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
-                                            model_results['Word_pairs_test_Spearman_coeff'].append(
-                                                word_pairs_eval[1][0])
-                                            model_results['Word_pairs_test_Spearman_p-val'].append(
-                                                word_pairs_eval[1][1])
-                                            model_results['Word_pairs_test_Out-of-vocab_ratio'].append(
-                                                word_pairs_eval[2])
-                                            model_results['Analogies_test'].append(analogies_eval)
+                                            self.save_training_results(model_results, model_variant,
+                                                                       negative_sampling_variant, vector_size,
+                                                                       window, min_count, epochs, sample, hs_softmax,
+                                                                       word_pairs_eval, analogies_eval,
+                                                                       source)
 
                                             pbar.update(1)
                                             if source == "idnes":
@@ -751,12 +734,14 @@ class Word2VecClass:
         else:
             for i in range(0, number_of_trials):
                 hs_softmax = random.choice(hs_softmax_variants)
-                model_variant = random.choice(model_variants)
-                vector_size = random.choice(vector_size_range)
-                window = random.choice(window_range)
-                min_count = random.choice(min_count_range)
-                epochs = random.choice(epochs_range)
-                sample = random.choice(sample_range)
+                model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant \
+                    = recommender_methods.random_hyperparameter_choice(model_variants=model_variants,
+                                                                       negative_sampling_variants=negative_sampling_variants,
+                                                                       vector_size_range=vector_size_range,
+                                                                       sample_range=sample_range,
+                                                                       epochs_range=epochs_range,
+                                                                       window_range=window_range,
+                                                                       min_count_range=min_count_range)
                 negative_sampling_variant = random.choice(negative_sampling_variants)
 
                 if hs_softmax == 1:
@@ -782,20 +767,10 @@ class Word2VecClass:
 
                 print(word_pairs_eval[0][0])
                 model_results['Validation_Set'].append("cs.wikipedia.org " + corpus_title[0])
-                model_results['Model_Variant'].append(model_variant)
-                model_results['Negative'].append(negative_sampling_variant)
-                model_results['Vector_size'].append(vector_size)
-                model_results['Window'].append(window)
-                model_results['Min_count'].append(min_count)
-                model_results['Epochs'].append(epochs)
-                model_results['Sample'].append(sample)
-                model_results['Softmax'].append(hs_softmax)
-                model_results['Word_pairs_test_Pearson_coeff'].append(word_pairs_eval[0][0])
-                model_results['Word_pairs_test_Pearson_p-val'].append(word_pairs_eval[0][1])
-                model_results['Word_pairs_test_Spearman_coeff'].append(word_pairs_eval[1][0])
-                model_results['Word_pairs_test_Spearman_p-val'].append(word_pairs_eval[1][1])
-                model_results['Word_pairs_test_Out-of-vocab_ratio'].append(word_pairs_eval[2])
-                model_results['Analogies_test'].append(analogies_eval)
+                self.save_training_results(model_results, model_variant, negative_sampling_variant, vector_size,
+                                           window, min_count, epochs, sample, hs_softmax, word_pairs_eval,
+                                           analogies_eval,
+                                           source)
 
                 pbar.update(1)
                 if source == "idnes":
@@ -892,18 +867,21 @@ class Word2VecClass:
                                                                              )
 
         print(word_pairs_eval[0][0])
-        helper = Helper()
-        helper.save_model_results(source=source, corpus_title=corpus_title[0], model_variant=model_variant,
-                                  negative_sampling_variant=negative_sampling_variant, vector_size=vector_size,
-                                  window=window, min_count=min_count, epochs=epochs, sample=sample,
-                                  hs_softmax=hs_softmax,
-                                  pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
-                                  pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
-                                  spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
-                                  spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
-                                  out_of_vocab_ratio=word_pairs_eval[2],
-                                  analogies_eval=analogies_eval,
-                                  model_results=model_results)
+        # noinspection DuplicatedCode
+        recommender_methods = RecommenderMethods()
+        recommender_methods.append_training_results(source=source, corpus_title=corpus_title[0],
+                                                    model_variant=model_variant,
+                                                    negative_sampling_variant=negative_sampling_variant,
+                                                    vector_size=vector_size,
+                                                    window=window, min_count=min_count, epochs=epochs, sample=sample,
+                                                    hs_softmax=hs_softmax,
+                                                    pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
+                                                    pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
+                                                    spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
+                                                    spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
+                                                    out_of_vocab_ratio=word_pairs_eval[2],
+                                                    analogies_eval=analogies_eval,
+                                                    model_results=model_results)
 
         pbar.update(1)
         if source == "idnes":
@@ -983,6 +961,7 @@ class Word2VecClass:
 
         returned_post = found_post[column_name].iloc[0]
         return returned_post
+
 
 def preprocess_question_words_file():
     # open file1 in reading mode

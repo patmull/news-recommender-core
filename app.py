@@ -8,7 +8,7 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2ve
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import LightGBM, LearnToRank
+from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import LightGBMMethods, LearnToRank
 from src.recommender_core.recommender_algorithms.user_based_algorithms\
     .collaboration_based_recommendation import SvdClass
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
@@ -66,7 +66,7 @@ def home():
 class GetPostsLearnToRank(Resource):
 
     def get(self):
-        lightgbm = LightGBM()
+        lightgbm = LightGBMMethods()
         return lightgbm.train_lightgbm_user_based()
 
     def post(self):
