@@ -24,6 +24,9 @@ REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
 SEED = 2021
 
 
+# TODO: Remove completely in the next code review
+# noinspection DuplicatedCode
+@DeprecationWarning
 class LightGBM:
     tfidf = TfIdf()
     user_based_recommendation = UserBasedRecommendation()
@@ -35,9 +38,10 @@ class LightGBM:
         recommender_methods = RecommenderMethods()
         return recommender_methods.get_relevance_results_dataframe()  # load posts to dataframe
 
+    # TODO: Remove completely in the next code review
+    # noinspection DuplicatedCode
     @DeprecationWarning
     def get_user_keywords_based(self, tfidf, user_based_recommendation, user_id):
-        # noinspection DuplicatedCode
         user_keywords = user_based_recommendation.get_user_keywords(user_id)
         keyword_list = user_keywords['keyword_name'].tolist()
         tfidf_keywords = ''
@@ -48,6 +52,9 @@ class LightGBM:
 
         return tfidf_keywords
 
+    # TODO: Remove completely in the next code review
+    # noinspection DuplicatedCode
+    @DeprecationWarning
     def get_results_single_coeff_user_as_query(self):
         evaluation_results_df = self.get_results_dataframe()
         print("evaluation_results_df:")
@@ -81,6 +88,9 @@ class LightGBM:
         print(df_merged.index)
         return df_merged
 
+    # TODO: Remove completely in the next code review
+    # noinspection DuplicatedCode
+    @DeprecationWarning
     def get_results_single_coeff_searched_doc_as_query(self):
         evaluation_results_df = self.get_results_dataframe()
         print("evaluation_results_df:")
@@ -299,7 +309,8 @@ class LightGBM:
 
         pickle.dump(model, open('models/lightgbm.pkl', 'wb'))
 
-    # @profile
+    # TODO: Remove completely in the next code review
+    # noinspection DuplicatedCode
     @DeprecationWarning
     def get_posts_lightgbm(self, slug, variant="full-text", use_categorical_columns=True):
         global one_hot_encoder, categorical_columns_after_encoding
@@ -395,7 +406,7 @@ class LightGBM:
         if lightgbm_model_file.exists():
             model = pickle.load(open('models/lightgbm.pkl', 'rb'))
         else:
-            print("LightGBM model not found. Training from available relevance testing results datasets...")
+            print("LightGBMMethods model not found. Training from available relevance testing results datasets...")
             self.train_lightgbm_user_based()
             model = pickle.load(open('models/lightgbm.pkl', 'rb'))
         predictions = model.predict(tf_idf_results[features_X])  # .values.reshape(-1,1) when single feature is used
@@ -416,7 +427,9 @@ class LightGBM:
         parsed = json.loads(result)
         return json.dumps(parsed, indent=4)
 
-
+    # TODO: Remove completely in the next code review
+    # noinspection DuplicatedCode
+    # noinspection DuplicatedCode
     @DeprecationWarning
     def train_lightgbm_document_based(self, slug, k=20):
 

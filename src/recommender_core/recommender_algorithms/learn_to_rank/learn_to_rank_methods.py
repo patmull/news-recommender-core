@@ -41,7 +41,7 @@ NUM_OF_POSTS = 8194
 SEED = 2021
 
 
-class LightGBM:
+class LightGBMMethods:
     tfidf = TfIdf()
     doc2vec = Doc2VecClass()
     lda = Lda()
@@ -158,7 +158,6 @@ class LightGBM:
         return df_merged
 
     def get_tfidf(self, tfidf, post_slug):
-        tfidf.get_prefilled_full_text()
         tfidf_prefilled_posts = tfidf.get_prefilled_full_text()
         print("tfidf_prefilled_posts:")
         print(tfidf_prefilled_posts)
@@ -273,13 +272,16 @@ class LightGBM:
         ], axis=1)
         return df_preprocessed
 
+    # TODO: Remove completely in the next code review
+    # noinspection DuplicatedCode
+    @DeprecationWarning
     def train_lightgbm_user_based(self):
 
         # TODO: Remove user id if it's needed
         df_results = self.get_results_single_coeff_searched_doc_as_query()
-        recommenderMethods = RecommenderMethods()
+        recommender_methods = RecommenderMethods()
 
-        post_category_df = recommenderMethods.join_posts_ratings_categories()
+        post_category_df = recommender_methods.join_posts_ratings_categories()
         post_category_df = post_category_df.rename(columns={'slug': 'slug'})
         post_category_df = post_category_df.rename(columns={'category_title': 'category'})
 
@@ -395,7 +397,6 @@ class LightGBM:
 
         pickle.dump(model, open('../../../../models/lightgbm.pkl', 'wb'))
 
-
     def get_posts_lightgbm(self, slug, use_categorical_columns=True):
         global one_hot_encoder, categorical_columns_after_encoding
         consider_only_top_limit = 20
@@ -488,7 +489,7 @@ class LightGBM:
         if lightgbm_model_file.exists():
             model = pickle.load(open('../../../../models/lightgbm.pkl', 'rb'))
         else:
-            print("LightGBM model not found. Training from available relevance testing results datasets...")
+            print("LightGBMMethods model not found. Training from available relevance testing results datasets...")
             self.train_lightgbm_user_based()
             model = pickle.load(open('../../../../models/lightgbm.pkl', 'rb'))
         predictions = model.predict(tf_idf_results[features_X])  # .values.reshape(-1,1) when single feature is used
@@ -602,15 +603,8 @@ class LearnToRank:
 
     def get_tfidf(self, tfidf, post_slug):
         tfidf.prepare_dataframes()
-        tfidf_prefilled_posts = tfidf.get_prefilled_full_text()
-        print("tfidf_prefilled_posts:")
-        print(tfidf_prefilled_posts)
-        found_row = tfidf_prefilled_posts.loc[tfidf_prefilled_posts['slug'] == post_slug]
-        tfidf_results_json = json.loads(found_row['recommended_tfidf_full_text'].iloc[0])
-        tfidf_results_df = pd.json_normalize(tfidf_results_json)
-        print("tfidf_results_df:")
-        print(tfidf_results_df)
-        return tfidf_results_df
+        lightgbm = LightGBMMethods()
+        return lightgbm.get_tfidf(tfidf, post_slug)
 
     def get_doc2vec(self, doc2vec, post_slug):
         doc2vec_posts = doc2vec.get_prefilled_full_text(post_slug)
@@ -1030,7 +1024,7 @@ def main():
     print(learn_to_rank.linear_regression(user_id, post_slug))
     """
 
-    lighGBM = LightGBM()
+    lighGBM = LightGBMMethods()
     # lighGBM.train_lightgbm_document_based('tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
     lighGBM.get_posts_lightgbm('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy', True)
     print("--- %s seconds ---" % (time.time() - start_time))
