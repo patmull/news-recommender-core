@@ -1,10 +1,47 @@
-import re, string
-from nltk import RegexpTokenizer
+import re
+import string
+
 import majka
 from html2text import html2text
+from nltk import RegexpTokenizer
+
 from src.prefillers.preprocessing.stopwords_loading import load_cz_stopwords, load_general_stopwords
+
 cz_stopwords = load_cz_stopwords()
 general_stopwords = load_general_stopwords()
+
+
+def cz_lemma(input_string, json=False):
+    morph = majka.Majka('morphological_database/majka.w-lt')
+
+    morph.flags |= majka.ADD_DIACRITICS  # find word forms with diacritics
+    morph.flags |= majka.DISALLOW_LOWERCASE  # do not enable to find lowercase variants
+    morph.flags |= majka.IGNORE_CASE  # ignore the word case whatsoever
+    morph.flags = 0  # unset all flags
+
+    morph.tags = False  # return just the lemma, do not process the tags
+    morph.tags = True  # turn tag processing back on (default)
+
+    morph.compact_tag = True  # return tag in compact form (as returned by Majka)
+    morph.compact_tag = False  # do not return compact tag (default)
+
+    morph.first_only = True  # return only the first entry
+    morph.first_only = False  # return all entries (default)
+
+    morph.tags = False
+    morph.first_only = True
+    morph.negative = "ne"
+
+    ls = morph.find(input_string)
+
+    if json is not True:
+        if not ls:
+            return input_string
+        else:
+            # # print(ls[0]['lemma'])
+            return str(ls[0]['lemma'])
+    else:
+        return ls
 
 
 class CzPreprocess:
@@ -46,13 +83,13 @@ class CzPreprocess:
 
         tokens = [w for w in tokens if '=' not in w]  # remove remaining tags and the like
         string_punctuation = list(string.punctuation)
-        tokens = [w for w in tokens if not
-        all(x.isdigit() or x in string_punctuation for x in w)] # remove tokens that are all punctuation
+        # remove tokens that are all punctuation
+        tokens = [w for w in tokens if not all(x.isdigit() or x in string_punctuation for x in w)]
         tokens = [w.strip(string.punctuation) for w in tokens]  # remove stray punctuation attached to words
         tokens = [w for w in tokens if len(w) > 1]  # remove single characters
         tokens = [w for w in tokens if not any(x.isdigit() for x in w)]  # remove everything with a digit in it
 
-        edited_words = [self.cz_lemma(w) for w in tokens]
+        edited_words = [cz_lemma(w) for w in tokens]
         edited_words = list(filter(None, edited_words))  # empty strings removal
 
         # removing stopwords
@@ -65,43 +102,4 @@ class CzPreprocess:
         post_excerpt_preprocessed = self.preprocess(feature_text, stemming)
         return post_excerpt_preprocessed
 
-    def cz_lemma(self, string, json=False):
-        morph = majka.Majka('morphological_database/majka.w-lt')
-
-        morph.flags |= majka.ADD_DIACRITICS  # find word forms with diacritics
-        morph.flags |= majka.DISALLOW_LOWERCASE  # do not enable to find lowercase variants
-        morph.flags |= majka.IGNORE_CASE  # ignore the word case whatsoever
-        morph.flags = 0  # unset all flags
-
-        morph.tags = False  # return just the lemma, do not process the tags
-        morph.tags = True  # turn tag processing back on (default)
-
-        morph.compact_tag = True  # return tag in compact form (as returned by Majka)
-        morph.compact_tag = False  # do not return compact tag (default)
-
-        morph.first_only = True  # return only the first entry
-        morph.first_only = False  # return all entries (default)
-
-        morph.tags = False
-        morph.first_only = True
-        morph.negative = "ne"
-
-        ls = morph.find(string)
-
-        if json is not True:
-            if not ls:
-                return string
-            else:
-                # # print(ls[0]['lemma'])
-                return str(ls[0]['lemma'])
-        else:
-            return ls
-        
     # TODO: Will stemming be supported?
-
-
-def main():
-    cz_lemma = CzPreprocess()
-
-
-if __name__ == "__main__": main()

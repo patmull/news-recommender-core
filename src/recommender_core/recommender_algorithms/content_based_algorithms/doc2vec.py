@@ -24,6 +24,105 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 DEFAULT_MODEL_LOCATION = "models/d2v_limited.model"
 
 
+def create_tagged_document(list_of_list_of_words):
+    for i, list_of_words in enumerate(list_of_list_of_words):
+        yield gensim.models.doc2vec.TaggedDocument(list_of_words, [i])
+
+
+def compute_eval_values(source, train_corpus=None, test_corpus=None, model_variant=None,
+                        negative_sampling_variant=None,
+                        vector_size=None, window=None, min_count=None,
+                        epochs=None, sample=None, force_update_model=True,
+                        default_parameters=False):
+    model_path = None
+    if source == "idnes":
+        model_path = "models/d2v_idnes.model"
+    elif source == "cswiki":
+        model_path = "models/d2v_cswiki.model"
+    else:
+        ValueError("No sourc matches available options.")
+
+    if os.path.isfile(model_path) is False or force_update_model is True:
+        print("Started training on iDNES.cz dataset...")
+
+        if default_parameters is True:
+            # DEFAULT:
+            d2v_model = Doc2Vec()
+        else:
+            # CUSTOM:
+            d2v_model = Doc2Vec(dm=model_variant, negative=negative_sampling_variant,
+                                vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
+                                sample=sample, workers=7)
+
+        print("Sample of train corpus:")
+        print(train_corpus[:2])
+        d2v_model.build_vocab(train_corpus)
+        d2v_model.train(train_corpus, total_examples=d2v_model.corpus_count, epochs=d2v_model.epochs)
+        d2v_model.save(model_path)
+
+    else:
+        print("Loading Doc2Vec iDNES.cz doc2vec_model from saved doc2vec_model file")
+        d2v_model = Doc2Vec.load(model_path)
+
+    path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
+    if os.path.exists(path_to_cropped_wordsim_file):
+        word_pairs_eval = d2v_model.wv.evaluate_word_pairs(
+            path_to_cropped_wordsim_file)
+    else:
+        recommender_methods = RecommenderMethods()
+        recommender_methods.save_wordsim(path_to_cropped_wordsim_file)
+        word_pairs_eval = d2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
+
+    overall_score, _ = d2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
+    print("Analogies evaluation of doc2vec_model:")
+    print(overall_score)
+
+    doc_id = random.randint(0, len(test_corpus) - 1)
+    print("print(test_corpus[:2])")
+    print(print(train_corpus[:2]))
+    print("print(test_corpus[:2])")
+    print(print(test_corpus[:2]))
+    inferred_vector = d2v_model.infer_vector(test_corpus[doc_id])
+    sims = d2v_model.dv.most_similar([inferred_vector], topn=len(d2v_model.dv))
+    # Compare and print the most/median/least similar documents from the train train_corpus
+    print('Test Document ({}): «{}»\n'.format(doc_id, ' '.join(test_corpus[doc_id])))
+    print(u'SIMILAR/DISSIMILAR DOCS PER MODEL %s:\n' % d2v_model)
+    for label, index in [('MOST', 0), ('MEDIAN', len(sims) // 2), ('LEAST', len(sims) - 1)]:
+        print(u'%s %s: «%s»\n' % (label, sims[index], ' '.join(train_corpus[sims[index][0]].words)))
+
+    return word_pairs_eval, overall_score
+
+
+def create_dictionary_from_mongo_idnes(sentences=None, force_update=False, filter_extremes=False):
+    # a memory-friendly iterator
+    path_to_train_dict = 'precalc_vectors/dictionary_train_idnes.gensim'
+    if os.path.isfile(path_to_train_dict) is False or force_update is True:
+        if sentences is None:
+            mongo = MongoReader()
+            sentences, db = build_sentences()
+
+        sentences_train, sentences_test = train_test_split(sentences, train_size=0.2, shuffle=True)
+        print("Creating dictionary...")
+        preprocessed_dictionary_train = gensim.corpora.Dictionary(line for line in sentences_train)
+        del sentences
+        gc.collect()
+        if filter_extremes is True:
+            preprocessed_dictionary_train.filter_extremes()
+        print("Saving dictionary...")
+        preprocessed_dictionary_train.save(path_to_train_dict)
+        print("Dictionary saved to: " + path_to_train_dict)
+        return preprocessed_dictionary_train
+    else:
+        print("Dictionary already exists. Loading...")
+        loaded_dict = corpora.Dictionary.load(path_to_train_dict)
+        return loaded_dict
+
+
+def get_prefilled_full_text(slug, variant):
+    recommender_methods = RecommenderMethods()
+    return recommender_methods.get_prefilled_full_text(slug, variant)
+
+
 class Doc2VecClass:
 
     def __init__(self):
@@ -83,7 +182,7 @@ class Doc2VecClass:
 
         # TODO: Replace other duplicated code like this:
         helper = Helper()
-        helper.verify_searched_slug_sanity(self.df, searched_slug)
+        verify_searched_slug_sanity(self.df, searched_slug)
         recommender_methods = RecommenderMethods()
         self.df = recommender_methods.get_posts_categories_dataframe()
         print("self.df")
@@ -100,10 +199,10 @@ class Doc2VecClass:
 
         if full_text is False:
             cols = ['keywords', 'all_features_preprocessed']
-            documents_all_features_preprocessed = helper.preprocess_columns(self.df, cols)
+            documents_all_features_preprocessed = preprocess_columns(self.df, cols)
         else:
             cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
-            documents_all_features_preprocessed = helper.preprocess_columns(self.df, cols)
+            documents_all_features_preprocessed = preprocess_columns(self.df, cols)
 
         gc.collect()
 
@@ -167,7 +266,7 @@ class Doc2VecClass:
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
         helper = Helper()
-        documents_all_features_preprocessed = helper.preprocess_columns(self.df, cols)
+        documents_all_features_preprocessed = preprocess_columns(self.df, cols)
 
         gc.collect()
 
@@ -208,7 +307,8 @@ class Doc2VecClass:
 
         most_similar = most_similar[1:number_of_recommended_posts]
 
-        # for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('THIRD-MOST', 2), ('FOURTH-MOST', 3), ('FIFTH-MOST', 4), ('MEDIAN', len(most_similar) // 2), ('LEAST', len(most_similar) - 1)]:
+        # for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('THIRD-MOST', 2), ('FOURTH-MOST', 3),
+        # ('FIFTH-MOST', 4), ('MEDIAN', len(most_similar) // 2), ('LEAST', len(most_similar) - 1)]:
         for index in range(0, len(most_similar)):
             print(u'%s: %s\n' % (most_similar[index][1], documents_slugs[int(most_similar[index][0])]))
             list_of_article_slugs.append(documents_slugs[int(most_similar[index][0])])
@@ -220,8 +320,7 @@ class Doc2VecClass:
 
         dict = post_recommendations.to_dict('records')
 
-        list_of_articles = []
-        list_of_articles.append(dict.copy())
+        list_of_articles = [dict.copy()]
         # print("------------------------------------")
         # print("JSON:")
         # print("------------------------------------")
@@ -240,10 +339,10 @@ class Doc2VecClass:
         For Learn-to-Rank
         """
         if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
+            raise ValueError("Entered slug must be a input_string.")
         else:
             if searched_slug == "":
-                raise ValueError("Entered string is empty.")
+                raise ValueError("Entered input_string is empty.")
             else:
                 pass
 
@@ -333,13 +432,9 @@ class Doc2VecClass:
 
         return (res[:20])
 
-    def create_tagged_document(self, list_of_list_of_words):
-        for i, list_of_words in enumerate(list_of_list_of_words):
-            yield gensim.models.doc2vec.TaggedDocument(list_of_words, [i])
-
     def prepare_train_test_corpus(self, sentences=None):
-        if sentences is None:
-            sentences = []
+        mongo_reader = MongoReader()
+        sentences, db = build_sentences()
         collection = db.preprocessed_articles_trigrams
 
         cursor = collection.find({})
@@ -349,7 +444,7 @@ class Doc2VecClass:
             sentences.append(document['text'])
         # TODO:
         train_corpus, test_corpus = train_test_split(sentences, test_size=0.2, shuffle=True)
-        train_corpus = list(self.create_tagged_document(sentences))
+        train_corpus = list(create_tagged_document(sentences))
 
         print("print(train_corpus[:2])")
         print(print(train_corpus[:2]))
@@ -367,7 +462,8 @@ class Doc2VecClass:
 
         train_corpus, test_corpus = self.prepare_train_test_corpus(sentences)
 
-        global db, saved_file_name
+        global saved_file_name
+        db = None
         if source == "idnes":
             db = client.idnes
         elif source == "cswiki":
@@ -384,10 +480,11 @@ class Doc2VecClass:
 
         model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant \
             = recommender_methods.random_hyperparameter_choice(model_variants=model_variants,
-                                           negative_sampling_variants=negative_sampling_variants,
-                                           vector_size_range=vector_size_range, sample_range=sample_range,
-                                           epochs_range=epochs_range, window_range=window_range,
-                                           min_count_range=min_count_range)
+                                                               negative_sampling_variants=negative_sampling_variants,
+                                                               vector_size_range=vector_size_range,
+                                                               sample_range=sample_range,
+                                                               epochs_range=epochs_range, window_range=window_range,
+                                                               min_count_range=min_count_range)
 
         pbar = tqdm.tqdm(total=540)
 
@@ -399,28 +496,28 @@ class Doc2VecClass:
             # This is temporary due to adding softmax one values to results after fixed tab indent in else.
 
             if hs_softmax == 1:
-                word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
-                                                                           test_corpus=test_corpus,
-                                                                           model_variant=model_variant,
-                                                                           negative_sampling_variant=no_negative_sampling,
-                                                                           vector_size=vector_size,
-                                                                           window=window,
-                                                                           min_count=min_count,
-                                                                           epochs=epochs,
-                                                                           sample=sample,
-                                                                           force_update_model=True, source=source)
+                word_pairs_eval, analogies_eval = compute_eval_values(train_corpus=train_corpus,
+                                                                      test_corpus=test_corpus,
+                                                                      model_variant=model_variant,
+                                                                      negative_sampling_variant=no_negative_sampling,
+                                                                      vector_size=vector_size,
+                                                                      window=window,
+                                                                      min_count=min_count,
+                                                                      epochs=epochs,
+                                                                      sample=sample,
+                                                                      force_update_model=True, source=source)
             else:
-                word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
-                                                                           test_corpus=test_corpus,
-                                                                           model_variant=model_variant,
-                                                                           negative_sampling_variant=no_negative_sampling,
-                                                                           vector_size=vector_size,
-                                                                           window=window,
-                                                                           min_count=min_count,
-                                                                           epochs=epochs,
-                                                                           sample=sample,
-                                                                           force_update_model=True,
-                                                                           source=source)
+                word_pairs_eval, analogies_eval = compute_eval_values(train_corpus=train_corpus,
+                                                                      test_corpus=test_corpus,
+                                                                      model_variant=model_variant,
+                                                                      negative_sampling_variant=no_negative_sampling,
+                                                                      vector_size=vector_size,
+                                                                      window=window,
+                                                                      min_count=min_count,
+                                                                      epochs=epochs,
+                                                                      sample=sample,
+                                                                      force_update_model=True,
+                                                                      source=source)
 
             print(word_pairs_eval[0][0])
             if source == "idnes":
@@ -453,95 +550,8 @@ class Doc2VecClass:
             print("Saved training results...")
 
     def create_or_update_corpus_and_dict_from_mongo_idnes(self):
-        dict = self.create_dictionary_from_mongo_idnes(force_update=True)
+        dict = create_dictionary_from_mongo_idnes(force_update=True)
         self.create_corpus_from_mongo_idnes(dict, force_update=True)
-
-    def compute_eval_values(self, source, train_corpus=None, test_corpus=None, model_variant=None,
-                            negative_sampling_variant=None,
-                            vector_size=None, window=None, min_count=None,
-                            epochs=None, sample=None, force_update_model=True,
-                            default_parameters=False):
-        global model_path
-        if source == "idnes":
-            model_path = "models/d2v_idnes.model"
-        elif source == "cswiki":
-            model_path = "models/d2v_cswiki.model"
-        else:
-            ValueError("No sourc matches available options.")
-
-        if os.path.isfile(model_path) is False or force_update_model is True:
-            print("Started training on iDNES.cz dataset...")
-
-            if default_parameters is True:
-                # DEFAULT:
-                d2v_model = Doc2Vec()
-            else:
-                # CUSTOM:
-                d2v_model = Doc2Vec(dm=model_variant, negative=negative_sampling_variant,
-                                    vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
-                                    sample=sample, workers=7)
-
-            print("Sample of train corpus:")
-            print(train_corpus[:2])
-            d2v_model.build_vocab(train_corpus)
-            d2v_model.train(train_corpus, total_examples=d2v_model.corpus_count, epochs=d2v_model.epochs)
-            d2v_model.save(model_path)
-
-        else:
-            print("Loading Doc2Vec iDNES.cz doc2vec_model from saved doc2vec_model file")
-            d2v_model = Doc2Vec.load(model_path)
-
-        path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
-        if os.path.exists(path_to_cropped_wordsim_file):
-            word_pairs_eval = d2v_model.wv.evaluate_word_pairs(
-                path_to_cropped_wordsim_file)
-        else:
-            recommender_methods = RecommenderMethods()
-            recommender_methods.save_wordsim(path_to_cropped_wordsim_file)
-            word_pairs_eval = d2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
-
-        overall_score, _ = d2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
-        print("Analogies evaluation of doc2vec_model:")
-        print(overall_score)
-
-        doc_id = random.randint(0, len(test_corpus) - 1)
-        print("print(test_corpus[:2])")
-        print(print(train_corpus[:2]))
-        print("print(test_corpus[:2])")
-        print(print(test_corpus[:2]))
-        inferred_vector = d2v_model.infer_vector(test_corpus[doc_id])
-        sims = d2v_model.dv.most_similar([inferred_vector], topn=len(d2v_model.dv))
-        # Compare and print the most/median/least similar documents from the train train_corpus
-        print('Test Document ({}): «{}»\n'.format(doc_id, ' '.join(test_corpus[doc_id])))
-        print(u'SIMILAR/DISSIMILAR DOCS PER MODEL %s:\n' % d2v_model)
-        for label, index in [('MOST', 0), ('MEDIAN', len(sims) // 2), ('LEAST', len(sims) - 1)]:
-            print(u'%s %s: «%s»\n' % (label, sims[index], ' '.join(train_corpus[sims[index][0]].words)))
-
-        return word_pairs_eval, overall_score
-
-    def create_dictionary_from_mongo_idnes(self, sentences=None, force_update=False, filter_extremes=False):
-        # a memory-friendly iterator
-        path_to_train_dict = 'precalc_vectors/dictionary_train_idnes.gensim'
-        if os.path.isfile(path_to_train_dict) is False or force_update is True:
-            if sentences is None:
-                mongo = MongoReader()
-                sentences = mongo.build_sentences()
-
-            sentences_train, sentences_test = train_test_split(sentences, train_size=0.2, shuffle=True)
-            print("Creating dictionary...")
-            preprocessed_dictionary_train = gensim.corpora.Dictionary(line for line in sentences_train)
-            del sentences
-            gc.collect()
-            if filter_extremes is True:
-                preprocessed_dictionary_train.filter_extremes()
-            print("Saving dictionary...")
-            preprocessed_dictionary_train.save(path_to_train_dict)
-            print("Dictionary saved to: " + path_to_train_dict)
-            return preprocessed_dictionary_train
-        else:
-            print("Dictionary already exists. Loading...")
-            loaded_dict = corpora.Dictionary.load(path_to_train_dict)
-            return loaded_dict
 
     def create_corpus_from_mongo_idnes(self, dict, force_update):
         pass
@@ -553,16 +563,8 @@ class Doc2VecClass:
         print("Building sentences...")
         # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
         client = MongoClient("localhost", 27017, maxPoolSize=50)
-        global db
-        if source == "idnes":
-            db = client.idnes
-        elif source == "cswiki":
-            db = client.cswiki
-        else:
-            ValueError("No source matches the selected options.")
         train_corpus, test_corpus = self.prepare_train_test_corpus()
         # corpus = list(self.read_corpus(path_to_corpus))
-
 
         model_variant = 1  # sg parameter: 0 = CBOW; 1 = Skip-Gram
         hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
@@ -592,41 +594,43 @@ class Doc2VecClass:
         negative_sampling_variant = negative_sampling_variant
 
         if hs_softmax == 1:
-            word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
-                                                                       test_corpus=test_corpus,
-                                                                       model_variant=model_variant,
-                                                                       negative_sampling_variant=no_negative_sampling,
-                                                                       vector_size=vector_size,
-                                                                       window=window,
-                                                                       min_count=min_count,
-                                                                       epochs=epochs,
-                                                                       sample=sample,
-                                                                       force_update_model=True,
-                                                                       source=source)
+            word_pairs_eval, analogies_eval = compute_eval_values(train_corpus=train_corpus,
+                                                                  test_corpus=test_corpus,
+                                                                  model_variant=model_variant,
+                                                                  negative_sampling_variant=no_negative_sampling,
+                                                                  vector_size=vector_size,
+                                                                  window=window,
+                                                                  min_count=min_count,
+                                                                  epochs=epochs,
+                                                                  sample=sample,
+                                                                  force_update_model=True,
+                                                                  source=source)
         else:
-            word_pairs_eval, analogies_eval = self.compute_eval_values(train_corpus=train_corpus,
-                                                                       test_corpus=test_corpus,
-                                                                       model_variant=model_variant,
-                                                                       negative_sampling_variant=negative_sampling_variant,
-                                                                       vector_size=vector_size,
-                                                                       window=window,
-                                                                       min_count=min_count,
-                                                                       epochs=epochs,
-                                                                       sample=sample,
-                                                                       source=source)
+            word_pairs_eval, analogies_eval = compute_eval_values(train_corpus=train_corpus,
+                                                                  test_corpus=test_corpus,
+                                                                  model_variant=model_variant,
+                                                                  negative_sampling_variant=negative_sampling_variant,
+                                                                  vector_size=vector_size,
+                                                                  window=window,
+                                                                  min_count=min_count,
+                                                                  epochs=epochs,
+                                                                  sample=sample,
+                                                                  source=source)
         # noinspection DuplicatedCode
         recommender_methods = RecommenderMethods()
-        recommender_methods.append_training_results(source=source, corpus_title=corpus_title[0], model_variant=model_variant,
-                                  negative_sampling_variant=negative_sampling_variant, vector_size=vector_size,
-                                  window=window, min_count=min_count, epochs=epochs, sample=sample,
-                                  hs_softmax=hs_softmax,
-                                  pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
-                                  pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
-                                  spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
-                                  spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
-                                  out_of_vocab_ratio=word_pairs_eval[2],
-                                  analogies_eval=analogies_eval,
-                                  model_results=model_results)
+        recommender_methods.append_training_results(source=source, corpus_title=corpus_title[0],
+                                                    model_variant=model_variant,
+                                                    negative_sampling_variant=negative_sampling_variant,
+                                                    vector_size=vector_size,
+                                                    window=window, min_count=min_count, epochs=epochs, sample=sample,
+                                                    hs_softmax=hs_softmax,
+                                                    pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
+                                                    pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
+                                                    spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
+                                                    spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
+                                                    out_of_vocab_ratio=word_pairs_eval[2],
+                                                    analogies_eval=analogies_eval,
+                                                    model_results=model_results)
 
         pbar.update(1)
         final_results_file_name = 'doc2vec_tuning_results_random_search_final_' + source + '.csv'
@@ -644,10 +648,3 @@ class Doc2VecClass:
         # noinspection PyTypeChecker
         pd.DataFrame(model_results).to_csv(saved_file_name, index=False,
                                            mode="w")
-
-    def get_prefilled_full_text(self, slug, variant):
-        global column_name
-        recommender_methods = RecommenderMethods()
-        return recommender_methods.get_prefilled_full_text(slug, variant)
-
-

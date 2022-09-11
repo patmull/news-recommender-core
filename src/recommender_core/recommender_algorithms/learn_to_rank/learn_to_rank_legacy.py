@@ -332,7 +332,7 @@ class LightGBM:
         print("Loading TfIdf results")
 
         tf_idf = TfIdf()
-        tf_idf_results = tf_idf.get_prefilled_full_text(slug, variant)
+        tf_idf_results = get_prefilled_full_text(slug, variant)
         tf_idf_results = ast.literal_eval(tf_idf_results)
         json_data = json.loads(json.dumps(tf_idf_results))
         tf_idf_results = pd.json_normalize(json_data)

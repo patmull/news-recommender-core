@@ -18,7 +18,7 @@ def main():
     # STEMMING
     # word = "rybolovný"
     # # print(cz_stem(word))
-    # # print(cz_stem(word,aggressive=True))
+    # # print(cz_stem(word,aggressive_stemming=True))
 
     # langdata = simplemma.load_data('cs')
     # # print(simplemma.lemmatize(word, langdata))

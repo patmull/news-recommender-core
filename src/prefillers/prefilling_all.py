@@ -11,7 +11,8 @@ prefiller_additional = PreFillerAdditional()
 
 
 def prefill_all_features_preprocessed():
-    prefiller_additional.fill_all_features_preprocessed(skip_already_filled=True, reversed_order=True, random_order=False)
+    prefiller_additional.fill_all_features_preprocessed(skip_already_filled=True, reversed_order=True,
+                                                        random_order=False)
 
 
 def prefill_keywords():
@@ -65,7 +66,8 @@ def prepare_and_run(database, method, full_text, reverse, random):
     database.connect()
     not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)
     database.disconnect()
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts in " + method + " full text: " + str(full_text))
+    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts in " + method + " full text: "
+          + str(full_text))
     if len(not_prefilled_posts) > 0:
         try:
             prefiller.prefilling_job(method=method, full_text=full_text, reversed=reverse, random_order=random)
