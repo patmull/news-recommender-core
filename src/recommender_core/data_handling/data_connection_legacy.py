@@ -11,6 +11,17 @@ DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
 DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
 
 
+def get_posts_dataframe_from_cache():
+    print("Reading cache file...")
+    try:
+        df = pd.read_pickle('../db_cache/cached_posts_dataframe.pkl')  # read from current directory
+        return df
+    except Exception as e:
+        print("Exception occured when reading file:")
+        print(e)
+        raise e
+
+
 @DeprecationWarning
 class Database:
     cnx = None
@@ -69,7 +80,11 @@ class Database:
 
     def get_posts_join_categories(self):
 
-        sql = """SELECT posts.slug, posts.title, categories.title, posts.excerpt, body, keywords, all_features_preprocessed, full_text, body_preprocessed, posts.recommended_tfidf, posts.recommended_word2vec, posts.recommended_doc2vec, posts.recommended_lda, posts.recommended_tfidf_full_text, posts.recommended_word2vec_full_text, posts.recommended_doc2vec_full_text, posts.recommended_lda_full_text FROM posts JOIN categories ON posts.category_id = categories.id;;"""
+        sql = """SELECT posts.slug, posts.title, categories.title, posts.excerpt, body, keywords, 
+        all_features_preprocessed, full_text, body_preprocessed, posts.recommended_tfidf, posts.recommended_word2vec, 
+        posts.recommended_doc2vec, posts.recommended_lda, posts.recommended_tfidf_full_text, 
+        posts.recommended_word2vec_full_text, posts.recommended_doc2vec_full_text, posts.recommended_lda_full_text 
+        FROM posts JOIN categories ON posts.category_id = categories.id;; """
 
         query = (sql)
         self.cursor.execute(query)
@@ -83,6 +98,7 @@ class Database:
         self.cursor.execute(query)
         rs = self.cursor.fetchall()
         return rs
+
     def get_post_by_id(self, post_id):
 
         query = ("SELECT * FROM posts WHERE id = '%s'" % (post_id))
@@ -98,7 +114,6 @@ class Database:
         df = pd.read_sql_query(sql, self.get_cnx())
         # df = pd.read_sql_query(results, database.get_cnx())
         return df
-
 
     def insert_posts_dataframe_to_cache(self):
         sql = """SELECT * FROM posts ORDER BY id;"""
@@ -117,16 +132,6 @@ class Database:
         fullpath = os.path.join(outdir, outfile)
         df.to_pickle(fullpath)  # will be stored in current directory
         return df
-
-    def get_posts_dataframe_from_cache(self):
-        print("Reading cache file...")
-        try:
-            df = pd.read_pickle('../db_cache/cached_posts_dataframe.pkl')  # read from current directory
-            return df
-        except Exception as e:
-            print("Exception occured when reading file:")
-            print(e)
-            raise e
 
     def get_categories_dataframe(self):
         sql = """SELECT * FROM categories ORDER BY id;"""

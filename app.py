@@ -198,7 +198,7 @@ class GetWordLemma(Resource):
 
     def get(self, word):
         cz_preprocessing = CzPreprocess()
-        return cz_preprocessing.cz_lemma(word, json=True)
+        return cz_lemma(word, json=True)
 
     def post(self):
         return {"data": "Posted"}
@@ -208,7 +208,7 @@ class Preprocess(Resource):
 
     def get(self, slug):
         recommender_methods = RecommenderMethods()
-        return recommender_methods.preprocess_single_post_find_by_slug(slug, json=True)
+        return preprocess_single_post_find_by_slug(slug, json=True)
 
     def post(self):
         return {"data": "Posted"}
@@ -228,20 +228,20 @@ api.add_resource(GetPostsByOtherUsers, "/api/user/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByUserPreferences, "/api/user-preferences/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByKeywords, "/api/user-keywords")
 
-api.add_resource(GetPostsByLearnToRank, "/api/learn-to-rank/<int:param1>/<string:param2>")
+api.add_resource(GetPostsByLearnToRank, "/api/learn-to-rank/<int:param1>/<input_string:param2>")
 
-api.add_resource(GetWordLemma, "/api/lemma/<string:word>")
-api.add_resource(Preprocess, "/api/preprocess/<string:slug>")
+api.add_resource(GetWordLemma, "/api/lemma/<input_string:word>")
+api.add_resource(Preprocess, "/api/preprocess/<input_string:slug>")
 
-api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-tfidf/<string:param>")
-api.add_resource(GetPostsByOtherPostWord2Vec, "/api/post-word2vec/<string:param>")
-api.add_resource(GetPostsByOtherPostDoc2Vec, "/api/post-doc2vec/<string:param>")
-api.add_resource(GetPostsByOtherPostLda, "/api/post-lda/<string:param>")
+api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-tfidf/<input_string:param>")
+api.add_resource(GetPostsByOtherPostWord2Vec, "/api/post-word2vec/<input_string:param>")
+api.add_resource(GetPostsByOtherPostDoc2Vec, "/api/post-doc2vec/<input_string:param>")
+api.add_resource(GetPostsByOtherPostLda, "/api/post-lda/<input_string:param>")
 
-api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<string:param>")
-api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<string:param>")
-api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<string:param>")
-api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<string:param>")
+api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<input_string:param>")
+api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<input_string:param>")
+api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<input_string:param>")
+api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<input_string:param>")
 
 if __name__ == "__main__":
     app.run(debug=True)

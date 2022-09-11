@@ -6,7 +6,7 @@ import pytest
 
 
 # python -m pytest .\tests\test_data_handling\test_data_queries.py
-from src.recommender_core.data_handling.data_manipulation import RedisMethods
+from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 TEST_CACHED_PICKLE_PATH = 'db_cache/cached_posts_dataframe_test.pkl'
@@ -14,7 +14,8 @@ CRITICAL_COLUMNS_POSTS = ['slug', 'all_features_preprocessed', 'body_preprocesse
 CRITICAL_COLUMNS_USERS = ['name', 'slug']
 CRITICAL_COLUMNS_RATINGS = ['value', 'user_id', 'post_id']
 CRITICAL_COLUMNS_CATEGORIES = ['title']
-CRITICAL_COLUMNS_EVALUATION_RESULTS = ['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id', 'model_name', 'model_variant', 'created_at']
+CRITICAL_COLUMNS_EVALUATION_RESULTS = ['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id',
+                                       'model_name', 'model_variant', 'created_at']
 
 
 def test_posts_dataframe_good_day():
@@ -107,8 +108,7 @@ def common_asserts_for_dataframes(df, critical_columns):
 
 
 def test_redis():
-    redis_methods = RedisMethods()
-    r = redis_methods.get_redis_connection()
+    r = get_redis_connection()
     now = datetime.now()
     test_value = 'test_' + str(now.strftime("%m/%d/%Y %H:%M:%S"))
     r.set('test_pair', test_value)
