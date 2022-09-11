@@ -184,7 +184,7 @@ def remove_stopwords_mongodb(force_update=False):
             print(doc['text'])
             removed_stopwords = remove_stopwords(doc['text'])
             helper = Helper()
-            removed_stopwords = helper.flatten(removed_stopwords)
+            removed_stopwords = flatten(removed_stopwords)
             print("After removal:")
             print(removed_stopwords)
             save_to_mongo(number_of_processed_files=number, data=removed_stopwords,
@@ -235,7 +235,7 @@ def preprocess_idnes_corpus(force_update=False):
         num_of_preprocessed_docs = number_of_documents
         # clearing collection from all documents
         mongo_collection.delete_many({})
-        for doc in helper.generate_lines_from_mmcorpus(corpus):
+        for doc in generate_lines_from_mmcorpus(corpus):
             if number_of_documents > 0:
                 number_of_documents -= 1
                 print("Skipping doc.")
@@ -373,6 +373,39 @@ def create_dictionary_from_mongo_idnes(sentences=None, force_update=False, filte
         return loaded_dict
 
 
+def get_prefilled_full_text(slug, variant):
+    recommender_methods = RecommenderMethods()
+    recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
+    recommender_methods.get_categories_dataframe()  # load categories to dataframe
+    recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
+
+    found_post = recommender_methods.find_post_by_slug(slug)
+    column_name = None
+    if variant == "idnes_short_text":
+        column_name = 'recommended_word2vec'
+    elif variant == "idnes_full_text":
+        column_name = 'recommended_word2vec_full_text'
+    elif variant == "idnes_eval_1":
+        column_name = 'recommended_word2vec_eval_1'
+    elif variant == "idnes_eval_2":
+        column_name = 'recommended_word2vec_eval_2'
+    elif variant == "idnes_eval_3":
+        column_name = 'recommended_word2vec_eval_3'
+    elif variant == "idnes_eval_4":
+        column_name = 'recommended_word2vec_eval_4'
+    elif variant == 'fasttext_limited':
+        column_name = 'recommended_word2vec_limited_fasttext'
+    elif variant == "fasttext_limited_full_text":
+        column_name = 'recommended_word2vec_limited_fasttext_full_text'
+    elif variant == 'wiki_eval_1':
+        column_name = 'recommended_word2vec_wiki_eval_1'
+    else:
+        ValueError("No variant selected matches available options.")
+
+    returned_post = found_post[column_name].iloc[0]
+    return returned_post
+
+
 class Word2VecClass:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY +
     # "@moje-clanky/w2v_embedding_all_in_one"
@@ -389,10 +422,10 @@ class Word2VecClass:
                              force_update_data=False):
 
         if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
+            raise ValueError("Entered slug must be a input_string.")
         else:
             if searched_slug == "":
-                raise ValueError("Entered string is empty.")
+                raise ValueError("Entered input_string is empty.")
             else:
                 pass
 
@@ -447,9 +480,7 @@ class Word2VecClass:
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
 
-        global most_similar_articles_with_scores
         if model_name == "wiki":
-            source = "cswiki"
             w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
             print("Similarities on Wikipedia.cz model:")
             ds = DocSim(w2v_model)
@@ -480,7 +511,7 @@ class Word2VecClass:
             print(found_post)
             if docsim_index is None and dictionary is None:
                 print("Docsim or dictionary is not passed into method. Loading.")
-                docsim_index, dictionary = ds.load_docsim_index_and_dictionary(source=source, model_name=model_name)
+                docsim_index = ds.load_docsim_index(source=source, model_name=model_name)
             most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post, docsim_index,
                                                                                            dictionary,
                                                                                            list_of_document_features)[
@@ -574,7 +605,7 @@ class Word2VecClass:
                        vector_size=None, window=None, min_count=None,
                        epochs=None, sample=None, force_update_model=True,
                        use_default_model=False, save_model=True):
-        global model_path
+        model_path = None
         if source == "idnes":
             model_path = "models/w2v_idnes.model"
         elif source == "cswiki":
@@ -674,7 +705,7 @@ class Word2VecClass:
         epochs_range, sample_range, corpus_title, model_results = recommender_methods.prepare_hyperparameters_grid()
 
         pbar = tqdm.tqdm(total=540)
-        global set_title, csv_file_name
+        set_title, csv_file_name = None, None
         if random_search is False:
             for model_variant in model_variants:
                 for negative_sampling_variant in negative_sampling_variants:
@@ -753,7 +784,7 @@ class Word2VecClass:
             for i in range(0, number_of_trials):
                 hs_softmax = random.choice(hs_softmax_variants)
                 model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant \
-                    = recommender_methods.random_hyperparameter_choice(model_variants=model_variants,
+                    = random_hyperparameter_choice(model_variants=model_variants,
                                                                        negative_sampling_variants=negative_sampling_variants,
                                                                        vector_size_range=vector_size_range,
                                                                        sample_range=sample_range,
@@ -945,38 +976,6 @@ class Word2VecClass:
         print(overall_score)
 
         return word_pairs_eval, overall_score
-
-    def get_prefilled_full_text(self, slug, variant):
-        recommender_methods = RecommenderMethods()
-        recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
-        recommender_methods.get_categories_dataframe()  # load categories to dataframe
-        recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
-
-        found_post = recommender_methods.find_post_by_slug(slug)
-        global column_name
-        if variant == "idnes_short_text":
-            column_name = 'recommended_word2vec'
-        elif variant == "idnes_full_text":
-            column_name = 'recommended_word2vec_full_text'
-        elif variant == "idnes_eval_1":
-            column_name = 'recommended_word2vec_eval_1'
-        elif variant == "idnes_eval_2":
-            column_name = 'recommended_word2vec_eval_2'
-        elif variant == "idnes_eval_3":
-            column_name = 'recommended_word2vec_eval_3'
-        elif variant == "idnes_eval_4":
-            column_name = 'recommended_word2vec_eval_4'
-        elif variant == 'fasttext_limited':
-            column_name = 'recommended_word2vec_limited_fasttext'
-        elif variant == "fasttext_limited_full_text":
-            column_name = 'recommended_word2vec_limited_fasttext_full_text'
-        elif variant == 'wiki_eval_1':
-            column_name = 'recommended_word2vec_wiki_eval_1'
-        else:
-            ValueError("No variant selected matches available options.")
-
-        returned_post = found_post[column_name].iloc[0]
-        return returned_post
 
 
 def preprocess_question_words_file():

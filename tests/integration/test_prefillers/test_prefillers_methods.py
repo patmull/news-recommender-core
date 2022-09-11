@@ -44,18 +44,20 @@ def test_recommendation_prefiller(database, method, full_text, reverse, random_o
 
 
 # python -m pytest .\tests\test_prefillers_methods.py::test_not_prefilled_retriaval
+def not_prefilled_retriaval(method, full_text):
+    database = DatabaseMethods()
+    database.connect()
+    not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)
+    database.disconnect()
+    return type(not_prefilled_posts) == list
+
+
 class TestPrefillers:
 
     def test_prefillers(self):
         for i in range(20):
             random_method_choice = random.choice(method_options)
             random_full_text_choice = random.choice(full_text_options)
-            assert self.not_prefilled_retriaval(method=random_method_choice, full_text=random_full_text_choice) \
+            assert not_prefilled_retriaval(method=random_method_choice, full_text=random_full_text_choice) \
                    is True
 
-    def not_prefilled_retriaval(self, method, full_text):
-        database = DatabaseMethods()
-        database.connect()
-        not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)
-        database.disconnect()
-        return type(not_prefilled_posts) == list

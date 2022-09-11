@@ -16,7 +16,7 @@ try:
     classifier.predict_relevance_for_user(user_id=431, relevance_by='stars', only_with_bert_vectors=False,
                                           bert_model=bert, use_only_sample_of=20, force_retraining=True)
     redis_methods = RedisMethods()
-    r = redis_methods.get_redis_connection()
+    r = get_redis_connection()
     print(r.smembers('posts_by_pred_ratings_user_431'))
 except ValueError:
     print("Value error had occured when trying to get relevant thumbs for user. Skipping this user.")
