@@ -35,7 +35,7 @@ def preprocess(sentence, stemming=False, lemma=True):
         return " ".join(edited_words)
 
     elif lemma is True:
-        edited_words = [cz_preprocess.cz_lemma(w) for w in tokens if len(w) > 1]
+        edited_words = [cz_lemma(w) for w in tokens if len(w) > 1]
         edited_words_list = list(filter(None, edited_words))  # empty strings removal
         return " ".join(edited_words_list)
     else:
@@ -66,8 +66,8 @@ class GensimMethods:
 
     def find_post_by_slug(self, slug):
         post_dataframe = self.df.loc[self.df['post_slug'] == slug]
-        doc = post_dataframe["category_title"] + " " + post_dataframe["keywords"] + " " + post_dataframe["post_title"] \
-              + " " + post_dataframe["excerpt"]
+        doc = post_dataframe["category_title"] + " " + post_dataframe["keywords"] + " " \
+              + post_dataframe["post_title"] + " " + post_dataframe["excerpt"]
         return str(doc.tolist())
 
     def get_categories_dataframe(self):
@@ -89,7 +89,7 @@ class GensimMethods:
         # self.df["post_title"] = self.df["post_title"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
         # self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
 
-        # converting pandas columns to list of lists and through map to list of string joined by space ' '
+        # converting pandas columns to list of lists and through map to list of input_string joined by space ' '
         self.df[['trigrams_full_text']] = self.df[['trigrams_full_text']].fillna('')
         self.documents = list(map(' '.join, self.df[["trigrams_full_text"]].values.tolist()))
 

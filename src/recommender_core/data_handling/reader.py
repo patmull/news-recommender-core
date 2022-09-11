@@ -9,7 +9,6 @@ from gensim import corpora
 from pymongo import MongoClient
 from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
 
-
 logging.basicConfig(format='%(levelname)s : %(message)s', level=logging.INFO)
 logging.root.level = logging.INFO
 _logger = logging.getLogger(__name__)
@@ -17,6 +16,7 @@ _logger = logging.getLogger(__name__)
 
 class Reader(object):
     ''' Source reader object feeds other objects to iterate through a source. '''
+
     def __init__(self):
         ''' init '''
         # exclude_stops = set(('.', '(', ')'))
@@ -33,7 +33,7 @@ class Reader(object):
         texts = re.split(r'(?![\.|\$])[^\w\d]', texts)
         texts = [w.strip('.') for w in texts]
         # remove words that are too short
-        texts = [w for w in texts if not len(w)<3]
+        texts = [w for w in texts if not len(w) < 3]
         # remove words that are not alphanumeric and does not contain at least one character
         texts = [w for w in texts if w.isalnum()]
         # remove numbers only
@@ -43,14 +43,40 @@ class Reader(object):
         # remove duplicates
         seen = set()
         seen_add = seen.add
-        texts = [w for w in texts if not (w in seen or seen_add(w)) ]
+        texts = [w for w in texts if not (w in seen or seen_add(w))]
         # lemmatize
-        texts = [self.wn_lemmatizer.cz_lemma(w) for w in texts]
+        cz_preprocessing = CzPreprocess()
+        texts = [cz_preprocessing.preprocess(w) for w in texts]
         return texts
 
     def iterate(self):
         ''' virtual method '''
         pass
+
+
+def get_value(value):
+    ''' convinient method to retrive value.
+    '''
+    if not value:
+        return value
+    if isinstance(value, list):
+        return ' '.join([v.encode('utf-8', 'replace').decode('utf-8', 'replace') for v in value])
+    else:
+        return value.encode('utf-8', 'replace').decode('utf-8', 'replace')
+
+
+def build_sentences():
+    print("Building sentences...")
+    sentences = []
+    client = MongoClient("localhost", 27017, maxPoolSize=50)
+    db = client.idnes
+    collection = db.preprocessed_articles_bigrams
+    cursor = collection.find({})
+    for document in cursor:
+        # joined_string = ' '.join(document['text'])
+        # sentences.append([joined_string])
+        sentences.append(document['text'])
+    return sentences, db
 
 
 class MongoReader(Reader):
@@ -73,16 +99,6 @@ class MongoReader(Reader):
         self.key_field = 'text'
         self.return_fields = ['text']
 
-    def get_value(self, value):
-        ''' convinient method to retrive value.
-        '''
-        if not value:
-            return value
-        if isinstance(value, list):
-            return ' '.join([v.encode('utf-8', 'replace').decode('utf-8', 'replace') for v in value])
-        else:
-            return value.encode('utf-8', 'replace').decode('utf-8', 'replace')
-
     def iterate(self):
         ''' Iterate through the source reader '''
         if not self.conn:
@@ -99,15 +115,15 @@ class MongoReader(Reader):
         for doc in cursor:
             content = ""
             for f in self.return_fields:
-                content +=" %s" % (self.get_value(doc.get(f)))
+                content += " %s" % (get_value(doc.get(f)))
             texts = self.prepare_words(content)
             # tags = doc.get(self.key_field).split(',')
             # tags = [multi_dimensional_list.strip() for multi_dimensional_list in tags]
-            doc = { "text": texts }
+            doc = {"text": texts}
             yield doc
 
     def get_preprocessed_dict_idnes(self, sentences, filter_extremes, path_to_dict):
-        sentences = self.build_sentences()
+        sentences, db = build_sentences()
         print("Creating dictionary...")
         preprocessed_dictionary = corpora.Dictionary(line for line in sentences)
         del sentences
@@ -128,19 +144,6 @@ class MongoReader(Reader):
             print("Dictionary already exists. Loading...")
             loaded_dict = corpora.Dictionary.load(path_to_dict)
             return loaded_dict
-
-    def build_sentences(self):
-        print("Building sentences...")
-        sentences = []
-        client = MongoClient("localhost", 27017, maxPoolSize=50)
-        db = client.idnes
-        collection = db.preprocessed_articles_bigrams
-        cursor = collection.find({})
-        for document in cursor:
-            # joined_string = ' '.join(document['text'])
-            # sentences.append([joined_string])
-            sentences.append(document['text'])
-        return sentences
 
 
 if __name__ == "__main__":
