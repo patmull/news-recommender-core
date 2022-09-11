@@ -2,7 +2,7 @@ import json
 import random
 import time as t
 import psycopg2
-from gensim.models import KeyedVectors, Doc2Vec
+from gensim.models import KeyedVectors
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
@@ -15,7 +15,7 @@ val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choo
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
 
 
-def fill_recommended(method, skip_already_filled, full_text=True, random_order=False, reversed=False):
+def fill_recommended(method, skip_already_filled, full_text=True, random_order=False, reversed_order=False):
 
     source = w2v_model = selected_model_name = None
     docsim_index, dictionary = None, None
@@ -29,7 +29,7 @@ def fill_recommended(method, skip_already_filled, full_text=True, random_order=F
 
     number_of_inserted_rows = 0
 
-    if reversed is True:
+    if reversed_order is True:
         print("Reversing list of posts...")
         posts.reverse()
 
@@ -75,20 +75,14 @@ def fill_recommended(method, skip_already_filled, full_text=True, random_order=F
             w2v_model = KeyedVectors.load(path_to_model)
             source = "cswiki"
         else:
-            path_to_folder = None
             ValueError("Wrong doc2vec_model name chosen.")
 
         ds = DocSim(w2v_model)
         docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name)
     elif method.startswith("doc2vec"):
         if method == "doc2vec_eval_cswiki_1":
-            path_to_folder = "full_models/cswiki/evaluated_models/doc2vec_model_cswiki_1/"
             print("Similarities on FastText doc2vec_model.")
-            file_name = "d2v_cswiki.model"
-            path_to_model = path_to_folder + file_name
             print("Loading Dov2Vec cs.Wikipedia.org doc2vec_model...")
-            d2v_model = Doc2Vec.load(path_to_model)
-            source = "cswiki"
 
     for post in posts:
         if len(posts) < 1:
@@ -260,15 +254,13 @@ def fill_recommended(method, skip_already_filled, full_text=True, random_order=F
                 print("Skipping.")
 
 
-class PreFiller:
-
-    def prefilling_job(self, method, full_text, random_order=False, reversed=True, database="pgsql"):
-        while True:
-            try:
-                fill_recommended(method=method, full_text=full_text, skip_already_filled=True,
-                                      random_order=random_order, reversed=reversed)
-            except psycopg2.OperationalError:
-                print("DB operational error. Waiting few seconds before trying again...")
-                t.sleep(30)  # wait 30 seconds then try again
-                continue
-            break
+def prefilling_job(method, full_text, random_order=False, reversed_order=True):
+    while True:
+        try:
+            fill_recommended(method=method, full_text=full_text, skip_already_filled=True,
+                             random_order=random_order, reversed_order=reversed_order)
+        except psycopg2.OperationalError:
+            print("DB operational error. Waiting few seconds before trying again...")
+            t.sleep(30)  # wait 30 seconds then try again
+            continue
+        break

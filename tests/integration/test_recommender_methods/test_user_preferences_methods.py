@@ -32,7 +32,7 @@ def test_user_categories():
     users = recommender_methods.get_users_dataframe()
     print("users:")
     print(users)
-    list_of_user_ids = users['id'].to_list()
+    list_of_user_ids = users['searched_id'].to_list()
     random_position = random.randrange(len(list_of_user_ids))
     random_id = list_of_user_ids[random_position]
     num_of_recommended_posts = 5

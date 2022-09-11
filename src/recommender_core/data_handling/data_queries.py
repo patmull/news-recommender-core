@@ -11,9 +11,10 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
-from recommender_core.recommender_algorithms.content_based_algorithms.helper import flatten
-from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
+from recommender_core.data_handling.data_handlers import flatten
+from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.recommender_core.recommender_algorithms.content_based_algorithms.similarities import CosineTransformer
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 import os
@@ -67,13 +68,12 @@ def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
         return False
 
 
-def preprocess_single_post_find_by_slug(slug, json=False, stemming=False):
+def preprocess_single_post_find_by_slug(slug, supplied_json=False, stemming=False):
     recommender_methods = RecommenderMethods()
-    cz_preprocess = CzPreprocess()
     post_dataframe = recommender_methods.find_post_by_slug(slug)
-    post_dataframe["title"] = post_dataframe["title"].map(lambda s: cz_preprocess.preprocess(s, stemming))
-    post_dataframe["excerpt"] = post_dataframe["excerpt"].map(lambda s: cz_preprocess.preprocess(s, stemming))
-    if json is False:
+    post_dataframe["title"] = post_dataframe["title"].map(lambda s: preprocess(s))
+    post_dataframe["excerpt"] = post_dataframe["excerpt"].map(lambda s: preprocess(s))
+    if supplied_json is False:
         return post_dataframe
     else:
         # evaluate if this ok
@@ -90,6 +90,75 @@ def random_hyperparameter_choice(model_variants, vector_size_range, window_range
     sample = random.choice(sample_range)
     negative_sampling_variant = random.choice(negative_sampling_variants)
     return model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant
+
+
+def get_eval_results_header():
+    corpus_title = ['100% Corpus']
+    model_results = {'Validation_Set': [],
+                     'Model_Variant': [],
+                     'Negative': [],
+                     'Vector_size': [],
+                     'Window': [],
+                     'Min_count': [],
+                     'Epochs': [],
+                     'Sample': [],
+                     'Softmax': [],
+                     'Word_pairs_test_Pearson_coeff': [],
+                     'Word_pairs_test_Pearson_p-val': [],
+                     'Word_pairs_test_Spearman_coeff': [],
+                     'Word_pairs_test_Spearman_p-val': [],
+                     'Word_pairs_test_Out-of-vocab_ratio': [],
+                     'Analogies_test': []
+                     }
+    return corpus_title, model_results
+
+
+def save_wordsim(path_to_cropped_wordsim_file):
+    df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
+                     usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
+    df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(preprocess(x)))
+    df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(preprocess(x)))
+
+    df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
+
+
+def append_training_results(source, corpus_title, model_variant, negative_sampling_variant, vector_size,
+                            window,
+                            min_count, epochs, sample, hs_softmax, pearson_coeff_word_pairs_eval,
+                            pearson_p_val_word_pairs_eval, spearman_p_val_word_pairs_eval,
+                            spearman_coeff_word_pairs_eval, out_of_vocab_ratio, analogies_eval, model_results):
+    model_results['Validation_Set'].append(source + " " + corpus_title)
+    model_results['Model_Variant'].append(model_variant)
+    model_results['Negative'].append(negative_sampling_variant)
+    model_results['Vector_size'].append(vector_size)
+    model_results['Window'].append(window)
+    model_results['Min_count'].append(min_count)
+    model_results['Epochs'].append(epochs)
+    model_results['Sample'].append(sample)
+    model_results['Softmax'].append(hs_softmax)
+    model_results['Word_pairs_test_Pearson_coeff'].append(pearson_coeff_word_pairs_eval)
+    model_results['Word_pairs_test_Pearson_p-val'].append(pearson_p_val_word_pairs_eval)
+    model_results['Word_pairs_test_Spearman_coeff'].append(spearman_coeff_word_pairs_eval)
+    model_results['Word_pairs_test_Spearman_p-val'].append(spearman_p_val_word_pairs_eval)
+    model_results['Word_pairs_test_Out-of-vocab_ratio'].append(out_of_vocab_ratio)
+    model_results['Analogies_test'].append(analogies_eval)
+    return model_results
+
+
+def prepare_hyperparameters_grid():
+    negative_sampling_variants = range(5, 20, 5)  # 0 = no negative sampling
+    no_negative_sampling = 0  # use with hs_soft_max
+    vector_size_range = [50, 100, 158, 200, 250, 300, 450]
+    window_range = [1, 2, 4, 5, 8, 12, 16, 20]
+    min_count_range = [0, 1, 2, 3, 5, 8, 12]
+    epochs_range = [20, 25, 30]
+    sample_range = [0.0, 1.0 * (10.0 ** -1.0), 1.0 * (10.0 ** -2.0), 1.0 * (10.0 ** -3.0), 1.0 * (10.0 ** -4.0),
+                    1.0 * (10.0 ** -5.0)]
+
+    corpus_title, model_results = get_eval_results_header()
+    # noinspection PyPep8
+    return negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
+           epochs_range, sample_range, corpus_title, model_results
 
 
 class RecommenderMethods:
@@ -360,7 +429,7 @@ class RecommenderMethods:
             self.database.disconnect()
         except ValueError as e:
             self.database.disconnect()
-            raise ValueError("Value error had occured when trying to get posts for user.")
+            raise ValueError("Value error had occured when trying to get posts for user." + str(e))
         return posts_users_categories_ratings_df
 
     def get_sql_columns(self):
@@ -402,41 +471,6 @@ class RecommenderMethods:
         return self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
             'tokenized_full_text']
 
-    def prepare_hyperparameters_grid(self):
-        negative_sampling_variants = range(5, 20, 5)  # 0 = no negative sampling
-        no_negative_sampling = 0  # use with hs_soft_max
-        vector_size_range = [50, 100, 158, 200, 250, 300, 450]
-        window_range = [1, 2, 4, 5, 8, 12, 16, 20]
-        min_count_range = [0, 1, 2, 3, 5, 8, 12]
-        epochs_range = [20, 25, 30]
-        sample_range = [0.0, 1.0 * (10.0 ** -1.0), 1.0 * (10.0 ** -2.0), 1.0 * (10.0 ** -3.0), 1.0 * (10.0 ** -4.0),
-                        1.0 * (10.0 ** -5.0)]
-
-        corpus_title, model_results = self.get_eval_results_header()
-
-        return negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
-               epochs_range, sample_range, corpus_title, model_results
-
-    def get_eval_results_header(self):
-        corpus_title = ['100% Corpus']
-        model_results = {'Validation_Set': [],
-                         'Model_Variant': [],
-                         'Negative': [],
-                         'Vector_size': [],
-                         'Window': [],
-                         'Min_count': [],
-                         'Epochs': [],
-                         'Sample': [],
-                         'Softmax': [],
-                         'Word_pairs_test_Pearson_coeff': [],
-                         'Word_pairs_test_Pearson_p-val': [],
-                         'Word_pairs_test_Spearman_coeff': [],
-                         'Word_pairs_test_Spearman_p-val': [],
-                         'Word_pairs_test_Out-of-vocab_ratio': [],
-                         'Analogies_test': []
-                         }
-        return corpus_title, model_results
-
     # TODO: get into common method (possibly data_queries)
     def get_prefilled_full_text(self, slug, variant):
         self.get_posts_dataframe(force_update=False)  # load posts to dataframe
@@ -454,37 +488,6 @@ class RecommenderMethods:
 
         returned_post = found_post[column_name].iloc[0]
         return returned_post
-
-    def save_wordsim(self, path_to_cropped_wordsim_file):
-        df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
-                         usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
-        cz_preprocess = CzPreprocess()
-        df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
-        df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(cz_preprocess.preprocess(x)))
-
-        df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
-
-    def append_training_results(self, source, corpus_title, model_variant, negative_sampling_variant, vector_size,
-                                window,
-                                min_count, epochs, sample, hs_softmax, pearson_coeff_word_pairs_eval,
-                                pearson_p_val_word_pairs_eval, spearman_p_val_word_pairs_eval,
-                                spearman_coeff_word_pairs_eval, out_of_vocab_ratio, analogies_eval, model_results):
-        model_results['Validation_Set'].append(source + " " + corpus_title)
-        model_results['Model_Variant'].append(model_variant)
-        model_results['Negative'].append(negative_sampling_variant)
-        model_results['Vector_size'].append(vector_size)
-        model_results['Window'].append(window)
-        model_results['Min_count'].append(min_count)
-        model_results['Epochs'].append(epochs)
-        model_results['Sample'].append(sample)
-        model_results['Softmax'].append(hs_softmax)
-        model_results['Word_pairs_test_Pearson_coeff'].append(pearson_coeff_word_pairs_eval)
-        model_results['Word_pairs_test_Pearson_p-val'].append(pearson_p_val_word_pairs_eval)
-        model_results['Word_pairs_test_Spearman_coeff'].append(spearman_coeff_word_pairs_eval)
-        model_results['Word_pairs_test_Spearman_p-val'].append(spearman_p_val_word_pairs_eval)
-        model_results['Word_pairs_test_Out-of-vocab_ratio'].append(out_of_vocab_ratio)
-        model_results['Analogies_test'].append(analogies_eval)
-        return model_results
 
 
 def get_cleaned_text(row):
@@ -523,7 +526,6 @@ class TfIdfDataHandlers:
 
         return recommended_posts_in_json
 
-    # noinspection DuplicatedCode
     def get_recommended_posts_for_keywords(self, keywords, data_frame, k=10):
 
         keywords_list = [keywords]
@@ -532,13 +534,10 @@ class TfIdfDataHandlers:
                                            'excerpt'])
         tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
         tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
-        cosine_similarities = flatten()
+        cosine_similarities = flatten(cosine_similarity(tfidf_keywords_input, tfidf))
         # cosine_similarities = linear_kernel(tfidf_keywords_input, tfidf).flatten()
 
         data_frame['coefficient'] = cosine_similarities
-
-        # related_docs_indices = cosine_similarities.argsort()[:-(number+1):-1]
-        related_docs_indices = cosine_similarities.argsort()[::-1][:k]
 
         closest = data_frame.sort_values('coefficient', ascending=False)[:k]
 
