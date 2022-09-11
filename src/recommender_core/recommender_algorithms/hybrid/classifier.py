@@ -17,6 +17,127 @@ log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 
 
+def load_bert_model():
+    bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
+    return bert_model
+
+
+def get_df_predicted(df, target_variable_name):
+    df_predicted = pd.DataFrame()
+    df_predicted[target_variable_name] = df[target_variable_name]
+
+    # leaving out 20% for validation set
+    logging.debug("Splitting dataset to train / validation...")
+    return df_predicted
+
+
+def show_true_vs_predicted(features_list, contexts_list, clf, bert_model):
+    """
+    Method for evaluation on validation dataset, not actual unseen dataset.
+    """
+    for features_combined, context in zip(features_list, contexts_list):
+        logging.debug(
+            f"True Label: {context}, "
+            f"Predicted Label: {clf.predict(bert_model(features_combined).vector.reshape(1, -1))[0]} \n")
+        logging.debug("CONTENT:")
+        logging.debug(features_combined)
+
+
+def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, user_id=None,
+                         save_testing_csv=False, bert_model=None, col_to_combine=None):
+    """
+    Method for actual live, deployed use. This uses the already filled vectors from PostgreSQL but if doesn't
+    exists, calculate new ones from passed BERT model.
+
+    If this method takes a lot of time, use BERT vector prefilling function fill_bert_vector_representation().
+    """
+
+    if predicted_var_for_redis_key_name == 'thumbs':
+        threshold = 1  # binary relevance rating
+    elif predicted_var_for_redis_key_name == 'ratings':
+        threshold = 3  # the Likert scale
+    else:
+        raise ValueError("No from passed predicted rating key names matches the available options!")
+
+    if bert_model is not None:
+        if col_to_combine is None:
+            raise ValueError("If BERT model is supplied, then column list needs "
+                             "to be supplied to col_to_combine_parameter!")
+
+    logging.debug("Vectorizing the selected columns...")
+    # TODO: Takes a lot of time... Probably pre-calculate.
+    logging.debug("X_unseen_df:")
+    logging.debug(X_unseen_df)
+
+    logging.debug("Loading vectors or creating new if does not exists...")
+    y_pred_unseen = X_unseen_df \
+        .apply(lambda x: clf
+               .predict(pickle
+                        .loads(x['bert_vector_representation']))[0]
+    if pd.notnull(x['bert_vector_representation'])
+    else clf.predict(bert_model(' '.join(x[col_to_combine])).vector.reshape(1, -1))[0], axis=1)
+
+    y_pred_unseen = y_pred_unseen.rename('prediction')
+    df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
+    if save_testing_csv is True:
+        # noinspection PyTypeChecker
+        df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
+
+    if user_id is not None:
+        redis_methods = RedisMethods()
+        r = get_redis_connection()
+        user_redis_key = 'posts_by_pred_' + predicted_var_for_redis_key_name + '_user_' + str(user_id)
+        # remove old records
+        r.delete(user_redis_key)
+        logging.debug("iteration through records:")
+        i = 0
+        # fetch Redis set with a new set of recommended posts
+        for row in zip(*df_results.to_dict("list").values()):
+            logging.debug("len(row):")
+            logging.debug(len(row))
+            logging.debug(user_redis_key)
+            slug = "" + row[3] + ""
+            logging.debug("-------------------")
+            logging.debug("Predicted rating for slug | " + slug + ":")
+            logging.debug(row[5])
+            logging.debug(int(row[5]))
+
+            if row[5] is not None:
+                # If predicted rating is == 1 (= relevant)
+                if int(row[5]) >= threshold:
+                    # Saving individually to set
+                    res = r.sadd(user_redis_key, slug)
+                    logging.debug(res)
+                    logging.debug(r.smembers(user_redis_key))
+                    logging.debug("Inserted record num. " + str(i))
+                    i = i + 1
+            else:
+                logging.debug("No predicted values found. Skipping this record.")
+                pass
+
+        logging.debug("Items saved for Redis:")
+        logging.debug(r.smembers(user_redis_key))
+
+
+def show_predicted(X_unseen_df, input_variables, clf, bert_model, save_testing_csv=False):
+    """
+    Method for evaluation on validation dataset, not actual unseen dataset.
+    Use for experimentation with features.
+    """
+    logging.debug("Combining the selected columns")
+    X_unseen_df['combined'] = X_unseen_df[input_variables].apply(lambda row: ' '.join(row.values.astype(str)),
+                                                                 axis=1)
+    logging.debug("Vectorizing the selected columns...")
+    y_pred_unseen = X_unseen_df['combined'].apply(lambda x: clf.predict(bert_model(x).vector.reshape(1, -1))[0])
+    y_pred_unseen = y_pred_unseen.rename('prediction')
+    logging.debug(y_pred_unseen.head(20))
+    df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
+    logging.debug(df_results.head(20))
+    if save_testing_csv is True:
+        # noinspection PyTypeChecker
+        df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
+
+
 class Classifier:
     """
     Global models = models for all users
@@ -31,22 +152,10 @@ class Classifier:
         self.path_to_models_user_folder = "full_models/hybrid/classifiers/users_models"
         self.model_save_location = Path()
 
-    def load_bert_model(self):
-        bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
-        return bert_model
-
-    def get_df_predicted(self, df, target_variable_name):
-        df_predicted = pd.DataFrame()
-        df_predicted[target_variable_name] = df[target_variable_name]
-
-        # leaving out 20% for validation set
-        logging.debug("Splitting dataset to train / validation...")
-        return df_predicted
-
     def train_classifiers(self, df, columns_to_combine, target_variable_name, user_id=None):
         # https://metatext.io/models/distilbert-base-multilingual-cased
-        bert_model = self.load_bert_model()
-        df_predicted = self.get_df_predicted(df, target_variable_name)
+        bert_model = load_bert_model()
+        df_predicted = get_df_predicted(df, target_variable_name)
 
         df = df.fillna('')
 
@@ -167,7 +276,6 @@ class Classifier:
 
         return clf_svc, clf_random_forest
 
-
     def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
                                    experiment_mode=False, only_with_bert_vectors=True, bert_model=None):
         if only_with_bert_vectors is False:
@@ -215,13 +323,13 @@ class Classifier:
             logging.debug("=========================")
             logging.debug("Results of SVC:")
             logging.debug("=========================")
-            self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_svc,
-                                bert_model=bert_model)
+            show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_svc,
+                           bert_model=bert_model)
             logging.debug("=========================")
             logging.debug("Results of Random Forest:")
             logging.debug("=========================")
-            self.show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_random_forest,
-                                bert_model=bert_model)
+            show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_random_forest,
+                           bert_model=bert_model)
         else:
             columns_to_select = columns_to_combine + ['slug', 'bert_vector_representation']
             X_validation = df_posts_categories[columns_to_select]
@@ -231,119 +339,15 @@ class Classifier:
             logging.debug("=========================")
             logging.debug("Inserting by SVC:")
             logging.debug("=========================")
-            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
-                                      predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
-                                      bert_model=bert_model, col_to_combine=columns_to_combine,
-                                      save_testing_csv=True)
+            predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
+                                 predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
+                                 bert_model=bert_model, col_to_combine=columns_to_combine,
+                                 save_testing_csv=True)
 
             logging.debug("=========================")
             logging.debug("Inserting by Random Forest:")
             logging.debug("=========================")
-            self.predict_from_vectors(X_unseen_df=X_validation, clf=clf_random_forest, user_id=user_id,
-                                      predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
-                                      bert_model=bert_model, col_to_combine=columns_to_combine,
-                                      save_testing_csv=True)
-
-    def show_true_vs_predicted(self, features_list, contexts_list, clf, bert_model):
-        """
-        Method for evaluation on validation dataset, not actual unseen dataset.
-        """
-        for features_combined, context in zip(features_list, contexts_list):
-            logging.debug(
-                f"True Label: {context}, "
-                f"Predicted Label: {clf.predict(bert_model(features_combined).vector.reshape(1, -1))[0]} \n")
-            logging.debug("CONTENT:")
-            logging.debug(features_combined)
-
-    def predict_from_vectors(self, X_unseen_df, clf, predicted_var_for_redis_key_name, user_id=None,
-                             save_testing_csv=False, bert_model=None, col_to_combine=None):
-        """
-        Method for actual live, deployed use. This uses the already filled vectors from PostgreSQL but if doesn't
-        exists, calculate new ones from passed BERT model.
-
-        If this method takes a lot of time, use BERT vector prefilling function fill_bert_vector_representation().
-        """
-
-        if predicted_var_for_redis_key_name == 'thumbs':
-            threshold = 1  # binary relevance rating
-        elif predicted_var_for_redis_key_name == 'ratings':
-            threshold = 3  # the Likert scale
-        else:
-            raise ValueError("No from passed predicted rating key names matches the available options!")
-
-        if bert_model is not None:
-            if col_to_combine is None:
-                raise ValueError("If BERT model is supplied, then column list needs "
-                                 "to be supplied to col_to_combine_parameter!")
-
-        logging.debug("Vectorizing the selected columns...")
-        # TODO: Takes a lot of time... Probably pre-calculate.
-        logging.debug("X_unseen_df:")
-        logging.debug(X_unseen_df)
-
-        logging.debug("Loading vectors or creating new if does not exists...")
-        y_pred_unseen = X_unseen_df\
-            .apply(lambda x: clf
-                   .predict(pickle
-                            .loads(x['bert_vector_representation']))[0]
-        if pd.notnull(x['bert_vector_representation'])
-        else clf.predict(bert_model(' '.join(x[col_to_combine])).vector.reshape(1, -1))[0], axis=1)
-
-        y_pred_unseen = y_pred_unseen.rename('prediction')
-        df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
-        if save_testing_csv is True:
-            # noinspection PyTypeChecker
-            df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
-
-        if user_id is not None:
-            redis_methods = RedisMethods()
-            r = redis_methods.get_redis_connection()
-            user_redis_key = 'posts_by_pred_' + predicted_var_for_redis_key_name + '_user_' + str(user_id)
-            # remove old records
-            r.delete(user_redis_key)
-            logging.debug("iteration through records:")
-            i = 0
-            # fetch Redis set with a new set of recommended posts
-            for row in zip(*df_results.to_dict("list").values()):
-                logging.debug("len(row):")
-                logging.debug(len(row))
-                logging.debug(user_redis_key)
-                slug = "" + row[3] + ""
-                logging.debug("-------------------")
-                logging.debug("Predicted rating for slug | " + slug + ":")
-                logging.debug(row[5])
-                logging.debug(int(row[5]))
-
-                if row[5] is not None:
-                    # If predicted rating is == 1 (= relevant)
-                    if int(row[5]) >= threshold:
-                        # Saving individually to set
-                        res = r.sadd(user_redis_key, slug)
-                        logging.debug(res)
-                        logging.debug(r.smembers(user_redis_key))
-                        logging.debug("Inserted record num. " + str(i))
-                        i = i + 1
-                else:
-                    logging.debug("No predicted values found. Skipping this record.")
-                    pass
-
-            logging.debug("Items saved for Redis:")
-            logging.debug(r.smembers(user_redis_key))
-
-    def show_predicted(self, X_unseen_df, input_variables, clf, bert_model, save_testing_csv=False):
-        """
-        Method for evaluation on validation dataset, not actual unseen dataset.
-        Use for experimentation with features.
-        """
-        logging.debug("Combining the selected columns")
-        X_unseen_df['combined'] = X_unseen_df[input_variables].apply(lambda row: ' '.join(row.values.astype(str)),
-                                                                     axis=1)
-        logging.debug("Vectorizing the selected columns...")
-        y_pred_unseen = X_unseen_df['combined'].apply(lambda x: clf.predict(bert_model(x).vector.reshape(1, -1))[0])
-        y_pred_unseen = y_pred_unseen.rename('prediction')
-        logging.debug(y_pred_unseen.head(20))
-        df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
-        logging.debug(df_results.head(20))
-        if save_testing_csv is True:
-            # noinspection PyTypeChecker
-            df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
+            predict_from_vectors(X_unseen_df=X_validation, clf=clf_random_forest, user_id=user_id,
+                                 predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
+                                 bert_model=bert_model, col_to_combine=columns_to_combine,
+                                 save_testing_csv=True)
