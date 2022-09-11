@@ -1,12 +1,11 @@
 import traceback
 
 from src.prefillers.prefilling_hybrid_methods import fill_bert_vector_representation
-from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import PreFiller
+from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import prefilling_job
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.prefilling_additional import PreFillerAdditional
 
-prefiller = PreFiller()
 prefiller_additional = PreFillerAdditional()
 
 
@@ -16,11 +15,11 @@ def prefill_all_features_preprocessed():
 
 
 def prefill_keywords():
-    prefiller_additional.fill_keywords(skip_already_filled=True, reversed=True, random_order=False)
+    prefiller_additional.fill_keywords(skip_already_filled=True, random_order=False, reversed_order=False)
 
 
 def prefill_body_preprocessed():
-    prefiller_additional.fill_body_preprocessed(skip_already_filled=True, reversed=True, random_order=False)
+    prefiller_additional.fill_body_preprocessed(skip_already_filled=True, random_order=False)
 
 
 def prefill_bert_vector_representation():
@@ -62,7 +61,6 @@ def run_prefilling():
 
 
 def prepare_and_run(database, method, full_text, reverse, random):
-    recommender_methods = RecommenderMethods()
     database.connect()
     not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)
     database.disconnect()
@@ -70,7 +68,7 @@ def prepare_and_run(database, method, full_text, reverse, random):
           + str(full_text))
     if len(not_prefilled_posts) > 0:
         try:
-            prefiller.prefilling_job(method=method, full_text=full_text, reversed=reverse, random_order=random)
+            prefilling_job(method=method, full_text=full_text, reversed_order=reverse, random_order=random)
         except Exception as e:
             print("Exception occured " + str(e))
             print(traceback.print_exception(type(e), e, e.__traceback__))

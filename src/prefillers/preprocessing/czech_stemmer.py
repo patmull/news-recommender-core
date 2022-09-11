@@ -4,7 +4,7 @@ Czech stemmer
 Copyright © 2010 Luís Gomes <luismsgomes@gmail.com>.
 
 Ported from the Java implementation available at:
-    http://members.unine.ch/jacques.savoy/clef/index.html
+members.unine.ch/jacques.savoy/clef/index.html
 """
 import re
 import sys

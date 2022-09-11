@@ -6,7 +6,8 @@ from scipy import sparse
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import Helper
+from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import get_id_from_slug, \
+    get_slug_from_id
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 
@@ -14,14 +15,8 @@ def simple_example():
     text = ["London Paris London", "Paris Paris London"]
     cv = CountVectorizer(analyzer='word', min_df=10, stop_words='czech', lowercase=True,
                          token_pattern='[a-zA-Z0-9]{3,}')
-
-    count_matrix = cv.fit_transform(text)
-
-    # print(count_matrix.toarray())
-
-    similarity_scores = cosine_similarity(count_matrix)
-
-    # print(similarity_scores)
+    print(text)
+    print(cv)
 
 
 def combine_features(row):
@@ -29,7 +24,7 @@ def combine_features(row):
 
 
 def cosine_similarity_n_space(m1, m2=None, batch_size=100):
-    assert m1.shape[1] == m2.shape[1] and isinstance(batch_size, int) == True
+    assert m1.shape[1] == m2.shape[1] and not isinstance(batch_size, int) != True
 
     ret = np.ndarray((m1.shape[0], m2.shape[0]))
 
@@ -57,7 +52,6 @@ class CosineTransformer:
         self.similar_articles = None
         self.sorted_similar_articles = None
         self.database = DatabaseMethods()
-        self.helper = Helper()
         self.posts_df = None
 
     def combine_current_posts(self):
@@ -72,7 +66,6 @@ class CosineTransformer:
         for feature in features:
             self.posts_df[feature] = self.posts_df[feature].fillna('')
 
-        helper = Helper()
         self.posts_df["combined_features"] = self.posts_df.apply(combine_features, axis=1)
 
         # #Step 4: Create count matrix from this new combined column
@@ -87,15 +80,16 @@ class CosineTransformer:
             # self.cosine_sim = self.cosine_similarity_n_space(self.count_matrix)
             self.cosine_sim = cosine_similarity(self.count_matrix)
         except Exception as ex:
-            # print(ex)
+            print("Excpeption occured.")
+            print(ex)
             pass
         # # print(self.cosine_sim)
 
-    # #Step 6: Get id of this article from its title
+    # #Step 6: Get searched_id of this article from its title
 
+    # noinspection
     @DeprecationWarning
     def article_user_likes(self, slug):
-        helper = Helper()
         article_id = get_id_from_slug(slug, self.posts_df)
         # print("article_user_likes: " + slug)
         # print("article_id: ")
@@ -103,7 +97,6 @@ class CosineTransformer:
         try:
             self.similar_articles = list(enumerate(self.cosine_sim[article_id]))
         except TypeError as te:
-            # print(te)
             pass
         # # print(self.similar_articles)
 
@@ -112,9 +105,7 @@ class CosineTransformer:
         try:
             self.sorted_similar_articles = sorted(self.similar_articles, key=lambda x: x[1], reverse=True)
         except TypeError as te:
-            # print(te)
             pass
-        # # print(self.sorted_similar_articles)
         return self.sorted_similar_articles
 
     # #Step 8: Print titles of first 10 articles

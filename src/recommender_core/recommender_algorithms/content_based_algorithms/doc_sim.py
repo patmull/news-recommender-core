@@ -11,7 +11,7 @@ from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilari
 from gensim.similarities.annoy import AnnoyIndexer
 from scipy import spatial
 from sklearn.feature_extraction.text import HashingVectorizer
-from src.recommender_core.recommender_algorithms.content_based_algorithms.gensim_native_models import GensimMethods
+from src.recommender_core.recommender_algorithms.content_based_algorithms.gensim_methods import GensimMethods
 
 
 def calculate_similarity(source_doc, target_docs=None, threshold=0.2):
@@ -50,6 +50,7 @@ def sort_results(sim_score, threshold, doc, results):
     return results.sort(key=lambda k: k["coefficient"], reverse=True)
 
 
+# noinspection PyPep8
 def _cosine_sim(vecA, vecB):
     """Find the cosine similarity distance between two vectors."""
     csim = np.dot(vecA, vecB) / (np.linalg.norm(vecA) * np.linalg.norm(vecB))
@@ -70,6 +71,28 @@ def create_docsim_index(source_doc, docsim_index, dictionary):
     print(sims)
 
     return sims
+
+
+def calculate_similarity_idnes_model_gensim(source_doc, docsim_index, dictionary, target_docs=None):
+    """Calculates & returns similarity scores between given source document & all
+    the target documents."""
+    # TO HERE
+
+    sims = create_docsim_index(source_doc=source_doc, docsim_index=docsim_index, dictionary=dictionary)
+    results = []
+    for sim_tuple in sims:
+        doc_found = target_docs[sim_tuple[0]]  # get document by position from sims results
+        slug = re.sub(r'^.*?;', ';', doc_found)  # keeping only searched_slug of the document
+        print("searched_slug:")
+        print(slug)
+        slug = slug.replace("; ", "")
+        sim_score = sim_tuple[1]
+        results.append({"slug": slug, "coefficient": sim_score})
+
+    print("results")
+    print(results)
+
+    return results
 
 
 class DocSim:
@@ -99,7 +122,7 @@ class DocSim:
 
         return results
 
-    def calculate_similarity_wiki_model_gensim(self, source_doc, target_docs=None, threshold=0.2):
+    def calculate_similarity_wiki_model_gensim(self, source_doc, target_docs=None):
         """Calculates & returns similarity scores between given source document & all
         the target documents."""
         termsim_index = WordEmbeddingSimilarityIndex(self.w2v_model)
@@ -122,27 +145,6 @@ class DocSim:
 
         print("results:")
         print(results)
-        return results
-
-    def calculate_similarity_idnes_model_gensim(self, source_doc, docsim_index, dictionary, target_docs=None):
-        """Calculates & returns similarity scores between given source document & all
-        the target documents."""
-        # TO HERE
-
-        sims = create_docsim_index(source_doc=source_doc, docsim_index=docsim_index, dictionary=dictionary)
-        results = []
-        for sim_tuple in sims:
-            doc_found = target_docs[sim_tuple[0]]  # get document by position from sims results
-            slug = re.sub(r'^.*?;', ';', doc_found)  # keeping only searched_slug of the document
-            print("searched_slug:")
-            print(slug)
-            slug = slug.replace("; ", "")
-            sim_score = sim_tuple[1]
-            results.append({"slug": slug, "coefficient": sim_score})
-
-        print("results")
-        print(results)
-
         return results
 
     def load_docsim_index(self, source, model_name, force_update=True):

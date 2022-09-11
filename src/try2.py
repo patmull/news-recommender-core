@@ -1,4 +1,4 @@
-from recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.prefillers.prefilling_all import prepare_and_run
 

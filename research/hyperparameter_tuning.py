@@ -22,7 +22,7 @@ class RandomForestRegression():
         Y = dataset_y
         X_train, X_test, y_train, y_test = train_test_split(
             X, Y, test_size=0.30, random_state=101)
-        # train the model on train set without using GridSearchCV
+        # train_enabled the model on train_enabled set without using GridSearchCV
         model = RandomForestRegressor()
         model.fit(X_train, y_train)
 
@@ -106,7 +106,7 @@ class Anova():
         fs = SelectKBest(score_func=f_classif, k='all')
         # learn relationship from training data
         fs.fit(X_train, y_train)
-        # transform train input data
+        # transform train_enabled input data
         X_train_fs = fs.transform(X_train)
         # transform tests input data
         X_test_fs = fs.transform(X_test)
@@ -115,7 +115,7 @@ class Anova():
     def run(self, run_on, col):
         # load the dataset
         X, y = self.load_dataset(self.filename, run_on, self.semicolon)
-        # split into train and tests sets
+        # split into train_enabled and tests sets
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=1)
         # feature selection
         X_train_fs, X_test_fs, fs = self.select_features(X_train, y_train, X_test)

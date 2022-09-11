@@ -62,7 +62,7 @@ class TfIdfVisualizer:
         # base for all visualizations, with rank calculation
         base = alt.Chart(top_tfidf_plusRand).encode(
             x='rank:O',
-            y='document:N'
+            y='document:n'
         ).transform_window(
             rank="rank()",
             sort=[alt.SortField("tfidf", order="descending")],
@@ -85,7 +85,7 @@ class TfIdfVisualizer:
 
         # text labels, white for darker heatmap colors
         text = base.mark_text(baseline='middle').encode(
-            text='term:N',
+            text='term:n',
             color=alt.condition(alt.datum.tfidf >= 0.23, alt.value('white'), alt.value('black'))
         )
 

@@ -17,7 +17,8 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
     SvdClass
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_based_recommendation \
+    import UserBasedRecommendation
 
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
 
@@ -98,8 +99,8 @@ class LightGBM:
         print(evaluation_results_df)
         dict_of_jsons = {}
         for index, row in evaluation_results_df.iterrows():
-            dict_of_jsons[row['id']] = [row['results_part_2'], row['user_id'], row['query_slug'], row['model_name'],
-                                        row['model_variant']]
+            dict_of_jsons[row['searched_id']] = [row['results_part_2'], row['user_id'], row['query_slug'],
+                                                 row['model_name'], row['model_variant']]
 
         print("dict_of_jsons:")
         print(dict_of_jsons)
@@ -139,7 +140,8 @@ class LightGBM:
 
         df_merged = df_merged[
 
-            ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'relevance_val', 'model_name', 'model_variant']]
+            ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'relevance_val', 'model_name',
+             'model_variant']]
 
         # converting indexes to columns
         # df_merged.reset_index(level=['coefficient', 'relevance'], inplace=True)
@@ -190,7 +192,7 @@ class LightGBM:
     @DeprecationWarning
     def train_lightgbm_user_based(self):
 
-        # TODO: Remove user id if it's needed
+        # TODO: Remove user searched_id if it's needed
         df_results = self.get_results_single_coeff_searched_doc_as_query()
 
         recommender_methods = RecommenderMethods()
@@ -223,10 +225,7 @@ class LightGBM:
         df2 = pd.DataFrame(df_results_merged)
         print("df2:")
         print(df2.to_string())
-        """
-        print("Searching for Doc2Vec missing values...")
-        df2['doc2vec'] = df2.apply(lambda row: json.dumps(doc2vec.get_vector_representation(row['slug']).tolist()) if pd.isnull(row['doc2vec']) else row['doc2vec'], axis=1)
-        """
+
         print("doc2vec:")
         print(df2['doc2vec'])
         print("Removing rows with Doc2Vec still set to None")
@@ -249,12 +248,14 @@ class LightGBM:
         train_df, validation_df = train_test_split(df_results_merged, test_size=0.2)
 
         print("Normalizing coeffficient and views")
-        train_df[['coefficient', 'views']] = train_df[['coefficient', 'views']].apply(lambda x: (x - x.min()) / (x.max() - x.min()))
+        train_df[['coefficient', 'views']] = train_df[['coefficient', 'views']]\
+            .apply(lambda x: (x - x.min()) / (x.max() - x.min()))
 
         one_hot_encoder = OneHotEncoder(sparse=False, dtype=np.int32)
         one_hot_encoder.fit(df_results_merged[categorical_columns])
 
-        df_results_merged = self.preprocess_one_hot(df_results_merged, one_hot_encoder, numerical_columns, categorical_columns)
+        df_results_merged = self.preprocess_one_hot(df_results_merged, one_hot_encoder, numerical_columns
+                                                    , categorical_columns)
 
         df_results_merged['query_slug'] = df_results_merged_old['query_slug']
         df_results_merged['slug'] = df_results_merged_old['slug']
@@ -267,7 +268,8 @@ class LightGBM:
         print(train_df.columns.values.tolist())
 
         # title, excerpt --> doc2vec
-        features.extend(['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5', 'doc2vec_col_6', 'doc2vec_col_7'])
+        features.extend(['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4',
+                         'doc2vec_col_5', 'doc2vec_col_6', 'doc2vec_col_7'])
         # category --> OneHotEncoding (each category its own column, binary values)
         categorical_columns_after_encoding = [x for x in all_columns_of_train_df if x.startswith("category_")]
         features.extend(categorical_columns_after_encoding)
@@ -300,17 +302,18 @@ class LightGBM:
 
         features_X = ['coefficient', 'views']
         features_X.extend(categorical_columns_after_encoding)
-        features_X.extend(['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5', 'doc2vec_col_6', 'doc2vec_col_7'])
+        features_X.extend(['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4',
+                           'doc2vec_col_5', 'doc2vec_col_6', 'doc2vec_col_7'])
 
         print("features_X")
         print(features_X)
 
         model.fit(train_df[features_X], train_df[['relevance_val']],
-                             group=query_train,
-                             verbose=10,
-                             eval_set=[(validation_df[features_X], validation_df[['relevance_val']])],
-                             eval_group=[query_validation],
-                             eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
+                  group=query_train,
+                  verbose=10,
+                  eval_set=[(validation_df[features_X], validation_df[['relevance_val']])],
+                  eval_group=[query_validation],
+                  eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
                   )
 
         pickle.dump(model, open('models/lightgbm.pkl', 'wb'))
@@ -382,7 +385,8 @@ class LightGBM:
         tf_idf_results_old = tf_idf_results
         if use_categorical_columns is True:
             numerical_columns = [
-                "coefficient", "views", 'doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5',
+                "coefficient", "views", 'doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3',
+                'doc2vec_col_4', 'doc2vec_col_5',
                  'doc2vec_col_6', 'doc2vec_col_7'
             ]
             one_hot_encoder.fit(post_category_df[categorical_columns])
@@ -397,7 +401,9 @@ class LightGBM:
 
         features_X = ['coefficient', 'views']
 
-        all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'title_x', 'excerpt', 'body', 'views', 'keywords', 'category', 'description', 'all_features_preprocessed', 'body_preprocessed']
+        all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'title_x',
+                       'excerpt', 'body', 'views', 'keywords', 'category', 'description', 'all_features_preprocessed',
+                       'body_preprocessed']
         if use_categorical_columns is True:
             categorical_columns_after_encoding = [x for x in all_columns if x.startswith("category_")]
             features.extend(categorical_columns_after_encoding)
@@ -463,20 +469,20 @@ class LightGBM:
         )
 
         model.fit(train_df[['coefficient']], train_df[['relevance']],
-                             group=query_train,
-                             verbose=10,
-                             eval_set=[(validation_df[['coefficient']], validation_df[['relevance']])],
-                             eval_group=[query_val],
-                             eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
-                         )
+                  group=query_train,
+                  verbose=10,
+                  eval_set=[(validation_df[['coefficient']], validation_df[['relevance']])],
+                  eval_group=[query_val],
+                  eval_at=10, # Make evaluation for target=1 ranking, I choosed arbitrarily
+                  )
 
         evaluation_results_df = self.get_results_dataframe()
-        evaluation_results_df = evaluation_results_df.rename(columns={'id': 'query_id'})
+        evaluation_results_df = evaluation_results_df.rename(columns={'searched_id': 'query_id'})
 
         consider_only_top_limit = 1000
         df_results_merged = pd.merge(df_results, evaluation_results_df, on='query_id', how='right')
         pred_df = self.make_post_feature(df_results_merged)
-        preds = model.predict(validation_df['coefficient'].values.reshape(-1,1))
+        preds = model.predict(validation_df['coefficient'].values.reshape(-1, 1))
         topk_idx = np.argsort(preds)[::-1][:consider_only_top_limit]
         recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
         print("evaluation_results_df:")
