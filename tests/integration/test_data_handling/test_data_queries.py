@@ -14,7 +14,7 @@ CRITICAL_COLUMNS_POSTS = ['slug', 'all_features_preprocessed', 'body_preprocesse
 CRITICAL_COLUMNS_USERS = ['name', 'slug']
 CRITICAL_COLUMNS_RATINGS = ['value', 'user_id', 'post_id']
 CRITICAL_COLUMNS_CATEGORIES = ['title']
-CRITICAL_COLUMNS_EVALUATION_RESULTS = ['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id',
+CRITICAL_COLUMNS_EVALUATION_RESULTS = ['searched_id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id',
                                        'model_name', 'model_variant', 'created_at']
 
 

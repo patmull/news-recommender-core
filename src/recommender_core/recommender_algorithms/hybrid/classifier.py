@@ -8,7 +8,7 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
-from src.recommender_core.data_handling.data_manipulation import RedisMethods
+from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 import logging
@@ -27,7 +27,7 @@ def get_df_predicted(df, target_variable_name):
     df_predicted[target_variable_name] = df[target_variable_name]
 
     # leaving out 20% for validation set
-    logging.debug("Splitting dataset to train / validation...")
+    logging.debug("Splitting dataset to train_enabled / validation...")
     return df_predicted
 
 
@@ -70,6 +70,7 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     logging.debug(X_unseen_df)
 
     logging.debug("Loading vectors or creating new if does not exists...")
+    # noinspection  PyPep8
     y_pred_unseen = X_unseen_df \
         .apply(lambda x: clf
                .predict(pickle
@@ -84,7 +85,6 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
         df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
 
     if user_id is not None:
-        redis_methods = RedisMethods()
         r = get_redis_connection()
         user_redis_key = 'posts_by_pred_' + predicted_var_for_redis_key_name + '_user_' + str(user_id)
         # remove old records
@@ -165,13 +165,14 @@ class Classifier:
         df['combined'] = df[columns_to_combine].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
         print("df['combined']")
         print(df['combined'].iloc[0])
-
+        # noinspection PyPep8Naming
         X_train, X_validation, y_train, y_validation = train_test_split(df['combined'].tolist(),
                                                                         df_predicted[target_variable_name]
                                                                         .tolist(), test_size=0.2)
         logging.debug("Converting text to vectors...")
         df['vector'] = df['combined'].apply(lambda x: bert_model(x).vector)
-        logging.debug("Splitting dataset to train / test...")
+        logging.debug("Splitting dataset to train_enabled / test...")
+        # noinspection PyPep8Naming
         X_train, X_test, y_train, y_test = train_test_split(df['vector'].tolist(),
                                                             df_predicted[target_variable_name]
                                                             .tolist(), test_size=0.2)
@@ -305,6 +306,7 @@ class Classifier:
         df_posts_categories = df_posts_categories.rename(columns={'title': 'category_title'})
 
         if force_retraining is True:
+            # noinspection PyPep8Naming
             clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
                 = self.train_classifiers(df=df_posts_users_categories_relevance, columns_to_combine=columns_to_combine,
                                          target_variable_name=target_variable_name, user_id=user_id)
@@ -314,9 +316,11 @@ class Classifier:
                                         predicted_variable=target_variable_name, user_id=user_id)
 
         if experiment_mode is True:
+            # noinspection PyPep8Naming
             X_validation = df_posts_categories[columns_to_combine]
             if not type(use_only_sample_of) is None:
                 if type(use_only_sample_of) is int:
+                    # noinspection PyPep8Naming
                     X_validation = X_validation.sample(use_only_sample_of)
             logging.debug("Loading sentence bert multilingual model...")
             bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
@@ -332,9 +336,11 @@ class Classifier:
                            bert_model=bert_model)
         else:
             columns_to_select = columns_to_combine + ['slug', 'bert_vector_representation']
+            # noinspection PyPep8Naming
             X_validation = df_posts_categories[columns_to_select]
             if not type(use_only_sample_of) is None:
                 if type(use_only_sample_of) is int:
+                    # noinspection PyPep8Naming
                     X_validation = X_validation.sample(use_only_sample_of)
             logging.debug("=========================")
             logging.debug("Inserting by SVC:")

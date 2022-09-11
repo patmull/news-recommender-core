@@ -51,7 +51,7 @@ class UserBasedRecommendation:
     def get_database(self):
         return self.database
 
-    # loads posts for user based on his id and favourite categories
+    # loads posts for user based on his searched_id and favourite categories
     def load_recommended_posts_for_user(self, user_id, num_of_recommendations=5):
         self.database = DatabaseMethods()
 
@@ -77,4 +77,5 @@ def main():
     print(user_based_recommendation.load_recommended_posts_for_user(211, 4))
 
 
+# noinspection PyPep8
 if __name__ == "__main__": main()
