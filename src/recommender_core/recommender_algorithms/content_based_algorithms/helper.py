@@ -3,8 +3,7 @@ import numpy as np
 import pandas as pd
 from gensim.utils import deaccent
 
-from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
-
+from src.prefillers.preprocessing.cz_preprocessing import preprocess
 
 # https://www.machinelearningplus.com/nlp/gensim-tutorial/
 
@@ -12,35 +11,33 @@ def get_id_from_slug(slug, df):
     return df[df.slug == slug]["row_num"].values[0]
 
 
-def get_title_from_id(id, df):
-    data_frame_row = df.loc[df['row_num'] == id]
+def get_title_from_id(searched_id, df):
+    data_frame_row = df.loc[df['row_num'] == searched_id]
     return data_frame_row["title"].values[0]
 
 
-def get_slug_from_id(id, df):
-    data_frame_row = df.loc[df['row_num'] == id]
+def get_slug_from_id(searched_id, df):
+    data_frame_row = df.loc[df['row_num'] == searched_id]
     return data_frame_row["slug"].values[0]
 
 
-def generate_lines_from_corpus(corpus, max_sentence=-1, preprocess=False):
+def generate_lines_from_corpus(corpus, max_sentence=-1, use_preprocessing=False):
     for index, text in enumerate(corpus.get_texts()):
         if index < max_sentence or max_sentence == -1:
-            if preprocess is False:
+            if use_preprocessing is False:
                 yield text
-            if preprocess is True:
-                czlemma = CzPreprocess()
-                yield czlemma.preprocess(deaccent(text))
+            if use_preprocessing is True:
+                yield preprocess(deaccent(text))
         else:
             break
 
 
-def generate_lines_from_mmcorpus(corpus, max_sentence=-1, preprocess=False):
+def generate_lines_from_mmcorpus(corpus, use_preprocessing=False):
     for text in corpus:
-        if preprocess is False:
+        if use_preprocessing is False:
             yield text
-        if preprocess is True:
-            czlemma = CzPreprocess()
-            yield czlemma.preprocess(deaccent(text))
+        if use_preprocessing is True:
+            yield preprocess(deaccent(text))
 
 
 def clear_blank_lines_from_txt(file_path):
@@ -53,11 +50,10 @@ def clear_blank_lines_from_txt(file_path):
                 outFile.write(line)
 
 
-def flatten(multi_dimensional_list):
-    return [item for sublist in multi_dimensional_list for item in sublist]
 
 
-def verify_searched_slug_sanity(df, searched_slug):
+
+def verify_searched_slug_sanity(searched_slug):
     if type(searched_slug) is not str:
         raise ValueError("Entered slug must be a input_string.")
     else:
@@ -90,7 +86,7 @@ def preprocess_columns(df, cols):
 
 
 class NumpyEncoder(json.JSONEncoder):
-    """ Special json encoder for numpy types """
+    """ Special supplied_json encoder for numpy types """
 
     def default(self, obj):
         if isinstance(obj, np.integer):

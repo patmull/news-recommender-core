@@ -67,27 +67,6 @@ def load_sparse_csr(filename):
                       shape=loader['shape'])
 
 
-def get_prefilled_full_text(slug, variant):
-    recommender_methods = RecommenderMethods()
-    recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
-    recommender_methods.get_categories_dataframe()  # load categories to dataframe
-    recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
-
-    found_post = recommender_methods.find_post_by_slug(slug)
-    column_name = None
-    if variant == "short-text":
-        # short text (iDNES.cz)
-        column_name = 'recommended_tfidf_full_text'
-    elif variant == "full-text":
-        # full text (iDNES.cz)
-        column_name = 'recommended_tfidf'
-    else:
-        ValueError("No variant is selected from options.")
-    returned_posts = found_post[column_name].iloc[0]
-    print(returned_posts)
-    return returned_posts
-
-
 def display_top(word_count, cv):
     print(word_count.shape)
     print(word_count)
@@ -442,8 +421,8 @@ class TfIdf:
         tfidf_vectors = tfidf_vectorizer.fit_transform(posts['all_features_preprocessed'])
         # dataframe number
         # TODO: loop through recommended posts
-        for id in ids:
-            first_vector_tfidfvectorizer = tfidf_vectors[id]
+        for item_id in ids:
+            first_vector_tfidfvectorizer = tfidf_vectors[item_id]
             df = pd.DataFrame(first_vector_tfidfvectorizer.T.todense(), index=tfidf_vectorizer.get_feature_names(),
                               columns=["tfidf"])
             print(df.sort_values(by=["tfidf"], ascending=False).head(45))
@@ -454,3 +433,6 @@ class TfIdf:
         tfidf_visualizer.prepare_for_heatmap(tfidf_vectors, text_titles, tfidf_vectorizer)
         tfidf_visualizer.plot_tfidf_heatmap()
 
+    def get_prefilled_full_text(self):
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_categories_dataframe()
