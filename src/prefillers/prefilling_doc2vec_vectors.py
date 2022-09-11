@@ -1,10 +1,8 @@
-from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import PreFiller
-
-prefiller = PreFiller()
+from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import prefilling_job
 
 while True:
     try:
-        prefiller.prefilling_job("doc2vec_vectors", "pgsql")
+        prefilling_job("doc2vec_vectors", "pgsql")
     except Exception as e:
         print("Exception occured " + str(e))
         print(e)

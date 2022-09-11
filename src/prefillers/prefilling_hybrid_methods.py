@@ -32,7 +32,7 @@ def predict_ratings_for_all_users_store_to_redis():
             pass
 
 
-def fill_bert_vector_representation(skip_already_filled=True, reversed=False, random_order=False, db="pgsql"):
+def fill_bert_vector_representation(skip_already_filled=True, reversed_order=False, random_order=False, db="pgsql"):
     print("Loading sentence bert multilingual model...")
     bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
 
@@ -48,7 +48,7 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed=False, ra
 
     number_of_inserted_rows = 0
 
-    if reversed is True:
+    if reversed_order is True:
         print("Reversing list of posts...")
         posts.reverse()
 
@@ -63,7 +63,6 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed=False, ra
         post_id = post[0]
         slug = post[3]
         article_title = post[2]
-        article_excerpt = post[4]
         article_full_text = post[20]
         current_bert_vector_representation = post[41]
         # TODO: Category should be there too
@@ -102,5 +101,6 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed=False, ra
             number_of_inserted_rows += 1
             if number_of_inserted_rows > 20:
                 print("Refreshing list of posts for finding only not prefilled posts.")
-                fill_bert_vector_representation(db=db, skip_already_filled=skip_already_filled, reversed=reversed,
+                fill_bert_vector_representation(db=db, skip_already_filled=skip_already_filled,
+                                                reversed_order=reversed_order,
                                                 random_order=random_order)

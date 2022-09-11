@@ -3,15 +3,16 @@ import os
 import traceback
 
 from src.constants.file_paths import get_cached_posts_file_path
-from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
+from src.prefillers.preprocessing.cz_preprocessing import cz_lemma
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import LightGBMMethods, LearnToRank
+from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import train_lightgbm_user_based, \
+    linear_regression
 from src.recommender_core.recommender_algorithms.user_based_algorithms\
     .collaboration_based_recommendation import SvdClass
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.data_queries import RecommenderMethods, preprocess_single_post_find_by_slug
 from src.recommender_core.recommender_algorithms\
     .user_based_algorithms.user_based_recommendation import UserBasedRecommendation
 from flask import Flask, request
@@ -66,8 +67,7 @@ def home():
 class GetPostsLearnToRank(Resource):
 
     def get(self):
-        lightgbm = LightGBMMethods()
-        return lightgbm.train_lightgbm_user_based()
+        return train_lightgbm_user_based()
 
     def post(self):
         return {"data": "Posted"}
@@ -187,8 +187,7 @@ class GetPostsByUserPreferences(Resource):
 class GetPostsByLearnToRank(Resource):
 
     def get(self, param1, param2):
-        learn_to_rank = LearnToRank()
-        return learn_to_rank.linear_regression(param1, param2)
+        return linear_regression(param1, param2)
 
     def post(self):
         return {"data": "Posted"}
@@ -197,7 +196,6 @@ class GetPostsByLearnToRank(Resource):
 class GetWordLemma(Resource):
 
     def get(self, word):
-        cz_preprocessing = CzPreprocess()
         return cz_lemma(word, json=True)
 
     def post(self):
@@ -207,8 +205,7 @@ class GetWordLemma(Resource):
 class Preprocess(Resource):
 
     def get(self, slug):
-        recommender_methods = RecommenderMethods()
-        return preprocess_single_post_find_by_slug(slug, json=True)
+        return preprocess_single_post_find_by_slug(slug, supplied_json=True)
 
     def post(self):
         return {"data": "Posted"}

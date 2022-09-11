@@ -643,7 +643,6 @@ class DatabaseMethods:
 
 
 def get_redis_connection():
-    redis_password = os.environ.get('REDIS_PASSWORD')
     if 'REDIS_PASSWORD' in os.environ:
         redis_password = os.environ.get('REDIS_PASSWORD')
     else:

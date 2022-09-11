@@ -27,9 +27,10 @@ def most_common_words():
         if type(line) is str:
             try:
                 texts.append(line)
-            except Exception:
+            except Exception as e:
+                print("Exception occuredf:")
+                print(e)
                 pass
-
 
     print("texts[10]:")
     print(texts[10])
@@ -38,23 +39,22 @@ def most_common_words():
 
     print("Removing punctuation...")
     texts_joined = texts_joined.translate(str.maketrans('', '', string.punctuation))
-    texts_joined = texts_joined.replace(',','')
-    texts_joined = texts_joined.replace('„','')
-    texts_joined = texts_joined.replace('“','')
+    texts_joined = texts_joined.replace(',', '')
+    texts_joined = texts_joined.replace('„', '')
+    texts_joined = texts_joined.replace('“', '')
     print("texts_joined[1:10000]:")
     print(texts_joined[0:10000])
-
 
     # split() returns list of all the words in the input_string
     split_it = texts_joined.split()
 
     # Pass the split_it list to instance of Counter class.
-    Counters_found = Counter(split_it)
-    #print(Counters)
+    counters_found = Counter(split_it)
+    # print(Counters)
 
     # most_common() produces k frequently encountered
     # input values and their respective counts.
-    most_occur = Counters_found.most_common(100)
+    most_occur = counters_found.most_common(100)
     print("TOP 100 WORDS:")
     for word in most_occur:
         print(word[0])
@@ -86,7 +86,8 @@ def overall_stats_idnes():
     preprocessing = "YES"
     stopwords_removal = "YES"
 
-    result_df = pd.DataFrame([[number_of_docs, mean_document_length, preprocessing, stopwords_removal]], columns=['number_of_docs', 'mean_document_length', 'preprocessing', 'stopwords_removal'])
+    result_df = pd.DataFrame([[number_of_docs, mean_document_length, preprocessing, stopwords_removal]],
+                             columns=['number_of_docs', 'mean_document_length', 'preprocessing', 'stopwords_removal'])
     """
     result_df['number_of_docs'] = number_of_docs
     result_df['mean_document_length'] = mean_document_length

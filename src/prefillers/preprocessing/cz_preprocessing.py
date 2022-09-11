@@ -44,6 +44,57 @@ def cz_lemma(input_string, json=False):
         return ls
 
 
+def preprocess(sentence):
+    # print(sentence)
+    sentence = sentence
+    sentence = str(sentence)
+    sentence = sentence.lower()
+    sentence = sentence.replace('\r\n', ' ')
+    print(sentence)
+    sentence = sentence.replace('{html}', "")
+    cleanr = re.compile('<.*?>')
+    cleantext = re.sub(cleanr, '', sentence)
+    cleantext.translate(str.maketrans('', '', string.punctuation))  # removing punctuation
+
+    a_string = cleantext.split('=References=')[0]  # remove references and everything afterwards
+    a_string = html2text(a_string).lower()  # remove HTML tags, convert to lowercase
+    # noinspection
+
+    # 'ToktokTokenizer' does divide by '|' and '\n', but retaining this
+    #   statement seems to improve its speed a little
+
+    rem_url = re.sub(r'http\S+', '', cleantext)
+    rem_num = re.sub('[0-9]+', '', rem_url)
+    # print("rem_num")
+    # print(rem_num)
+    tokenizer = RegexpTokenizer(r'\w+')
+    tokens = tokenizer.tokenize(rem_num)
+    # print("tokens")
+    # print(tokens)
+
+    tokens = [w for w in tokens if '=' not in w]  # remove remaining tags and the like
+    string_punctuation = list(string.punctuation)
+    # remove tokens that are all punctuation
+    tokens = [w for w in tokens if not all(x.isdigit() or x in string_punctuation for x in w)]
+    tokens = [w.strip(string.punctuation) for w in tokens]  # remove stray punctuation attached to words
+    tokens = [w for w in tokens if len(w) > 1]  # remove single characters
+    tokens = [w for w in tokens if not any(x.isdigit() for x in w)]  # remove everything with a digit in it
+
+    edited_words = [cz_lemma(w) for w in tokens]
+    edited_words = list(filter(None, edited_words))  # empty strings removal
+
+    # removing stopwords
+    edited_words = [word for word in edited_words if word not in cz_stopwords]
+    edited_words = [word for word in edited_words if word not in general_stopwords]
+
+    return " ".join(edited_words)
+
+
+def preprocess_feature(feature_text, stemming=False):
+    post_excerpt_preprocessed = preprocess(feature_text, stemming)
+    return post_excerpt_preprocessed
+
+
 class CzPreprocess:
 
     def __init__(self):
@@ -51,55 +102,5 @@ class CzPreprocess:
         self.categories_df = None
 
     # pre-worked
-    def preprocess(self, sentence, stemming=False, lemma=True):
-        # print(sentence)
-        sentence = sentence
-        sentence = str(sentence)
-        sentence = sentence.lower()
-        sentence = sentence.replace('\r\n', ' ')
-        print(sentence)
-        sentence = sentence.replace('{html}', "")
-        cleanr = re.compile('<.*?>')
-        cleantext = re.sub(cleanr, '', sentence)
-        cleantext.translate(str.maketrans('', '', string.punctuation))  # removing punctuation
-
-        a_string = cleantext.split('=References=')[0]  # remove references and everything afterwards
-        a_string = html2text(a_string).lower()  # remove HTML tags, convert to lowercase
-        # noinspection
-        a_string = re.sub(r'https?:\/\/.*?[\s]', '', a_string)  # remove URLs
-
-        # 'ToktokTokenizer' does divide by '|' and '\n', but retaining this
-        #   statement seems to improve its speed a little
-        a_string = a_string.replace('|', ' ').replace('\n', ' ')
-
-        rem_url = re.sub(r'http\S+', '', cleantext)
-        rem_num = re.sub('[0-9]+', '', rem_url)
-        # print("rem_num")
-        # print(rem_num)
-        tokenizer = RegexpTokenizer(r'\w+')
-        tokens = tokenizer.tokenize(rem_num)
-        # print("tokens")
-        # print(tokens)
-
-        tokens = [w for w in tokens if '=' not in w]  # remove remaining tags and the like
-        string_punctuation = list(string.punctuation)
-        # remove tokens that are all punctuation
-        tokens = [w for w in tokens if not all(x.isdigit() or x in string_punctuation for x in w)]
-        tokens = [w.strip(string.punctuation) for w in tokens]  # remove stray punctuation attached to words
-        tokens = [w for w in tokens if len(w) > 1]  # remove single characters
-        tokens = [w for w in tokens if not any(x.isdigit() for x in w)]  # remove everything with a digit in it
-
-        edited_words = [cz_lemma(w) for w in tokens]
-        edited_words = list(filter(None, edited_words))  # empty strings removal
-
-        # removing stopwords
-        edited_words = [word for word in edited_words if word not in cz_stopwords]
-        edited_words = [word for word in edited_words if word not in general_stopwords]
-
-        return " ".join(edited_words)
-
-    def preprocess_feature(self, feature_text, stemming=False):
-        post_excerpt_preprocessed = self.preprocess(feature_text, stemming)
-        return post_excerpt_preprocessed
 
     # TODO: Will stemming be supported?
