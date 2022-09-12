@@ -1,3 +1,6 @@
+from datetime import datetime
+
+from recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
 
 """
@@ -19,13 +22,13 @@ svm = Classifier()
 svm.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by='thumbs')
 """
 # TODO: Unit test bad input handling
+"""
 svm = Classifier()
 svm.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by='stars')
-
-
+svm.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by='thumbs')
 """
-redis_methods = RedisMethods()
-r = redis_methods.get_redis_connection()
+
+r = get_redis_connection()
 now = datetime.now()
 test_value = 'test_' + str(now.strftime("%m/%d/%Y %H:%M:%S"))
 r.set('test_pair', test_value)
@@ -36,4 +39,4 @@ test_user = "posts_by_pred_ratings_user_371"
 res = r.sadd(test_value, test_user)
 print(res)
 print(r.smembers(test_value))
-"""
+
