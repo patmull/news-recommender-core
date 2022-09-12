@@ -5,11 +5,12 @@ doc2vec_model = None
 lda_model = None
 
 
+# noinspection PyPep8
 def main():
     # database = Database()
     # database.insert_posts_dataframe_to_cache() # for update
 
-    searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
+    # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     # print(doc2vecClass.get_similar_doc2vec(slug))
     # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     # searched_slug = "facr-o-slavii-a-rangers-verime-v-objektivni-vysetreni-odmitame-rasismus"
@@ -18,13 +19,13 @@ def main():
     # STEMMING
     # word = "rybolovný"
     # # print(cz_stem(word))
-    # # print(cz_stem(word,aggressive=True))
+    # # print(cz_stem(word,aggressive_stemming=True))
 
     # langdata = simplemma.load_data('cs')
     # # print(simplemma.lemmatize(word, langdata))
     # # print(tfidf.cz_lemma("nejnevhodnější"))
 
-    # print(tfidf.preprocess_single_post("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy",json=True))
+    # print(tfidf.preprocess_single_post("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy",supplied_json=True))
 
     # gensim = GenSim()
     # gensim.get_recommended_by_slug("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
@@ -46,8 +47,8 @@ def main():
 
     """
     doc2vecClass = Doc2VecClass()
-    print(doc2vecClass.get_similar_doc2vec(searched_slug,train=False))
-    print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train=False))
+    print(doc2vecClass.get_similar_doc2vec(searched_slug,train_enabled=False))
+    print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train_enabled=False))
 
     lda = Lda()
     print("--------------LDA------------------")
@@ -57,9 +58,9 @@ def main():
     """
     # lda = Lda()
     # print(lda.get_similar_lda('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem',
-    # train=True, display_dominant_topics=True))
+    # train_enabled=True, display_dominant_topics=True))
     # print(lda.get_similar_lda_full_text('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem',
-    # train=False, display_dominant_topics=False))
+    # train_enabled=False, display_dominant_topics=False))
     # lda.display_lda_stats()
     # lda.find_optimal_model_idnes(body_text_model=True)
     """

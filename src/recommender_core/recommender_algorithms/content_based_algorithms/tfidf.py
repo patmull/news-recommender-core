@@ -67,6 +67,16 @@ def load_sparse_csr(filename):
                       shape=loader['shape'])
 
 
+def display_top(word_count, cv):
+    print(word_count.shape)
+    print(word_count)
+    print(word_count.toarray())
+    tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
+    tfidf_transformer.fit(word_count)
+    df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
+    print(df_idf.sort_values(by=['idf_weights']).head(40))
+
+
 class TfIdf:
 
     def __init__(self):
@@ -83,14 +93,14 @@ class TfIdf:
     # @profile
     def keyword_based_comparison(self, keywords, number_of_recommended_posts=20, all_posts=False):
         if type(keywords) is not str:
-            raise ValueError("Entered slug must be a string.")
+            raise ValueError("Entered slug must be a input_string.")
         else:
             if keywords == "":
-                raise ValueError("Entered string is empty.")
+                raise ValueError("Entered input_string is empty.")
             else:
                 pass
 
-        global post_recommendations
+        post_recommendations = None
         if keywords == "":
             return {}
 
@@ -178,10 +188,10 @@ class TfIdf:
         prefillers
         """
         if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
+            raise ValueError("Entered slug must be a input_string.")
         else:
             if searched_slug == "":
-                raise ValueError("Entered string is empty.")
+                raise ValueError("Entered input_string is empty.")
             else:
                 pass
 
@@ -237,10 +247,10 @@ class TfIdf:
     def recommend_posts_by_all_features_preprocessed_with_full_text(self, searched_slug):
 
         if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
+            raise ValueError("Entered slug must be a input_string.")
         else:
             if searched_slug == "":
-                raise ValueError("Entered string is empty.")
+                raise ValueError("Entered input_string is empty.")
             else:
                 pass
 
@@ -285,18 +295,7 @@ class TfIdf:
         # feature tuples of (document_id, token_id) and coefficient
         tf_idf_data_handlers = TfIdfDataHandlers(self.df)
         fit_by_post_title_matrix = tf_idf_data_handlers.get_fit_by_feature_('post_title', 'category_title')
-        print("fit_by_post_title_matrix")
-        print(fit_by_post_title_matrix)
-        # fit_by_category_matrix = recommender_methods.get_fit_by_feature_('category_title')
-        fit_by_excerpt_matrix = tf_idf_data_handlers.get_fit_by_feature_('excerpt')
-        print("fit_by_excerpt_matrix")
-        print(fit_by_excerpt_matrix)
-        fit_by_keywords_matrix = tf_idf_data_handlers.get_fit_by_feature_('keywords')
-        print("fit_by_keywords_matrix")
-        print(fit_by_keywords_matrix)
-
-        # join feature tuples into one matrix
-        tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
+        tuple_of_fitted_matrices = tf_idf_data_handlers.get_tupple_of_fitted_matrices(fit_by_post_title_matrix)
         tf_idf_data_handlers = TfIdfDataHandlers(self.df)
         recommended_posts = tf_idf_data_handlers.recommend_by_more_features(slug, tuple_of_fitted_matrices)
 
@@ -394,26 +393,14 @@ class TfIdf:
                 print("----------------")
                 print("Simple example:")
                 word_count = cv.fit_transform(found_posts)
-                print(word_count.shape)
-                print(word_count)
-                print(word_count.toarray())
-                tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
-                tfidf_transformer.fit(word_count)
-                df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
-                print(df_idf.sort_values(by=['idf_weights']).head(40))
+                display_top(word_count, cv)
             else:
                 print("No matches found")
 
         print("---------------")
         print("From whole dataset:")
         word_count = cv.fit_transform(posts['all_features_preprocessed'])
-        print(word_count.shape)
-        print(word_count)
-        print(word_count.toarray())
-        tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
-        tfidf_transformer.fit(word_count)
-        df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
-        print(df_idf.sort_values(by=['idf_weights']).head(40))
+        display_top(word_count, cv)
 
         print("----------------")
         print("TF-IDF values:")
@@ -434,8 +421,8 @@ class TfIdf:
         tfidf_vectors = tfidf_vectorizer.fit_transform(posts['all_features_preprocessed'])
         # dataframe number
         # TODO: loop through recommended posts
-        for id in ids:
-            first_vector_tfidfvectorizer = tfidf_vectors[id]
+        for item_id in ids:
+            first_vector_tfidfvectorizer = tfidf_vectors[item_id]
             df = pd.DataFrame(first_vector_tfidfvectorizer.T.todense(), index=tfidf_vectorizer.get_feature_names(),
                               columns=["tfidf"])
             print(df.sort_values(by=["tfidf"], ascending=False).head(45))
@@ -446,22 +433,6 @@ class TfIdf:
         tfidf_visualizer.prepare_for_heatmap(tfidf_vectors, text_titles, tfidf_vectorizer)
         tfidf_visualizer.plot_tfidf_heatmap()
 
-    def get_prefilled_full_text(self, slug, variant):
+    def get_prefilled_full_text(self):
         recommender_methods = RecommenderMethods()
-        recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
-        recommender_methods.get_categories_dataframe()  # load categories to dataframe
-        recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
-
-        found_post = recommender_methods.find_post_by_slug(slug)
-        global column_name
-        if variant == "short-text":
-            # short text (iDNES.cz)
-            column_name = 'recommended_tfidf_full_text'
-        elif variant == "full-text":
-            # full text (iDNES.cz)
-            column_name = 'recommended_tfidf'
-        else:
-            ValueError("No variant is selected from options.")
-        returned_posts = found_post[column_name].iloc[0]
-        print(returned_posts)
-        return returned_posts
+        recommender_methods.get_posts_categories_dataframe()
