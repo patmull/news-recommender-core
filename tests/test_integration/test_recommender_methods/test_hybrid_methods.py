@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
@@ -8,12 +9,14 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.recommender_algorithms.hybrid.classifier import load_bert_model
 
 
+@pytest.mark.integtest
 def test_bert_loading():
     bert_model = load_bert_model()
     print(str(type(bert_model)))
     assert str(type(bert_model)) == "<class 'spacy.lang.xx.MultiLanguage'>"
 
 
+@pytest.mark.integtest
 def test_doc2vec_vector_representation():
     database = DatabaseMethods()
     posts = database.get_posts_dataframe()

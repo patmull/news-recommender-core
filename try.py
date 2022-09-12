@@ -1,4 +1,5 @@
-
+from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
+from datetime import datetime
 
 """
 recommender_methods = RecommenderMethods()
@@ -12,9 +13,7 @@ print(doc2vec.get_similar_doc2vec(tested_slug))
 print(doc2vec.get_similar_doc2vec(tested_slug, full_text=True))
 """
 
-from src.recommender_core.data_handling.data_manipulation import RedisMethods
-from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
-from datetime import datetime
+
 """
 database = Database()
 database.connect()

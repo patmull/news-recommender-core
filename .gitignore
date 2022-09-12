@@ -158,3 +158,5 @@ fresh-api/Environments
 drop_folder
 test_only_local_working_methods
 /test_only_local_working_methods
+/test_only_local_working_methods
+tests/test_integration/test_only_local_working_methods

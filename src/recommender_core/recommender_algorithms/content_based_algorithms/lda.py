@@ -504,7 +504,7 @@ class Lda:
 
     # @profile
     # noinspection PyUnresolvedReferences
-    @accepts(str)
+    @accepts_first_argument(str)
     @check_empty_string
     def get_similar_lda_full_text(self, searched_slug, n=21, train=False, display_dominant_topics=True):
         recommender_methods = RecommenderMethods()
