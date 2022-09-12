@@ -25,7 +25,7 @@ def test_posts_dataframe_good_day():
     # Scenario 1: Good Day
     print('DB_RECOMMENDER_HOST')
     print(os.environ.get('DB_RECOMMENDER_HOST'))
-    posts_df = recommender_methods.get_posts_dataframe()
+    posts_df = recommender_methods.get_posts_dataframe(from_cache=False)
     assert posts_df[posts_df.columns[0]].count() > 1
     common_asserts_for_dataframes(posts_df, CRITICAL_COLUMNS_POSTS)
 
@@ -35,14 +35,6 @@ def test_force_update_posts_cache():
     recommender_methods = RecommenderMethods()
     # Scenario 1: Good Day
     posts_df = recommender_methods.get_posts_dataframe(force_update=True)
-    assert os.path.isfile(recommender_methods.cached_file_path)
-    common_asserts_for_dataframes(posts_df, CRITICAL_COLUMNS_POSTS)
-
-
-@pytest.mark.integtest
-def test_get_df_from_sql_meanwhile_insert_cache():
-    recommender_methods = RecommenderMethods()
-    posts_df = recommender_methods.get_df_from_sql_meanwhile_insert_cache()
     assert os.path.isfile(recommender_methods.cached_file_path)
     common_asserts_for_dataframes(posts_df, CRITICAL_COLUMNS_POSTS)
 
@@ -64,10 +56,10 @@ def common_asserts_for_dataframes(df, critical_columns):
 @pytest.mark.integtest
 def test_find_post_by_slug():
     recommender_methods = RecommenderMethods()
-    posts_df = recommender_methods.get_posts_dataframe()
+    posts_df = recommender_methods.get_posts_dataframe(from_cache=False)
     random_df_row = posts_df.sample(1)
     random_slug = random_df_row['slug']
-    found_df = recommender_methods.find_post_by_slug(random_slug.iloc[0])
+    found_df = recommender_methods.find_post_by_slug(random_slug.iloc[0], from_cache=False)
     assert isinstance(found_df, pd.DataFrame)
     assert len(found_df.index) == 1
     assert set(CRITICAL_COLUMNS_POSTS).issubset(found_df.columns)
@@ -85,7 +77,7 @@ def test_find_post_by_slug():
 def test_find_post_by_slug_bad_input(tested_input):
     with pytest.raises(ValueError):
         recommender_methods = RecommenderMethods()
-        recommender_methods.find_post_by_slug(tested_input)
+        recommender_methods.find_post_by_slug(tested_input, from_cache=False)
 
 
 @pytest.mark.integtest
@@ -93,7 +85,7 @@ def test_posts_dataframe_file_missing():
     recommender_methods = RecommenderMethods()
     # Scenario 2: File does not exists
     recommender_methods.cached_file_path = TEST_CACHED_PICKLE_PATH
-    posts_df = recommender_methods.get_posts_dataframe(force_update=True)
+    posts_df = recommender_methods.get_posts_dataframe(force_update=True, from_cache=False)
     common_asserts_for_dataframes(posts_df, CRITICAL_COLUMNS_POSTS)
 
 

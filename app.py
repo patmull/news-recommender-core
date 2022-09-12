@@ -31,7 +31,8 @@ def check_if_cache_exists_and_fresh():
             recommender_methods = RecommenderMethods()
             cached_df = recommender_methods.get_posts_dataframe(force_update=False, from_cache=True)
             sql_columns = recommender_methods.get_sql_columns()
-            if len(cached_df.columns) == len(sql_columns):
+            if len(cached_df.columns) == (len(sql_columns) - 1):
+                # -1 because bert_vector_representation needs to be excluded from cache
                 if cached_df.columns == sql_columns:
                     return True
             else:
