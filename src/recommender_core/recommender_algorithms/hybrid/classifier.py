@@ -143,7 +143,7 @@ class Classifier:
     Global models = models for all users
     """
 
-    # TODO: Prepare for integration to API
+    # TODO: Prepare for test_integration to API
     # TODO: Finish Python <--> PHP communication
     # TODO: Hyperparameter tuning
 
