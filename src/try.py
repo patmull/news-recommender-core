@@ -1,7 +1,7 @@
-from recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass, \
+    find_best_doc2vec_model
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.prefillers.prefilling_all import prepare_and_run
-from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 
 
 def try_word2vec_recommendation_prefiller(database, method, full_text, reverse, random):
@@ -52,7 +52,7 @@ print(word2vec.get_similar_word2vec("chripkova-sezona-muze-letos-nemile-prekvapi
 """
 """
 doc2vec = Doc2VecClass()
-doc2vec.find_best_doc2vec_model(source="cswiki")
+find_best_doc2vec_model(source="cswiki")
 """
 
 """
@@ -64,8 +64,11 @@ word2vec.create_or_update_corpus_and_dict_from_mongo_idnes()
 word2vecClass = Word2VecClass()
 word2vecClass.find_optimal_model_idnes(random_search=True)
 """
+
+"""
 word2vecClass = Word2VecClass()
 word2vecClass.find_optimal_model(source="cswiki", random_search=True)
+"""
 
 """
 tfidf = TfIdf()
