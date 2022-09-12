@@ -8,7 +8,6 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
-from recommender_core.checks.data_types import accepts_third_argument
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
