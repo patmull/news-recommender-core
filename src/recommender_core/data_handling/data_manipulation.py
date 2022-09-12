@@ -99,11 +99,9 @@ class DatabaseMethods:
         return rs
 
     def get_all_users(self):
-        sql = """SELECT * FROM users ORDER BY id;"""
-        query = sql
-        self.cursor.execute(query)
-        rs = self.cursor.fetchall()
-        return rs
+        sql_query = """SELECT * FROM users ORDER BY id;"""
+        df = pd.read_sql_query(sql_query, self.get_cnx())
+        return df
 
     def get_post_by_id(self, post_id):
 
@@ -129,8 +127,6 @@ class DatabaseMethods:
     def get_posts_dataframe_only_with_bert_vectors(self):
         print("Getting posts from SQL...")
         sql = """SELECT * FROM posts WHERE bert_vector_representation IS NOT NULL ORDER BY id;"""
-        # NOTICE: Connection is ok here. Need to stay here due to calling from function that's executing thread
-        # operation
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
