@@ -2,6 +2,8 @@
 import gensim
 from pathlib import Path
 
+from src.recommender_core.data_handling.data_handlers import flatten
+
 
 def get_cz_stopwords_file_path():
     cz_stopwords_file_name = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
@@ -50,8 +52,4 @@ def remove_stopwords(texts, cz_punct=False):
         stopwords = gensim.utils.deaccent(joined_stopwords)
         stopwords = stopwords.split(' ')
         return [[word for word in gensim.utils.simple_preprocess(doc) if word not in stopwords] for doc in texts]
-
-
-def flatten(t):
-    return [item for sublist in t for item in sublist]
 

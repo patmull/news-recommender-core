@@ -1,4 +1,5 @@
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass, \
+    train_final_doc2vec_model
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.prefillers.prefilling_all import prepare_and_run
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
@@ -22,7 +23,7 @@ def try_prefillers():
 
 
 doc2vec = Doc2VecClass()
-doc2vec.train_final_doc2vec_model(source="cswiki")
+train_final_doc2vec_model(source="cswiki")
 
 """
 lda = Lda()

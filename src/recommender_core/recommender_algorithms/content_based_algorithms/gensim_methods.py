@@ -5,7 +5,7 @@ from collections import defaultdict
 from nltk import RegexpTokenizer
 
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, TfIdfDataHandlers
-from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
+from src.prefillers.preprocessing.cz_preprocessing import cz_lemma
 from src.prefillers.preprocessing.czech_stemmer import cz_stem
 
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
@@ -14,7 +14,6 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 @DeprecationWarning
 def preprocess(sentence, stemming=False, lemma=True):
     # print(sentence)
-    cz_preprocess = CzPreprocess()
     sentence = str(sentence)
     sentence = sentence.lower()
     sentence = sentence.replace('{html}', "")
@@ -35,7 +34,7 @@ def preprocess(sentence, stemming=False, lemma=True):
         return " ".join(edited_words)
 
     elif lemma is True:
-        edited_words = [cz_preprocess.cz_lemma(w) for w in tokens if len(w) > 1]
+        edited_words = [cz_lemma(w) for w in tokens if len(w) > 1]
         edited_words_list = list(filter(None, edited_words))  # empty strings removal
         return " ".join(edited_words_list)
     else:
@@ -59,15 +58,16 @@ class GensimMethods:
 
     def join_posts_ratings_categories(self):
 
-        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
+        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='searched_id')
         # clean up from unnecessary columns
         self.df = self.df[
             ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description']]
 
     def find_post_by_slug(self, slug):
         post_dataframe = self.df.loc[self.df['post_slug'] == slug]
-        doc = post_dataframe["category_title"] + " " + post_dataframe["keywords"] + " " + post_dataframe["post_title"] \
-              + " " + post_dataframe["excerpt"]
+        # noinspection PyPep8
+        doc = post_dataframe["category_title"] + " " + post_dataframe["keywords"] + " " \
+              + post_dataframe["post_title"] + " " + post_dataframe["excerpt"]
         return str(doc.tolist())
 
     def get_categories_dataframe(self):
@@ -89,7 +89,7 @@ class GensimMethods:
         # self.df["post_title"] = self.df["post_title"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
         # self.df["excerpt"] = self.df["excerpt"].map(lambda s: self.preprocess(s, stemming=False, lemma=False))
 
-        # converting pandas columns to list of lists and through map to list of string joined by space ' '
+        # converting pandas columns to list of lists and through map to list of input_string joined by space ' '
         self.df[['trigrams_full_text']] = self.df[['trigrams_full_text']].fillna('')
         self.documents = list(map(' '.join, self.df[["trigrams_full_text"]].values.tolist()))
 
