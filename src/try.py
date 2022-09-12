@@ -1,5 +1,4 @@
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass, \
-    train_final_doc2vec_model
+from recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.prefillers.prefilling_all import prepare_and_run
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
@@ -17,24 +16,22 @@ def try_prefillers():
     try_word2vec_recommendation_prefiller(database=database, method=method, full_text=False,
                                           reverse=reverse, random=random)
 
-
 # try_prefillers()
 # run_prefilling()
 
 
+"""
 doc2vec = Doc2VecClass()
 train_final_doc2vec_model(source="cswiki")
+"""
 
-"""
-lda = Lda()
-lda.get_similar_lda_full_text('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
-"""
 
 """
 # warning ignoring filter
 def fxn():
     warnings.warn("deprecated", DeprecationWarning)
 
+# tested in local integration testing
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     recommender_methods = RecommenderMethods()
@@ -43,11 +40,13 @@ with warnings.catch_warnings():
 """
 
 """
+# probably does not make a sense to test...
 word2vec = Word2VecClass()
 word2vec.final_training_idnes_model()
 """
 
 """
+# tested
 word2vec = Word2VecClass()
 print(word2vec.get_similar_word2vec("chripkova-sezona-muze-letos-nemile-prekvapit-jak-se-na-ni-pripravit"))
 """
@@ -82,4 +81,3 @@ w2vec.eval_wiki()
 bigram_phrases = BigramPhrases()
 bigram_phrases.train_phrases_from_mongo_idnes()
 """
-
