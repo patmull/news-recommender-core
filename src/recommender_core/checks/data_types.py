@@ -8,23 +8,26 @@ from funcy.compat import basestring
 def accepts(*types):
     def check_accepts(f):
         assert len(types) == f.__code__.co_argcount
+
         def new_f(*args, **kwds):
             for (a, t) in zip(args, types):
                 assert isinstance(a, t), \
-                       "arg %r does not match %s" % (a,t)
+                    "arg %r does not match %s" % (a, t)
             return f(*args, **kwds)
+
         new_f.__name__ = f.__name__
         return new_f
+
     return check_accepts
 
 
 def check_empty_string(f):
-  @functools.wraps(f)
-  def wrapper(*a, **k):
-    d = inspect.getcallargs(f, *a, **k)
-    check_empty_string(d)
-    return f(*a, **k)
-  return wrapper
+    @functools.wraps(f)
+    def wrapper(*a, **k):
+        d = inspect.getcallargs(f, *a, **k)
+        check_empty_string(d)
+        return f(*a, **k)
+    return wrapper
 
 
 def checking_empty_string(d):
@@ -34,7 +37,7 @@ def checking_empty_string(d):
 
 def check_attribute(name, value):
     """
-    Gives warnings on stderr if the value is an empty or whitespace string.
+    Gives warnings on stderr if the value is an empty or whitespace input_string.
     All other values, including None, are OK and give no warning.
     """
     if isinstance(value, basestring) and (not value or value.isspace()):

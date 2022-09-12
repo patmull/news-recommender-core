@@ -1,6 +1,5 @@
 # import psycopg2.connector
 import os
-from pathlib import Path
 
 import psycopg2
 import pandas as pd
@@ -10,11 +9,26 @@ DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
 DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
 DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
 
+
+def get_posts_dataframe_from_cache():
+    print("Reading cache file...")
+    try:
+        df = pd.read_pickle('../db_cache/cached_posts_dataframe.pkl')  # read from current directory
+        return df
+    except Exception as e:
+        print("Exception occured when reading file:")
+        print(e)
+        raise e
+
+
 @DeprecationWarning
 class Database:
     cnx = None
     cursor = None
     df = None
+
+    def __init__(self):
+        self.category_df = None
 
     def connect(self):
         self.cnx = psycopg2.connect(user=DB_USER,
@@ -39,7 +53,7 @@ class Database:
 
         sql = """SELECT * FROM posts ORDER BY id;"""
 
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
@@ -48,7 +62,7 @@ class Database:
     def get_all_categories(self):
         sql = """SELECT * FROM categories ORDER BY id;"""
 
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
@@ -57,7 +71,7 @@ class Database:
     def get_all_posts_and_categories(self):
         sql = """SELECT * FROM categories ORDER BY id;"""
 
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
@@ -65,9 +79,13 @@ class Database:
 
     def get_posts_join_categories(self):
 
-        sql = """SELECT posts.slug, posts.title, categories.title, posts.excerpt, body, keywords, all_features_preprocessed, full_text, body_preprocessed, posts.recommended_tfidf, posts.recommended_word2vec, posts.recommended_doc2vec, posts.recommended_lda, posts.recommended_tfidf_full_text, posts.recommended_word2vec_full_text, posts.recommended_doc2vec_full_text, posts.recommended_lda_full_text FROM posts JOIN categories ON posts.category_id = categories.id;;"""
+        sql = """SELECT posts.slug, posts.title, categories.title, posts.excerpt, body, keywords, 
+        all_features_preprocessed, full_text, body_preprocessed, posts.recommended_tfidf, posts.recommended_word2vec, 
+        posts.recommended_doc2vec, posts.recommended_lda, posts.recommended_tfidf_full_text, 
+        posts.recommended_word2vec_full_text, posts.recommended_doc2vec_full_text, posts.recommended_lda_full_text 
+        FROM posts JOIN categories ON posts.category_id = categories.id;; """
 
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
@@ -75,17 +93,20 @@ class Database:
 
     def get_all_users(self):
         sql = """SELECT * FROM users ORDER BY id;"""
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
         rs = self.cursor.fetchall()
         return rs
+
     def get_post_by_id(self, post_id):
 
-        query = ("SELECT * FROM posts WHERE id = '%s'" % (post_id))
+        query = ("SELECT * FROM posts WHERE id = '%s'" % post_id)
         self.cursor.execute(query)
         rs = self.cursor.fetchall()
         return rs
 
+    # noinspection
+    @DeprecationWarning
     def get_posts_dataframe_from_sql(self, pd):
         print("Getting posts from SQL...")
         sql = """SELECT * FROM posts ORDER BY id;"""
@@ -95,11 +116,8 @@ class Database:
         # df = pd.read_sql_query(results, database.get_cnx())
         return df
 
-
     def insert_posts_dataframe_to_cache(self):
         sql = """SELECT * FROM posts ORDER BY id;"""
-        folder_name = 'db_cache/'
-        p = Path(folder_name)
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         # df = pd.read_sql_query(results, database.get_cnx())
@@ -114,20 +132,10 @@ class Database:
         df.to_pickle(fullpath)  # will be stored in current directory
         return df
 
-    def get_posts_dataframe_from_cache(self):
-        print("Reading cache file...")
-        try:
-            df = pd.read_pickle('../db_cache/cached_posts_dataframe.pkl')  # read from current directory
-            return df
-        except Exception as e:
-            print("Exception occured when reading file:")
-            print(e)
-            raise e
     def get_categories_dataframe(self):
         sql = """SELECT * FROM categories ORDER BY id;"""
-
-        # LOAD INTO A DATAFRAME
         self.category_df = pd.read_sql_query(sql, self.get_cnx())
+        # LOAD INTO A DATAFRAME
         # df = pd.read_sql_query(results, database.get_cnx())
         return self.category_df
 
@@ -137,6 +145,7 @@ class Database:
         # df = pd.read_sql_query(results, database.get_cnx())
         return df
 
+    # noinspection
     @DeprecationWarning
     def get_ratings_dataframe(self, pd):
         sql = """SELECT * FROM ratings ORDER BY id;"""
@@ -145,6 +154,8 @@ class Database:
         # df = pd.read_sql_query(results, database.get_cnx())
         return df
 
+    # noinspection
+    @DeprecationWarning
     def get_user_categories(self, pd):
         sql = """SELECT * FROM user_categories ORDER BY id;"""
 
@@ -198,7 +209,7 @@ class Database:
             else:
                 raise ValueError("Selected method not implemented.")
 
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
         rs = self.cursor.fetchall()
         self.disconnect()
@@ -211,6 +222,8 @@ class Database:
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
+    # noinspection
+    @DeprecationWarning
     def get_results_dataframe(self, pd):
         sql = """SELECT * FROM relevance_testings ORDER BY id;"""
         df = pd.read_sql_query(sql, self.get_cnx())
@@ -236,7 +249,7 @@ class Database:
 
     def get_posts_with_no_body_preprocessed(self):
         sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
@@ -244,7 +257,7 @@ class Database:
 
     def get_posts_with_no_all_features_preprocessed(self):
         sql = """SELECT * FROM posts WHERE all_features_preprocessed IS NULL ORDER BY id;"""
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
@@ -252,7 +265,7 @@ class Database:
 
     def get_posts_with_no_keywords(self):
         sql = """SELECT * FROM posts WHERE keywords IS NULL ORDER BY id;"""
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
@@ -263,7 +276,7 @@ class Database:
             sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
         else:
             sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id;"""
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
@@ -274,7 +287,7 @@ class Database:
             sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
         else:
             sql = """SELECT * FROM posts WHERE recommended_word2vec_full_text IS NULL ORDER BY id;"""
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
@@ -285,7 +298,7 @@ class Database:
             sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
         else:
             sql = """SELECT * FROM posts WHERE recommended_doc2vec_full_text IS NULL ORDER BY id;"""
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()
@@ -296,7 +309,7 @@ class Database:
             sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
         else:
             sql = """SELECT * FROM posts WHERE recommended_lda_full_text IS NULL ORDER BY id;"""
-        query = (sql)
+        query = sql
         self.cursor.execute(query)
 
         rs = self.cursor.fetchall()

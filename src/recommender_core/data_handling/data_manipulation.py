@@ -158,7 +158,7 @@ class DatabaseMethods:
         self.disconnect()
         path_to_save_cache = Path(cached_file_path)
         str_path = path_to_save_cache.as_posix()
-        # TODO: Try to do som workaround. (Convert bytearray to string?)
+        # TODO: Try to do som workaround. (Convert bytearray to input_string?)
         print("Column types of df:")
         print(df.dtypes)
         # Removing bert_vector_representation for not supported column type of pickle
@@ -244,7 +244,8 @@ class DatabaseMethods:
 
         # EXTRACT RESULTS FROM CURSOR
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS rating_value, c.title AS category_title, c.slug AS category_slug, p.created_at AS post_created_at
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS rating_value, 
+        c.title AS category_title, c.slug AS category_slug, p.created_at AS post_created_at
         FROM posts p
         JOIN ratings r ON r.post_id = p.id
         JOIN users u ON r.user_id = u.id
@@ -600,7 +601,6 @@ class DatabaseMethods:
         df_thumbs = df_thumbs.sort_values(by='thumbs_created_at')
         df_thumbs = df_thumbs.drop_duplicates(['post_id', 'user_id'], keep='last')
 
-
         if user_id is not None:
             df_thumbs = df_thumbs.loc[df_thumbs['user_id'] == user_id]
 
@@ -642,17 +642,14 @@ class DatabaseMethods:
         return df
 
 
-class RedisMethods:
-
-    def get_redis_connection(self):
+def get_redis_connection():
+    if 'REDIS_PASSWORD' in os.environ:
         redis_password = os.environ.get('REDIS_PASSWORD')
-        if 'REDIS_PASSWORD' in os.environ:
-            redis_password = os.environ.get('REDIS_PASSWORD')
-        else:
-            raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
-                                   "Not possible to connect to Redis.")
+    else:
+        raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
+                               "Not possible to connect to Redis.")
 
-        return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',
-                                 port=13695, db=0,
-                                 username="admin",
-                                 password=redis_password)
+    return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',
+                             port=13695, db=0,
+                             username="admin",
+                             password=redis_password)
