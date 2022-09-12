@@ -1,25 +1,20 @@
+import pandas as pd
+
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
 from datetime import datetime
 
-"""
-recommender_methods = RecommenderMethods()
-posts_df = recommender_methods.database.get_posts_dataframe_from_sql()
-posts_df = posts_df.sort_values(by="created_at", ascending=False)
-tested_slug = posts_df['slug'].iloc[0]
-doc2vec = Doc2VecClass()
-print("tested_slug:")
-print(tested_slug)
-print(doc2vec.get_similar_doc2vec(tested_slug))
-print(doc2vec.get_similar_doc2vec(tested_slug, full_text=True))
-"""
 
-
-"""
-database = Database()
+database = DatabaseMethods()
 database.connect()
-print(database.get_posts_users_categories_thumbs().to_string())
+user_categories_thumbs_df = database.get_posts_users_categories_thumbs()
+assert isinstance(user_categories_thumbs_df, pd.DataFrame)
+THUMBS_COLUMNS_NEEDED = ['thumbs_values', 'thumbs_created_at', 'all_features_preprocessed', 'full_text']
+assert THUMBS_COLUMNS_NEEDED in user_categories_thumbs_df.columns
+assert len(user_categories_thumbs_df.index) > 0  # assert there are rows in dataframe
+
 database.disconnect()
-"""
+
 
 """
 svm = Classifier()
