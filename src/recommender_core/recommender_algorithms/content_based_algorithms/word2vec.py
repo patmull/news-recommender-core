@@ -17,14 +17,18 @@ from gensim.models import KeyedVectors, Word2Vec
 from gensim.utils import deaccent
 from pymongo import MongoClient
 
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity
-from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder, Helper
+from src.recommender_core.data_handling.data_handlers import flatten
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
+    calculate_similarity_idnes_model_gensim
+from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder, \
+    generate_lines_from_mmcorpus
 import pandas as pd
 
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess
+from src.recommender_core.data_handling.data_queries import RecommenderMethods, random_hyperparameter_choice, \
+    append_training_results, save_wordsim, get_eval_results_header, prepare_hyperparameters_grid
+from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
-from src.recommender_core.data_handling.reader import MongoReader
+from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
 
 PATH_TO_UNPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs-unprocessed.txt'
 PATH_TO_PREPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs.txt'
@@ -183,8 +187,7 @@ def remove_stopwords_mongodb(force_update=False):
             print("Before:")
             print(doc['text'])
             removed_stopwords = remove_stopwords(doc['text'])
-            helper = Helper()
-            removed_stopwords = helper.flatten(removed_stopwords)
+            removed_stopwords = flatten(removed_stopwords)
             print("After removal:")
             print(removed_stopwords)
             save_to_mongo(number_of_processed_files=number, data=removed_stopwords,
@@ -205,8 +208,6 @@ def preprocess_idnes_corpus(force_update=False):
         print(len(corpus))
         time.sleep(120)
         # preprocessing steps
-        czpreprocessing = CzPreprocess()
-        helper = Helper()
 
         last_record = mongo_db.mongo_collection.find()
         print("last_record")
@@ -235,7 +236,7 @@ def preprocess_idnes_corpus(force_update=False):
         num_of_preprocessed_docs = number_of_documents
         # clearing collection from all documents
         mongo_collection.delete_many({})
-        for doc in helper.generate_lines_from_mmcorpus(corpus):
+        for doc in generate_lines_from_mmcorpus(corpus):
             if number_of_documents > 0:
                 number_of_documents -= 1
                 print("Skipping doc.")
@@ -245,7 +246,7 @@ def preprocess_idnes_corpus(force_update=False):
             print("Before:")
             print(doc)
             doc_string = ' '.join(doc)
-            doc_string_preprocessed = deaccent(czpreprocessing.preprocess(doc_string))
+            doc_string_preprocessed = deaccent(preprocess(doc_string))
             # tokens = doc_string_preprocessed.split(' ')
 
             # removing words in greek, azbuka or arabian
@@ -354,10 +355,9 @@ def create_corpus_from_mongo_idnes(dictionary, force_update=False):
     return corpus
 
 
-def get_preprocessed_dictionary(sentences, filter_extremes, path_to_dict):
-    mongo_reader = MongoReader()
-    return mongo_reader.get_preprocessed_dict_idnes(sentences=sentences, filter_extremes=filter_extremes,
-                                                    path_to_dict=path_to_dict)
+def get_preprocessed_dictionary(filter_extremes, path_to_dict):
+    return get_preprocessed_dict_idnes(filter_extremes=filter_extremes,
+                                       path_to_dict=path_to_dict)
 
 
 def create_dictionary_from_mongo_idnes(sentences=None, force_update=False, filter_extremes=False):
@@ -371,6 +371,7 @@ def create_dictionary_from_mongo_idnes(sentences=None, force_update=False, filte
         print("Dictionary already exists. Loading...")
         loaded_dict = corpora.Dictionary.load("full_models/idnes/preprocessed/dictionary")
         return loaded_dict
+
 
 
 class Word2VecClass:
@@ -389,10 +390,10 @@ class Word2VecClass:
                              force_update_data=False):
 
         if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
+            raise ValueError("Entered slug must be a input_string.")
         else:
             if searched_slug == "":
-                raise ValueError("Entered string is empty.")
+                raise ValueError("Entered input_string is empty.")
             else:
                 pass
 
@@ -409,13 +410,15 @@ class Word2VecClass:
         self.categories_df = self.categories_df.rename(columns={'slug': 'category_slug'})
 
         found_post_dataframe = recommender_methods.find_post_by_slug(searched_slug)
-        found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
+        found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id',
+                                                          right_on='searched_id')
         print("found_post_dataframe:")
         print(found_post_dataframe)
         print(found_post_dataframe.columns)
 
         found_post_dataframe[['trigrams_full_text']] = found_post_dataframe[['trigrams_full_text']].fillna('')
         found_post_dataframe[['keywords']] = found_post_dataframe[['keywords']].fillna('')
+        # noinspection PyPep8
         found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
                                                   found_post_dataframe.iloc[0]['trigrams_full_text']
 
@@ -447,9 +450,7 @@ class Word2VecClass:
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
 
-        global most_similar_articles_with_scores
         if model_name == "wiki":
-            source = "cswiki"
             w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
             print("Similarities on Wikipedia.cz model:")
             ds = DocSim(w2v_model)
@@ -480,11 +481,12 @@ class Word2VecClass:
             print(found_post)
             if docsim_index is None and dictionary is None:
                 print("Docsim or dictionary is not passed into method. Loading.")
-                docsim_index, dictionary = ds.load_docsim_index_and_dictionary(source=source, model_name=model_name)
-            most_similar_articles_with_scores = ds.calculate_similarity_idnes_model_gensim(found_post, docsim_index,
-                                                                                           dictionary,
-                                                                                           list_of_document_features)[
-                                                :21]
+                docsim_index = ds.load_docsim_index(source=source, model_name=model_name)
+            most_similar_articles_with_scores \
+                = calculate_similarity_idnes_model_gensim(found_post,
+                                                          docsim_index,
+                                                          dictionary,
+                                                          list_of_document_features)[:21]
         else:
             raise ValueError("No from option is available.")
         # removing post itself
@@ -535,10 +537,11 @@ class Word2VecClass:
             print(found_post_dataframe.iloc[0]['all_features_preprocessed'])
             print("body_preprocessed:")
             print(found_post_dataframe.iloc[0]['body_preprocessed'])
-            found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
+            found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id',
+                                                              right_on='searched_id')
             found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
-                                                      found_post_dataframe.iloc[0]['all_features_preprocessed'] + " " + \
-                                                      found_post_dataframe.iloc[0]['body_preprocessed']
+                                                      found_post_dataframe.iloc[0]['all_features_preprocessed'] \
+                                                      + " " + found_post_dataframe.iloc[0]['body_preprocessed']
 
             del self.posts_df
             del self.categories_df
@@ -574,7 +577,7 @@ class Word2VecClass:
                        vector_size=None, window=None, min_count=None,
                        epochs=None, sample=None, force_update_model=True,
                        use_default_model=False, save_model=True):
-        global model_path
+        model_path = None
         if source == "idnes":
             model_path = "models/w2v_idnes.model"
         elif source == "cswiki":
@@ -626,8 +629,7 @@ class Word2VecClass:
             word_pairs_eval = self.w2v_model.wv.evaluate_word_pairs(
                 path_to_cropped_wordsim_file)
         else:
-            recommender_methods = RecommenderMethods()
-            recommender_methods.save_wordsim(path_to_cropped_wordsim_file)
+            save_wordsim(path_to_cropped_wordsim_file)
             word_pairs_eval = self.w2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
 
         overall_score, _ = self.w2v_model.wv.evaluate_word_analogies(
@@ -669,12 +671,11 @@ class Word2VecClass:
 
         model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
         hs_softmax_variants = [0]  # 1 = Hierarchical SoftMax
-        recommender_methods = RecommenderMethods()
         negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
-        epochs_range, sample_range, corpus_title, model_results = recommender_methods.prepare_hyperparameters_grid()
+        epochs_range, sample_range, corpus_title, model_results = prepare_hyperparameters_grid()
 
         pbar = tqdm.tqdm(total=540)
-        global set_title, csv_file_name
+        set_title, csv_file_name = None, None
         if random_search is False:
             for model_variant in model_variants:
                 for negative_sampling_variant in negative_sampling_variants:
@@ -714,12 +715,28 @@ class Word2VecClass:
                                             else:
                                                 ValueError("Bad ource specified")
                                             model_results['Validation_Set'].append(set_title + " " + corpus_title[0])
-                                            recommender_methods = RecommenderMethods()
-                                            recommender_methods.append_training_results(model_results, model_variant,
-                                                                       negative_sampling_variant, vector_size,
-                                                                       window, min_count, epochs, sample, hs_softmax,
-                                                                       word_pairs_eval, analogies_eval,
-                                                                       source)
+                                            # noinspection DuplicatedCode
+                                            append_training_results(source=source,
+                                                                    corpus_title=corpus_title[0],
+                                                                    model_variant=model_variant,
+                                                                    negative_sampling_variant=negative_sampling_variant,
+                                                                    vector_size=vector_size,
+                                                                    window=window,
+                                                                    min_count=min_count,
+                                                                    epochs=epochs, sample=sample,
+                                                                    hs_softmax=hs_softmax,
+                                                                    pearson_coeff_word_pairs_eval=
+                                                                    word_pairs_eval[0][0],
+                                                                    pearson_p_val_word_pairs_eval=
+                                                                    word_pairs_eval[0][1],
+                                                                    spearman_p_val_word_pairs_eval=
+                                                                    word_pairs_eval[1][1],
+                                                                    spearman_coeff_word_pairs_eval=
+                                                                    word_pairs_eval[1][0],
+                                                                    out_of_vocab_ratio=
+                                                                    word_pairs_eval[2],
+                                                                    analogies_eval=analogies_eval,
+                                                                    model_results=model_results)
 
                                             pbar.update(1)
                                             if source == "idnes":
@@ -736,19 +753,20 @@ class Word2VecClass:
             for i in range(0, number_of_trials):
                 hs_softmax = random.choice(hs_softmax_variants)
                 model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant \
-                    = recommender_methods.random_hyperparameter_choice(model_variants=model_variants,
-                                                                       negative_sampling_variants=negative_sampling_variants,
-                                                                       vector_size_range=vector_size_range,
-                                                                       sample_range=sample_range,
-                                                                       epochs_range=epochs_range,
-                                                                       window_range=window_range,
-                                                                       min_count_range=min_count_range)
+                    = random_hyperparameter_choice(model_variants=model_variants,
+                                                   negative_sampling_variants=negative_sampling_variants,
+                                                   vector_size_range=vector_size_range,
+                                                   sample_range=sample_range,
+                                                   epochs_range=epochs_range,
+                                                   window_range=window_range,
+                                                   min_count_range=min_count_range)
                 negative_sampling_variant = random.choice(negative_sampling_variants)
 
                 if hs_softmax == 1:
                     word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, source=source,
                                                                           model_variant=model_variant,
-                                                                          negative_sampling_variant=no_negative_sampling,
+                                                                          negative_sampling_variant
+                                                                          =no_negative_sampling,
                                                                           vector_size=vector_size,
                                                                           window=window,
                                                                           min_count=min_count,
@@ -758,7 +776,8 @@ class Word2VecClass:
                 else:
                     word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, source=source,
                                                                           model_variant=model_variant,
-                                                                          negative_sampling_variant=negative_sampling_variant,
+                                                                          negative_sampling_variant
+                                                                          =negative_sampling_variant,
                                                                           vector_size=vector_size,
                                                                           window=window,
                                                                           min_count=min_count,
@@ -768,12 +787,21 @@ class Word2VecClass:
 
                 print(word_pairs_eval[0][0])
                 model_results['Validation_Set'].append("cs.wikipedia.org " + corpus_title[0])
-                recommender_methods = RecommenderMethods()
-                recommender_methods.append_training_results(model_results, model_variant, negative_sampling_variant, vector_size,
-                                           window, min_count, epochs, sample, hs_softmax, word_pairs_eval,
-                                           analogies_eval,
-                                           source)
-
+                # noinspection DuplicatedCode
+                append_training_results(source=source, corpus_title=corpus_title[0],
+                                        model_variant=model_variant,
+                                        negative_sampling_variant=negative_sampling_variant,
+                                        vector_size=vector_size,
+                                        window=window, min_count=min_count, epochs=epochs,
+                                        sample=sample,
+                                        hs_softmax=hs_softmax,
+                                        pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
+                                        pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
+                                        spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
+                                        spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
+                                        out_of_vocab_ratio=word_pairs_eval[2],
+                                        analogies_eval=analogies_eval,
+                                        model_results=model_results)
                 pbar.update(1)
                 if source == "idnes":
                     # noinspection PyTypeChecker
@@ -814,6 +842,7 @@ class Word2VecClass:
         print(sentences[0:100])
 
         model_variant = 1  # sg parameter: 0 = CBOW; 1 = Skip-Gram
+        # noinspection DuplicatedCode
         negative_sampling_variant = 10  # 0 = no negative sampling
         no_negative_sampling = 0  # use with hs_soft_max
         vector_size = 200
@@ -825,16 +854,15 @@ class Word2VecClass:
         # 1 = Hierarchical SoftMax
 
         # useful range is (0, 1e-5) acording to : https://radimrehurek.com/gensim/models/word2vec.html
-
-        recommender_methods = RecommenderMethods()
-        corpus_title, model_results = recommender_methods.get_eval_results_header()
+        corpus_title, model_results = get_eval_results_header()
 
         pbar = tqdm.tqdm(total=540)
 
         if hs_softmax == 1:
             word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
                                                                              model_variant=model_variant,
-                                                                             negative_sampling_variant=no_negative_sampling,
+                                                                             negative_sampling_variant
+                                                                             =no_negative_sampling,
                                                                              vector_size=vector_size,
                                                                              window=window,
                                                                              min_count=min_count,
@@ -845,7 +873,8 @@ class Word2VecClass:
         else:
             word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
                                                                              model_variant=model_variant,
-                                                                             negative_sampling_variant=negative_sampling_variant,
+                                                                             negative_sampling_variant
+                                                                             =negative_sampling_variant,
                                                                              vector_size=vector_size,
                                                                              window=window,
                                                                              min_count=min_count,
@@ -856,20 +885,19 @@ class Word2VecClass:
 
         print(word_pairs_eval[0][0])
         # noinspection DuplicatedCode
-        recommender_methods = RecommenderMethods()
-        recommender_methods.append_training_results(source=source, corpus_title=corpus_title[0],
-                                                    model_variant=model_variant,
-                                                    negative_sampling_variant=negative_sampling_variant,
-                                                    vector_size=vector_size,
-                                                    window=window, min_count=min_count, epochs=epochs, sample=sample,
-                                                    hs_softmax=hs_softmax,
-                                                    pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
-                                                    pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
-                                                    spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
-                                                    spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
-                                                    out_of_vocab_ratio=word_pairs_eval[2],
-                                                    analogies_eval=analogies_eval,
-                                                    model_results=model_results)
+        append_training_results(source=source, corpus_title=corpus_title[0],
+                                model_variant=model_variant,
+                                negative_sampling_variant=negative_sampling_variant,
+                                vector_size=vector_size,
+                                window=window, min_count=min_count, epochs=epochs, sample=sample,
+                                hs_softmax=hs_softmax,
+                                pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
+                                pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
+                                spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
+                                spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
+                                out_of_vocab_ratio=word_pairs_eval[2],
+                                analogies_eval=analogies_eval,
+                                model_results=model_results)
 
         pbar.update(1)
         if source == "idnes":
@@ -919,13 +947,13 @@ class Word2VecClass:
         return word_pairs_eval, overall_score
 
     def get_prefilled_full_text(self, slug, variant):
-        recommenderMethods = RecommenderMethods()
-        recommenderMethods.get_posts_dataframe(force_update=False)  # load posts to dataframe
-        recommenderMethods.get_categories_dataframe()  # load categories to dataframe
-        recommenderMethods.join_posts_ratings_categories()  # joining posts and categories into one table
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
+        recommender_methods.get_categories_dataframe()  # load categories to dataframe
+        recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
 
-        found_post = recommenderMethods.find_post_by_slug(slug)
-        global column_name
+        found_post = recommender_methods.find_post_by_slug(slug)
+        column_name = None
         if variant == "idnes_short_text":
             column_name = 'recommended_word2vec'
         elif variant == "idnes_full_text":
@@ -962,8 +990,7 @@ def preprocess_question_words_file():
     for line in file1:
         if len(line.split()) == 4 or line.startswith(":"):
             if not line.startswith(":"):
-                cz_preprocess = CzPreprocess()
-                file2.write(gensim.utils.deaccent(cz_preprocess.preprocess(line)) + "\n")
+                file2.write(gensim.utils.deaccent(preprocess(line)) + "\n")
             else:
                 file2.write(line)
         else:
@@ -981,36 +1008,3 @@ def preprocess_question_words_file():
 
     # close the file2
     file2.close()
-
-
-def get_prefilled_full_text(self, slug, variant):
-    recommender_methods = RecommenderMethods()
-    recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
-    recommender_methods.get_categories_dataframe()  # load categories to dataframe
-    recommender_methods.join_posts_ratings_categories()  # joining posts and categories into one table
-
-    found_post = recommender_methods.find_post_by_slug(slug)
-    global column_name
-    if variant == "idnes_short_text":
-        column_name = 'recommended_word2vec'
-    elif variant == "idnes_full_text":
-        column_name = 'recommended_word2vec_full_text'
-    elif variant == "idnes_eval_1":
-        column_name = 'recommended_word2vec_eval_1'
-    elif variant == "idnes_eval_2":
-        column_name = 'recommended_word2vec_eval_2'
-    elif variant == "idnes_eval_3":
-        column_name = 'recommended_word2vec_eval_3'
-    elif variant == "idnes_eval_4":
-        column_name = 'recommended_word2vec_eval_4'
-    elif variant == 'fasttext_limited':
-        column_name = 'recommended_word2vec_limited_fasttext'
-    elif variant == "fasttext_limited_full_text":
-        column_name = 'recommended_word2vec_limited_fasttext_full_text'
-    elif variant == 'wiki_eval_1':
-        column_name = 'recommended_word2vec_wiki_eval_1'
-    else:
-        ValueError("No variant selected matches available options.")
-
-    returned_post = found_post[column_name].iloc[0]
-    return returned_post
