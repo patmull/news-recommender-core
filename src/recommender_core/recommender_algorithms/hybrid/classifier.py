@@ -8,6 +8,7 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
+from recommender_core.checks.data_types import accepts_third_argument
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
@@ -283,9 +284,24 @@ class Classifier:
             if bert_model is None:
                 raise ValueError("Loaded BERT model needs to be supplied if only_with_bert_vectors parameter"
                                  "is set to False")
+
         columns_to_combine = ['category_title', 'all_features_preprocessed', 'full_text']
 
         recommender_methods = RecommenderMethods()
+        all_user_df = recommender_methods.get_all_users()
+
+        print("all_user_df.columns")
+        print(all_user_df.columns)
+
+        if type(user_id) == int:
+            if user_id not in all_user_df["id"].values:
+                raise ValueError("User with id %d not found in DB." % (user_id,))
+        else:
+            raise ValueError("Bad data type for argument user_id")
+
+        if not type(relevance_by) == str:
+            raise ValueError("Bad data type for argument relevance_by")
+
         if relevance_by == 'thumbs':
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_thumbs_df(user_id=user_id, only_with_bert_vectors=only_with_bert_vectors)
