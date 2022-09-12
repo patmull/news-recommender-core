@@ -13,7 +13,7 @@ CRITICAL_COLUMNS_POSTS = ['slug', 'all_features_preprocessed', 'body_preprocesse
 CRITICAL_COLUMNS_USERS = ['name', 'slug']
 CRITICAL_COLUMNS_RATINGS = ['value', 'user_id', 'post_id']
 CRITICAL_COLUMNS_CATEGORIES = ['title']
-CRITICAL_COLUMNS_EVALUATION_RESULTS = ['searched_id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id',
+CRITICAL_COLUMNS_EVALUATION_RESULTS = ['id', 'query_slug', 'results_part_1', 'results_part_2', 'user_id',
                                        'model_name', 'model_variant', 'created_at']
 
 
@@ -35,11 +35,15 @@ def test_get_df_from_sql():
     common_asserts_for_dataframes(posts_df, CRITICAL_COLUMNS_POSTS)
 
 
+# RUN WITH: pytest tests/test_integration/test_data_handling/test_data_queries.py::test_results_dataframe
 @pytest.mark.integtest
 def common_asserts_for_dataframes(df, critical_columns):
     assert isinstance(df, pd.DataFrame)
     assert len(df.index) > 1
-    assert set(critical_columns).issubset(df.columns)
+    print("critical_columns and df.columns")
+    print(critical_columns)
+    print(df.columns.tolist())
+    assert set(critical_columns).issubset(df.columns.tolist())
 
 
 @pytest.mark.integtest
@@ -138,10 +142,3 @@ def test_redis_values():
     print(r.smembers(test_user_key))
     assert res == 1
     assert type(r.smembers(test_user_key)) == set
-
-
-@pytest.fixture(scope='session', autouse=True)
-@pytest.mark.integtest
-def teardown():
-    if os.path.exists(TEST_CACHED_PICKLE_PATH):
-        os.remove(TEST_CACHED_PICKLE_PATH)
