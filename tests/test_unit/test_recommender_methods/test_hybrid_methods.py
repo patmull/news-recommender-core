@@ -2,7 +2,7 @@ import pandas as pd
 
 from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier, load_bert_model, get_df_predicted
 
-# RUN WITH: python -m pytest tests/unit/test_hybrid_methods.py
+# RUN WITH: python -m pytest tests/test_unit/test_hybrid_methods.py
 
 classifier = Classifier()
 

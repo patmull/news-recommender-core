@@ -59,3 +59,4 @@ pillow~=9.0.1
 tornado~=6.1
 cython~=0.29.28
 future~=0.18.2
+spacy-sentence-bert~=0.1.2
