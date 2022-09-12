@@ -17,6 +17,7 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.word2v
     (),
     None
 ])
+@pytest.mark.integtest
 def test_tfidf_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
@@ -26,6 +27,7 @@ def test_tfidf_method_bad_input(tested_input):
 
 # python -m pytest .tests\test_content_based_methods.py::test_tfidf_method
 # py.test tests/test_recommender_methods/test_content_based_methods.py -k 'test_tfidf_method'
+@pytest.mark.integtest
 def test_tfidf_method():
     tfidf = TfIdf()
     # random_order article
@@ -71,6 +73,7 @@ def test_tfidf_method():
     None,
     'blah-blah'
 ])
+@pytest.mark.integtest
 def test_word2vec_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
@@ -86,6 +89,7 @@ def test_word2vec_method_bad_input(tested_input):
     None,
     'blah-blah'
 ])
+@pytest.mark.integtest
 def test_doc2vec_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
@@ -93,6 +97,7 @@ def test_doc2vec_method_bad_input(tested_input):
         doc2vec.get_similar_doc2vec(tested_input)
 
 
+@pytest.mark.integtest
 def test_doc2vec_method():
     doc2vec = Doc2VecClass()
     # random_order article
@@ -124,6 +129,7 @@ def test_doc2vec_method():
     None,
     'blah-blah'
 ])
+@pytest.mark.integtest
 def test_lda_full_text_method_bad_inputs(tested_input):
 
     with pytest.raises(ValueError):
@@ -138,6 +144,7 @@ def test_lda_full_text_method_bad_inputs(tested_input):
     None,
     'blah-blah'
 ])
+@pytest.mark.integtest
 def test_lda_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
@@ -152,6 +159,7 @@ def test_lda_method_bad_input(tested_input):
     None,
     'blah-blah'
 ])
+@pytest.mark.integtest
 def test_tfidf_full_text_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
@@ -159,6 +167,7 @@ def test_tfidf_full_text_method_bad_input(tested_input):
         tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(tested_input)
 
 
+@pytest.mark.integtest
 def test_tfidf_full_text_method():
     tfidf = TfIdf()
     # random_order article
@@ -190,6 +199,7 @@ def test_tfidf_full_text_method():
     None,
     'blah-blah'
 ])
+@pytest.mark.integtest
 def test_doc2vec_full_text_method_bad_inputs(tested_input):
 
     with pytest.raises(ValueError):
@@ -197,6 +207,7 @@ def test_doc2vec_full_text_method_bad_inputs(tested_input):
         doc2vec.get_similar_doc2vec_with_full_text(tested_input)
 
 
+@pytest.mark.integtest
 def test_doc2vec_full_text_method():
     doc2vec = Doc2VecClass()
     # random_order article
