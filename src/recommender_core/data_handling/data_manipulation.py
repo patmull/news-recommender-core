@@ -152,14 +152,15 @@ class DatabaseMethods:
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         self.disconnect()
+        dir = cached_file_path.split("/")
+        Path(dir[0]).mkdir(parents=True, exist_ok=True)
         path_to_save_cache = Path(cached_file_path)
         str_path = path_to_save_cache.as_posix()
-        # TODO: Try to do som workaround. (Convert bytearray to input_string?)
+        # TODO: Some workaround for this? (Convert bytearray to input_string?)
         print("Column types of df:")
         print(df.dtypes)
         # Removing bert_vector_representation for not supported column type of pickle
         df_for_save = df.drop(columns=['bert_vector_representation'])
-        Path(str_path).mkdir(parents=True, exist_ok=True)
         print("str_path:")
         print(str_path)
         print("df:")

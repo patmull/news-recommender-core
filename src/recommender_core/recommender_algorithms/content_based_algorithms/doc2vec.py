@@ -478,15 +478,17 @@ class Doc2VecClass:
         self.posts_df = self.posts_df.rename({'title': 'category_title'})
         return self.categories_df
 
-    @accepts_first_argument(str)
     @check_empty_string
     def get_similar_doc2vec(self, searched_slug, train_enabled=False, limited=True, number_of_recommended_posts=21,
-                            full_text=False):
+                            full_text=False, posts_from_cache=True):
+
+        if type(searched_slug) is not str:
+            raise ValueError("Bad searched_slug parameter inserted.")
 
         # TODO: Replace other duplicated code like this:
         verify_searched_slug_sanity(searched_slug)
         recommender_methods = RecommenderMethods()
-        self.df = recommender_methods.get_posts_categories_dataframe()
+        self.df = recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
         print("self.df")
         print(self.df.columns.values)
 

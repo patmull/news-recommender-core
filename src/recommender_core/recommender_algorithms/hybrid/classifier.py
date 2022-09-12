@@ -301,6 +301,9 @@ class Classifier:
         if not type(relevance_by) == str:
             raise ValueError("Bad data type for argument relevance_by")
 
+        if not type(use_only_sample_of) == int:
+            raise ValueError("Bad data type for argument relevance_by")
+
         if relevance_by == 'thumbs':
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_thumbs_df(user_id=user_id, only_with_bert_vectors=only_with_bert_vectors)

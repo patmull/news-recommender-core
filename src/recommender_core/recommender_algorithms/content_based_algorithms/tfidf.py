@@ -244,7 +244,7 @@ class TfIdf:
 
     # @profile
     # TODO: Merge ful text and short text method into one method. Distinguish only with parameter.
-    def recommend_posts_by_all_features_preprocessed_with_full_text(self, searched_slug, posts_from_cache=False):
+    def recommend_posts_by_all_features_preprocessed_with_full_text(self, searched_slug, posts_from_cache=True):
 
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a input_string.")
