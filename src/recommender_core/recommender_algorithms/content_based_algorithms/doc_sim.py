@@ -126,7 +126,8 @@ class DocSim:
         """Calculates & returns similarity scores between given source document & all
         the target documents."""
         termsim_index = WordEmbeddingSimilarityIndex(self.w2v_model)
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+        # WARNING: cswiki may not be in disk
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_cswiki.gensim')
         bow_corpus = pickle.load(open("precalc_vectors/corpus_idnes.pkl", "rb"))
         similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary)  # construct similarity matrix
 
