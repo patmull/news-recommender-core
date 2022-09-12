@@ -2,15 +2,9 @@ import pandas as pd
 
 from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier, load_bert_model, get_df_predicted
 
-# RUN WITH: python -m pytest tests/unit/test_classifiers.py
+# RUN WITH: python -m pytest tests/unit/test_hybrid_methods.py
 
 classifier = Classifier()
-
-
-def test_bert_loading():
-    bert_model = load_bert_model()
-    print(str(type(bert_model)))
-    assert str(type(bert_model)) == "<class 'spacy.lang.xx.MultiLanguage'>"
 
 
 def test_get_df_predicted():
