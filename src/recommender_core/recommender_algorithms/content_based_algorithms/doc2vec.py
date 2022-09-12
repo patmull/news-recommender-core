@@ -219,7 +219,7 @@ def train_full_text(tagged_data, full_body, limited):
     print("Doc2Vec model Saved")
 
 
-def find_best_doc2vec_model(source, number_of_trials=512):
+def find_best_doc2vec_model(source, number_of_trials=512, file_name='doc2vec_final_evaluation_results'):
     print("Building sentences...")
     # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
 
@@ -297,7 +297,7 @@ def find_best_doc2vec_model(source, number_of_trials=512):
                                 out_of_vocab_ratio=word_pairs_eval[2],
                                 analogies_eval=analogies_eval,
                                 model_results=model_results)
-        pd.DataFrame(model_results).to_csv('doc2vec_final_evaluation_results' + source + '.csv', index=False,
+        pd.DataFrame(model_results).to_csv(file_name + source + '.csv', index=False,
                                            mode="a")
         pbar.update(1)
 
@@ -340,6 +340,7 @@ def train_final_doc2vec_model(source):
     negative_sampling_variant = negative_sampling_variant
 
     if hs_softmax == 1:
+        # TODO: Unit test computing of evaluations
         word_pairs_eval, analogies_eval = compute_eval_values(train_corpus=train_corpus,
                                                               test_corpus=test_corpus,
                                                               model_variant=model_variant,
@@ -550,10 +551,11 @@ class Doc2VecClass:
 
     @accepts_first_argument(str)
     @check_empty_string
-    def get_similar_doc2vec_with_full_text(self, searched_slug, train_enabled=False, number_of_recommended_posts=21):
+    def get_similar_doc2vec_with_full_text(self, searched_slug, train_enabled=False, number_of_recommended_posts=21,
+                                           posts_from_cache=True):
 
         recommender_methods = RecommenderMethods()
-        self.df = recommender_methods.get_posts_categories_dataframe()
+        self.df = recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
 
         if 'post_slug' in self.df.columns:
             self.df = self.df.rename(columns={'post_slug': 'slug'})

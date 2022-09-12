@@ -79,7 +79,7 @@ def test_word2vec_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
         word2vec = Word2VecClass()
-        word2vec.get_similar_word2vec(tested_input)
+        word2vec.get_similar_word2vec(searched_slug=tested_input, posts_from_cache=True)
 
 
 # py.test tests/test_recommender_methods/test_content_based_methods.py -k 'test_doc2vec_method_bad_input'
@@ -95,7 +95,7 @@ def test_doc2vec_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
         doc2vec = Doc2VecClass()
-        doc2vec.get_similar_doc2vec(tested_input)
+        doc2vec.get_similar_doc2vec(searched_slug=tested_input, posts_from_cache=True)
 
 
 @pytest.mark.integtest
@@ -108,7 +108,7 @@ def test_doc2vec_method_for_random_post():
     random_post_slug = random_post['slug'].iloc[0]
     print("random_post slug:")
     print(random_post_slug)
-    similar_posts = doc2vec.get_similar_doc2vec(random_post_slug)
+    similar_posts = doc2vec.get_similar_doc2vec(searched_slug=random_post_slug, posts_from_cache=True)
     print("similar_posts")
     print(similar_posts)
     print("similar_posts type:")
@@ -135,7 +135,7 @@ def test_lda_full_text_method_bad_inputs(tested_input):
 
     with pytest.raises(ValueError):
         lda = Lda()
-        lda.get_similar_lda_full_text(tested_input)
+        lda.get_similar_lda_full_text(tested_input, posts_from_cache=False)
 
 
 # pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::test_lda_method_bad_input
@@ -151,7 +151,7 @@ def test_lda_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
         lda = Lda()
-        lda.get_similar_lda(tested_input)
+        lda.get_similar_lda(tested_input, posts_from_cache=False)
 
 
 @pytest.mark.parametrize("tested_input", [
@@ -166,7 +166,7 @@ def test_tfidf_full_text_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
         tfidf = TfIdf()
-        tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(tested_input)
+        tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(tested_input, posts_from_cache=False)
 
 
 @pytest.mark.integtest
@@ -179,7 +179,8 @@ def test_tfidf_full_text_method():
     random_post_slug = random_post['slug'].iloc[0]
     print("random_post slug:")
     print(random_post_slug)
-    similar_posts = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(random_post_slug)
+    similar_posts = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(random_post_slug,
+                                                                                      posts_from_cache=False)
     print("similar_posts")
     print(similar_posts)
     print("similar_posts type:")
@@ -206,7 +207,7 @@ def test_doc2vec_full_text_method_bad_inputs(tested_input):
 
     with pytest.raises(ValueError):
         doc2vec = Doc2VecClass()
-        doc2vec.get_similar_doc2vec_with_full_text(tested_input)
+        doc2vec.get_similar_doc2vec_with_full_text(tested_input, posts_from_cache=False)
 
 
 @pytest.mark.integtest
@@ -219,7 +220,7 @@ def test_doc2vec_full_text_method():
     random_post_slug = random_post['slug'].iloc[0]
     print("random_post slug:")
     print(random_post_slug)
-    similar_posts = doc2vec.get_similar_doc2vec_with_full_text(random_post_slug)
+    similar_posts = doc2vec.get_similar_doc2vec_with_full_text(random_post_slug, posts_from_cache=False)
     print("similar_posts:")
     print(similar_posts)
     print("similar_posts type:")
