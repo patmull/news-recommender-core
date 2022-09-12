@@ -12,8 +12,14 @@ def accepts_first_argument(*types):
         def new_f(*args, **kwds):
             # checks only for first argument
             first_type = types[0]
+            checked_argument = args[1]
             # noinspection # noqa
-            assert isinstance(args[1], first_type)
+            print("args:")
+            print(args)
+            print("first_type:")
+            print(first_type)
+            if not isinstance(checked_argument, first_type):
+                raise ValueError("arg %r does not match %s" % (checked_argument, first_type))
             return f(*args, **kwds)
 
         new_f.__name__ = f.__name__

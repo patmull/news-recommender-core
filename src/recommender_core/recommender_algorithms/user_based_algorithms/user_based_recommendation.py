@@ -60,8 +60,8 @@ class UserBasedRecommendation:
             .category_slug.isin(load_user_categories(user_id)['category_slug'].tolist())]
         df_filter_current_user = df_posts_users_of_categories[
             df_posts_users_of_categories.rating_id != self.get_user_id()]
-        df_sorted_results = df_filter_current_user[['post_id', 'post_slug', 'rating_value', 'post_created_at']] \
-            .sort_values(['rating_value', 'post_created_at'], ascending=[False, False])
+        df_sorted_results = df_filter_current_user[['post_id', 'post_slug', 'ratings_values', 'post_created_at']] \
+            .sort_values(['ratings_values', 'post_created_at'], ascending=[False, False])
         df_sorted_results = df_sorted_results.drop_duplicates(subset=['post_id'])
         print("df_sorted_results[['post_slug']]")
         print(df_sorted_results[['post_id', 'post_slug']])
