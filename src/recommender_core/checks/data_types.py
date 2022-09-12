@@ -20,12 +20,42 @@ def accepts_first_argument(*types):
             print(first_type)
             if not isinstance(checked_argument, first_type):
                 raise ValueError("arg %r does not match %s" % (checked_argument, first_type))
+            if checked_argument == "":
+                raise ValueError("arg %r is empty string %s" % (checked_argument, first_type))
             return f(*args, **kwds)
 
         new_f.__name__ = f.__name__
         return new_f
 
     return check_accepts_first_argument
+
+
+# TODO: This does not work as intendent when is used e.g. with SVM -- it shows data type
+#  of class (well... object) itself for some reason
+#  Try to finish this.
+def accepts_third_argument(*types):
+    def check_accepts_third_argument(f):
+        # This fails if other data types are not specified
+
+        def new_f(*args, **kwds):
+            # checks only for first argument
+            first_type = types[0]
+            print("args")
+            print(args)
+            print("types")
+            print(types)
+            checked_argument = args[2]
+            # noinspection # noqa
+            if not isinstance(checked_argument, first_type):
+                raise ValueError("arg %r does not match %s" % (checked_argument, first_type))
+            if checked_argument == "":
+                raise ValueError("arg %r is empty string %s" % (checked_argument, first_type))
+            return f(*args, **kwds)
+
+        new_f.__name__ = f.__name__
+        return new_f
+
+    return NotImplementedError
 
 
 def accepts_types(*types):
