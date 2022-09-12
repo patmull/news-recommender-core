@@ -11,6 +11,7 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms\
 
 
 # TODO:
+# pytest tests\test_integration\test_recommender_methods\test_user_preferences_methods.py::test_user_categories
 @pytest.mark.integtest
 def test_user_categories():
     user_based_recommendation = UserBasedRecommendation()
@@ -18,8 +19,8 @@ def test_user_categories():
     # TODO: Repair Error
     users = recommender_methods.get_users_dataframe()
     print("users:")
-    print(users)
-    list_of_user_ids = users['searched_id'].to_list()
+    print(users.columns)
+    list_of_user_ids = users['id'].to_list()
     random_position = random.randrange(len(list_of_user_ids))
     random_id = list_of_user_ids[random_position]
     num_of_recommended_posts = 5
