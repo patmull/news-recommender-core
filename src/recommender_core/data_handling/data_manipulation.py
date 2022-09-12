@@ -159,6 +159,7 @@ class DatabaseMethods:
         print(df.dtypes)
         # Removing bert_vector_representation for not supported column type of pickle
         df_for_save = df.drop(columns=['bert_vector_representation'])
+        Path(str_path).mkdir(parents=True, exist_ok=True)
         print("str_path:")
         print(str_path)
         print("df:")
