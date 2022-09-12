@@ -387,7 +387,7 @@ class Word2VecClass:
 
     # @profile
     def get_similar_word2vec(self, searched_slug, model_name=None, docsim_index=None, dictionary=None,
-                             force_update_data=False):
+                             force_update_data=False, posts_from_cache=True):
 
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a input_string.")
@@ -399,7 +399,8 @@ class Word2VecClass:
 
         recommender_methods = RecommenderMethods()
 
-        self.posts_df = recommender_methods.get_posts_dataframe(force_update=force_update_data)
+        self.posts_df = recommender_methods.get_posts_dataframe(force_update=force_update_data,
+                                                                from_cache=posts_from_cache)
         self.categories_df = recommender_methods.get_categories_dataframe()
         self.df = recommender_methods.get_posts_categories_dataframe()
 
