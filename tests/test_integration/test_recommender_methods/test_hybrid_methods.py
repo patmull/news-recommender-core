@@ -1,25 +1,17 @@
 import numpy as np
-import pytest
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 # RUN WITH:
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
+from src.recommender_core.recommender_algorithms.hybrid.classifier import load_bert_model
 
 
-# py.test tests/test_recommender_methods/test_user_preferences_methods.py -k 'test_user_keyword_bad_input'
-@pytest.mark.parametrize("tested_input", [
-    '',
-    4,
-    (),
-    None
-])
-def test_user_keyword_bad_input(tested_input):
-
-    with pytest.raises(ValueError):
-        doc2vec = Doc2VecClass()
-        doc2vec.get_vector_representation(tested_input)
+def test_bert_loading():
+    bert_model = load_bert_model()
+    print(str(type(bert_model)))
+    assert str(type(bert_model)) == "<class 'spacy.lang.xx.MultiLanguage'>"
 
 
 def test_doc2vec_vector_representation():
