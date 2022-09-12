@@ -1,7 +1,6 @@
 from datetime import datetime
 
-from recommender_core.data_handling.data_manipulation import get_redis_connection
-from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
+from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 
 """
 database = DatabaseMethods()
