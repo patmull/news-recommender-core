@@ -443,13 +443,15 @@ class Lda:
         self.database = DatabaseMethods()
 
     # @profile
-    @accepts_first_argument(str)
     @check_empty_string
-    def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, n=21):
+    def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, n=21, posts_from_cache=True):
 
         recommender_methods = RecommenderMethods()
-        recommender_methods.get_posts_dataframe()
-        recommender_methods.get_posts_categories_dataframe()
+        recommender_methods.get_posts_dataframe(from_cache=posts_from_cache)
+        recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
+
+        if searched_slug == "" or type(searched_slug) is not str:
+            raise ValueError('Slug has bad data type or is empty.')
 
         if searched_slug not in recommender_methods.df['slug'].to_list():
             raise ValueError('Slug does not appear in dataframe.')
