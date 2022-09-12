@@ -123,47 +123,6 @@ def test_doc2vec_method_for_random_post():
     assert len(similar_posts) > 0
 
 
-@pytest.mark.integtest
-def test_doc2vec_method_for_latest_post():
-
-    # test whether can get latest post
-    recommender_methods = RecommenderMethods()
-    posts_df = recommender_methods.database.get_posts_dataframe_from_sql()
-    posts_df = posts_df.sort_values(by="created_at", ascending=False)
-    tested_slug = posts_df['slug'].iloc[0]
-    doc2vec = Doc2VecClass()
-    print("tested_slug:")
-    print(tested_slug)
-    similar_posts = doc2vec.get_similar_doc2vec(tested_slug)
-    print("similar_posts")
-    print(similar_posts)
-    print("similar_posts type:")
-    print(type(similar_posts))
-
-
-@pytest.mark.integtest
-def test_doc2vec_method_for_latest_post_full_text():
-    # test whether can get latest post
-    recommender_methods = RecommenderMethods()
-    posts_df = recommender_methods.database.get_posts_dataframe_from_sql()
-    posts_df = posts_df.sort_values(by="created_at", ascending=False)
-    tested_slug = posts_df['slug'].iloc[0]
-    doc2vec = Doc2VecClass()
-    similar_posts = doc2vec.get_similar_doc2vec(tested_slug)
-    print("similar_posts")
-    print(similar_posts)
-    print("similar_posts type:")
-    print(type(similar_posts))
-    assert type(similar_posts) is list
-    assert len(similar_posts) > 0
-    print(type(similar_posts[0]['slug']))
-    assert type(similar_posts[0]['slug']) is str
-    assert type(similar_posts[0]['coefficient']) is float
-    assert len(similar_posts) > 0
-
-    print(doc2vec.get_similar_doc2vec(tested_slug, full_text=True))
-
-
 @pytest.mark.parametrize("tested_input", [
     '',
     4,
@@ -179,6 +138,7 @@ def test_lda_full_text_method_bad_inputs(tested_input):
         lda.get_similar_lda_full_text(tested_input)
 
 
+# pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::test_lda_method_bad_input
 @pytest.mark.parametrize("tested_input", [
     '',
     4,
