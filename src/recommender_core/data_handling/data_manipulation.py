@@ -244,7 +244,7 @@ class DatabaseMethods:
 
         # EXTRACT RESULTS FROM CURSOR
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS rating_value, 
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS ratings_values, 
         c.title AS category_title, c.slug AS category_slug, p.created_at AS post_created_at
         FROM posts p
         JOIN ratings r ON r.post_id = p.id

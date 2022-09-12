@@ -258,7 +258,7 @@ class RecommenderMethods:
         database = DatabaseMethods()
 
         sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value 
-        AS rating_value
+        AS ratings_values
         FROM posts p
         JOIN ratings r ON r.post_id = p.id
         JOIN users u ON r.user_id = u.id;"""
