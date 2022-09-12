@@ -1,4 +1,4 @@
-from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 
 word2vec_embedding = None
 doc2vec_model = None
@@ -29,10 +29,11 @@ def main():
 
     # gensim = GenSim()
     # gensim.get_recommended_by_slug("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
-
+    """
     tfidf = TfIdf()
-    # print(tfidf.recommend_posts_by_all_features_preprocessed('zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik'))
+    print(tfidf.recommend_posts_by_all_features_preprocessed('zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik'))
     tfidf.analyze('zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik')
+    """
     """
     print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
     print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
@@ -96,6 +97,9 @@ def main():
     h = hpy()
     print(h.heap())
     """
+    searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
+    doc2vec_class = Doc2VecClass()
+    print(doc2vec_class.get_similar_doc2vec(searched_slug, train_enabled=False))
 
 
 if __name__ == "__main__": main()
