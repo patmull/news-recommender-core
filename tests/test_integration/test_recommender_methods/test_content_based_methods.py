@@ -65,7 +65,7 @@ def test_tfidf_method():
     assert len(similar_posts) > 0
 
 
-# py.test tests/test_recommender_methods/test_content_based_methods.py -k 'test_tfidf_method_bad_input'
+# pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::test_tfidf_method_bad_input
 @pytest.mark.parametrize("tested_input", [
     '',
     4,
@@ -78,10 +78,10 @@ def test_word2vec_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
         word2vec = Word2VecClass()
-        word2vec.get_similar_word2vec(searched_slug=tested_input, posts_from_cache=True)
+        word2vec.get_similar_word2vec(searched_slug=tested_input, posts_from_cache=False)
 
 
-# py.test tests/test_recommender_methods/test_content_based_methods.py -k 'test_doc2vec_method_bad_input'
+# pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::test_doc2vec_method_bad_input
 @pytest.mark.parametrize("tested_input", [
     '',
     4,
@@ -94,7 +94,7 @@ def test_doc2vec_method_bad_input(tested_input):
 
     with pytest.raises(ValueError):
         doc2vec = Doc2VecClass()
-        doc2vec.get_similar_doc2vec(searched_slug=tested_input, posts_from_cache=True)
+        doc2vec.get_similar_doc2vec(searched_slug=tested_input, posts_from_cache=False)
 
 
 @pytest.mark.integtest
@@ -107,7 +107,7 @@ def test_doc2vec_method_for_random_post():
     random_post_slug = random_post['slug'].iloc[0]
     print("random_post slug:")
     print(random_post_slug)
-    similar_posts = doc2vec.get_similar_doc2vec(searched_slug=random_post_slug, posts_from_cache=True)
+    similar_posts = doc2vec.get_similar_doc2vec(searched_slug=random_post_slug, posts_from_cache=False)
     print("similar_posts")
     print(similar_posts)
     print("similar_posts type:")
@@ -120,21 +120,6 @@ def test_doc2vec_method_for_random_post():
     assert type(similar_posts[0]['slug']) is str
     assert type(similar_posts[0]['coefficient']) is float
     assert len(similar_posts) > 0
-
-
-@pytest.mark.parametrize("tested_input", [
-    '',
-    4,
-    (),
-    None,
-    'blah-blah'
-])
-@pytest.mark.integtest
-def test_lda_full_text_method_bad_inputs(tested_input):
-
-    with pytest.raises(ValueError):
-        lda = Lda()
-        lda.get_similar_lda_full_text(tested_input, posts_from_cache=False)
 
 
 # pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::test_lda_method_bad_input
