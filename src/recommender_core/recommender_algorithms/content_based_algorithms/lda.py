@@ -13,7 +13,7 @@ from gensim.utils import deaccent
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
 
-from src.recommender_core.checks.data_types import check_empty_string, accepts
+from src.recommender_core.checks.data_types import check_empty_string, accepts_first_argument
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 import gensim
@@ -443,7 +443,7 @@ class Lda:
         self.database = DatabaseMethods()
 
     # @profile
-    @accepts(str)
+    @accepts_first_argument(str)
     @check_empty_string
     def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, n=21):
 

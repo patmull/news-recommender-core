@@ -14,7 +14,7 @@ from sklearn.model_selection import train_test_split
 from src.recommender_core.data_handling.data_handlers import flatten
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import verify_searched_slug_sanity, \
     preprocess_columns
-from src.recommender_core.checks.data_types import accepts, check_empty_string
+from src.recommender_core.checks.data_types import check_empty_string, accepts_first_argument
 from src.recommender_core.data_handling.reader import build_sentences
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, save_wordsim, append_training_results, \
     get_eval_results_header, prepare_hyperparameters_grid, random_hyperparameter_choice
@@ -222,7 +222,6 @@ def train_full_text(tagged_data, full_body, limited):
 def find_best_doc2vec_model(source, number_of_trials=512):
     print("Building sentences...")
     # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
-    sentences = []
 
     train_corpus, test_corpus = prepare_train_test_corpus()
 
@@ -230,6 +229,7 @@ def find_best_doc2vec_model(source, number_of_trials=512):
     """
     hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
     """
+    # noinspection PyPep8
     negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
     epochs_range, sample_range, corpus_title, model_results = prepare_hyperparameters_grid()
 
@@ -477,7 +477,7 @@ class Doc2VecClass:
         self.posts_df = self.posts_df.rename({'title': 'category_title'})
         return self.categories_df
 
-    @accepts(str)
+    @accepts_first_argument(str)
     @check_empty_string
     def get_similar_doc2vec(self, searched_slug, train_enabled=False, limited=True, number_of_recommended_posts=21,
                             full_text=False):
@@ -548,7 +548,7 @@ class Doc2VecClass:
 
         return get_similar_by_posts_slug(most_similar_posts, documents_slugs, number_of_recommended_posts)
 
-    @accepts(str)
+    @accepts_first_argument(str)
     @check_empty_string
     def get_similar_doc2vec_with_full_text(self, searched_slug, train_enabled=False, number_of_recommended_posts=21):
 
@@ -620,6 +620,7 @@ class Doc2VecClass:
         recommender_methods = RecommenderMethods()
         return self.doc2vec_model.infer_vector(recommender_methods.find_post_by_slug(searched_slug))
 
+    @DeprecationWarning
     def create_or_update_corpus_and_dict_from_mongo_idnes(self):
         dict_idnes = create_dictionary_from_mongo_idnes(force_update=True)
         return dict_idnes
