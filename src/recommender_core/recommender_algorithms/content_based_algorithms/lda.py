@@ -506,9 +506,10 @@ class Lda:
     # noinspection PyUnresolvedReferences
     @accepts_first_argument(str)
     @check_empty_string
-    def get_similar_lda_full_text(self, searched_slug, n=21, train=False, display_dominant_topics=True):
+    def get_similar_lda_full_text(self, searched_slug, n=21, train=False, display_dominant_topics=True,
+                                  posts_from_cache=True):
         recommender_methods = RecommenderMethods()
-        recommender_methods.get_posts_dataframe()
+        recommender_methods.get_posts_dataframe(from_cache=posts_from_cache)
         recommender_methods.get_posts_categories_dataframe()
         recommender_methods.df['tokenized'] = recommender_methods.tokenize_text()
         gc.collect()
