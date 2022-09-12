@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -31,3 +32,15 @@ def test_doc2vec_vector_representation():
 
     assert type(vector_representation) is np.ndarray
     assert len(vector_representation) > 0
+
+
+def test_thumbs():
+    database = DatabaseMethods()
+    database.connect()
+    user_categories_thumbs_df = database.get_posts_users_categories_thumbs()
+    database.disconnect()
+    assert isinstance(user_categories_thumbs_df, pd.DataFrame)
+    THUMBS_COLUMNS_NEEDED = ['thumbs_values', 'thumbs_created_at', 'all_features_preprocessed', 'full_text']
+    assert THUMBS_COLUMNS_NEEDED in user_categories_thumbs_df.columns
+    assert len(user_categories_thumbs_df.index) > 0  # assert there are rows in dataframe
+

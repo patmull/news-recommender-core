@@ -349,7 +349,7 @@ class RecommenderMethods:
                  'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'trigrams_full_text']]
         return self.df
 
-    def find_post_by_slug(self, searched_slug):
+    def find_post_by_slug(self, searched_slug, from_cache=True):
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a input_string.")
         else:
@@ -358,7 +358,9 @@ class RecommenderMethods:
             else:
                 pass
 
-        return self.get_posts_dataframe().loc[self.get_posts_dataframe()['slug'] == searched_slug]
+        return self.get_posts_dataframe(from_cache=from_cache).loc[
+            self.get_posts_dataframe(from_cache=from_cache)['slug'] == searched_slug
+            ]
 
     def get_posts_categories_dataframe(self, only_with_bert_vectors=False, from_cache=True):
         if only_with_bert_vectors is False:
