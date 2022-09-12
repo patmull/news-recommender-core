@@ -1,10 +1,6 @@
-import pandas as pd
-
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
-from datetime import datetime
 
-
+"""
 database = DatabaseMethods()
 database.connect()
 user_categories_thumbs_df = database.get_posts_users_categories_thumbs()
@@ -14,12 +10,18 @@ assert THUMBS_COLUMNS_NEEDED in user_categories_thumbs_df.columns
 assert len(user_categories_thumbs_df.index) > 0  # assert there are rows in dataframe
 
 database.disconnect()
+"""
 
-
+# TODO: Add test user who will have some thumbs from posts that are already prefilled...
+# (Currently there are no thumb rated posts that are prefilled)
 """
 svm = Classifier()
-svm.predict_relevance_for_user(use_only_sample_of=20, user_id=371)
+svm.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by='thumbs')
 """
+# TODO: Unit test bad input handling
+svm = Classifier()
+svm.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by='stars')
+
 
 """
 redis_methods = RedisMethods()
