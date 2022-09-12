@@ -12,3 +12,4 @@ CRITICAL_COLUMNS_EVALUATION_RESULTS = ['searched_id', 'query_slug', 'results_par
                                        'model_name', 'model_variant', 'created_at']
 
 # TODO: Unit tests
+

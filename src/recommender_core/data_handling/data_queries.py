@@ -491,6 +491,12 @@ class RecommenderMethods:
         returned_post = found_post[column_name].iloc[0]
         return returned_post
 
+    def get_all_users(self):
+        self.database.connect()
+        df_users = self.database.get_all_users()
+        self.database.disconnect()
+        return df_users
+
 
 def get_cleaned_text(row):
     return row
