@@ -34,13 +34,15 @@ def test_doc2vec_vector_representation():
     assert len(vector_representation) > 0
 
 
+# RUN WITH: pytest tests/test_integration/test_recommender_methods/test_hybrid_methods.py::test_thumbs
 def test_thumbs():
     database = DatabaseMethods()
     database.connect()
     user_categories_thumbs_df = database.get_posts_users_categories_thumbs()
     database.disconnect()
+    print("user_categories_thumbs_df.columns")
+    print(user_categories_thumbs_df.columns)
     assert isinstance(user_categories_thumbs_df, pd.DataFrame)
     THUMBS_COLUMNS_NEEDED = ['thumbs_values', 'thumbs_created_at', 'all_features_preprocessed', 'full_text']
-    assert THUMBS_COLUMNS_NEEDED in user_categories_thumbs_df.columns
+    assert all(elem in user_categories_thumbs_df.columns.values for elem in THUMBS_COLUMNS_NEEDED)
     assert len(user_categories_thumbs_df.index) > 0  # assert there are rows in dataframe
-

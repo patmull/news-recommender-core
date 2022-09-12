@@ -20,7 +20,7 @@ def get_average_post_rating():
     # database.set_row_var()
     # EXTRACT RESULTS FROM CURSOR
 
-    sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value AS rating_value
+    sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value AS ratings_values
                        FROM posts p
                        JOIN ratings r ON r.post_id = p.id
                        JOIN users u ON r.user_id = u.id;"""
@@ -31,16 +31,16 @@ def get_average_post_rating():
 
     print("df_ratings")
     print(df_ratings.to_string())
-    ratings_means = df_ratings.groupby("slug")["rating_value"].mean()
+    ratings_means = df_ratings.groupby("slug")["ratings_values"].mean()
     print("df_ratings_means")
     print(ratings_means)
-    df_ratings_means = pd.DataFrame({'slug': ratings_means.index, 'rating_value': ratings_means.values}).set_index(
+    df_ratings_means = pd.DataFrame({'slug': ratings_means.index, 'ratings_values': ratings_means.values}).set_index(
         'slug')
     df_ratings_means_list = []
     print("df_ratings_means")
     print(df_ratings_means.to_string())
     for slug_index, row in df_ratings_means.iterrows():
-        df_ratings_means_list.append({'slug': slug_index, 'coefficient': row['rating_value']})
+        df_ratings_means_list.append({'slug': slug_index, 'coefficient': row['ratings_values']})
     df_ratings_means_list_sorted = sorted(df_ratings_means_list, key=lambda d: d['coefficient'], reverse=True)
 
     all_posts_df = all_posts_df.set_index("slug")
@@ -61,12 +61,12 @@ def get_average_post_rating():
     all_posts_df_means.to_csv("exports/all_posts_df_means.csv")
     print("all_posts_df_means.columns")
     print(all_posts_df_means.columns)
-    all_posts_df_means = all_posts_df_means[['rating_value']]
-    all_posts_df_means = all_posts_df_means[['rating_value']].fillna(0)
+    all_posts_df_means = all_posts_df_means[['ratings_values']]
+    all_posts_df_means = all_posts_df_means[['ratings_values']].fillna(0)
     print(all_posts_df_means.to_string())
     all_posts_df_means_list = []
     for slug_index, row in all_posts_df_means.iterrows():
-        all_posts_df_means_list.append({'slug': slug_index, 'coefficient': row['rating_value']})
+        all_posts_df_means_list.append({'slug': slug_index, 'coefficient': row['ratings_values']})
     print("all_posts_df_means_list")
     print(all_posts_df_means_list)
     with open('../../../../datasets/exports/all_posts_df_means_list.txt', 'w') as f:
@@ -116,7 +116,7 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
     # Get the user's data and merge in the post information.
     user_data = original_ratings_df[original_ratings_df.user_id == user_id]
     user_full = (user_data.merge(posts_df, how='left', left_on='post_id', right_on='post_id').
-                 sort_values(['rating_value'], ascending=False)
+                 sort_values(['ratings_values'], ascending=False)
                  )
     print("user_full.to_string()")
     print(user_full.to_string())
@@ -125,8 +125,8 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
     recommendations = (posts_df[~posts_df['post_id'].isin(user_full['post_id'])]
                            .merge(pd.DataFrame(sorted_user_predictions)
                                   .reset_index(), how='left', left_on='post_id', right_on='post_id')
-                           .rename(columns={user_row_number: 'rating_value'})
-                           .sort_values('rating_value', ascending=False).iloc[:num_recommendations, :])
+                           .rename(columns={user_row_number: 'ratings_values'})
+                           .sort_values('ratings_values', ascending=False).iloc[:num_recommendations, :])
     print("recommendations")
     print(recommendations.to_string())
     return user_full, recommendations
@@ -165,7 +165,7 @@ def rmse(user_id):
     X = ratings.copy()
     y = ratings['user_id']
 
-    # combined_posts_data = combined_posts_data[['rating_value','user_id']]
+    # combined_posts_data = combined_posts_data[['ratings_values','user_id']]
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42,
                                                         shuffle=True,
                                                         )
@@ -209,7 +209,7 @@ class SvdClass:
         # EXTRACT RESULTS FROM CURSOR
 
         sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, 
-        r.value AS rating_value FROM posts p JOIN ratings r ON r.post_id = p.id JOIN users u ON r.user_id = u.id;"""
+        r.value AS ratings_values FROM posts p JOIN ratings r ON r.post_id = p.id JOIN users u ON r.user_id = u.id;"""
         # LOAD INTO A DATAFRAME
         self.df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
         sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
@@ -229,10 +229,10 @@ class SvdClass:
 
     # noinspection DuplicatedCode
     def combine_user_item(self, df_rating):
-        # self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='rating_value')
+        # self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='ratings_values')
         print("df_rating")
         print(df_rating)
-        self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='rating_value').fillna(0)
+        self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='ratings_values').fillna(0)
 
         # print("User item matrix:")
         # print(self.user_item_table.to_string())
