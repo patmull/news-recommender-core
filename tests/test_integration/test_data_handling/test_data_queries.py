@@ -48,6 +48,13 @@ def test_get_df_from_sql_meanwhile_insert_cache():
 
 
 @pytest.mark.integtest
+def test_get_df_from_sql():
+    recommender_methods = RecommenderMethods()
+    posts_df = recommender_methods.database.get_posts_dataframe_from_sql()
+    common_asserts_for_dataframes(posts_df, CRITICAL_COLUMNS_POSTS)
+
+
+@pytest.mark.integtest
 def common_asserts_for_dataframes(df, critical_columns):
     assert isinstance(df, pd.DataFrame)
     assert len(df.index) > 1
