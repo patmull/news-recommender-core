@@ -19,6 +19,7 @@ from flask import Flask, request
 from flask_restful import Resource, Api
 
 
+# TODO: Replace prints with debug logging
 def check_if_cache_exists_and_fresh():
     if os.path.exists(get_cached_posts_file_path()):
         today = datetime.datetime.today()
@@ -30,10 +31,13 @@ def check_if_cache_exists_and_fresh():
         else:
             recommender_methods = RecommenderMethods()
             cached_df = recommender_methods.get_posts_dataframe(force_update=False, from_cache=True)
-            sql_columns = recommender_methods.get_sql_columns()
-            if len(cached_df.columns) == (len(sql_columns) - 1):
+            sql_columns = recommender_methods.get_sql_columns().tolist()  # tolist() for converting Pandas index to list
+            print("sql_columns:")
+            print(sql_columns)
+            sql_columns.remove('bert_vector_representation')
+            if len(cached_df.columns) == len(sql_columns):
                 # -1 because bert_vector_representation needs to be excluded from cache
-                if cached_df.columns == sql_columns:
+                if set(cached_df.columns) == set(sql_columns):
                     return True
             else:
                 return False
@@ -226,20 +230,20 @@ api.add_resource(GetPostsByOtherUsers, "/api/user/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByUserPreferences, "/api/user-preferences/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByKeywords, "/api/user-keywords")
 
-api.add_resource(GetPostsByLearnToRank, "/api/learn-to-rank/<int:param1>/<input_string:param2>")
+api.add_resource(GetPostsByLearnToRank, "/api/learn-to-rank/<int:param1>/<string:param2>")
 
-api.add_resource(GetWordLemma, "/api/lemma/<input_string:word>")
-api.add_resource(Preprocess, "/api/preprocess/<input_string:slug>")
+api.add_resource(GetWordLemma, "/api/lemma/<string:word>")
+api.add_resource(Preprocess, "/api/preprocess/<string:slug>")
 
-api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-tfidf/<input_string:param>")
-api.add_resource(GetPostsByOtherPostWord2Vec, "/api/post-word2vec/<input_string:param>")
-api.add_resource(GetPostsByOtherPostDoc2Vec, "/api/post-doc2vec/<input_string:param>")
-api.add_resource(GetPostsByOtherPostLda, "/api/post-lda/<input_string:param>")
+api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-tfidf/<string:param>")
+api.add_resource(GetPostsByOtherPostWord2Vec, "/api/post-word2vec/<string:param>")
+api.add_resource(GetPostsByOtherPostDoc2Vec, "/api/post-doc2vec/<string:param>")
+api.add_resource(GetPostsByOtherPostLda, "/api/post-lda/<string:param>")
 
-api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<input_string:param>")
-api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<input_string:param>")
-api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<input_string:param>")
-api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<input_string:param>")
+api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<string:param>")
+api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<string:param>")
+api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<string:param>")
+api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<string:param>")
 
 if __name__ == "__main__":
     app.run(debug=True)
