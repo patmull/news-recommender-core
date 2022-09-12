@@ -3,7 +3,7 @@ import ssl
 import pika
 
 
-def init_rabbimq():
+def init_rabbitmq():
     ssl_enabled = os.environ.get("ssl", False)
 
     rabbitmq_user = os.environ.get('CLOUDAMQP_USERNAME', '***REMOVED***')
