@@ -152,6 +152,8 @@ class TfIdf:
     # https://datascience.stackexchange.com/questions/18581/same-tf-idf-vectorizer-for-2-data-inputs
     def set_tfidf_vectorizer_combine_features(self):
         tfidf_vectorizer = TfidfVectorizer()
+        if self.df is None:
+            raise ValueError("self.df is set to None. Cannot continue to next operation.")
         self.df.drop_duplicates(subset=['title_x'], inplace=True)
         tf_train_data = pd.concat([self.df['category_title'], self.df['keywords'], self.df['title_x'],
                                    self.df['excerpt']])

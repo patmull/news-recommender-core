@@ -21,7 +21,7 @@ def callback(ch, method, body):
             run_prefilling()
         except Exception as e:
             print("Exception occurred" + str(e))
-            print(traceback.print_exception(type(e), e, e.__traceback__))
+            traceback.print_exception(None, e, e.__traceback__)
 
 
 channel.basic_qos(prefetch_count=1)
