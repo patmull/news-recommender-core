@@ -418,13 +418,13 @@ class Word2VecClass:
         print(self.categories_df.columns)
 
         found_post_dataframe = found_post_dataframe.merge(self.categories_df, on='id')
-
+        print(found_post_dataframe)
 
         found_post_dataframe[['trigrams_full_text']] = found_post_dataframe[['trigrams_full_text']].fillna('')
         found_post_dataframe[['keywords']] = found_post_dataframe[['keywords']].fillna('')
         # noinspection PyPep8
-        found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
-                                                  found_post_dataframe.iloc[0]['trigrams_full_text']
+        found_post_dataframe['features_to_use'] = found_post_dataframe['keywords'] + "||" + \
+                                                  found_post_dataframe['trigrams_full_text']
 
         del self.posts_df
         del self.categories_df
@@ -731,8 +731,10 @@ class Word2VecClass:
                                                                     hs_softmax=hs_softmax,
                                                                     pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
                                                                     pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
-                                                                    spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
-                                                                    spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
+                                                                    spearman_p_val_word_pairs_eval=word_pairs_eval[1][
+                                                                        1],
+                                                                    spearman_coeff_word_pairs_eval=word_pairs_eval[1][
+                                                                        0],
                                                                     out_of_vocab_ratio=word_pairs_eval[2],
                                                                     analogies_eval=analogies_eval,
                                                                     model_results=model_results)
