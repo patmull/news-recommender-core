@@ -214,14 +214,19 @@ class DocSim:
         tfidf = TfidfModel(dictionary=dictionary)
         words = [word for word, count in dictionary.most_common()]
 
-        # produce vectors for words in train_corpus
-        # TODO: This is None Type, found out why!
         try:
-            word_vectors = self.w2v_model.vectors_for_all(words, allow_inference=False)
-        except AttributeError as e:
-            print(e)
-            print(traceback.format_exc())
-            raise AttributeError
+            word_vectors = self.w2v_model.wv.vectors_for_all(words,
+                                                             allow_inference=False)
+            # produce vectors for words in train_corpus
+        except AttributeError:
+            # TODO: This is None Type, found out why!
+            try:
+                word_vectors = self.w2v_model.vectors_for_all(words,
+                                                              allow_inference=False)
+            except AttributeError as e:
+                print(e)
+                print(traceback.format_exc())
+                raise AttributeError
 
         indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
         termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})  # for similarity index

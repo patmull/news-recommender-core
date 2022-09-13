@@ -61,8 +61,7 @@ def fill_recommended(method, skip_already_filled, full_text=True, random_order=F
             selected_model_name = "cswiki"
             path_to_folder = "full_models/cswiki/evaluated_models/word2vec_model_cswiki_1/"
         else:
-            path_to_folder = None
-            ValueError("Wrong doc2vec_model name chosen.")
+            raise ValueError("Wrong doc2vec_model name chosen.")
 
         if method.startswith("word2vec_eval_idnes_"):
             file_name = "w2v_idnes.model"

@@ -6,5 +6,5 @@ while True:
     try:
         prefilling_job("tfidf", "pgsql")
     except Exception as e:
-        print("Exception occured:")
-        traceback.print_exception(type(e), e, e.__traceback__)
+        print("Exception occurred:")
+        print(traceback.print_exception(None, e, e.__traceback__))

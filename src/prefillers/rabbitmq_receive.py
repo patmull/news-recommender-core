@@ -20,7 +20,7 @@ def callback(ch, method, body):
         try:
             run_prefilling()
         except Exception as e:
-            print("Exception occured" + str(e))
+            print("Exception occurred" + str(e))
             print(traceback.print_exception(type(e), e, e.__traceback__))
 
 

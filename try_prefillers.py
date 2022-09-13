@@ -17,7 +17,7 @@ try:
     r = get_redis_connection()
     print(r.smembers('posts_by_pred_ratings_user_431'))
 except ValueError:
-    print("Value error had occured when trying to get relevant thumbs for user. Skipping this user.")
+    print("Value error had occurred when trying to get relevant thumbs for user. Skipping this user.")
     # classifier.predict_relevance_for_user(user_id=431, relevance_by='ratings')
 
 """
