@@ -71,7 +71,7 @@ def prepare_and_run(database, method, full_text, reverse, random):
             prefilling_job(method=method, full_text=full_text, reversed_order=reverse, random_order=random)
         except Exception as e:
             print("Exception occurred " + str(e))
-            print(traceback.print_exception(None, e, e.__traceback__))
+            traceback.print_exception(None, e, e.__traceback__)
     else:
         print("No not prefilled posts found")
         print("Skipping " + method + " full text")
