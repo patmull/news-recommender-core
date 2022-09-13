@@ -7,4 +7,4 @@ while True:
         prefilling_job("lda", "pgsql")
     except Exception as e:
         print("Exception occurred " + str(e))
-        print(traceback.print_exception(None, e, e.__traceback__))
+        traceback.print_exception(None, e, e.__traceback__)
