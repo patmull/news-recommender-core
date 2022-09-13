@@ -39,42 +39,54 @@ class DatabaseMethods:
         self.cursor = self.cnx.cursor()
 
     def disconnect(self):
-        self.cursor.close()
-        self.cnx.close()
+        if self.cursor is not None:
+            self.cursor.close()
+            self.cnx.close()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
     def get_cnx(self):
         return self.cnx
 
     def set_row_var(self):
         sql_set_var = """SET @row_number = 0;"""
-        self.cursor.execute(sql_set_var)
+        if self.cursor is not None:
+            self.cursor.execute(sql_set_var)
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
     def get_all_posts(self):
 
         sql = """SELECT * FROM posts ORDER BY id;"""
 
         query = sql
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_all_categories(self):
         sql = """SELECT * FROM categories ORDER BY id;"""
 
         query = sql
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_all_posts_and_categories(self):
         sql = """SELECT * FROM categories ORDER BY id;"""
 
         query = sql
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def join_posts_ratings_categories(self):
@@ -93,9 +105,11 @@ class DatabaseMethods:
         FROM posts JOIN categories ON posts.category_id = categories.id;"""
 
         query = sql
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_all_users(self):
@@ -106,8 +120,11 @@ class DatabaseMethods:
     def get_post_by_id(self, post_id):
 
         query = ("SELECT * FROM posts WHERE id = '%s'" % post_id)
-        self.cursor.execute(query)
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_posts_dataframe_from_sql(self):
@@ -152,10 +169,10 @@ class DatabaseMethods:
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         self.disconnect()
-        dir = cached_file_path.split("/")
-        Path(dir[0]).mkdir(parents=True, exist_ok=True)
         path_to_save_cache = Path(cached_file_path)
         str_path = path_to_save_cache.as_posix()
+        cache_dir = str_path.split("/")
+        Path(cache_dir[0]).mkdir(parents=True, exist_ok=True)
         # TODO: Some workaround for this? (Convert bytearray to input_string?)
         print("Column types of df:")
         print(df.dtypes)
@@ -175,7 +192,7 @@ class DatabaseMethods:
             df = pd.read_pickle(path_to_df)
             # read from current directory
         except Exception as e:
-            print("Exception occured when reading cached file:")
+            print("Exception occurred when reading cached file:")
             print(e)
             print("Getting posts from SQL.")
             df = self.get_posts_dataframe_from_sql()
@@ -228,15 +245,19 @@ class DatabaseMethods:
         try:
             query = """UPDATE posts SET keywords = %s WHERE id = %s;"""
             inserted_values = (keyword_all_types_splitted, article_id)
-            self.cursor.execute(query, inserted_values)
-            self.cnx.commit()
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, inserted_values)
+                self.cnx.commit()
+            else:
+                raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.OperationalError as e:
             print("NOT INSERTED")
             print("Error:", e)  # errno, sqlstate, msg values
             s = str(e)
             print("Error:", s)  # errno, sqlstate, msg values
-            self.cnx.rollback()
+            if self.cnx is not None:
+                self.cnx.rollback()
 
     def get_user_rating_categories(self):
 
@@ -275,15 +296,19 @@ class DatabaseMethods:
             try:
                 query = """UPDATE posts SET recommended_tfidf = %s WHERE id = %s;"""
                 inserted_values = (articles_recommended_json, article_id)
-                self.cursor.execute(query, inserted_values)
-                self.cnx.commit()
+                if self.cursor is not None and self.cnx is not None:
+                    self.cursor.execute(query, inserted_values)
+                    self.cnx.commit()
+                else:
+                    raise ValueError("Cursor is set to None. Cannot continue with next operation.")
                 print("Inserted")
             except psycopg2.Error as e:
                 print("NOT INSERTED")
                 print(e.pgcode)
                 print(e.pgerror)
                 print("Full error: ", e)  # errno, sqlstate, msg values
-                self.cnx.rollback()
+                if self.cnx is not None:
+                    self.cnx.rollback()
                 pass
         elif db == "redis":
             raise Exception("Redis is not implemented yet.")
@@ -324,8 +349,11 @@ class DatabaseMethods:
                 else:
                     raise Exception("Method not implemented.")
                 inserted_values = (articles_recommended_json, article_id)
-                self.cursor.execute(query, inserted_values)
-                self.cnx.commit()
+                if self.cursor is not None and self.cnx is not None:
+                    self.cursor.execute(query, inserted_values)
+                    self.cnx.commit()
+                else:
+                    raise ValueError("Cursor is set to None. Cannot continue with next operation.")
                 print("Inserted")
             except psycopg2.Error as e:
                 print("NOT INSERTED")
@@ -333,7 +361,8 @@ class DatabaseMethods:
                 print(e.pgerror)
                 s = str(e)
                 print("Full Error: ", s)  # errno, sqlstate, msg values
-                self.cnx.rollback()
+                if self.cnx is not None:
+                    self.cnx.rollback()
                 pass
         elif db == "redis":
             raise Exception("Redis is not implemented yet.")
@@ -352,8 +381,11 @@ class DatabaseMethods:
         try:
             query = """UPDATE posts SET all_features_preprocessed = %s WHERE id = %s;"""
             inserted_values = (preprocessed_all_features, post_id)
-            self.cursor.execute(query, inserted_values)
-            self.cnx.commit()
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, inserted_values)
+                self.cnx.commit()
+            else:
+                raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
             print("NOT INSERTED")
@@ -362,15 +394,19 @@ class DatabaseMethods:
             print("Error:", e)  # errno, sqlstate, msg values
             s = str(e)
             print("Error:", s)  # errno, sqlstate, msg values
-            self.cnx.rollback()
+            if self.cnx is not None:
+                self.cnx.rollback()
 
     # noinspection DuplicatedCode
     def insert_preprocessed_body(self, preprocessed_body, article_id):
         try:
             query = """UPDATE posts SET body_preprocessed = %s WHERE id = %s;"""
             inserted_values = (preprocessed_body, article_id)
-            self.cursor.execute(query, inserted_values)
-            self.cnx.commit()
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, inserted_values)
+                self.cnx.commit()
+            else:
+                raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
             print("NOT INSERTED")
@@ -379,7 +415,8 @@ class DatabaseMethods:
             print("Error:", e)  # errno, sqlstate, msg values
             s = str(e)
             print("Error:", s)  # errno, sqlstate, msg values
-            self.cnx.rollback()
+            if self.cnx is not None:
+                self.cnx.rollback()
 
     def insert_phrases_text(self, bigram_text, article_id, full_text):
         try:
@@ -388,8 +425,11 @@ class DatabaseMethods:
             else:
                 query = """UPDATE posts SET trigrams_full_text = %s WHERE id = %s;"""
             inserted_values = (bigram_text, article_id)
-            self.cursor.execute(query, inserted_values)
-            self.cnx.commit()
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, inserted_values)
+                self.cnx.commit()
+            else:
+                raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
             print("NOT INSERTED")
@@ -398,16 +438,19 @@ class DatabaseMethods:
             print("Error:", e)  # errno, sqlstate, msg values
             s = str(e)
             print("Error:", s)  # errno, sqlstate, msg values
-            self.cnx.rollback()
+            if self.cnx is not None:
+                self.cnx.rollback()
 
     def get_not_preprocessed_posts(self):
         sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
         #  Parser module
         query = sql
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_not_prefilled_posts(self, full_text, method):
@@ -445,18 +488,22 @@ class DatabaseMethods:
                 sql = """SELECT * FROM posts WHERE recommended_doc2vec_eval_cswiki_1 IS NULL ORDER BY id;"""
             else:
                 raise ValueError("Selected model_variant not implemented.")
-
         query = sql
-        self.cursor.execute(query)
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_not_bert_vectors_filled_posts(self):
         sql = """SELECT * FROM posts WHERE bert_vector_representation IS NULL ORDER BY id;"""
         query = sql
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_posts_dataframe_from_database(self):
@@ -481,8 +528,11 @@ class DatabaseMethods:
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
         #  Parser module
         query = sql
-        self.cursor.execute(query)
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_posts_with_no_keywords(self):
@@ -490,8 +540,11 @@ class DatabaseMethods:
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
         #  Parser module
         query = sql
-        self.cursor.execute(query)
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_posts_with_no_all_features_preprocessed(self):
@@ -499,8 +552,11 @@ class DatabaseMethods:
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
         #  Parser module
         query = sql
-        self.cursor.execute(query)
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_posts_with_not_prefilled_ngrams_text(self, full_text=True):
@@ -512,9 +568,11 @@ class DatabaseMethods:
         # TODO: can be added also: keywords, all_features_preprocecessed to make sure they were already added in
         #  Parser module
         query = sql
-        self.cursor.execute(query)
-
-        rs = self.cursor.fetchall()
+        if self.cursor is not None:
+            self.cursor.execute(query)
+            rs = self.cursor.fetchall()
+        else:
+            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
     def get_posts_users_categories_ratings(self, get_only_posts_with_prefilled_bert_vectors=False, user_id=None):
@@ -622,8 +680,11 @@ class DatabaseMethods:
         try:
             query = """UPDATE posts SET bert_vector_representation = %s WHERE id = %s;"""
             inserted_values = (bert_vector_representation, article_id)
-            self.cursor.execute(query, inserted_values)
-            self.cnx.commit()
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, inserted_values)
+                self.cnx.commit()
+            else:
+                raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
             print("NOT INSERTED")
@@ -632,7 +693,8 @@ class DatabaseMethods:
             print("Error:", e)  # errno, sqlstate, msg values
             s = str(e)
             print("Error:", s)  # errno, sqlstate, msg values
-            self.cnx.rollback()
+            if self.cnx is not None:
+                self.cnx.rollback()
 
     def get_results_dataframe(self):
         sql = """SELECT * FROM relevance_testings ORDER BY id;"""

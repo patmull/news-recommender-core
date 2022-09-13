@@ -323,7 +323,7 @@ def train_lightgbm_user_based():
         metric="ndcg",
         min_child_samples=1
     )
-
+    # noinspection PyPep8Naming
     features_X = ['coefficient', 'views']
     features_X.extend(categorical_columns_after_encoding)
     features_X.extend(
@@ -416,6 +416,7 @@ def get_posts_lightgbm(slug, use_categorical_columns=True):
                                             categorical_columns)
         tf_idf_results['slug'] = tf_idf_results_old['slug']
 
+    # noinspection PyPep8Naming
     features_X = ['coefficient', 'views']
 
     all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'post_title',
@@ -463,7 +464,7 @@ class LightGBMMethods:
     user_based_recommendation = UserBasedRecommendation()
     svd = SvdClass()
 
-    feature_list = []
+    feature_list = []  # type: list
 
     def __init__(self):
         self.features = None
@@ -970,6 +971,7 @@ def linear_regression(user_id, post_slug):
                               'score_rating_average']]
         print("X:")
         print(X)
+        # noinspection PyPep8Naming
         X = (X - X.mean()) / X.std()
         print("X normalised:")
         print(X)
@@ -977,9 +979,11 @@ def linear_regression(user_id, post_slug):
         y = df_merged[['rating_predicted']]
         df_merged = df_merged.rename(columns={'rating_actual': 'score_rating_average'})
         # noinspection PyPep8
+        # noinspection PyPep8Naming
         X = df_merged.loc[:, ['score_tfidf_posts', 'score_doc2vec_posts', 'score_lda_posts', 'score_rating_average']]
         print("X:")
         print(X)
+        # noinspection PyPep8Naming
         X = (X - X.mean()) / X.std()
         print("X normalised:")
         print(X)

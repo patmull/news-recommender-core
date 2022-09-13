@@ -70,8 +70,8 @@ def prepare_and_run(database, method, full_text, reverse, random):
         try:
             prefilling_job(method=method, full_text=full_text, reversed_order=reverse, random_order=random)
         except Exception as e:
-            print("Exception occured " + str(e))
-            print(traceback.print_exception(type(e), e, e.__traceback__))
+            print("Exception occurred " + str(e))
+            print(traceback.print_exception(None, e, e.__traceback__))
     else:
         print("No not prefilled posts found")
         print("Skipping " + method + " full text")
@@ -82,7 +82,7 @@ def check_needed_columns(database):
     # TODO: 'all_features_preprocessed' (probably every method relies on this)
     # TODO: 'keywords' (LDA but probably also other columns relies on this)
     # TODO: 'body_preprocessed' (LDA relies on this)
-    needed_checks = []
+    needed_checks = []  # type: list
     database.connect()
     number_of_nans_in_all_features_preprocessed = len(database.get_posts_with_no_all_features_preprocessed())
     number_of_nans_in_keywords = len(database.get_posts_with_no_keywords())

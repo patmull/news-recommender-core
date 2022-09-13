@@ -68,7 +68,7 @@ def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
         return False
 
 
-def preprocess_single_post_find_by_slug(slug, supplied_json=False, stemming=False):
+def preprocess_single_post_find_by_slug(slug, supplied_json=False):
     recommender_methods = RecommenderMethods()
     post_dataframe = recommender_methods.find_post_by_slug(slug)
     post_dataframe["title"] = post_dataframe["title"].map(lambda s: preprocess(s))
@@ -109,7 +109,7 @@ def get_eval_results_header():
                      'Word_pairs_test_Spearman_p-val': [],
                      'Word_pairs_test_Out-of-vocab_ratio': [],
                      'Analogies_test': []
-                     }
+                     }  # type: dict
     return corpus_title, model_results
 
 
@@ -431,7 +431,7 @@ class RecommenderMethods:
             self.database.disconnect()
         except ValueError as e:
             self.database.disconnect()
-            raise ValueError("Value error had occured when trying to get posts for user." + str(e))
+            raise ValueError("Value error had occurred when trying to get posts for user." + str(e))
         return posts_users_categories_ratings_df
 
     def get_sql_columns(self):
