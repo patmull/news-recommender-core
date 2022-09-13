@@ -417,14 +417,15 @@ class Word2VecClass:
         print(self.categories_df)
         print(self.categories_df.columns)
 
-        found_post_dataframe = found_post_dataframe.merge(self.categories_df, on='id')
+        found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id', right_on='id')
+        print("found_post_dataframe")
         print(found_post_dataframe)
 
         found_post_dataframe[['trigrams_full_text']] = found_post_dataframe[['trigrams_full_text']].fillna('')
         found_post_dataframe[['keywords']] = found_post_dataframe[['keywords']].fillna('')
         # noinspection PyPep8
-        found_post_dataframe['features_to_use'] = found_post_dataframe['keywords'] + "||" + \
-                                                  found_post_dataframe['trigrams_full_text']
+        found_post_dataframe['features_to_use'] = found_post_dataframe.iloc[0]['keywords'] + "||" + \
+                                                  found_post_dataframe.iloc[0]['trigrams_full_text']
 
         del self.posts_df
         del self.categories_df
@@ -435,8 +436,9 @@ class Word2VecClass:
             "all_features_preprocessed"] + " " + self.df["body_preprocessed"]
         """
         # documents_df["features_to_use"] = self.df["trigrams_full_text"]
-        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
-            "all_features_preprocessed"] + " " + self.df["body_preprocessed"]
+        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] \
+                                          + ' ' + self.df[ "all_features_preprocessed"] \
+                                          + " " + self.df["body_preprocessed"]
 
         if 'slug_x' in self.df.columns:
             self.df = self.df.rename(columns={'slug_x': 'slug'})
@@ -459,8 +461,7 @@ class Word2VecClass:
             print("Similarities on Wikipedia.cz model:")
             ds = DocSim(w2v_model)
             most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
-                                                                                          list_of_document_features)[
-                                                :21]
+                                                                                          list_of_document_features)[:21]
         elif model_name.startswith("idnes_"):
             source = "idnes"
             if model_name.startswith("idnes_1"):

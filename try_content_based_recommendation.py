@@ -8,22 +8,11 @@ lda_model = None
 # noinspection PyPep8
 def main():
     # database = Database()
-    # database.insert_posts_dataframe_to_cache() # for update
-
-    # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
-    # print(doc2vecClass.get_similar_doc2vec(slug))
-    # searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
-    # searched_slug = "facr-o-slavii-a-rangers-verime-v-objektivni-vysetreni-odmitame-rasismus"
-    # searched_slug = 'krasa-se-skryva-v-exotickem-ovoci-kosmetika-kterou-na-podzim-musite-mit'
 
     # STEMMING
     # word = "rybolovný"
     # # print(cz_stem(word))
     # # print(cz_stem(word,aggressive_stemming=True))
-
-    # langdata = simplemma.load_data('cs')
-    # # print(simplemma.lemmatize(word, langdata))
-    # # print(tfidf.cz_lemma("nejnevhodnější"))
 
     # print(tfidf.preprocess_single_post("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy",supplied_json=True))
 
