@@ -21,13 +21,13 @@ def predict_ratings_for_all_users_store_to_redis():
         try:
             classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='thumbs', bert_model=bert)
         except ValueError:
-            print("Value error occured when trying to get relevant thumbs for user. Skipping "
+            print("Value error occurred when trying to get relevant thumbs for user. Skipping "
                   "this user.")
             pass
         try:
             classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='ratings', bert_model=bert)
         except ValueError:
-            print("Value error occured when trying to get relevant thumbs for user. Skipping "
+            print("Value error occurred when trying to get relevant thumbs for user. Skipping "
                   "this user.")
             pass
 

@@ -1,7 +1,7 @@
 import time
 import random
 
-from prefillers.preprocessing.cz_preprocessing import preprocess, CzPreprocess
+from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess, preprocess
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 

@@ -57,11 +57,13 @@ class GensimMethods:
         return self.posts_df
 
     def join_posts_ratings_categories(self):
-
-        self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='searched_id')
-        # clean up from unnecessary columns
-        self.df = self.df[
-            ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description']]
+        if self.posts_df is not None:
+            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='searched_id')
+            # clean up from unnecessary columns
+            self.df = self.df[
+                ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description']]
+        else:
+            raise ValueError("Datafame is set to None. Cannot continue with next operation.")
 
     def find_post_by_slug(self, slug):
         post_dataframe = self.df.loc[self.df['post_slug'] == slug]
@@ -106,7 +108,7 @@ class GensimMethods:
         # print(texts)
 
         # remove words that appear only once
-        frequency = defaultdict(int)
+        frequency = defaultdict(int)  # type: defaultdict
         for text in texts:
             for token in text:
                 frequency[token] += 1

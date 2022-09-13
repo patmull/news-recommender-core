@@ -14,7 +14,7 @@ from lightgbm import LGBMRanker
 
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf, get_prefilled_full_text
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
     SvdClass
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_based_recommendation \
@@ -334,7 +334,6 @@ class LightGBM:
 
         print("Loading TfIdf results")
 
-        tf_idf = TfIdf()
         tf_idf_results = get_prefilled_full_text(slug, variant)
         tf_idf_results = ast.literal_eval(tf_idf_results)
         json_data = json.loads(json.dumps(tf_idf_results))

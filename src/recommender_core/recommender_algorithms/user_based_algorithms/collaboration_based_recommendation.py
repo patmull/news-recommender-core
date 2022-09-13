@@ -20,10 +20,8 @@ def get_average_post_rating():
     # database.set_row_var()
     # EXTRACT RESULTS FROM CURSOR
 
-    sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value AS ratings_values
-                       FROM posts p
-                       JOIN ratings r ON r.post_id = p.id
-                       JOIN users u ON r.user_id = u.id;"""
+    sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, 
+    r.value AS ratings_values FROM posts p JOIN ratings r ON r.post_id = p.id JOIN users u ON r.user_id = u.id;"""
     # LOAD INTO A DATAFRAME
     recommender_methods = RecommenderMethods()
     all_posts_df = recommender_methods.get_posts_dataframe()
@@ -161,11 +159,11 @@ def score_on_test_set(X_test, df_ratings, similarity_matrix_df):
 def rmse(user_id):
     recommender_methods = RecommenderMethods()
     ratings = recommender_methods.get_ratings_dataframe()
-
+    # noinspection PyPep8Naming
     X = ratings.copy()
     y = ratings['user_id']
 
-    # combined_posts_data = combined_posts_data[['ratings_values','user_id']]
+    # noinspection PyPep8Naming
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42,
                                                         shuffle=True,
                                                         )
@@ -256,15 +254,20 @@ class SvdClass:
     # @profile
     def run_svd(self, user_id, num_of_recommendations=10):
         all_user_predicted_ratings = self.get_all_users_predicted_ratings()
-        preds_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
-
+        if self.user_item_table is not None:
+            preds_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
+        else:
+            raise ValueError("user_item_table is None, cannot continue with next operation.")
         print("preds_df")
         print(preds_df)
 
         preds_df['user_id'] = self.user_item_table.index.values.tolist()
         preds_df.set_index('user_id', drop=True, inplace=True)  # inplace for making change in callable  way
-        already_rated, predictions = recommend_posts(preds_df, user_id, self.df_posts, self.df_ratings,
-                                                     num_of_recommendations)
+        if self.df_posts is not None and self.df_ratings is not None:
+            already_rated, predictions = recommend_posts(preds_df, user_id, self.df_posts, self.df_ratings,
+                                                         num_of_recommendations)
+        else:
+            raise ValueError("Dataframe of posts is None. Cannot continue with next operation.")
         print("already_rated.head(num_of_recommendations)")
         print(already_rated.head(num_of_recommendations).to_string())
         print("List of predictions based on already rated items:")
@@ -287,8 +290,10 @@ class SvdClass:
     def rmse_all_users(self):
         all_user_predicted_ratings = self.get_all_users_predicted_ratings()
         print(all_user_predicted_ratings.size)
-
-        predictions_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
+        if self.user_item_table is not None:
+            predictions_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
+        else:
+            raise ValueError("user_item_table is None, cannot continue with next operation.")
         print("preds_df")
         print(predictions_df)
         predictions_df['user_id'] = self.user_item_table.index.values.tolist()
@@ -362,6 +367,7 @@ def main():
     print("all:")
     print(all)
     """
+
 
 # noinspection  PyPep8
 if __name__ == "__main__": main()
