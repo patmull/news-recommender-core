@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -26,7 +27,7 @@ def combine_features(row):
 def cosine_similarity_n_space(m1, m2=None, batch_size=100):
     assert m1.shape[1] == m2.shape[1] and not isinstance(batch_size, int) != True
 
-    ret = np.ndarray((m1.shape[0], m2.shape[0]))
+    ret: Any = np.ndarray((m1.shape[0], m2.shape[0]))  # Added Any due to MyPy typing warning
 
     batches = m1.shape[0] // batch_size
 
@@ -80,7 +81,7 @@ class CosineTransformer:
             # self.cosine_sim = self.cosine_similarity_n_space(self.count_matrix)
             self.cosine_sim = cosine_similarity(self.count_matrix)
         except Exception as ex:
-            print("Excpeption occured.")
+            print("Excpeption occurred.")
             print(ex)
             pass
         # # print(self.cosine_sim)
@@ -113,6 +114,9 @@ class CosineTransformer:
         i = 0
         list_of_article_slugs = []
         list_returned_dict = {}
+
+        if self.sorted_similar_articles is None:
+            raise ValueError("sorted_similar_articles is None. Cannot continue to next operation.")
 
         for element in self.sorted_similar_articles:
 

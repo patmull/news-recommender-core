@@ -28,7 +28,7 @@ def most_common_words():
             try:
                 texts.append(line)
             except Exception as e:
-                print("Exception occuredf:")
+                print("Exception occurredf:")
                 print(e)
                 pass
 

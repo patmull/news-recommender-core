@@ -52,4 +52,3 @@ def remove_stopwords(texts, cz_punct=False):
         stopwords = gensim.utils.deaccent(joined_stopwords)
         stopwords = stopwords.split(' ')
         return [[word for word in gensim.utils.simple_preprocess(doc) if word not in stopwords] for doc in texts]
-

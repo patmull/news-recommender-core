@@ -34,13 +34,12 @@ def compute_eval_values(source, train_corpus=None, test_corpus=None, model_varia
                         vector_size=None, window=None, min_count=None,
                         epochs=None, sample=None, force_update_model=True,
                         default_parameters=False):
-    model_path = None
     if source == "idnes":
         model_path = "models/d2v_idnes.model"
     elif source == "cswiki":
         model_path = "models/d2v_cswiki.model"
     else:
-        ValueError("No sourc matches available options.")
+        raise ValueError("No source matches available options.")
 
     if os.path.isfile(model_path) is False or force_update_model is True:
         print("Started training on iDNES.cz dataset...")

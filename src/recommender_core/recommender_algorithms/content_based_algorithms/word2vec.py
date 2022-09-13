@@ -24,8 +24,8 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.helper
     generate_lines_from_mmcorpus
 import pandas as pd
 
-from src.recommender_core.data_handling.data_queries import RecommenderMethods, random_hyperparameter_choice, \
-    append_training_results, save_wordsim, get_eval_results_header, prepare_hyperparameters_grid
+from src.recommender_core.data_handling.data_queries import RecommenderMethods, append_training_results, save_wordsim, \
+    get_eval_results_header, prepare_hyperparameters_grid, random_hyperparameter_choice
 from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
 from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
@@ -360,18 +360,17 @@ def get_preprocessed_dictionary(filter_extremes, path_to_dict):
                                        path_to_dict=path_to_dict)
 
 
-def create_dictionary_from_mongo_idnes(sentences=None, force_update=False, filter_extremes=False):
+def create_dictionary_from_mongo_idnes(force_update=False, filter_extremes=False):
     # a memory-friendly iterator
     path_to_dict = 'precalc_vectors/dictionary_idnes.gensim'
     if os.path.isfile(path_to_dict) is False or force_update is True:
-        preprocessed_dictionary = get_preprocessed_dictionary(sentences=sentences, path_to_dict=path_to_dict,
+        preprocessed_dictionary = get_preprocessed_dictionary(path_to_dict=path_to_dict,
                                                               filter_extremes=filter_extremes)
         return preprocessed_dictionary
     else:
         print("Dictionary already exists. Loading...")
         loaded_dict = corpora.Dictionary.load("full_models/idnes/preprocessed/dictionary")
         return loaded_dict
-
 
 
 class Word2VecClass:
@@ -411,11 +410,15 @@ class Word2VecClass:
         self.categories_df = self.categories_df.rename(columns={'slug': 'category_slug'})
 
         found_post_dataframe = recommender_methods.find_post_by_slug(searched_slug)
-        found_post_dataframe = found_post_dataframe.merge(self.categories_df, left_on='category_id',
-                                                          right_on='searched_id')
         print("found_post_dataframe:")
         print(found_post_dataframe)
         print(found_post_dataframe.columns)
+        print("self.categories_df")
+        print(self.categories_df)
+        print(self.categories_df.columns)
+
+        found_post_dataframe = found_post_dataframe.merge(self.categories_df, on='id')
+
 
         found_post_dataframe[['trigrams_full_text']] = found_post_dataframe[['trigrams_full_text']].fillna('')
         found_post_dataframe[['keywords']] = found_post_dataframe[['keywords']].fillna('')
@@ -726,16 +729,11 @@ class Word2VecClass:
                                                                     min_count=min_count,
                                                                     epochs=epochs, sample=sample,
                                                                     hs_softmax=hs_softmax,
-                                                                    pearson_coeff_word_pairs_eval=
-                                                                    word_pairs_eval[0][0],
-                                                                    pearson_p_val_word_pairs_eval=
-                                                                    word_pairs_eval[0][1],
-                                                                    spearman_p_val_word_pairs_eval=
-                                                                    word_pairs_eval[1][1],
-                                                                    spearman_coeff_word_pairs_eval=
-                                                                    word_pairs_eval[1][0],
-                                                                    out_of_vocab_ratio=
-                                                                    word_pairs_eval[2],
+                                                                    pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
+                                                                    pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
+                                                                    spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
+                                                                    spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
+                                                                    out_of_vocab_ratio=word_pairs_eval[2],
                                                                     analogies_eval=analogies_eval,
                                                                     model_results=model_results)
 
@@ -766,8 +764,7 @@ class Word2VecClass:
                 if hs_softmax == 1:
                     word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, source=source,
                                                                           model_variant=model_variant,
-                                                                          negative_sampling_variant
-                                                                          =no_negative_sampling,
+                                                                          negative_sampling_variant=no_negative_sampling,
                                                                           vector_size=vector_size,
                                                                           window=window,
                                                                           min_count=min_count,
@@ -777,8 +774,7 @@ class Word2VecClass:
                 else:
                     word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, source=source,
                                                                           model_variant=model_variant,
-                                                                          negative_sampling_variant
-                                                                          =negative_sampling_variant,
+                                                                          negative_sampling_variant=negative_sampling_variant,
                                                                           vector_size=vector_size,
                                                                           window=window,
                                                                           min_count=min_count,
@@ -862,8 +858,7 @@ class Word2VecClass:
         if hs_softmax == 1:
             word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
                                                                              model_variant=model_variant,
-                                                                             negative_sampling_variant
-                                                                             =no_negative_sampling,
+                                                                             negative_sampling_variant=no_negative_sampling,
                                                                              vector_size=vector_size,
                                                                              window=window,
                                                                              min_count=min_count,
@@ -874,8 +869,7 @@ class Word2VecClass:
         else:
             word_pairs_eval, analogies_eval = self.compute_eval_values_idnes(sentences=sentences,
                                                                              model_variant=model_variant,
-                                                                             negative_sampling_variant
-                                                                             =negative_sampling_variant,
+                                                                             negative_sampling_variant=negative_sampling_variant,
                                                                              vector_size=vector_size,
                                                                              window=window,
                                                                              min_count=min_count,
@@ -947,6 +941,7 @@ class Word2VecClass:
 
         return word_pairs_eval, overall_score
 
+    # noinspection
     def get_prefilled_full_text(self, slug, variant):
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
