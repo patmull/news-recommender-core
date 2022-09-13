@@ -90,8 +90,8 @@ def preprocess(sentence):
     return " ".join(edited_words)
 
 
-def preprocess_feature(feature_text, stemming=False):
-    post_excerpt_preprocessed = preprocess(feature_text, stemming)
+def preprocess_feature(feature_text):
+    post_excerpt_preprocessed = preprocess(feature_text)
     return post_excerpt_preprocessed
 
 

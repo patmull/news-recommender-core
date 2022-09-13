@@ -384,7 +384,8 @@ def find_optimal_model():
                      'Coherence': [],
                      'Passes': [],
                      'Iterations': []
-                     }  # Can take a long time to run
+                     }  # type: dict
+    # Notice: Can take a long time to run
 
     pbar = tqdm.tqdm(total=540)
     print("----------------------")

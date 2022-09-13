@@ -140,9 +140,12 @@ class TfIdf:
             print("10")
 
         if all_posts is True:
-            post_recommendations = tfidf_data_handlers \
-                .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
-                                          number_of_recommended_posts=len(self.posts_df.index))
+            if self.posts_df.index is not None:
+                post_recommendations = tfidf_data_handlers \
+                    .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
+                                              number_of_recommended_posts=len(self.posts_df.index))
+            else:
+                raise ValueError("Dataframe of posts is None. Cannot continue with next operation.")
         del tfidf_data_handlers
         return post_recommendations
 

@@ -16,19 +16,19 @@ def get_posts_dataframe_from_cache():
         df = pd.read_pickle('../db_cache/cached_posts_dataframe.pkl')  # read from current directory
         return df
     except Exception as e:
-        print("Exception occured when reading file:")
+        print("Exception occurred when reading file:")
         print(e)
         raise e
 
 
 @DeprecationWarning
 class Database:
-    cnx = None
-    cursor = None
-    df = None
 
     def __init__(self):
         self.category_df = None
+        self.cnx = None
+        self.cursor = None
+        self.df = None
 
     def connect(self):
         self.cnx = psycopg2.connect(user=DB_USER,
@@ -39,7 +39,8 @@ class Database:
         self.cursor = self.cnx.cursor()
 
     def disconnect(self):
-        self.cursor.close()
+        if self.cursor is not None:
+            self.cursor.close()
         self.cnx.close()
 
     def get_cnx(self):

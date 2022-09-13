@@ -114,6 +114,7 @@ def get_posts_lightgbm(results, use_categorical_columns=True):
         del post_category_df
         gc.collect()
 
+    # noinspection PyPep8Naming
     features_X = ['coefficient', 'views']
 
     all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'title_x',
@@ -136,6 +137,7 @@ def get_posts_lightgbm(results, use_categorical_columns=True):
         print("LightGBMMethods model not found. Training from available relevance testing results datasets...")
         train_lightgbm_user_based()
         model = pickle.load(open('models/lightgbm.pkl', 'rb'))
+    # noinspection PyPep8Naming
     predictions = model.predict(results[features_X])  # .values.reshape(-1,1) when single feature is used
     del results
     gc.collect()
