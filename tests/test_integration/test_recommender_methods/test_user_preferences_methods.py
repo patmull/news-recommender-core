@@ -1,7 +1,4 @@
-import os.path
 import random
-import urllib.request
-import certifi
 import pytest
 
 
@@ -9,31 +6,20 @@ import pytest
 # python -m pytest .\tests\test_user_preferences_methods.py::test_user_keywords -rP
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_based_recommendation import UserBasedRecommendation
-
-
-# py.test tests/test_recommender_methods/test_user_preferences_methods.py -k 'test_user_keyword_bad_input'
-@pytest.mark.parametrize("tested_input", [
-    '',
-    4,
-    (),
-    None
-])
-def test_user_keyword_bad_input(tested_input):
-
-    with pytest.raises(ValueError):
-        tfidf = TfIdf()
-        tfidf.keyword_based_comparison(tested_input)
+from src.recommender_core.recommender_algorithms.user_based_algorithms\
+    .user_based_recommendation import UserBasedRecommendation
 
 
 # TODO:
+# pytest tests\test_integration\test_recommender_methods\test_user_preferences_methods.py::test_user_categories
+@pytest.mark.integtest
 def test_user_categories():
     user_based_recommendation = UserBasedRecommendation()
     recommender_methods = RecommenderMethods()
     # TODO: Repair Error
     users = recommender_methods.get_users_dataframe()
     print("users:")
-    print(users)
+    print(users.columns)
     list_of_user_ids = users['id'].to_list()
     random_position = random.randrange(len(list_of_user_ids))
     random_id = list_of_user_ids[random_position]
@@ -44,3 +30,17 @@ def test_user_categories():
     assert type(recommendations) is dict
     assert len(recommendations) > 0
     assert type(recommendations['columns']) is list
+
+
+@pytest.mark.parametrize("tested_input", [
+    '',
+    4,
+    (),
+    None
+])
+@pytest.mark.integtest
+def test_user_keyword_bad_input(tested_input):
+
+    with pytest.raises(ValueError):
+        tfidf = TfIdf()
+        tfidf.keyword_based_comparison(tested_input)
