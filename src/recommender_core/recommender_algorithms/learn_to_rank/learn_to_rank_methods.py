@@ -42,20 +42,6 @@ NUM_OF_POSTS = 8194
 SEED = 2021
 
 
-def get_user_keywords_based(tfidf, user_id):
-    recommender_methods = RecommenderMethods()
-
-    user_keywords = recommender_methods.get_user_keywords(user_id)
-    keyword_list = user_keywords['keyword_name'].tolist()
-    tfidf_keywords = ''
-    if len(keyword_list) > 0:
-        keywords = ' '.join(keyword_list)
-        print(keywords)
-        tfidf_keywords = tfidf.keyword_based_comparison(keywords, number_of_recommended_posts=20)
-
-    return tfidf_keywords
-
-
 def get_results_single_coeff_user_as_query():
     evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
     print("evaluation_results_df:")
@@ -71,7 +57,7 @@ def get_results_single_coeff_user_as_query():
     for searched_id, json_dict in dict_of_jsons.items():
         df_from_json = pd.DataFrame.from_dict(json_dict)
         print("df_from_json:")
-        print(df_from_json.to_string())
+        print(df_from_json)
         df_from_json['user_id'] = searched_id
         dataframes.append(df_from_json)
     df_merged = pd.concat(dataframes, ignore_index=True)
@@ -83,7 +69,7 @@ def get_results_single_coeff_user_as_query():
     # converting indexes to columns
     # df_merged.reset_index(level=['coefficient', 'relevance'], inplace=True)
     print("df_merged:")
-    print(df_merged.to_string())
+    print(df_merged)
     print("cols:")
     print(df_merged.columns)
     print("index:")
@@ -97,8 +83,8 @@ def get_results_single_coeff_searched_doc_as_query():
     print(evaluation_results_df)
     dict_of_jsons = {}
     for index, row in evaluation_results_df.iterrows():
-        dict_of_jsons[row['searched_id']] = [row['results_part_2'], row['user_id'], row['query_slug'],
-                                             row['model_name']]
+        dict_of_jsons[row['id']] = [row['results_part_2'], row['user_id'], row['query_slug'],
+                                    row['model_name']]
 
     print("dict_of_jsons:")
     print(dict_of_jsons)
@@ -125,7 +111,7 @@ def get_results_single_coeff_searched_doc_as_query():
         df_from_json.loc[14:19, ['relevance_val']] = 0
 
         print("df_from_json:")
-        print(df_from_json.to_string())
+        print(df_from_json)
 
         dataframes.append(df_from_json)
 
@@ -139,7 +125,7 @@ def get_results_single_coeff_searched_doc_as_query():
     # converting indexes to columns
     # df_merged.reset_index(level=['coefficient', 'relevance'], inplace=True)
     print("df_merged:")
-    print(df_merged.to_string())
+    print(df_merged)
     print("cols:")
     print(df_merged.columns)
     print("index:")
@@ -214,7 +200,7 @@ def preprocess(df):
     return merged_df
 
 
-def train_lightgbm_user_based():
+def train_lightgbm_user_based(skip_doc2vec=False):
     # TODO: Remove user searched_id if it's needed
     df_results = get_results_single_coeff_searched_doc_as_query()
     recommender_methods = RecommenderMethods()
@@ -234,7 +220,7 @@ def train_lightgbm_user_based():
         "user_id", "coefficient", "relevance_val", "views"
     ]
 
-    df_results_merged = df_results.merge(post_category_df, on='slug')
+    df_results_merged = df_results.merge(post_category_df, left_on='slug', right_on='post_slug')
     print("df_results_merged.columns")
     print(df_results_merged.columns)
     time.sleep(60)
@@ -244,11 +230,11 @@ def train_lightgbm_user_based():
     doc2vec.load_model()
     df_results_merged = df_results_merged.rename({"doc2vec_representation": "doc2vec"}, axis=1)
     print("df_results_merged:")
-    print(df_results_merged.to_string())
+    print(df_results_merged)
     df2 = pd.DataFrame(df_results_merged)
     print("df2:")
-    print(df2.to_string())
-    print("Searching for Doc2Vec missing values...")
+    print(df2)
+    print("Calculating missing Doc2Vec value vectors...")
     df2['doc2vec'] = df2.apply(
         lambda row: json.dumps(doc2vec.get_vector_representation(row['slug']).tolist())
         if pd.isnull(row['doc2vec']) else row['doc2vec'], axis=1)
@@ -309,10 +295,10 @@ def train_lightgbm_user_based():
     print(train_df)
 
     print("train_df after hot encoding")
-    print(train_df.to_string())
+    print(train_df)
 
     print("validation_df after hot encoding")
-    print(validation_df.to_string())
+    print(validation_df)
 
     query_train = train_df.groupby("user_id")["user_id"].count().to_numpy()
     query_validation = validation_df.groupby("user_id")["user_id"].count().to_numpy()
@@ -375,16 +361,21 @@ def get_posts_lightgbm(slug, use_categorical_columns=True):
     post_category_df = post_category_df.rename(columns={'category_title': 'category'})
     post_category_df['model_name'] = 'tfidf'
 
-    tf_idf_results = tf_idf_results.merge(post_category_df, on='slug')
+    print("tf_idf_results:")
+    print(tf_idf_results)
+    print("post_category_df:")
+    print(post_category_df)
+
+    tf_idf_results = tf_idf_results.merge(post_category_df, left_on='slug', right_on='post_slug')
 
     tf_idf_results = tf_idf_results.rename({"doc2vec_representation": "doc2vec"}, axis=1)
     df2 = pd.DataFrame(tf_idf_results)
     doc2vec_column_name_base = "doc2vec_col_"
 
     print("df_results_merged.to_list()")
-    print(tf_idf_results.to_string())
+    print(tf_idf_results)
     print("df2:")
-    print(df2.to_string())
+    print(df2)
     print("Sizes:")
     print(df2.doc2vec.tolist())
     print("df2")
@@ -396,13 +387,13 @@ def get_posts_lightgbm(slug, use_categorical_columns=True):
     df2 = pd.DataFrame(df2['doc2vec'].to_list(), index=df2.index).add_prefix(doc2vec_column_name_base)
 
     print("df2 after convert to list")
-    print(df2.to_string())
+    print(df2)
     tf_idf_results = pd.concat([tf_idf_results, df2], axis=1)
 
     #####
     # TODO: Find and fill missing Doc2Vec values (like in the training phase)
     print("tf_idf_results")
-    print(tf_idf_results.to_string())
+    print(tf_idf_results)
 
     tf_idf_results_old = tf_idf_results
     if use_categorical_columns is True:
@@ -434,13 +425,14 @@ def get_posts_lightgbm(slug, use_categorical_columns=True):
              'doc2vec_col_6', 'doc2vec_col_7'])
 
     pred_df = make_post_feature(tf_idf_results)
-    lightgbm_model_file = Path("../../../../models/lightgbm.pkl")
+    str_path = "models/lightgbm.pkl"
+    lightgbm_model_file = Path(str_path)
     if lightgbm_model_file.exists():
-        model = pickle.load(open('../../../../models/lightgbm.pkl', 'rb'))
+        model = pickle.load(open(lightgbm_model_file, 'rb'))
     else:
         print("LightGBMMethods model not found. Training from available relevance testing results datasets...")
         train_lightgbm_user_based()
-        model = pickle.load(open('../../../../models/lightgbm.pkl', 'rb'))
+        model = pickle.load(open(lightgbm_model_file, 'rb'))
     predictions = model.predict(tf_idf_results[features_X])  # .values.reshape(-1,1) when single feature is used
     print("predictions:")
     print(predictions)
@@ -454,7 +446,12 @@ def get_posts_lightgbm(slug, use_categorical_columns=True):
     # recommend_df = df_unseen.loc[df_unseen['query_slug'].isin([slug])]
     recommend_df.sort_values(by=['predictions'], inplace=True, ascending=False)
     print('---------- Recommend ----------')
-    print(recommend_df.to_string())
+    print(recommend_df)
+    recommend_df = recommend_df[['slug', 'predictions']]
+    recommend_df.to_json()
+    result = recommend_df.to_json(orient="records")
+    parsed = json.loads(result)
+    return json.dumps(parsed, indent=4)
 
 
 class LightGBMMethods:
@@ -575,7 +572,7 @@ class LightGBMMethods:
                   )
 
         evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
-        evaluation_results_df = evaluation_results_df.rename(columns={'searched_id': 'query_id'})
+        evaluation_results_df = evaluation_results_df.rename(columns={'id': 'query_id'})
 
         consider_only_top_limit = 1000
         df_results_merged = pd.merge(df_results, evaluation_results_df, on='query_id', how='right')
@@ -585,12 +582,12 @@ class LightGBMMethods:
         topk_idx = np.argsort(preds)[::-1][:consider_only_top_limit]
         recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
         print("evaluation_results_df:")
-        print(evaluation_results_df.to_string())
+        print(evaluation_results_df)
         print("recommend_df:")
-        print(recommend_df.to_string())
+        print(recommend_df)
         recommend_df = recommend_df.loc[recommend_df['query_slug'].isin([slug])]
         print('---------- Recommend ----------')
-        print(recommend_df.to_string())
+        print(recommend_df)
 
     def recommend_posts(self):
         pass
@@ -840,7 +837,7 @@ def linear_regression(user_id, post_slug):
         print(dataframe_j)
         dictionary_intersection = intersect(dataframe_i, dataframe_j)
         print("dictionary_intersection")
-        print(dictionary_intersection.to_string())
+        print(dictionary_intersection)
         if not dictionary_intersection.empty:
             intersection_list.append(dictionary_intersection)
 
@@ -865,7 +862,7 @@ def linear_regression(user_id, post_slug):
          'score_lda_posts']]
 
     print("Found intersections:")
-    print(intersections_df_merged.to_string())
+    print(intersections_df_merged)
     intersections_df_merged['score_tfidf_posts'] = intersections_df_merged['score_tfidf_posts'].fillna(
         tfidf_posts_df['score_tfidf_posts'])
     """
@@ -919,9 +916,9 @@ def linear_regression(user_id, post_slug):
     user_preferences_posts_full_df = user_preferences_posts_full_df.reset_index()
 
     print("user_collaboration_posts_full_df")
-    print(user_collaboration_posts_full_df.head(200).to_string())
+    print(user_collaboration_posts_full_df.head(10))
 
-    print(intersections_df_merged.to_string())
+    print(intersections_df_merged)
     print("Dataframe columns")
     print(intersections_df_merged.columns.tolist())
     intersections_df_merged['score_tfidf_posts'] = intersections_df_merged['score_tfidf_posts'].combine_first(
@@ -948,17 +945,17 @@ def linear_regression(user_id, post_slug):
         intersections_df_merged['slug'].map(lda_all_posts_df.set_index('slug')['score_lda_posts']))
 
     print("intersections_df_merged")
-    print(intersections_df_merged.to_string())
+    print(intersections_df_merged)
 
     print("Full merged DataFrame:")
-    print(df_merged.head(100).to_string())
+    print(df_merged.head(100))
     # df_merged.to_csv("exports/df_recommender_features_merged.csv")
 
     df_merged = df_merged.dropna()
     df_merged = df_merged.loc[~(df_merged['rating_actual'] == 0)]
 
     print("Merged dataframe without missing values:")
-    print(df_merged.to_string())
+    print(df_merged)
     # predictions(tfidf,doc2vec,lda,wor2vec,user_r
     # df_merged.to_csv("exports/all_posts_merged.csv")
 
