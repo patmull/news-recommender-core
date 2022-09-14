@@ -4,7 +4,7 @@ import time
 
 import spacy_sentence_bert
 
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier
 
@@ -21,22 +21,22 @@ def predict_ratings_for_all_users_store_to_redis():
         try:
             classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='thumbs', bert_model=bert)
         except ValueError:
-            print("Value error occured when trying to get relevant thumbs for user. Skipping "
+            print("Value error occurred when trying to get relevant thumbs for user. Skipping "
                   "this user.")
             pass
         try:
             classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='ratings', bert_model=bert)
         except ValueError:
-            print("Value error occured when trying to get relevant thumbs for user. Skipping "
+            print("Value error occurred when trying to get relevant thumbs for user. Skipping "
                   "this user.")
             pass
 
 
-def fill_bert_vector_representation(skip_already_filled=True, reversed=False, random_order=False, db="pgsql"):
+def fill_bert_vector_representation(skip_already_filled=True, reversed_order=False, random_order=False, db="pgsql"):
     print("Loading sentence bert multilingual model...")
     bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
 
-    database = Database()
+    database = DatabaseMethods()
     if skip_already_filled is False:
         database.connect()
         posts = database.get_all_posts()
@@ -48,7 +48,7 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed=False, ra
 
     number_of_inserted_rows = 0
 
-    if reversed is True:
+    if reversed_order is True:
         print("Reversing list of posts...")
         posts.reverse()
 
@@ -63,7 +63,6 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed=False, ra
         post_id = post[0]
         slug = post[3]
         article_title = post[2]
-        article_excerpt = post[4]
         article_full_text = post[20]
         current_bert_vector_representation = post[41]
         # TODO: Category should be there too
@@ -102,5 +101,6 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed=False, ra
             number_of_inserted_rows += 1
             if number_of_inserted_rows > 20:
                 print("Refreshing list of posts for finding only not prefilled posts.")
-                fill_bert_vector_representation(db=db, skip_already_filled=skip_already_filled, reversed=reversed,
+                fill_bert_vector_representation(db=db, skip_already_filled=skip_already_filled,
+                                                reversed_order=reversed_order,
                                                 random_order=random_order)

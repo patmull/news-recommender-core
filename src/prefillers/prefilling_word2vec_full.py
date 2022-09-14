@@ -1,10 +1,10 @@
-from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import PreFiller
+import traceback
 
-prefiller = PreFiller()
+from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import prefilling_job
 
 while True:
     try:
-        prefiller.prefilling_job("word2vec", "pgsql", full_text=True, reverse=False, random=False)
+        prefilling_job("word2vec", "pgsql")
     except Exception as e:
-        print("Exception occured " + str(e))
-        print(e)
+        print("Exception occurred " + str(e))
+        traceback.print_exception(None, e, e.__traceback__)

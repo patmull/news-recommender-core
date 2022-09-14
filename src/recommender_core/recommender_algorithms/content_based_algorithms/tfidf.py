@@ -10,7 +10,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer, C
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
 from research.visualisation.tfidf_visualisation import TfIdfVisualizer
@@ -67,6 +67,16 @@ def load_sparse_csr(filename):
                       shape=loader['shape'])
 
 
+def display_top(word_count, cv):
+    print(word_count.shape)
+    print(word_count)
+    print(word_count.toarray())
+    tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
+    tfidf_transformer.fit(word_count)
+    df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
+    print(df_idf.sort_values(by=['idf_weights']).head(40))
+
+
 class TfIdf:
 
     def __init__(self):
@@ -74,7 +84,7 @@ class TfIdf:
         self.ratings_df = None
         self.categories_df = None
         self.df = None
-        self.database = Database()
+        self.database = DatabaseMethods()
         self.user_categories_df = None
         self.tfidf_tuples = None
         self.tfidf_vectorizer = None
@@ -83,14 +93,14 @@ class TfIdf:
     # @profile
     def keyword_based_comparison(self, keywords, number_of_recommended_posts=20, all_posts=False):
         if type(keywords) is not str:
-            raise ValueError("Entered slug must be a string.")
+            raise ValueError("Entered slug must be a input_string.")
         else:
             if keywords == "":
-                raise ValueError("Entered string is empty.")
+                raise ValueError("Entered input_string is empty.")
             else:
                 pass
 
-        global post_recommendations
+        post_recommendations = None
         if keywords == "":
             return {}
 
@@ -130,15 +140,20 @@ class TfIdf:
             print("10")
 
         if all_posts is True:
-            post_recommendations = tfidf_data_handlers \
-                .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
-                                          number_of_recommended_posts=len(self.posts_df.index))
+            if self.posts_df.index is not None:
+                post_recommendations = tfidf_data_handlers \
+                    .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
+                                              number_of_recommended_posts=len(self.posts_df.index))
+            else:
+                raise ValueError("Dataframe of posts is None. Cannot continue with next operation.")
         del tfidf_data_handlers
         return post_recommendations
 
     # https://datascience.stackexchange.com/questions/18581/same-tf-idf-vectorizer-for-2-data-inputs
     def set_tfidf_vectorizer_combine_features(self):
         tfidf_vectorizer = TfidfVectorizer()
+        if self.df is None:
+            raise ValueError("self.df is set to None. Cannot continue to next operation.")
         self.df.drop_duplicates(subset=['title_x'], inplace=True)
         tf_train_data = pd.concat([self.df['category_title'], self.df['keywords'], self.df['title_x'],
                                    self.df['excerpt']])
@@ -157,32 +172,6 @@ class TfIdf:
         cosine_sim = cosine_similarity(self.tfidf_tuples)
         cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug_x'], columns=self.df['slug_x'])
         self.cosine_sim_df = cosine_sim_df
-
-    # # @profile
-
-    # @profile
-
-    @DeprecationWarning
-    def get_recommended_posts_for_keywords(self, keywords, data_frame, k=10):
-
-        keywords_list = [keywords]
-        txt_cleaned = get_cleaned_text(self.df,
-                                       self.df['title_x'] + self.df['category_title'] + self.df['keywords'] + self.df[
-                                           'excerpt'])
-        tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
-        tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
-        cosine_similarities = cosine_similarity(tfidf_keywords_input, tfidf).flatten()
-
-        data_frame['coefficient'] = cosine_similarities
-
-        closest = data_frame.sort_values('coefficient', ascending=False)[:k]
-
-        closest.reset_index(inplace=True)
-        closest['index1'] = closest.index
-        closest.columns.name = 'index'
-
-        return closest[["slug_x", "coefficient"]]
-        # return pd.DataFrame(closest).merge(items).head(k)
 
     def prepare_dataframes(self):
         recommender_methods = RecommenderMethods()
@@ -204,10 +193,10 @@ class TfIdf:
         prefillers
         """
         if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
+            raise ValueError("Entered slug must be a input_string.")
         else:
             if searched_slug == "":
-                raise ValueError("Entered string is empty.")
+                raise ValueError("Entered input_string is empty.")
             else:
                 pass
 
@@ -260,19 +249,19 @@ class TfIdf:
 
     # @profile
     # TODO: Merge ful text and short text method into one method. Distinguish only with parameter.
-    def recommend_posts_by_all_features_preprocessed_with_full_text(self, searched_slug):
+    def recommend_posts_by_all_features_preprocessed_with_full_text(self, searched_slug, posts_from_cache=True):
 
         if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
+            raise ValueError("Entered slug must be a input_string.")
         else:
             if searched_slug == "":
-                raise ValueError("Entered string is empty.")
+                raise ValueError("Entered input_string is empty.")
             else:
                 pass
 
         recommender_methods = RecommenderMethods()
         print("Loading posts")
-        self.df = recommender_methods.get_posts_categories_dataframe()
+        self.df = recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
         gc.collect()
 
         if searched_slug not in self.df['slug'].to_list():
@@ -311,18 +300,7 @@ class TfIdf:
         # feature tuples of (document_id, token_id) and coefficient
         tf_idf_data_handlers = TfIdfDataHandlers(self.df)
         fit_by_post_title_matrix = tf_idf_data_handlers.get_fit_by_feature_('post_title', 'category_title')
-        print("fit_by_post_title_matrix")
-        print(fit_by_post_title_matrix)
-        # fit_by_category_matrix = recommender_methods.get_fit_by_feature_('category_title')
-        fit_by_excerpt_matrix = tf_idf_data_handlers.get_fit_by_feature_('excerpt')
-        print("fit_by_excerpt_matrix")
-        print(fit_by_excerpt_matrix)
-        fit_by_keywords_matrix = tf_idf_data_handlers.get_fit_by_feature_('keywords')
-        print("fit_by_keywords_matrix")
-        print(fit_by_keywords_matrix)
-
-        # join feature tuples into one matrix
-        tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
+        tuple_of_fitted_matrices = tf_idf_data_handlers.get_tupple_of_fitted_matrices(fit_by_post_title_matrix)
         tf_idf_data_handlers = TfIdfDataHandlers(self.df)
         recommended_posts = tf_idf_data_handlers.recommend_by_more_features(slug, tuple_of_fitted_matrices)
 
@@ -420,26 +398,14 @@ class TfIdf:
                 print("----------------")
                 print("Simple example:")
                 word_count = cv.fit_transform(found_posts)
-                print(word_count.shape)
-                print(word_count)
-                print(word_count.toarray())
-                tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
-                tfidf_transformer.fit(word_count)
-                df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
-                print(df_idf.sort_values(by=['idf_weights']).head(40))
+                display_top(word_count, cv)
             else:
                 print("No matches found")
 
         print("---------------")
         print("From whole dataset:")
         word_count = cv.fit_transform(posts['all_features_preprocessed'])
-        print(word_count.shape)
-        print(word_count)
-        print(word_count.toarray())
-        tfidf_transformer = TfidfTransformer(smooth_idf=True, use_idf=True)
-        tfidf_transformer.fit(word_count)
-        df_idf = pd.DataFrame(tfidf_transformer.idf_, index=cv.get_feature_names(), columns=["idf_weights"])
-        print(df_idf.sort_values(by=['idf_weights']).head(40))
+        display_top(word_count, cv)
 
         print("----------------")
         print("TF-IDF values:")
@@ -460,8 +426,8 @@ class TfIdf:
         tfidf_vectors = tfidf_vectorizer.fit_transform(posts['all_features_preprocessed'])
         # dataframe number
         # TODO: loop through recommended posts
-        for id in ids:
-            first_vector_tfidfvectorizer = tfidf_vectors[id]
+        for item_id in ids:
+            first_vector_tfidfvectorizer = tfidf_vectors[item_id]
             df = pd.DataFrame(first_vector_tfidfvectorizer.T.todense(), index=tfidf_vectorizer.get_feature_names(),
                               columns=["tfidf"])
             print(df.sort_values(by=["tfidf"], ascending=False).head(45))
@@ -471,3 +437,7 @@ class TfIdf:
         tfidf_visualizer = TfIdfVisualizer()
         tfidf_visualizer.prepare_for_heatmap(tfidf_vectors, text_titles, tfidf_vectorizer)
         tfidf_visualizer.plot_tfidf_heatmap()
+
+    def get_prefilled_full_text(self):
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_categories_dataframe()
