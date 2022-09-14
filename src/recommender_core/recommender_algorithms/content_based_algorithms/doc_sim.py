@@ -11,7 +11,7 @@ from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilari
 from gensim.similarities.annoy import AnnoyIndexer
 from scipy import spatial
 from sklearn.feature_extraction.text import HashingVectorizer
-from src.recommender_core.recommender_algorithms.content_based_algorithms.gensim_native_models import GensimMethods
+from src.recommender_core.recommender_algorithms.content_based_algorithms.gensim_methods import GensimMethods
 
 
 def calculate_similarity(source_doc, target_docs=None, threshold=0.2):
@@ -50,6 +50,51 @@ def sort_results(sim_score, threshold, doc, results):
     return results.sort(key=lambda k: k["coefficient"], reverse=True)
 
 
+# noinspection PyPep8
+def _cosine_sim(vecA, vecB):
+    """Find the cosine similarity distance between two vectors."""
+    csim = np.dot(vecA, vecB) / (np.linalg.norm(vecA) * np.linalg.norm(vecB))
+    if np.isnan(np.sum(csim)):
+        return 0
+    return csim
+
+
+def create_docsim_index(source_doc, docsim_index, dictionary):
+    print(source_doc)
+    source_doc = source_doc.replace(",", "")
+    source_doc = source_doc.replace("||", " ")
+
+    source_text = source_doc.split()
+    sims = docsim_index[dictionary.doc2bow(source_text)]
+
+    print("sims:")
+    print(sims)
+
+    return sims
+
+
+def calculate_similarity_idnes_model_gensim(source_doc, docsim_index, dictionary, target_docs=None):
+    """Calculates & returns similarity scores between given source document & all
+    the target documents."""
+    # TO HERE
+
+    sims = create_docsim_index(source_doc=source_doc, docsim_index=docsim_index, dictionary=dictionary)
+    results = []
+    for sim_tuple in sims:
+        doc_found = target_docs[sim_tuple[0]]  # get document by position from sims results
+        slug = re.sub(r'^.*?;', ';', doc_found)  # keeping only searched_slug of the document
+        print("searched_slug:")
+        print(slug)
+        slug = slug.replace("; ", "")
+        sim_score = sim_tuple[1]
+        results.append({"slug": slug, "coefficient": sim_score})
+
+    print("results")
+    print(results)
+
+    return results
+
+
 class DocSim:
     def __init__(self, w2v_model=None, stopwords=None):
         self.w2v_model = w2v_model
@@ -72,22 +117,24 @@ class DocSim:
         for doc in target_docs:
             doc_without_slug = doc.split(";", 1)  # removing searched_slug
             target_vec = self.vectorize(doc_without_slug[0])
-            sim_score = self._cosine_sim(source_vec, target_vec)
+            sim_score = _cosine_sim(source_vec, target_vec)
             results = sort_results(sim_score=sim_score, results=results, doc=doc, threshold=threshold)
 
         return results
 
-    def calculate_similarity_wiki_model_gensim(self, source_doc, target_docs=None, threshold=0.2):
+    def calculate_similarity_wiki_model_gensim(self, source_doc, target_docs=None):
         """Calculates & returns similarity scores between given source document & all
         the target documents."""
         termsim_index = WordEmbeddingSimilarityIndex(self.w2v_model)
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+        # WARNING: cswiki may not be in disk
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_cswiki.gensim')
         bow_corpus = pickle.load(open("precalc_vectors/corpus_idnes.pkl", "rb"))
         similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary)  # construct similarity matrix
 
         docsim_index = SoftCosineSimilarity(bow_corpus, similarity_matrix, num_best=21)
         print("source_doc:")
-        sims = self.create_docsim_index(source_doc=source_doc, docsim_index=docsim_index, dictionary=dictionary)
+        # noinspection PyTypeChecker
+        sims = create_docsim_index(source_doc=source_doc, docsim_index=docsim_index, dictionary=dictionary)
 
         results = []
         for sim_tuple in sims:
@@ -101,34 +148,10 @@ class DocSim:
         print(results)
         return results
 
-    def calculate_similarity_idnes_model_gensim(self, source_doc, docsim_index, dictionary, target_docs=None):
-        """Calculates & returns similarity scores between given source document & all
-        the target documents."""
-        # TO HERE
-
-        sims = self.create_docsim_index(source_doc=source_doc, docsim_index=docsim_index, dictionary=dictionary)
-        results = []
-        for sim_tuple in sims:
-            doc_found = target_docs[sim_tuple[0]]  # get document by position from sims results
-            slug = re.sub(r'^.*?;', ';', doc_found)  # keeping only searched_slug of the document
-            print("searched_slug:")
-            print(slug)
-            slug = slug.replace("; ", "")
-            sim_score = sim_tuple[1]
-            results.append({"slug": slug, "coefficient": sim_score})
-
-        print("results")
-        print(results)
-
-        return results
-
-    def load_docsim_index_and_dictionary(self, source, model, force_update=True):
-        global path_to_docsim_index, dictionary
+    def load_docsim_index(self, source, model_name, force_update=True):
         gensim_methods = GensimMethods()
         common_texts = gensim_methods.load_texts()
-        # bow_corpus = pickle.load(open("precalc_vectors/corpus_idnes.pkl","rb"))
 
-        global dictionary
         if source == "idnes":
             path_to_docsim_index = "full_models/idnes/docsim_index_idnes"
         elif source == "cswiki":
@@ -141,11 +164,10 @@ class DocSim:
         else:
             print("Docsim index not found or forced to update. Will create a new from available articles.")
             # TODO: This can be preloaded
-            docsim_index = self.update_docsim_index(model=model, common_texts=common_texts)
-        return docsim_index, dictionary
+            docsim_index = self.update_docsim_index(model=model_name, common_texts=common_texts)
+        return docsim_index
 
     def update_docsim_index(self, model, supplied_dictionary=None, common_texts=None, tfidf_corpus=None):
-        global dictionary, path_to_folder
 
         if model == "wiki":
             source = "cswiki"
@@ -168,7 +190,6 @@ class DocSim:
             path_to_model = path_to_folder + file_name
             self.w2v_model = KeyedVectors.load(path_to_model)
         else:
-            path_to_folder = None
             raise ValueError("Wrong model name chosen.")
 
         if source == "idnes":
@@ -245,23 +266,3 @@ class DocSim:
         # https://radimrehurek.com/gensim/similarities/docsim.html#gensim.similarities.docsim.SoftCosineSimilarity
         vector = np.mean(word_vecs, axis=0)
         return vector
-
-    def _cosine_sim(self, vecA, vecB):
-        """Find the cosine similarity distance between two vectors."""
-        csim = np.dot(vecA, vecB) / (np.linalg.norm(vecA) * np.linalg.norm(vecB))
-        if np.isnan(np.sum(csim)):
-            return 0
-        return csim
-
-    def create_docsim_index(self, source_doc, docsim_index, dictionary):
-        print(source_doc)
-        source_doc = source_doc.replace(",", "")
-        source_doc = source_doc.replace("||", " ")
-
-        source_text = source_doc.split()
-        sims = docsim_index[dictionary.doc2bow(source_text)]
-
-        print("sims:")
-        print(sims)
-
-        return sims

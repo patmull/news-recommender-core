@@ -1,4 +1,4 @@
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.prefillers.prefilling_all import prepare_and_run
 
 
@@ -7,11 +7,12 @@ def try_word2vec_recommendation_prefiller(database, method, full_text, reverse, 
 
 
 def try_prefillers():
-    database = Database()
+    database = DatabaseMethods()
     method = "word2vec"
     reverse = True
     random = False
-    try_word2vec_recommendation_prefiller(database=database, method=method, full_text=False, reverse=reverse, random=random)
+    try_word2vec_recommendation_prefiller(database=database, method=method, full_text=False, reverse=reverse,
+                                          random=random)
 
 
 # try_prefillers()
@@ -46,7 +47,7 @@ word2vec.final_training_model(source="cswiki")
 
 # print(word2vec.get_similar_word2vec("chripkova-sezona-muze-letos-nemile-prekvapit-jak-se-na-ni-pripravit"))
 """ds = DocSim()
-docsim_index, dictionary = ds.load_docsim_index_and_dictionary()
+docsim_index, dictionary = ds.load_docsim_index()
 print(word2vec.get_similar_word2vec("zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik",
                                     model="idnes_1", docsim_index=docsim_index, dictionary=dictionary))
 print(word2vec.get_similar_word2vec("zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik",
