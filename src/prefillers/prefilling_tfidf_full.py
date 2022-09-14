@@ -1,12 +1,10 @@
 import traceback
 
-from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import PreFiller
-
-prefiller = PreFiller()
+from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import prefilling_job
 
 while True:
     try:
-        prefiller.prefilling_job("tfidf", "pgsql", full_text=True, reverse=False, random=True)
+        prefilling_job("tfidf", "pgsql")
     except Exception as e:
-        print("Exception occured:")
-        traceback.print_exception(type(e), e, e.__traceback__)
+        print("Exception occurred:")
+        traceback.print_exception(None, e, e.__traceback__)

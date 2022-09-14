@@ -1,25 +1,25 @@
 #! /usr/bin/env python3.1
-''' Czech stemmer
+"""
+Czech stemmer
 Copyright © 2010 Luís Gomes <luismsgomes@gmail.com>.
 
 Ported from the Java implementation available at:
-    http://members.unine.ch/jacques.savoy/clef/index.html
-
-'''
+members.unine.ch/jacques.savoy/clef/index.html
+"""
 import re
 import sys
 
-def cz_stem(word, aggressive=False):
+
+def cz_stem(word, aggressive_stemming=False):
     if not re.match("^\\w+$", word):
         return word
     if not word.islower() and not word.istitle() and not word.isupper():
-       # print("warning: skipping word with mixed case: {}".format(word),
-        #      file=sys.stderr)
+        # print("warning: skipping word with mixed case: {}".format(word), file=sys.stderr)
         return word
-    s = word.lower() # all our pattern matching is done in lowercase
+    s = word.lower()  # all our pattern matching is done in lowercase
     s = _remove_case(s)
     s = _remove_possessives(s)
-    if aggressive:
+    if aggressive_stemming:
         s = _remove_comparative(s)
         s = _remove_diminutive(s)
         s = _remove_augmentative(s)
@@ -29,6 +29,7 @@ def cz_stem(word, aggressive=False):
     if word.istitle():
         return s.title()
     return s
+
 
 def _remove_case(word):
     if len(word) > 7 and word.endswith("atech"):
@@ -59,6 +60,7 @@ def _remove_case(word):
             return word[:-1]
     return word
 
+
 def _remove_possessives(word):
     if len(word) > 5:
         if word[-2:] in {"ov", "ův"}:
@@ -67,11 +69,13 @@ def _remove_possessives(word):
             return _palatalise(word[:-1])
     return word
 
+
 def _remove_comparative(word):
     if len(word) > 5:
         if word[-3:] in {"ejš", "ějš"}:
             return _palatalise(word[:-2])
     return word
+
 
 def _remove_diminutive(word):
     if len(word) > 7 and word.endswith("oušek"):
@@ -99,6 +103,7 @@ def _remove_diminutive(word):
         return word[:-1]
     return word
 
+
 def _remove_augmentative(word):
     if len(word) > 6 and word.endswith("ajzn"):
         return word[:-4]
@@ -107,6 +112,7 @@ def _remove_augmentative(word):
     if len(word) > 4 and word.endswith("ák"):
         return word[:-2]
     return word
+
 
 def _remove_derivational(word):
     if len(word) > 8 and word.endswith("obinec"):
@@ -144,6 +150,7 @@ def _remove_derivational(word):
         return word[:-1]
     return word
 
+
 def _palatalise(word):
     if word[-2:] in {"ci", "ce", "či", "če"}:
         return word[:-2] + "k"
@@ -158,10 +165,11 @@ def _palatalise(word):
         return word[:-3] + "sk"
     return word[:-1]
 
+
 if __name__ == '__main__':
-    if len(sys.argv) != 2 or sys.argv[1] not in ("light", "aggressive"):
-        sys.exit("usage: {} light|aggressive".format(sys.argv[0]))
-    aggressive = sys.argv[1] == "aggressive"
+    if len(sys.argv) != 2 or sys.argv[1] not in ("light", "aggressive_stemming"):
+        sys.exit("usage: {} light|aggressive_stemming".format(sys.argv[0]))
+    aggressive = sys.argv[1] == "aggressive_stemming"
     for line in sys.stdin:
-        print(*[cz_stem(word, aggressive=aggressive)
+        print(*[cz_stem(word, aggressive_stemming=aggressive)
                 for word in line.split()])
