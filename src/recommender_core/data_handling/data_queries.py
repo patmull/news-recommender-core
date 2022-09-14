@@ -1,17 +1,22 @@
+import gc
 import json
+import random
 import traceback
 from pathlib import Path
 from threading import Thread
 
 import dropbox
+import gensim
 import numpy as np
 import pandas as pd
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from src.recommender_core.data_handling.data_handlers import flatten
+from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.recommender_core.recommender_algorithms.content_based_algorithms.similarities import CosineTransformer
-from src.recommender_core.data_handling.data_manipulation import Database
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 import os
 
 CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"
@@ -63,11 +68,104 @@ def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
         return False
 
 
+def preprocess_single_post_find_by_slug(slug, supplied_json=False):
+    recommender_methods = RecommenderMethods()
+    post_dataframe = recommender_methods.find_post_by_slug(slug)
+    post_dataframe["title"] = post_dataframe["title"].map(lambda s: preprocess(s))
+    post_dataframe["excerpt"] = post_dataframe["excerpt"].map(lambda s: preprocess(s))
+    if supplied_json is False:
+        return post_dataframe
+    else:
+        # evaluate if this ok
+        return post_dataframe.to_json()
+
+
+def random_hyperparameter_choice(model_variants, vector_size_range, window_range, min_count_range,
+                                 epochs_range, sample_range, negative_sampling_variants):
+    model_variant = random.choice(model_variants)
+    vector_size = random.choice(vector_size_range)
+    window = random.choice(window_range)
+    min_count = random.choice(min_count_range)
+    epochs = random.choice(epochs_range)
+    sample = random.choice(sample_range)
+    negative_sampling_variant = random.choice(negative_sampling_variants)
+    return model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant
+
+
+def get_eval_results_header():
+    corpus_title = ['100% Corpus']
+    model_results = {'Validation_Set': [],
+                     'Model_Variant': [],
+                     'Negative': [],
+                     'Vector_size': [],
+                     'Window': [],
+                     'Min_count': [],
+                     'Epochs': [],
+                     'Sample': [],
+                     'Softmax': [],
+                     'Word_pairs_test_Pearson_coeff': [],
+                     'Word_pairs_test_Pearson_p-val': [],
+                     'Word_pairs_test_Spearman_coeff': [],
+                     'Word_pairs_test_Spearman_p-val': [],
+                     'Word_pairs_test_Out-of-vocab_ratio': [],
+                     'Analogies_test': []
+                     }  # type: dict
+    return corpus_title, model_results
+
+
+def save_wordsim(path_to_cropped_wordsim_file):
+    df = pd.read_csv('research/word2vec/similarities/WordSim353-cs.csv',
+                     usecols=['cs_word_1', 'cs_word_2', 'cs mean'])
+    df['cs_word_1'] = df['cs_word_1'].apply(lambda x: gensim.utils.deaccent(preprocess(x)))
+    df['cs_word_2'] = df['cs_word_2'].apply(lambda x: gensim.utils.deaccent(preprocess(x)))
+
+    df.to_csv(path_to_cropped_wordsim_file, sep='\t', encoding='utf-8', index=False)
+
+
+def append_training_results(source, corpus_title, model_variant, negative_sampling_variant, vector_size,
+                            window,
+                            min_count, epochs, sample, hs_softmax, pearson_coeff_word_pairs_eval,
+                            pearson_p_val_word_pairs_eval, spearman_p_val_word_pairs_eval,
+                            spearman_coeff_word_pairs_eval, out_of_vocab_ratio, analogies_eval, model_results):
+    model_results['Validation_Set'].append(source + " " + corpus_title)
+    model_results['Model_Variant'].append(model_variant)
+    model_results['Negative'].append(negative_sampling_variant)
+    model_results['Vector_size'].append(vector_size)
+    model_results['Window'].append(window)
+    model_results['Min_count'].append(min_count)
+    model_results['Epochs'].append(epochs)
+    model_results['Sample'].append(sample)
+    model_results['Softmax'].append(hs_softmax)
+    model_results['Word_pairs_test_Pearson_coeff'].append(pearson_coeff_word_pairs_eval)
+    model_results['Word_pairs_test_Pearson_p-val'].append(pearson_p_val_word_pairs_eval)
+    model_results['Word_pairs_test_Spearman_coeff'].append(spearman_coeff_word_pairs_eval)
+    model_results['Word_pairs_test_Spearman_p-val'].append(spearman_p_val_word_pairs_eval)
+    model_results['Word_pairs_test_Out-of-vocab_ratio'].append(out_of_vocab_ratio)
+    model_results['Analogies_test'].append(analogies_eval)
+    return model_results
+
+
+def prepare_hyperparameters_grid():
+    negative_sampling_variants = range(5, 20, 5)  # 0 = no negative sampling
+    no_negative_sampling = 0  # use with hs_soft_max
+    vector_size_range = [50, 100, 158, 200, 250, 300, 450]
+    window_range = [1, 2, 4, 5, 8, 12, 16, 20]
+    min_count_range = [0, 1, 2, 3, 5, 8, 12]
+    epochs_range = [20, 25, 30]
+    sample_range = [0.0, 1.0 * (10.0 ** -1.0), 1.0 * (10.0 ** -2.0), 1.0 * (10.0 ** -3.0), 1.0 * (10.0 ** -4.0),
+                    1.0 * (10.0 ** -5.0)]
+
+    corpus_title, model_results = get_eval_results_header()
+    # noinspection PyPep8
+    return negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
+           epochs_range, sample_range, corpus_title, model_results
+
+
 class RecommenderMethods:
 
     def __init__(self):
-        self.database = Database()
-        self.cached_file_path = CACHED_FILE_PATH
+        self.database = DatabaseMethods()
+        self.cached_file_path = Path(CACHED_FILE_PATH)
         self.posts_df = None
         self.categories_df = None
         self.df = None
@@ -157,10 +255,10 @@ class RecommenderMethods:
 
     @DeprecationWarning
     def get_user_posts_ratings(self):
-        database = Database()
+        database = DatabaseMethods()
 
         sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value 
-        AS rating_value
+        AS ratings_values
         FROM posts p
         JOIN ratings r ON r.post_id = p.id
         JOIN users u ON r.user_id = u.id;"""
@@ -192,8 +290,7 @@ class RecommenderMethods:
              'created_at']]
         return results_df_
 
-
-    @DeprecationWarning
+    # noinspection DuplicatedCode
     def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
 
         self.posts_df = self.get_posts_dataframe()
@@ -252,16 +349,18 @@ class RecommenderMethods:
                  'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'trigrams_full_text']]
         return self.df
 
-    def find_post_by_slug(self, searched_slug):
+    def find_post_by_slug(self, searched_slug, from_cache=True):
         if type(searched_slug) is not str:
-            raise ValueError("Entered slug must be a string.")
+            raise ValueError("Entered slug must be a input_string.")
         else:
             if searched_slug == "":
-                raise ValueError("Entered string is empty.")
+                raise ValueError("Entered input_string is empty.")
             else:
                 pass
 
-        return self.get_posts_dataframe().loc[self.get_posts_dataframe()['slug'] == searched_slug]
+        return self.get_posts_dataframe(from_cache=from_cache).loc[
+            self.get_posts_dataframe(from_cache=from_cache)['slug'] == searched_slug
+            ]
 
     def get_posts_categories_dataframe(self, only_with_bert_vectors=False, from_cache=True):
         if only_with_bert_vectors is False:
@@ -316,23 +415,87 @@ class RecommenderMethods:
 
     def get_posts_users_categories_ratings_df(self, only_with_bert_vectors, user_id=None):
         self.database.connect()
-        posts_users_categories_ratings_df = self.database.get_posts_users_categories_ratings(user_id=user_id,
-                                                                                             get_only_posts_with_prefilled_bert_vectors=only_with_bert_vectors)
+        posts_users_categories_ratings_df = self.database \
+            .get_posts_users_categories_ratings(user_id=user_id,
+                                                get_only_posts_with_prefilled_bert_vectors=only_with_bert_vectors)
         self.database.disconnect()
         return posts_users_categories_ratings_df
 
     def get_posts_users_categories_thumbs_df(self, only_with_bert_vectors, user_id=None):
         try:
             self.database.connect()
-            posts_users_categories_ratings_df = self\
-                .database\
+            posts_users_categories_ratings_df = self \
+                .database \
                 .get_posts_users_categories_thumbs(user_id=user_id,
                                                    get_only_posts_with_prefilled_bert_vectors=only_with_bert_vectors)
             self.database.disconnect()
         except ValueError as e:
             self.database.disconnect()
-            raise ValueError("Value error had occured when trying to get posts for user.")
+            raise ValueError("Value error had occurred when trying to get posts for user." + str(e))
         return posts_users_categories_ratings_df
+
+    def get_sql_columns(self):
+        self.database.connect()
+        df_columns = self.database.get_sql_columns()
+        self.database.disconnect()
+        return df_columns
+
+    def get_relevance_results_dataframe(self):
+        self.database.connect()
+        results_df = self.database.get_results_dataframe()
+        results_df.reset_index(inplace=True)
+        self.database.disconnect()
+        print("self.results_df:")
+        print(results_df)
+        results_df_ = results_df[['id', 'query_slug', 'results_part_1', 'results_part_2', 'results_part_3', 'user_id',
+                                  'model_name']]
+        return results_df_
+
+    def tokenize_text(self):
+
+        self.df['tokenized_keywords'] = self.df['keywords'] \
+            .apply(lambda x: x.split(', '))
+        self.df['tokenized'] = self.df.apply(
+            lambda row: row['all_features_preprocessed'].replace(str(row['tokenized_keywords']), ''),
+            axis=1)
+        self.df['tokenized_full_text'] = self.df.apply(
+            lambda row: row['body_preprocessed'].replace(str(row['tokenized']), ''),
+            axis=1)
+
+        gc.collect()
+
+        self.df[
+            'tokenized_all_features_preprocessed'] = self.df.all_features_preprocessed.apply(
+            lambda x: x.split(' '))
+        gc.collect()
+        self.df['tokenized_full_text'] = self.df.tokenized_full_text.apply(
+            lambda x: x.split(' '))
+        return self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
+            'tokenized_full_text']
+
+    # TODO: get into common method (possibly data_queries)
+    def get_prefilled_full_text(self, slug, variant):
+        self.get_posts_dataframe(force_update=False)  # load posts to dataframe
+        self.get_categories_dataframe()  # load categories to dataframe
+        self.join_posts_ratings_categories()  # joining posts and categories into one table
+
+        found_post = self.find_post_by_slug(slug)
+        column_name = None
+        if variant == "idnes_short_text":
+            column_name = 'recommended_doc2vec'
+        elif variant == "idnes_full_text":
+            column_name = 'recommended_doc2vec_full_text'
+        elif variant == "wiki_eval_1":
+            column_name = 'recommended_doc2vec_wiki_eval_1'
+
+        returned_post = found_post[column_name].iloc[0]
+        return returned_post
+
+    def get_all_users(self):
+        self.database.connect()
+        df_users = self.database.get_all_users()
+        self.database.disconnect()
+        return df_users
 
 
 def get_cleaned_text(row):
@@ -379,13 +542,10 @@ class TfIdfDataHandlers:
                                            'excerpt'])
         tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
         tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
-        cosine_similarities = cosine_similarity(tfidf_keywords_input, tfidf).flatten()
+        cosine_similarities = flatten(cosine_similarity(tfidf_keywords_input, tfidf))
         # cosine_similarities = linear_kernel(tfidf_keywords_input, tfidf).flatten()
 
         data_frame['coefficient'] = cosine_similarities
-
-        # related_docs_indices = cosine_similarities.argsort()[:-(number+1):-1]
-        related_docs_indices = cosine_similarities.argsort()[::-1][:k]
 
         closest = data_frame.sort_values('coefficient', ascending=False)[:k]
 
@@ -457,10 +617,10 @@ class TfIdfDataHandlers:
 
         Then you can tests speed difference:
 
-        As \ b % operation on sparse As takes .0012 seconds
-        Af \ b % solving with full Af takes about 2.3 seconds
-
+        As operation on sparse As takes .0012 seconds
+        Af solving with full Af takes about 2.3 seconds
         """
+
         print("tupple_of_fitted_matrices:")
         print(tupple_of_fitted_matrices)
         combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
@@ -482,11 +642,23 @@ class TfIdfDataHandlers:
         print(self.cosine_sim_df)
         ix = data_frame.loc[:, find_by_string].to_numpy().argpartition(range(-1, -k, -1))
         closest = data_frame.columns[ix[-1:-(k + 2):-1]]
-        # print("closest")
-        # print(closest)
+
         # drop post itself
         closest = closest.drop(find_by_string, errors='ignore')
 
-        # print("pd.DataFrame(closest).merge(items).head(k)")
-        # print(pd.DataFrame(closest).merge(items).head(k))
         return pd.DataFrame(closest).merge(items).head(k)
+
+    def get_tupple_of_fitted_matrices(self, fit_by_post_title_matrix):
+        print("fit_by_post_title_matrix")
+        print(fit_by_post_title_matrix)
+        # fit_by_category_matrix = recommender_methods.get_fit_by_feature_('category_title')
+        fit_by_excerpt_matrix = self.get_fit_by_feature_('excerpt')
+        print("fit_by_excerpt_matrix")
+        print(fit_by_excerpt_matrix)
+        fit_by_keywords_matrix = self.get_fit_by_feature_('keywords')
+        print("fit_by_keywords_matrix")
+        print(fit_by_keywords_matrix)
+
+        # join feature tuples into one matrix
+        tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
+        return tuple_of_fitted_matrices
