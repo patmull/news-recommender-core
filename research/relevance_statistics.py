@@ -8,7 +8,7 @@ from sklearn.metrics import average_precision_score, precision_score, balanced_a
     dcg_score, f1_score, jaccard_score, ndcg_score, precision_recall_curve, top_k_accuracy_score
 import seaborn as sns
 
-from src.recommender_core.recommender_algorithms.hybrid import evaluation_results
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier import evaluation_results
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
