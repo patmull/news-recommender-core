@@ -17,7 +17,7 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf, get_prefilled_full_text
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
     SvdClass
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_based_recommendation \
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation \
     import UserBasedRecommendation
 
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
