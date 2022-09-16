@@ -3,6 +3,7 @@ import random
 import time as t
 import psycopg2
 from gensim.models import KeyedVectors
+from pandas.io.sql import DatabaseError
 
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -18,11 +19,15 @@ val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choo
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
 
 
-def fill_recommended_collab_based(method, skip_already_filled, db="pgsql"):
+def fill_recommended_collab_based(method, skip_already_filled):
     recommender_methods = RecommenderMethods()
     # TODO: Do this for all methods that don't need other columns
     column_name = "recommended_by_" + method
-    users = recommender_methods.get_all_users(only_with_id_and_column_named=column_name)
+    try:
+        users = recommender_methods.get_all_users(only_with_id_and_column_named=column_name)
+    except DatabaseError as e:
+        print("Database error occurred while executing pandas command. Check the column names.")
+        raise e
 
     for user in users.to_dict("records"):
         print("user:")
