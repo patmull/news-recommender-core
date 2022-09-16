@@ -503,6 +503,11 @@ class RecommenderMethods:
                                                          user_id=user_id, db=db, method=method)
         self.database.disconnect()
 
+    def remove_test_user_prefilled_records(self, user_id):
+        self.database.connect()
+        self.database.null_test_user_prefilled_records(user_id)
+        self.database.disconnect()
+
 
 def get_cleaned_text(row):
     return row
