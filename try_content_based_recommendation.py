@@ -86,9 +86,16 @@ def main():
     h = hpy()
     print(h.heap())
     """
+
+    """
     searched_slug = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     doc2vec_class = Doc2VecClass()
     print(doc2vec_class.get_similar_doc2vec(searched_slug, train_enabled=False))
+    """
+    searched_slug_1 = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
+    searched_slug_2 = "salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem"
+    doc2vec_class = Doc2VecClass()
+    print(doc2vec_class.get_pair_similarity(searched_slug_1, searched_slug_1))
 
 
 if __name__ == "__main__": main()
