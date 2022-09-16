@@ -93,7 +93,7 @@ class TfIdf:
     # @profile
     def keyword_based_comparison(self, keywords, number_of_recommended_posts=20, all_posts=False):
         if type(keywords) is not str:
-            raise ValueError("Entered slug must be a input_string.")
+            raise ValueError("Entered keywords must be a input_string.")
         else:
             if keywords == "":
                 raise ValueError("Entered input_string is empty.")

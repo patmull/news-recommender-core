@@ -4,19 +4,76 @@ import time as t
 import psycopg2
 from gensim.models import KeyedVectors
 
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
+    SvdClass
 
 val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
 
 
-def fill_recommended(method, skip_already_filled, full_text=True, random_order=False, reversed_order=False):
+def fill_recommended_collab_based(method, skip_already_filled, db="pgsql"):
+    recommender_methods = RecommenderMethods()
+    # TODO: Do this for all methods that don't need other columns
+    column_name = "recommended_by_" + method
+    users = recommender_methods.get_all_users(only_with_id_and_column_named=column_name)
 
+    for user in users.to_dict("records"):
+        print("user:")
+        print(user)
+        current_user_id = user['id']
+        current_recommended = user[column_name]
+        print("current_user_id:")
+        print(current_user_id)
+        print("current_recommended:")
+        print(current_recommended)
+        if method == "svd":
+            svd = SvdClass()
+            try:
+                actual_json = svd.run_svd(user_id=current_user_id, num_of_recommendations=10)
+            except ValueError as e:
+                print("Value Error had occurred in computing " + method + ". Skipping record.")
+                print(e)
+                continue
+        elif method == "user_keywords":
+            try:
+                tfidf = TfIdf()
+                input_keywords = recommender_methods.get_user_keywords(current_user_id)
+                input_keywords = ' '.join(input_keywords["keyword_name"])
+                print("input_keywords:")
+                print(input_keywords)
+                actual_json = tfidf.keyword_based_comparison(input_keywords)
+            except ValueError as e:
+                print("Value Error had occurred in computing " + method + ". Skipping record.")
+                print(e)
+                continue
+        else:
+            raise ValueError("Method not implemented.")
+        print("dict actual_svd_json")
+        print(actual_json)
+        actual_json = json.dumps(actual_json)
+        print("dumped actual_svd_json")
+        print(actual_json)
+        if skip_already_filled is True:
+            if current_recommended is None:
+                try:
+                    recommender_methods.insert_recommended_json_user_based(recommended_json=actual_json,
+                                                                           user_id=current_user_id, db="pgsql",
+                                                                           method=method)
+                except Exception as e:
+                    print("Error in DB insert. Skipping.")
+                    print(e)
+                    pass
+
+
+def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
+                                   reversed_order=False):
     source = w2v_model = selected_model_name = None
     docsim_index, dictionary = None, None
     database = DatabaseMethods()
@@ -231,18 +288,20 @@ def fill_recommended(method, skip_already_filled, full_text=True, random_order=F
 
                 if full_text is False:
                     try:
-                        database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
-                                                         article_id=post_id, full_text=False, db="pgsql",
-                                                         method=method)
+                        database.insert_recommended_json_content_based(
+                            articles_recommended_json=actual_recommended_json,
+                            article_id=post_id, full_text=False, db="pgsql",
+                            method=method)
                     except Exception as e:
                         print("Error in DB insert. Skipping.")
                         print(e)
                         pass
                 else:
                     try:
-                        database.insert_recommended_json(articles_recommended_json=actual_recommended_json,
-                                                         article_id=post_id, full_text=True, db="pgsql",
-                                                         method=method)
+                        database.insert_recommended_json_content_based(
+                            articles_recommended_json=actual_recommended_json,
+                            article_id=post_id, full_text=True, db="pgsql",
+                            method=method)
                         number_of_inserted_rows += 1
                         print("Inserted rows in current prefilling round: " + str(number_of_inserted_rows))
                     except Exception as e:
@@ -253,11 +312,22 @@ def fill_recommended(method, skip_already_filled, full_text=True, random_order=F
                 print("Skipping.")
 
 
-def prefilling_job(method, full_text, random_order=False, reversed_order=True):
+def prefilling_job_user_based(method, db):
     while True:
         try:
-            fill_recommended(method=method, full_text=full_text, skip_already_filled=True,
-                             random_order=random_order, reversed_order=reversed_order)
+            fill_recommended_collab_based(method=method, skip_already_filled=True, db=db)
+        except psycopg2.OperationalError:
+            print("DB operational error. Waiting few seconds before trying again...")
+            t.sleep(30)  # wait 30 seconds then try again
+            continue
+        break
+
+
+def prefilling_job_content_based(method, full_text, random_order=False, reversed_order=True):
+    while True:
+        try:
+            fill_recommended_content_based(method=method, full_text=full_text, skip_already_filled=True,
+                                           random_order=random_order, reversed_order=reversed_order)
         except psycopg2.OperationalError:
             print("DB operational error. Waiting few seconds before trying again...")
             t.sleep(30)  # wait 30 seconds then try again
