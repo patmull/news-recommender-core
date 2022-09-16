@@ -68,19 +68,19 @@ def main():
     # print('memory % used:', psutil.virtual_memory()[2])
     """
     # word2vec = Word2VecClass()
-    # word2vec.prefilling_job(full_text=True, reverse=False, random_order=True)
+    # word2vec.prefilling_job_content_based(full_text=True, reverse=False, random_order=True)
 
     # word2vec = Word2VecClass()
-    # word2vec.prefilling_job(full_text=True, reverse=False)
+    # word2vec.prefilling_job_content_based(full_text=True, reverse=False)
 
     # prefiller = PreFiller()
-    # prefiller.prefilling_job("tfidf", "pgsql", full_text=False, reverse=False, random_order=True)
-    # prefiller.prefilling_job("doc2vec", "pgsql", full_text=False, reverse=False, random_order=True)
-    # prefiller.prefilling_job("lda", "pgsql", full_text=False, reverse=False, random_order=True)
+    # prefiller.prefilling_job_content_based("tfidf", "pgsql", full_text=False, reverse=False, random_order=True)
+    # prefiller.prefilling_job_content_based("doc2vec", "pgsql", full_text=False, reverse=False, random_order=True)
+    # prefiller.prefilling_job_content_based("lda", "pgsql", full_text=False, reverse=False, random_order=True)
     """
-    prefiller.prefilling_job("tfidf", "pgsql", full_text=True, reverse=False, random_order=False)
-    prefiller.prefilling_job("doc2vec", "pgsql", full_text=True, reverse=False, random_order=False)
-    prefiller.prefilling_job("lda", "pgsql", full_text=True, reverse=False, random_order=False)
+    prefiller.prefilling_job_content_based("tfidf", "pgsql", full_text=True, reverse=False, random_order=False)
+    prefiller.prefilling_job_content_based("doc2vec", "pgsql", full_text=True, reverse=False, random_order=False)
+    prefiller.prefilling_job_content_based("lda", "pgsql", full_text=True, reverse=False, random_order=False)
     """
     """
     h = hpy()
