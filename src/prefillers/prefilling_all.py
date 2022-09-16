@@ -1,7 +1,7 @@
 import traceback
 
-from src.prefillers.prefilling_hybrid_methods import fill_bert_vector_representation
-from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import prefilling_job
+from src.prefillers.user_based_prefillers.prefilling_user_classifier import fill_bert_vector_representation
+from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import prefilling_job_content_based
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.prefilling_additional import PreFillerAdditional
@@ -68,7 +68,7 @@ def prepare_and_run(database, method, full_text, reverse, random):
           + str(full_text))
     if len(not_prefilled_posts) > 0:
         try:
-            prefilling_job(method=method, full_text=full_text, reversed_order=reverse, random_order=random)
+            prefilling_job_content_based(method=method, full_text=full_text, reversed_order=reverse, random_order=random)
         except Exception as e:
             print("Exception occurred " + str(e))
             traceback.print_exception(None, e, e.__traceback__)
