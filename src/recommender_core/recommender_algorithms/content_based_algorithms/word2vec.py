@@ -6,16 +6,22 @@ import os
 import pickle
 import random
 import time
+import traceback
 from collections import defaultdict
 
 import gensim
+import numpy as np
 import pymongo as pymongo
 import regex
 import tqdm
 from gensim import corpora
+from gensim.corpora import Dictionary
 from gensim.models import KeyedVectors, Word2Vec
+from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
+from gensim.similarities.annoy import AnnoyIndexer
 from gensim.utils import deaccent
 from pymongo import MongoClient
+from scipy import spatial
 
 from src.recommender_core.data_handling.data_handlers import flatten
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
@@ -27,7 +33,7 @@ import pandas as pd
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, append_training_results, save_wordsim, \
     get_eval_results_header, prepare_hyperparameters_grid, random_hyperparameter_choice
 from src.prefillers.preprocessing.cz_preprocessing import preprocess
-from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
+from src.prefillers.preprocessing.stopwords_loading import remove_stopwords, load_cz_stopwords
 from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
 
 PATH_TO_UNPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs-unprocessed.txt'
@@ -976,6 +982,75 @@ class Word2VecClass:
 
         returned_post = found_post[column_name].iloc[0]
         return returned_post
+
+    def preprocess(self, sentence):
+        stop_words = load_cz_stopwords()
+        return [w for w in sentence.lower().split() if w not in stop_words]
+
+    def get_vector(self, s, models):
+        return np.sum(
+            np.array([models[i] for i in preprocess(s)]), axis=0)
+
+    def get_pair_similarity(self, slug_1, slug_2):
+        w2v_model = KeyedVectors.load("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
+        import gensim.downloader as api
+        # w2v_model = api.load("glove-wiki-gigaword-50") #choose from multiple models https://github.com/RaRe-Technologies/gensim-data
+
+        recommend_methods = RecommenderMethods()
+        post_1 = recommend_methods.find_post_by_slug(slug_1)
+        post_2 = recommend_methods.find_post_by_slug(slug_2)
+
+        feature_1 = 'all_features_preprocessed'
+        feature_2 = 'title'
+
+        first_text = post_1[feature_2].iloc[0] + ' ' + post_1[feature_1].iloc[0]
+        second_text = post_2[feature_2].iloc[0] + ' ' + post_2[feature_1].iloc[0]
+
+        print(first_text)
+        print(second_text)
+
+        first_text = preprocess(first_text).split()
+        second_text = preprocess(second_text).split()
+
+        documents = [first_text, second_text]
+        print("documents:")
+        print(documents)
+        dictionary = Dictionary(documents)
+
+        first_text = dictionary.doc2bow(first_text)
+        second_text = dictionary.doc2bow(second_text)
+
+        from gensim.models import TfidfModel
+        documents = [first_text, second_text]
+        tfidf = TfidfModel(documents)
+
+        first_text = tfidf[first_text]
+        second_text = tfidf[second_text]
+
+        words = [word for word, count in dictionary.most_common()]
+
+        try:
+            word_vectors = w2v_model.wv.vectors_for_all(words,
+                                                             allow_inference=False)
+            # produce vectors for words in train_corpus
+        except AttributeError:
+            # TODO: This is None Type, found out why!
+            try:
+                word_vectors = w2v_model.vectors_for_all(words,
+                                                              allow_inference=False)
+            except AttributeError as e:
+                print(e)
+                print(traceback.format_exc())
+                raise AttributeError
+
+        indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
+        termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})  # for similarity index
+        termsim_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary,
+                                                       tfidf)  # compute word similarities # for docsim_index creation
+
+        similarity = termsim_matrix.inner_product(first_text, second_text, normalized=(True, True))
+
+        return similarity
 
 
 def preprocess_question_words_file():

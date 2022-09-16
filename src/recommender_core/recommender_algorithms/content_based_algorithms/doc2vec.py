@@ -635,7 +635,7 @@ class Doc2VecClass:
         return recommender_methods.get_prefilled_full_text(slug, variant)
 
     def get_pair_similarity(self, slug_1, slug_2):
-        d2v_model = self.load_model()
+        d2v_model = self.load_model('models/d2v_full_text_limited.model')
 
         recommend_methods = RecommenderMethods()
         post_1 = recommend_methods.find_post_by_slug(slug_1)
@@ -644,8 +644,8 @@ class Doc2VecClass:
         feature_1 = 'all_features_preprocessed'
         feature_2 = 'title'
 
-        first_text = post_1[feature_1].iloc[0] + ' ' + post_1[feature_2].iloc[0]
-        second_text = post_2[feature_1].iloc[0] + ' ' + post_2[feature_2].iloc[0]
+        first_text = post_1[feature_2].iloc[0] + ' ' + post_1[feature_1].iloc[0]
+        second_text = post_2[feature_2].iloc[0] + ' ' + post_2[feature_1].iloc[0]
 
         print(first_text)
         print(second_text)
