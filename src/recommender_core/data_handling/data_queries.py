@@ -491,11 +491,17 @@ class RecommenderMethods:
         returned_post = found_post[column_name].iloc[0]
         return returned_post
 
-    def get_all_users(self):
+    def get_all_users(self, only_with_id_and_column_named=None):
         self.database.connect()
-        df_users = self.database.get_all_users()
+        df_users = self.database.get_all_users(column_name=only_with_id_and_column_named)
         self.database.disconnect()
         return df_users
+
+    def insert_recommended_json_user_based(self, recommended_json, user_id, db, method):
+        self.database.connect()
+        self.database.insert_recommended_json_user_based(recommended_json=recommended_json,
+                                                         user_id=user_id, db=db, method=method)
+        self.database.disconnect()
 
 
 def get_cleaned_text(row):
