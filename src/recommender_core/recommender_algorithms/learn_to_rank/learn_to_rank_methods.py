@@ -15,7 +15,6 @@ from xgboost import XGBRegressor
 from lightgbm import LGBMRanker
 
 from research.hybrid.learn_to_rank import recommend_posts
-from src.recommender_core.recommender_algorithms.hybrid import evaluation_results
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
     SvdClass, get_average_post_rating
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
@@ -26,6 +25,9 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.lda im
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
     UserBasedRecommendation
 from sklearn.linear_model import LogisticRegression
+
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier import \
+    evaluation_results
 
 """
 from dask.distributed import Client

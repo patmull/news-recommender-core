@@ -112,9 +112,17 @@ class DatabaseMethods:
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
-    def get_all_users(self):
-        sql_query = """SELECT * FROM users ORDER BY id;"""
+    def get_all_users(self, column_name=None):
+        if column_name is None:
+            sql_query = """SELECT * FROM users ORDER BY id;"""
+        else:
+            sql_query = 'SELECT {} FROM users ORDER BY id;'
+        sql_query = sql_query.format("id, " + column_name)
+        print("sql_query:")
+        print(sql_query)
         df = pd.read_sql_query(sql_query, self.get_cnx())
+        print("df")
+        print(df)
         return df
 
     def get_post_by_id(self, post_id):
@@ -315,7 +323,7 @@ class DatabaseMethods:
         else:
             raise ValueError("Not allowed DB model_variant passed.")
 
-    def insert_recommended_json(self, method, full_text, articles_recommended_json, article_id, db):
+    def insert_recommended_json_content_based(self, method, full_text, articles_recommended_json, article_id, db):
         if db == "pgsql":
             try:
                 if method == "tfidf" and full_text is False:
@@ -700,6 +708,31 @@ class DatabaseMethods:
         sql = """SELECT * FROM relevance_testings ORDER BY id;"""
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
+
+    def insert_recommended_json_user_based(self, recommended_json, user_id, db, method):
+        if db != "pgsql":
+            raise NotImplementedError("Other database source than PostgreSQL not implemented yet.")
+        try:
+            column_name = "recommended_by_" + method
+            query = """UPDATE users SET {} = %s WHERE id = %s;"""
+            query = query.format(column_name)
+            print("query used:")
+            print(query)
+            inserted_values = (recommended_json, user_id)
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, inserted_values)
+                self.cnx.commit()
+            else:
+                raise ValueError("Cursor is set to None. Cannot continue with next operation.")
+        except psycopg2.Error as e:
+            print("NOT INSERTED")
+            print("Error code:", e.pgcode)  # error number
+            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
+            print("Error:", e)  # errno, sqlstate, msg values
+            s = str(e)
+            print("Error:", s)  # errno, sqlstate, msg values
+            if self.cnx is not None:
+                self.cnx.rollback()
 
 
 def get_redis_connection():
