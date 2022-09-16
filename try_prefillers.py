@@ -3,6 +3,7 @@
 # predict_ratings_for_all_users_store_to_redis()
 import os
 
+from src.prefillers.user_based_prefillers.prefilling_svd import run_prefilling_svd
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 """
@@ -21,7 +22,7 @@ except ValueError:
     # classifier.predict_relevance_for_user(user_id=431, relevance_by='ratings')
 
 """
-
+"""
 # noinspection PyPep8Naming
 DB_USER = os.environ.get('DB_RECOMMENDER_USER')
 # noinspection PyPep8Naming
@@ -46,3 +47,7 @@ mockconnect.assert_called()
 assert 1 == mockconnect.call_count
 assert mockconnect.call_args_list[0] == call(user=DB_USER, password=DB_PASSWORD,
                                              host=DB_HOST, dbname=DB_NAME)
+"""
+
+# TODO: Prefill SVD again (was partially rewritten by keywords)
+run_prefilling_svd()
