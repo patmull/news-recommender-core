@@ -14,8 +14,8 @@ from sklearn.preprocessing import OneHotEncoder
 from xgboost import XGBRegressor
 from lightgbm import LGBMRanker
 
+from recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier import evaluation_results
 from research.hybrid.learn_to_rank import recommend_posts
-from src.recommender_core.recommender_algorithms.hybrid import evaluation_results
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
     SvdClass, get_average_post_rating
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
