@@ -9,6 +9,7 @@ import tqdm
 from gensim import corpora
 from gensim.models import Word2Vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+from scipy import spatial
 from sklearn.model_selection import train_test_split
 
 from src.recommender_core.data_handling.data_handlers import flatten
@@ -607,6 +608,7 @@ class Doc2VecClass:
             self.doc2vec_model = Doc2Vec.load(DEFAULT_MODEL_LOCATION)
         else:
             self.doc2vec_model = Doc2Vec.load(path_to_model)
+        return self.doc2vec_model
 
     def get_vector_representation(self, searched_slug):
         """
@@ -631,3 +633,34 @@ class Doc2VecClass:
     def get_prefilled_full_text(self, slug, variant):
         recommender_methods = RecommenderMethods()
         return recommender_methods.get_prefilled_full_text(slug, variant)
+
+    def get_pair_similarity(self, slug_1, slug_2):
+        d2v_model = self.load_model()
+
+        recommend_methods = RecommenderMethods()
+        post_1 = recommend_methods.find_post_by_slug(slug_1)
+        post_2 = recommend_methods.find_post_by_slug(slug_2)
+
+        feature_1 = 'all_features_preprocessed'
+        feature_2 = 'title'
+
+        first_text = post_1[feature_1].iloc[0] + ' ' + post_1[feature_2].iloc[0]
+        second_text = post_2[feature_1].iloc[0] + ' ' + post_2[feature_2].iloc[0]
+
+        print(first_text)
+        print(second_text)
+
+        vec1 = d2v_model.infer_vector(first_text.split())
+        vec2 = d2v_model.infer_vector(second_text.split())
+
+        cos_distance = spatial.distance.cosine(vec1, vec2)
+        print("post_1:")
+        print(post_1)
+        print("post_2:")
+        print(post_2)
+        print("cos_distance:")
+        print(cos_distance)
+
+        return cos_distance
+
+
