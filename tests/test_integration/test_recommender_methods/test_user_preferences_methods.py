@@ -7,7 +7,7 @@ import pytest
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.user_based_algorithms\
-    .user_based_recommendation import UserBasedRecommendation
+    .user_keywords_recommendation import UserBasedRecommendation
 
 
 # TODO:
