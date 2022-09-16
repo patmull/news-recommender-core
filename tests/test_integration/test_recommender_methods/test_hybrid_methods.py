@@ -2,12 +2,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
+    load_bert_model
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 # RUN WITH:
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
-from src.recommender_core.recommender_algorithms.hybrid.classifier import load_bert_model
 
 
 @pytest.mark.integtest
