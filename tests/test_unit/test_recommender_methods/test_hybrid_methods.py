@@ -1,9 +1,10 @@
 import pandas as pd
 import pytest
 
-from src.recommender_core.recommender_algorithms.hybrid.classifier import Classifier, get_df_predicted
 
 # RUN WITH: python -m pytest tests/test_unit/test_hybrid_methods.py
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
+    Classifier, get_df_predicted
 
 classifier = Classifier()
 

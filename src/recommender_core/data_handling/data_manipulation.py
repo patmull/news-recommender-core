@@ -5,6 +5,7 @@ from pathlib import Path
 import psycopg2
 import pandas as pd
 import redis
+from pandas.io.sql import DatabaseError
 
 DB_USER = os.environ.get('DB_RECOMMENDER_USER')
 DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
@@ -113,16 +114,24 @@ class DatabaseMethods:
         return rs
 
     def get_all_users(self, column_name=None):
+        print("type(column_name)")
+        print(type(column_name))
         if column_name is None:
             sql_query = """SELECT * FROM users ORDER BY id;"""
         else:
-            sql_query = 'SELECT {} FROM users ORDER BY id;'
-        sql_query = sql_query.format("id, " + column_name)
+            if type(column_name) is not str:
+                raise TypeError('column_name is not string')
+            else:
+                sql_query = 'SELECT {} FROM users ORDER BY id;'
+                sql_query = sql_query.format("id, " + column_name)
         print("sql_query:")
         print(sql_query)
-        df = pd.read_sql_query(sql_query, self.get_cnx())
-        print("df")
-        print(df)
+        try:
+            df = pd.read_sql_query(sql_query, self.get_cnx())
+        except DatabaseError as e:
+            print(e)
+            print("Check if name of column in this table.")
+            raise e
         return df
 
     def get_post_by_id(self, post_id):
@@ -733,6 +742,24 @@ class DatabaseMethods:
             print("Error:", s)  # errno, sqlstate, msg values
             if self.cnx is not None:
                 self.cnx.rollback()
+
+    def null_test_user_prefilled_records(self, user_id):
+        try:
+            query = """UPDATE users SET recommended_by_svd = NULL, recommended_by_user_keywords = NULL WHERE id = %s;"""
+            queried_values = user_id
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query % queried_values)
+                self.cnx.commit()
+        except psycopg2.Error as e:
+            print("NOT INSERTED")
+            print("Error code:", e.pgcode)  # error number
+            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
+            print("Error:", e)  # errno, sqlstate, msg values
+            s = str(e)
+            print("Error:", s)  # errno, sqlstate, msg values
+            if self.cnx is not None:
+                self.cnx.rollback()
+
 
 
 def get_redis_connection():
