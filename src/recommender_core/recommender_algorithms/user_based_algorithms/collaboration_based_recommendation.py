@@ -104,8 +104,12 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
     print(predictions_df.to_string())
     print("original_ratings_df:")
     print(original_ratings_df.to_string())
+    print("user_id:")
+    print(user_id)
+    print("original_ratings_df['user_id'].values:")
+    print(original_ratings_df['user_id'].values)
     if user_id not in original_ratings_df['user_id'].values:
-        raise ValueError
+        raise ValueError("User id not found dataframe of original ratings.")
     sorted_user_predictions = predictions_df.loc[user_row_number].sort_values(ascending=False).to_frame()
 
     print("sorted_user_predictions")
@@ -205,10 +209,10 @@ class SvdClass:
         # Step 1
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
-
         sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, 
         r.value AS ratings_values FROM posts p JOIN ratings r ON r.post_id = p.id JOIN users u ON r.user_id = u.id;"""
         # LOAD INTO A DATAFRAME
+        database.connect()
         self.df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
         sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
         # LOAD INTO A DATAFRAME
@@ -218,6 +222,7 @@ class SvdClass:
         sql_select_all_posts = """SELECT p.id AS post_id, p.slug FROM posts p;"""
         # LOAD INTO A DATAFRAME
         self.df_posts = pd.read_sql_query(sql_select_all_posts, database.get_cnx())
+        database.disconnect()
         # print("Posts:")
         # print(self.df_posts)
         user_item_table = self.combine_user_item(self.df_ratings)
