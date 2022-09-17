@@ -511,20 +511,3 @@ class TfIdf:
             print(sim_matrix.to_csv("research/tfidf/tfidf_matrix.csv"))
 
         return sim_matrix
-
-    def get_most_similar_from_tfidf_matrix(self, user_id):
-        recommender_methods = RecommenderMethods()
-        df_user_history = recommender_methods.get_user_read_history(user_id=user_id)
-        df_articles = recommender_methods.get_posts_categories_dataframe()
-
-        print("df_user_history")
-        print(df_user_history)
-        print(df_user_history.columns)
-
-        print("df_articles")
-        print(df_articles)
-        print(df_articles.columns)
-
-        df_history_articles = df_user_history.merge(df_articles, on='post_id')
-        print(df_history_articles.columns)
-        return df_history_articles
