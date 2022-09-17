@@ -18,6 +18,7 @@ def accepts_first_argument(*types):
             print(args)
             print("first_type:")
             print(first_type)
+            # noinspection # noqa
             if not isinstance(checked_argument, first_type):
                 raise ValueError("arg %r does not match %s" % (checked_argument, first_type))
             if checked_argument == "":
