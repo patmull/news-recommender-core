@@ -1,5 +1,6 @@
-from recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 
 word2vec_embedding = None
 doc2vec_model = None
@@ -96,12 +97,18 @@ def main():
 
     searched_slug_1 = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     searched_slug_2 = "salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem"
+    searched_slug_3 = "sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik"
     """
     doc2vec_class = Doc2VecClass()
     print(doc2vec_class.get_pair_similarity(searched_slug_1, searched_slug_2))
     """
+    """
     word2vec = Word2VecClass()
     print(word2vec.get_pair_similarity(searched_slug_1, searched_slug_2))
+    """
+    test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
+    tfidf = TfIdf()
+    tfidf.get_pair_similiarity(test_slugs)
 
 
 if __name__ == "__main__": main()

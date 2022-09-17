@@ -610,6 +610,17 @@ class TfIdfDataHandlers:
         self.tfidf_vectorizer = TfidfVectorizer(dtype=np.float32,
                                                 stop_words=stopwords)
 
+    def calculate_cosine_sim_matrix(self, tupple_of_fitted_matrices):
+        print("tupple_of_fitted_matrices:")
+        print(tupple_of_fitted_matrices)
+        combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
+        print("combined_matrix1:")
+        print(combined_matrix1)
+
+        cosine_transform = CosineTransformer()
+        self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix(combined_matrix1, self.df)
+        return self.cosine_sim_df
+
     # # @profile
     def recommend_by_more_features(self, slug, tupple_of_fitted_matrices, num_of_recommendations=20):
         """
@@ -631,15 +642,7 @@ class TfIdfDataHandlers:
         As operation on sparse As takes .0012 seconds
         Af solving with full Af takes about 2.3 seconds
         """
-
-        print("tupple_of_fitted_matrices:")
-        print(tupple_of_fitted_matrices)
-        combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
-        print("combined_matrix1:")
-        print(combined_matrix1)
-
-        cosine_transform = CosineTransformer()
-        self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix(combined_matrix1, self.df)
+        self.cosine_sim_df = self.calculate_cosine_sim_matrix(tupple_of_fitted_matrices)
 
         # getting posts with the highest similarity
         combined_all = self.get_closest_posts(slug, self.cosine_sim_df,
