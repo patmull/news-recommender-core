@@ -317,10 +317,10 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                 print("Skipping.")
 
 
-def prefilling_job_user_based(method, db):
+def prefilling_job_user_based(method):
     while True:
         try:
-            fill_recommended_collab_based(method=method, skip_already_filled=True, db=db)
+            fill_recommended_collab_based(method=method, skip_already_filled=True)
         except psycopg2.OperationalError:
             print("DB operational error. Waiting few seconds before trying again...")
             t.sleep(30)  # wait 30 seconds then try again
