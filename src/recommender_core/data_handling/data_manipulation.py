@@ -122,6 +122,7 @@ class DatabaseMethods:
             if type(column_name) is not str:
                 raise TypeError('column_name is not string')
             else:
+                # noinspection
                 sql_query = 'SELECT {} FROM users ORDER BY id;'
                 sql_query = sql_query.format("id, " + column_name)
         print("sql_query:")
