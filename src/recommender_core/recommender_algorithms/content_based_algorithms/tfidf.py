@@ -441,3 +441,60 @@ class TfIdf:
     def get_prefilled_full_text(self):
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_categories_dataframe()
+
+    def get_pair_similiarity(self, list_of_slugs, num_of_recommendations=10):
+
+        recommender_methods = RecommenderMethods()
+        list_of_posts_series = []
+        for slug in list_of_slugs:
+            found_post = recommender_methods.find_post_by_slug(slug)
+            list_of_posts_series.append(found_post)
+        self.df = pd.concat(list_of_posts_series, ignore_index=True)
+        category_df = recommender_methods.get_categories_dataframe()
+        self.df = self.df.merge(category_df, left_on='category_id', right_on='id')
+        if 'title_y' in self.df.columns:
+            self.df = self.df.rename(columns={'title_y': 'category_title'})
+        my_file = Path("models/tfidf_all_features_preprocessed.npz")
+        if my_file.exists() is False:
+            raise FileNotFoundError("Cannot continue. TF-IDF of all posts was not found. "
+                                    "Cannot replace with only limited TF-IDF")
+        else:
+            fit_by_all_features_matrix = load_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz")
+
+        my_file = Path("models/tfidf_category_title.npz")
+        if my_file.exists() is False:
+            # category_title = category
+            tf_idf_data_handlers = TfIdfDataHandlers(self.df)
+            fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
+            save_sparse_csr(filename="models/tfidf_category_title.npz", array=fit_by_title)
+        else:
+            fit_by_title = load_sparse_csr(filename="models/tfidf_category_title.npz")
+
+        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)  # join feature tuples into one matrix
+
+        gc.collect()
+
+        print("tuple_of_fitted_matrices")
+        print(tuple_of_fitted_matrices)
+
+        print("self.df")
+        print(self.df.columns)
+
+        for searched_slug in list_of_slugs:
+
+            if searched_slug not in self.df['slug'].to_list():
+                raise ValueError('Slug does not appear in dataframe.')
+
+            try:
+                tfidf_data_handlers = TfIdfDataHandlers(self.df)
+                sim_matrix = tfidf_data_handlers.calculate_cosine_sim_matrix(tupple_of_fitted_matrices=tuple_of_fitted_matrices)
+            except ValueError:
+                fit_by_all_features_matrix = self.save_sparse_matrix()
+                tfidf_data_handlers = TfIdfDataHandlers(self.df)
+                fit_by_title = tfidf_data_handlers.get_fit_by_feature_('category_title')
+                save_sparse_csr(filename="models/tfidf_category_title.npz", array=fit_by_title)
+                fit_by_title = load_sparse_csr(filename="models/tfidf_category_title.npz")
+                tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
+                sim_matrix = tfidf_data_handlers.calculate_cosine_sim_matrix(tupple_of_fitted_matrices=tuple_of_fitted_matrices)
+            print("sim_matrix:")
+            print(sim_matrix.to_string())
