@@ -718,6 +718,12 @@ class DatabaseMethods:
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
+    def get_user_history(self, user_id):
+        sql = """SELECT * FROM user_history WHERE user_id = {} ORDER BY id;"""
+        sql = sql.format(user_id)
+        df = pd.read_sql_query(sql, self.get_cnx())
+        return df
+
     def insert_recommended_json_user_based(self, recommended_json, user_id, db, method):
         if db != "pgsql":
             raise NotImplementedError("Other database source than PostgreSQL not implemented yet.")
@@ -759,7 +765,6 @@ class DatabaseMethods:
             print("Error:", s)  # errno, sqlstate, msg values
             if self.cnx is not None:
                 self.cnx.rollback()
-
 
 
 def get_redis_connection():

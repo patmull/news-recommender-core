@@ -179,12 +179,18 @@ class TfIdf:
         # joining posts and categories into one table
         self.df = recommender_methods.join_posts_ratings_categories(include_prefilled=True)
 
-    def save_sparse_matrix(self):
+    def save_sparse_matrix(self, for_hybrid=False):
         print("Loading posts.")
+
+        if for_hybrid is False:
+            path = Path("models/tfidf_all_features_preprocessed.npz")
+        else:
+            path = Path("models/for_hybrid/tfidf_all_features_preprocessed.npz")
+
         tfidf_data_handlers = TfIdfDataHandlers(self.df)
         fit_by_all_features_matrix = tfidf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
         print("Saving sparse matrix into file...")
-        save_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz", array=fit_by_all_features_matrix)
+        save_sparse_csr(filename=path, array=fit_by_all_features_matrix)
         return fit_by_all_features_matrix
 
     def recommend_posts_by_all_features_preprocessed(self, searched_slug, num_of_recommendations=20):
@@ -207,16 +213,16 @@ class TfIdf:
         if my_file.exists() is False:
             fit_by_all_features_matrix = self.save_sparse_matrix()
         else:
-            fit_by_all_features_matrix = load_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz")
+            fit_by_all_features_matrix = load_sparse_csr(filename=my_file)
 
         my_file = Path("models/tfidf_category_title.npz")
         if my_file.exists() is False:
             # category_title = category
             tf_idf_data_handlers = TfIdfDataHandlers(self.df)
             fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
-            save_sparse_csr(filename="models/tfidf_category_title.npz", array=fit_by_title)
+            save_sparse_csr(filename=my_file, array=fit_by_title)
         else:
-            fit_by_title = load_sparse_csr(filename="models/tfidf_category_title.npz")
+            fit_by_title = load_sparse_csr(filename=my_file)
 
         tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)  # join feature tuples into one matrix
 
@@ -442,7 +448,7 @@ class TfIdf:
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_categories_dataframe()
 
-    def get_pair_similiarity(self, list_of_slugs, num_of_recommendations=10):
+    def get_similarity_matrix(self, list_of_slugs, save_to_csv=False):
 
         recommender_methods = RecommenderMethods()
         list_of_posts_series = []
@@ -456,19 +462,21 @@ class TfIdf:
             self.df = self.df.rename(columns={'title_y': 'category_title'})
         my_file = Path("models/tfidf_all_features_preprocessed.npz")
         if my_file.exists() is False:
-            raise FileNotFoundError("Cannot continue. TF-IDF of all posts was not found. "
-                                    "Cannot replace with only limited TF-IDF")
-        else:
-            fit_by_all_features_matrix = load_sparse_csr(filename="models/tfidf_all_features_preprocessed.npz")
+            print("Cannot continue. TF-IDF of all posts was not found. "
+                  "Cannot replace with only limited TF-IDF")
+            fit_by_all_features_matrix = self.save_sparse_matrix()
 
-        my_file = Path("models/tfidf_category_title.npz")
+        else:
+            fit_by_all_features_matrix = load_sparse_csr(filename=my_file)
+
+        my_file = Path("models/for_hybrid/tfidf_category_title.npz")
         if my_file.exists() is False:
             # category_title = category
             tf_idf_data_handlers = TfIdfDataHandlers(self.df)
             fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
-            save_sparse_csr(filename="models/tfidf_category_title.npz", array=fit_by_title)
+            save_sparse_csr(filename=my_file, array=fit_by_title)
         else:
-            fit_by_title = load_sparse_csr(filename="models/tfidf_category_title.npz")
+            fit_by_title = load_sparse_csr(filename=my_file)
 
         tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)  # join feature tuples into one matrix
 
@@ -480,21 +488,32 @@ class TfIdf:
         print("self.df")
         print(self.df.columns)
 
-        for searched_slug in list_of_slugs:
+        try:
+            tfidf_data_handlers = TfIdfDataHandlers(self.df)
+            sim_matrix = tfidf_data_handlers.calculate_cosine_sim_matrix(tupple_of_fitted_matrices
+                                                                         =tuple_of_fitted_matrices)
+        except ValueError as e:
+            print("Value error occurred:")
+            print(e)
+            my_file = Path("models/for_hybrid/tfidf_category_title_from_n_posts.npz")
+            fit_by_all_features_matrix = self.save_sparse_matrix(for_hybrid=True)
+            tfidf_data_handlers = TfIdfDataHandlers(self.df)
+            fit_by_title = tfidf_data_handlers.get_fit_by_feature_('category_title')
+            save_sparse_csr(filename=my_file, array=fit_by_title)
+            fit_by_title = load_sparse_csr(filename=my_file)
+            tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
+            sim_matrix = tfidf_data_handlers.calculate_cosine_sim_matrix(tupple_of_fitted_matrices
+                                                                         =tuple_of_fitted_matrices)
+        print("sim_matrix:")
+        print(sim_matrix)
 
-            if searched_slug not in self.df['slug'].to_list():
-                raise ValueError('Slug does not appear in dataframe.')
+        if save_to_csv is True:
+            print(sim_matrix.to_csv("research/tfidf/tfidf_matrix.csv"))
 
-            try:
-                tfidf_data_handlers = TfIdfDataHandlers(self.df)
-                sim_matrix = tfidf_data_handlers.calculate_cosine_sim_matrix(tupple_of_fitted_matrices=tuple_of_fitted_matrices)
-            except ValueError:
-                fit_by_all_features_matrix = self.save_sparse_matrix()
-                tfidf_data_handlers = TfIdfDataHandlers(self.df)
-                fit_by_title = tfidf_data_handlers.get_fit_by_feature_('category_title')
-                save_sparse_csr(filename="models/tfidf_category_title.npz", array=fit_by_title)
-                fit_by_title = load_sparse_csr(filename="models/tfidf_category_title.npz")
-                tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
-                sim_matrix = tfidf_data_handlers.calculate_cosine_sim_matrix(tupple_of_fitted_matrices=tuple_of_fitted_matrices)
-            print("sim_matrix:")
-            print(sim_matrix.to_string())
+        return sim_matrix
+
+    def get_most_similar_from_tfidf_matrix(self, user_id):
+        recommender_methods = RecommenderMethods()
+        df_user_history = recommender_methods.get_user_read_history(user_id=user_id)
+
+

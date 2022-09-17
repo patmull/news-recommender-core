@@ -100,15 +100,15 @@ def main():
     searched_slug_3 = "sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik"
     """
     doc2vec_class = Doc2VecClass()
-    print(doc2vec_class.get_pair_similarity(searched_slug_1, searched_slug_2))
+    print(doc2vec_class.get_similarity_matrix(searched_slug_1, searched_slug_2))
     """
     """
     word2vec = Word2VecClass()
-    print(word2vec.get_pair_similarity(searched_slug_1, searched_slug_2))
+    print(word2vec.get_similarity_matrix(searched_slug_1, searched_slug_2))
     """
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
     tfidf = TfIdf()
-    tfidf.get_pair_similiarity(test_slugs)
+    tfidf.get_similarity_matrix(test_slugs)
 
 
 if __name__ == "__main__": main()
