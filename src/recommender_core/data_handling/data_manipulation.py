@@ -94,7 +94,7 @@ class DatabaseMethods:
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         self.df = self.df[
-            ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
+            ['post_id', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed']]
 
     def get_posts_join_categories(self):

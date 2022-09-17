@@ -413,7 +413,7 @@ def get_posts_lightgbm(slug, use_categorical_columns=True):
     # noinspection PyPep8Naming
     features_X = ['coefficient', 'views']
 
-    all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'id_x', 'post_title',
+    all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'post_id', 'post_title',
                    'excerpt', 'body', 'views', 'keywords', 'category', 'description', 'all_features_preprocessed',
                    'body_preprocessed']
     if use_categorical_columns is True:

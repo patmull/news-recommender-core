@@ -61,7 +61,7 @@ class GensimMethods:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='searched_id')
             # clean up from unnecessary columns
             self.df = self.df[
-                ['id_x', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description']]
+                ['post_id', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description']]
         else:
             raise ValueError("Datafame is set to None. Cannot continue with next operation.")
 
