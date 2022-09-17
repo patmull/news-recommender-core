@@ -497,6 +497,12 @@ class RecommenderMethods:
         self.database.disconnect()
         return df_users
 
+    def get_user_read_history(self, user_id):
+        self.database.connect()
+        df_user_read_history = self.database.get_user_history(user_id=user_id)
+        self.database.disconnect()
+        return df_user_read_history
+
     def insert_recommended_json_user_based(self, recommended_json, user_id, db, method):
         self.database.connect()
         self.database.insert_recommended_json_user_based(recommended_json=recommended_json,
@@ -507,6 +513,8 @@ class RecommenderMethods:
         self.database.connect()
         self.database.null_test_user_prefilled_records(user_id)
         self.database.disconnect()
+
+
 
 
 def get_cleaned_text(row):
