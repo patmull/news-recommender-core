@@ -21,7 +21,6 @@ from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilari
 from gensim.similarities.annoy import AnnoyIndexer
 from gensim.utils import deaccent
 from pymongo import MongoClient
-from scipy import spatial
 
 from src.recommender_core.data_handling.data_handlers import flatten
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
@@ -993,8 +992,6 @@ class Word2VecClass:
 
     def get_pair_similarity(self, slug_1, slug_2):
         w2v_model = KeyedVectors.load("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
-        import gensim.downloader as api
-        # w2v_model = api.load("glove-wiki-gigaword-50") #choose from multiple models https://github.com/RaRe-Technologies/gensim-data
 
         recommend_methods = RecommenderMethods()
         post_1 = recommend_methods.find_post_by_slug(slug_1)
