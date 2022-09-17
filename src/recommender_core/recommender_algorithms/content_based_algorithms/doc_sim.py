@@ -215,14 +215,12 @@ class DocSim:
         words = [word for word, count in dictionary.most_common()]
 
         try:
-            word_vectors = self.w2v_model.wv.vectors_for_all(words,
-                                                             allow_inference=False)
+            word_vectors = self.w2v_model.wv.vectors_for_all(words, allow_inference=False)
             # produce vectors for words in train_corpus
         except AttributeError:
             # TODO: This is None Type, found out why!
             try:
-                word_vectors = self.w2v_model.vectors_for_all(words,
-                                                              allow_inference=False)
+                word_vectors = self.w2v_model.vectors_for_all(words, allow_inference=False)
             except AttributeError as e:
                 print(e)
                 print(traceback.format_exc())
@@ -230,14 +228,14 @@ class DocSim:
 
         indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
         termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})  # for similarity index
-        similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary,
-                                                       tfidf)  # compute word similarities # for docsim_index creation
+        similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary, tfidf)
+        # compute word similarities # for docsim_index creation
 
         if tfidf_corpus is None:
             tfidf_corpus = tfidf[
                 [dictionary.doc2bow(document) for document in common_texts]]  # for docsim_index creation
-        docsim_index = SoftCosineSimilarity(tfidf_corpus, similarity_matrix,
-                                            num_best=21)  # index tfidf_corpus        print("source_doc:")
+        # index tfidf_corpus
+        docsim_index = SoftCosineSimilarity(tfidf_corpus, similarity_matrix, num_best=21)
         print("DocSim index saved.")
         docsim_index.save(docsim_index_path)
         return docsim_index
