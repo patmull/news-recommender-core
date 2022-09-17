@@ -1045,8 +1045,8 @@ class Word2VecClass:
 
         indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
         termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})  # for similarity index
-        termsim_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary,
-                                                       tfidf)  # compute word similarities # for docsim_index creation
+        termsim_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary, tfidf)
+        # compute word similarities # for docsim_index creation
 
         similarity = termsim_matrix.inner_product(first_text, second_text, normalized=(True, True))
 
