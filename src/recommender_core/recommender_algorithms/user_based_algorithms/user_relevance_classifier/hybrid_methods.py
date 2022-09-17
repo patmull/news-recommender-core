@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import OneHotEncoder
 
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import preprocess_one_hot, \
     make_post_feature, train_lightgbm_user_based
@@ -151,3 +152,45 @@ def get_posts_lightgbm(results, use_categorical_columns=True):
     result = recommend_df.to_json(orient="records")
     parsed = json.loads(result)
     return json.dumps(parsed, indent=4)
+
+
+def get_most_similar_from_tfidf_matrix(user_id, posts_to_compare):
+    """
+    posts_to_compare: i.e. svd_recommended_posts
+    """
+    if type(posts_to_compare) is not list:
+        raise ValueError("'posts_to_compare' parameter must be a list!")
+
+    recommender_methods = RecommenderMethods()
+    df_user_read_history_with_posts = recommender_methods.get_user_read_history_with_posts(user_id)
+
+    list_of_slugs_from_history = df_user_read_history_with_posts['slug'].to_list()
+
+    list_of_slugs = posts_to_compare + list_of_slugs_from_history
+
+    tfidf = TfIdf()
+
+    similarity_matrix = tfidf.get_similarity_matrix(list_of_slugs)
+
+    print("Similarity matrix:")
+    print(similarity_matrix)
+
+    print("Similarity matrix type:")
+    print(type(similarity_matrix)),
+
+    similarity_matrix = similarity_matrix.drop(columns=posts_to_compare)
+    similarity_matrix = similarity_matrix.drop(list_of_slugs_from_history)
+
+    print("similarity_matrix:")
+    print(similarity_matrix)
+    print(similarity_matrix.columns)
+    similarity_matrix['coefficient'] = similarity_matrix.sum(axis=1)
+    similarity_matrix = similarity_matrix.sort_values(by='coefficient', ascending=False)
+    similarity_matrix = similarity_matrix['coefficient']
+    similarity_matrix = similarity_matrix.rename_axis('slug').reset_index()
+    print("similarity_matrix:")
+    print(similarity_matrix)
+    similarity_matrix_json = similarity_matrix.to_json(orient='records')
+    parsed = json.loads(similarity_matrix_json)
+    similarity_matrix_json = json.dumps(parsed)
+    return similarity_matrix_json
