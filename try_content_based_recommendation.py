@@ -106,9 +106,10 @@ def main():
     word2vec = Word2VecClass()
     print(word2vec.get_similarity_matrix(searched_slug_1, searched_slug_2))
     """
+    """
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
     tfidf = TfIdf()
     tfidf.get_similarity_matrix(test_slugs)
-
+    """
 
 if __name__ == "__main__": main()
