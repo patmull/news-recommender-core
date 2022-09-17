@@ -309,7 +309,7 @@ class RecommenderMethods:
             # clean up from unnecessary columns
             try:
                 self.df = self.df[
-                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
                      'description',
                      'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text', 'trigrams_full_text']]
@@ -318,7 +318,7 @@ class RecommenderMethods:
                 self.posts_df.drop_duplicates(subset=['title'], inplace=True)
                 print(self.df.columns.values)
                 self.df = self.df[
-                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
                      'description', 'all_features_preprocessed', 'body_preprocessed',
                      'recommended_tfidf_full_text', 'trigrams_full_text']]
         print("4.3")
@@ -327,7 +327,7 @@ class RecommenderMethods:
         if full_text is True:
             try:
                 self.df = self.df[
-                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
                      'description',
                      'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text',
                      'trigrams_full_text']]
@@ -338,13 +338,13 @@ class RecommenderMethods:
                 print(self.df.columns)
                 self.df = self.df.rename(columns={'slug_x': 'post_slug'})
                 self.df = self.df[
-                    ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
                      'description',
                      'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text',
                      'trigrams_full_text']]
         else:
             self.df = self.df[
-                ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
                  'description',
                  'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'trigrams_full_text']]
         return self.df
@@ -383,6 +383,8 @@ class RecommenderMethods:
         print(categories_df)
         print(categories_df.columns)
         self.df = pd.merge(posts_df, categories_df, left_on='category_id', right_on='id')
+        if 'id_x' in self.df.columns:
+            self.df = self.df.rename(columns={'id_x': 'post_id'})
         return self.df
 
     def get_posts_categories_full_text(self):
@@ -402,8 +404,11 @@ class RecommenderMethods:
         print(self.df.columns)
         if 'post_title' in self.df.columns:
             self.df = self.df.rename({'title': 'post_title', 'slug': 'post_slug'})
+
+        if 'id_x' in self.df.columns:
+            self.df = self.df.rename({'id_x': 'post_id'})
         self.df = self.df[
-            ['id_x', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
+            ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
              'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
         return self.df
 
@@ -513,8 +518,6 @@ class RecommenderMethods:
         self.database.connect()
         self.database.null_test_user_prefilled_records(user_id)
         self.database.disconnect()
-
-
 
 
 def get_cleaned_text(row):
