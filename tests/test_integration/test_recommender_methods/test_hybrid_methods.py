@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
+from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
     get_most_similar_from_tfidf_matrix
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     load_bert_model
