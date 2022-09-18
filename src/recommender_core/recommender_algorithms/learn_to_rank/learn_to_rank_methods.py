@@ -23,7 +23,7 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
-    UserBasedRecommendation
+    UserBasedMethods
 from sklearn.linear_model import LogisticRegression
 
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier import \
@@ -460,7 +460,7 @@ class LightGBMMethods:
     tfidf = TfIdf()
     doc2vec = Doc2VecClass()
     lda = Lda()
-    user_based_recommendation = UserBasedRecommendation()
+    user_based_recommendation = UserBasedMethods()
     svd = SvdClass()
 
     feature_list = []  # type: list
@@ -676,7 +676,7 @@ def linear_regression(user_id, post_slug):
     tfidf = TfIdf()
     doc2vec = Doc2VecClass()
     lda = Lda()
-    user_based_recommendation = UserBasedRecommendation()
+    user_based_recommendation = UserBasedMethods()
     svd = SvdClass()
 
     feature_list = []

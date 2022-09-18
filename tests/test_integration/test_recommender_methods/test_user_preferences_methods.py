@@ -11,14 +11,14 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.user_based_algorithms\
-    .user_keywords_recommendation import UserBasedRecommendation
+    .user_keywords_recommendation import UserBasedMethods
 
 
 # TODO:
 # pytest tests\test_integration\test_recommender_methods\test_user_preferences_methods.py::test_user_categories
 @pytest.mark.integtest
 def test_user_categories():
-    user_based_recommendation = UserBasedRecommendation()
+    user_based_recommendation = UserBasedMethods()
     recommender_methods = RecommenderMethods()
     # TODO: Repair Error
     users = recommender_methods.get_users_dataframe()

@@ -602,14 +602,6 @@ class Doc2VecClass:
 
         return get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_recommended_posts)
 
-    def load_model(self, path_to_model=None):
-        print("Loading Doc2Vec vectors...")
-        if path_to_model is None:
-            self.doc2vec_model = Doc2Vec.load(DEFAULT_MODEL_LOCATION)
-        else:
-            self.doc2vec_model = Doc2Vec.load(path_to_model)
-        return self.doc2vec_model
-
     def get_vector_representation(self, searched_slug):
         """
         For Learn-to-Rank
@@ -634,8 +626,9 @@ class Doc2VecClass:
         recommender_methods = RecommenderMethods()
         return recommender_methods.get_prefilled_full_text(slug, variant)
 
-    def get_pair_similarity(self, slug_1, slug_2):
-        d2v_model = self.load_model('models/d2v_full_text_limited.model')
+    def get_pair_similarity_doc2vec(self, slug_1, slug_2, d2v_model=None):
+        if d2v_model is None:
+            d2v_model = self.load_model('models/d2v_full_text_limited.model')
 
         recommend_methods = RecommenderMethods()
         post_1 = recommend_methods.find_post_by_slug(slug_1)
