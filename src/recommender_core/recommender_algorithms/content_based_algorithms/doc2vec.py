@@ -659,6 +659,7 @@ class Doc2VecClass:
         return cos_distance
 
     def load_model(self):
-        return load_doc2vec_model()
+        self.doc2vec_model = load_doc2vec_model()
+        return self.doc2vec_model
 
 
