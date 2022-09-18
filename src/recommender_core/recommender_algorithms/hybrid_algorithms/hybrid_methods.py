@@ -16,7 +16,7 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keyw
     UserBasedMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
-    load_docvec_model
+    load_doc2vec_model
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
@@ -230,28 +230,50 @@ def get_most_similar_from_content_based_matrix_and_delivered_posts(user_id, post
     results_df = pd.concat([results_df_tfidf['slug'], results_df_tfidf['coefficient'],
                             results_df_word2vec['coefficient'], results_df_doc2vec['coefficient']],
                            axis=1, keys=['slug', 'coefficient_tfidf', 'coefficient_word2vec', 'coefficient_doc2vec'])
-    results_df.to_csv('research/hybrid/testing_hybrid_results.csv')
-
     print("results_df")
     print(results_df)
 
     cofficient_columns = ['coefficient_tfidf', 'coefficient_word2vec', 'coefficient_doc2vec']
 
-    normalized_df = (results_df[cofficient_columns] - results_df[cofficient_columns].mean()) \
-                    / results_df[cofficient_columns].std()
-    normalized_df['coefficient'] = normalized_df.sum(axis=1)
+    results_df[cofficient_columns] = (results_df[cofficient_columns] - results_df[cofficient_columns].mean()) \
+                                     / results_df[cofficient_columns].std()
+    print("normalized_df:")
+    print(results_df)
+    results_df['coefficient'] = results_df.sum(axis=1)
+
+    recommender_methods = RecommenderMethods()
+    df_posts_categories = recommender_methods.get_posts_categories_dataframe()
+
+    print("results_df:")
+    print(results_df)
+
+    results_df = results_df.merge(df_posts_categories, left_on='slug', right_on='slug')
+    print("results_df after merge")
+    print(results_df)
+
     recommend_methods = RecommenderMethods()
     user_categories = recommend_methods.get_user_categories(user_id)
     print("Categories for user " + str(user_id))
     print(user_categories)
+    user_categories_list = user_categories['category_slug'].values.tolist()
+    print("user_categories_list:")
+    print(user_categories_list)
 
-    results_df = normalized_df.sort_values(by='coefficient', ascending=False)
+    results_df.coefficient = np.where(
+        results_df["category_slug"].isin(user_categories_list),
+        results_df.coefficient * 1.5,
+        results_df.coefficient)
+
+    results_df = results_df.set_index('slug')
+    results_df = results_df.sort_values(by='coefficient', ascending=False)
     results_df = results_df['coefficient']
     results_df = results_df.rename_axis('slug').reset_index()
 
     hybrid_recommended_json = results_df.to_json(orient='records')
     parsed = json.loads(hybrid_recommended_json)
     hybrid_recommended_json = json.dumps(parsed)
+    print(hybrid_recommended_json)
+
     return hybrid_recommended_json
 
 
@@ -283,13 +305,13 @@ def get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_f
 
 def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
                                                 list_of_slugs_from_history):
-
     if method == "word2vec":
+        path_to_model = Path("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
         content_based_method = Word2VecClass()
-        w2v_model = KeyedVectors.load("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
+        w2v_model = KeyedVectors.load(path_to_model)
     elif method == "doc2vec":
         content_based_method = Doc2VecClass()
-        d2v_model = load_docvec_model('models/d2v_full_text_limited.model')
+        d2v_model = load_doc2vec_model('models/d2v_full_text_limited.model')
     else:
         raise NotImplementedError("Method not supported.")
 
