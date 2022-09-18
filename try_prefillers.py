@@ -9,7 +9,7 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 """
 classifier = Classifier()
 try:
-    bert = spacy_sentence_bert.load_docvec_model('xx_stsb_xlm_r_multilingual')
+    bert = spacy_sentence_bert.load_doc2vec_model('xx_stsb_xlm_r_multilingual')
     classifier.predict_relevance_for_user(user_id=431, relevance_by='stars', only_with_bert_vectors=False,
                                           bert_model=bert, use_only_sample_of=20)
 

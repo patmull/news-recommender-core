@@ -12,6 +12,8 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from scipy import spatial
 from sklearn.model_selection import train_test_split
 
+from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
+    load_doc2vec_model
 from src.recommender_core.data_handling.data_handlers import flatten
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import verify_searched_slug_sanity, \
     preprocess_columns
@@ -655,5 +657,8 @@ class Doc2VecClass:
         print(cos_distance)
 
         return cos_distance
+
+    def load_model(self):
+        return load_doc2vec_model()
 
 
