@@ -101,7 +101,7 @@ print(found_df['slug'].iloc[0])
 """
 
 """
-user_based_recommendation = UserBasedRecommendation()
+user_based_recommendation = UserBasedMethods()
 user_based_recommendation.load_recommended_posts_for_user(371)
 """
 tfidf = TfIdf()
