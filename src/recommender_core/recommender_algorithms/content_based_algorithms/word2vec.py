@@ -16,7 +16,7 @@ import regex
 import tqdm
 from gensim import corpora
 from gensim.corpora import Dictionary
-from gensim.models import KeyedVectors, Word2Vec
+from gensim.models import KeyedVectors, Word2Vec, TfidfModel
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from gensim.similarities.annoy import AnnoyIndexer
 from gensim.utils import deaccent
@@ -990,9 +990,9 @@ class Word2VecClass:
         return np.sum(
             np.array([models[i] for i in preprocess(s)]), axis=0)
 
-    def get_pair_similarity(self, slug_1, slug_2):
-        w2v_model = KeyedVectors.load("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
+    def get_pair_similarity_word2vec(self, slug_1, slug_2, w2v_model=None):
 
+        # TODO: Deliver model to method. Does not make a sense to load every time!
         recommend_methods = RecommenderMethods()
         post_1 = recommend_methods.find_post_by_slug(slug_1)
         post_2 = recommend_methods.find_post_by_slug(slug_2)
@@ -1000,8 +1000,10 @@ class Word2VecClass:
         feature_1 = 'all_features_preprocessed'
         feature_2 = 'title'
 
-        first_text = post_1[feature_2].iloc[0] + ' ' + post_1[feature_1].iloc[0]
-        second_text = post_2[feature_2].iloc[0] + ' ' + post_2[feature_1].iloc[0]
+        list_of_features = [feature_1, feature_2]
+
+        first_text = recommend_methods.combine_features_from_single_df_row(post_1, list_of_features)
+        second_text = recommend_methods.combine_features_from_single_df_row(post_2, list_of_features)
 
         print(first_text)
         print(second_text)
@@ -1010,44 +1012,58 @@ class Word2VecClass:
         second_text = preprocess(second_text).split()
 
         documents = [first_text, second_text]
-        print("documents:")
-        print(documents)
+
         dictionary = Dictionary(documents)
 
         first_text = dictionary.doc2bow(first_text)
         second_text = dictionary.doc2bow(second_text)
 
-        from gensim.models import TfidfModel
+        if w2v_model is None:
+            w2v_model = KeyedVectors.load("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
+
         documents = [first_text, second_text]
+        termsim_matrix = self.prepare_termsim_and_dictionary_for_pair(documents, dictionary, first_text,
+                                                                      second_text, w2v_model)
+
+        from gensim.models import TfidfModel
         tfidf = TfidfModel(documents)
 
         first_text = tfidf[first_text]
         second_text = tfidf[second_text]
 
+        # compute word similarities # for docsim_index creation
+        similarity = termsim_matrix.inner_product(first_text, second_text, normalized=(True, True))
+
+        return similarity
+
+    def prepare_termsim_and_dictionary_for_pair(self, documents, dictionary, first_text, second_text, w2v_model):
+        print("documents:")
+        print(documents)
+
+        from gensim.models import TfidfModel
+        documents = [first_text, second_text]
+        tfidf = TfidfModel(documents)
+
         words = [word for word, count in dictionary.most_common()]
 
         try:
-            word_vectors = w2v_model.wv.vectors_for_all(words,
-                                                             allow_inference=False)
+            word_vectors = w2v_model.wv.vectors_for_all(words, allow_inference=False)
             # produce vectors for words in train_corpus
         except AttributeError:
             # TODO: This is None Type, found out why!
             try:
-                word_vectors = w2v_model.vectors_for_all(words,
-                                                              allow_inference=False)
+                word_vectors = w2v_model.vectors_for_all(words, allow_inference=False)
             except AttributeError as e:
                 print(e)
                 print(traceback.format_exc())
                 raise AttributeError
 
         indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
-        termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})  # for similarity index
+        # for similarity index
+        termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})
         termsim_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary, tfidf)
-        # compute word similarities # for docsim_index creation
 
-        similarity = termsim_matrix.inner_product(first_text, second_text, normalized=(True, True))
-
-        return similarity
+        return termsim_matrix
 
 
 def preprocess_question_words_file():

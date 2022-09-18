@@ -1,12 +1,23 @@
 import gc
+import itertools
 import json
 import pickle
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from gensim.corpora import Dictionary
+from gensim.models import KeyedVectors
+from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
+from gensim.similarities.annoy import AnnoyIndexer
 from sklearn.preprocessing import OneHotEncoder
 
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
+    UserBasedMethods
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
+from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
+    load_docvec_model
+from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import preprocess_one_hot, \
@@ -154,9 +165,16 @@ def get_posts_lightgbm(results, use_categorical_columns=True):
     return json.dumps(parsed, indent=4)
 
 
-def get_most_similar_from_tfidf_matrix(user_id, posts_to_compare):
+def select_list_of_posts_for_user(user_id, posts_to_compare):
     """
-    posts_to_compare: i.e. svd_recommended_posts
+    Appends posts from user history to posts from other algorithm, i.e. collab recommendation by SVD.
+
+    Returns
+    -------
+    list
+        a list of all slugs ([posts to compare] + [user reading history[), i.e. for similarity matrix building
+    list
+        a list of slugs from user reading history
     """
     if type(posts_to_compare) is not list:
         raise ValueError("'posts_to_compare' parameter must be a list!")
@@ -167,16 +185,136 @@ def get_most_similar_from_tfidf_matrix(user_id, posts_to_compare):
     list_of_slugs_from_history = df_user_read_history_with_posts['slug'].to_list()
 
     list_of_slugs = posts_to_compare + list_of_slugs_from_history
+    return list_of_slugs, list_of_slugs_from_history
 
+
+def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
+    similarity_matrix['coefficient'] = similarity_matrix.sum(axis=1)
+    results_df = similarity_matrix.sort_values(by='coefficient', ascending=False)
+    results_df = results_df['coefficient']
+    results_df = results_df.rename_axis('slug').reset_index()
+    print("similarity_matrix after sorting:")
+    print(results_df)
+    return results_df
+
+
+def get_most_similar_from_content_based_matrix_and_delivered_posts(user_id, posts_to_compare):
+    """
+    posts_to_compare: i.e. svd_recommended_posts
+    """
+    list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, posts_to_compare)
+
+    # TF-IDF
+    similarity_matrix = get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_from_history)
+    results_df_tfidf = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+    # Word2Vec
+    method = "word2vec"
+    similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
+                                                                    list_of_slugs_from_history)
+    results_df_word2vec = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+    # Doc2Vec
+    method = "doc2vec"
+    similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
+                                                                    list_of_slugs_from_history)
+    results_df_doc2vec = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+
+    print("Results tfidf")
+    print(results_df_tfidf)
+
+    print("results_df_word2vec")
+    print(results_df_word2vec)
+
+    print("results_df_doc2vec")
+    print(results_df_doc2vec)
+
+    results_df = pd.concat([results_df_tfidf['slug'], results_df_tfidf['coefficient'],
+                            results_df_word2vec['coefficient'], results_df_doc2vec['coefficient']],
+                           axis=1, keys=['slug', 'coefficient_tfidf', 'coefficient_word2vec', 'coefficient_doc2vec'])
+    results_df.to_csv('research/hybrid/testing_hybrid_results.csv')
+
+    print("results_df")
+    print(results_df)
+
+    cofficient_columns = ['coefficient_tfidf', 'coefficient_word2vec', 'coefficient_doc2vec']
+
+    normalized_df = (results_df[cofficient_columns] - results_df[cofficient_columns].mean()) \
+                    / results_df[cofficient_columns].std()
+    normalized_df['coefficient'] = normalized_df.sum(axis=1)
+    recommend_methods = RecommenderMethods()
+    user_categories = recommend_methods.get_user_categories(user_id)
+    print("Categories for user " + str(user_id))
+    print(user_categories)
+
+    results_df = normalized_df.sort_values(by='coefficient', ascending=False)
+    results_df = results_df['coefficient']
+    results_df = results_df.rename_axis('slug').reset_index()
+
+    hybrid_recommended_json = results_df.to_json(orient='records')
+    parsed = json.loads(hybrid_recommended_json)
+    hybrid_recommended_json = json.dumps(parsed)
+    return hybrid_recommended_json
+
+
+def drop_columns_from_similarity_matrix(similarity_matrix, posts_to_compare, list_of_slugs_from_history):
+    similarity_matrix = similarity_matrix.drop(columns=posts_to_compare)
+    similarity_matrix = similarity_matrix.drop(list_of_slugs_from_history)
+    return similarity_matrix
+
+
+def get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_from_history):
     tfidf = TfIdf()
 
     similarity_matrix = tfidf.get_similarity_matrix(list_of_slugs)
 
     print("Similarity matrix:")
     print(similarity_matrix)
+    print("Similarity matrix type:")
+    print(type(similarity_matrix))
+
+    similarity_matrix = drop_columns_from_similarity_matrix(similarity_matrix, posts_to_compare,
+                                                            list_of_slugs_from_history)
+
+    print("similarity_matrix:")
+    print(similarity_matrix)
+    print(similarity_matrix.columns)
+
+    return similarity_matrix
+
+
+def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
+                                                list_of_slugs_from_history):
+
+    if method == "word2vec":
+        content_based_method = Word2VecClass()
+        w2v_model = KeyedVectors.load("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
+    elif method == "doc2vec":
+        content_based_method = Doc2VecClass()
+        d2v_model = load_docvec_model('models/d2v_full_text_limited.model')
+    else:
+        raise NotImplementedError("Method not supported.")
+
+    similarity_list = []
+    for x in list_of_slugs:
+        inner_list = []
+        for y in list_of_slugs:
+            if method == "word2vec":
+                inner_list.append(content_based_method.get_pair_similarity_word2vec(x, y, w2v_model))
+            elif method == "doc2vec":
+                inner_list.append(content_based_method.get_pair_similarity_doc2vec(x, y, d2v_model))
+        similarity_list.append(inner_list)
+        print("similarity_list:")
+        print(similarity_list)
+
+    print("similarity_list:")
+    print(similarity_list)
+
+    similarity_matrix = pd.DataFrame(similarity_list, columns=list_of_slugs, index=list_of_slugs)
+
+    print("Similarity matrix:")
+    print(similarity_matrix)
 
     print("Similarity matrix type:")
-    print(type(similarity_matrix)),
+    print(type(similarity_matrix))
 
     similarity_matrix = similarity_matrix.drop(columns=posts_to_compare)
     similarity_matrix = similarity_matrix.drop(list_of_slugs_from_history)
@@ -184,13 +322,5 @@ def get_most_similar_from_tfidf_matrix(user_id, posts_to_compare):
     print("similarity_matrix:")
     print(similarity_matrix)
     print(similarity_matrix.columns)
-    similarity_matrix['coefficient'] = similarity_matrix.sum(axis=1)
-    similarity_matrix = similarity_matrix.sort_values(by='coefficient', ascending=False)
-    similarity_matrix = similarity_matrix['coefficient']
-    similarity_matrix = similarity_matrix.rename_axis('slug').reset_index()
-    print("similarity_matrix:")
-    print(similarity_matrix)
-    similarity_matrix_json = similarity_matrix.to_json(orient='records')
-    parsed = json.loads(similarity_matrix_json)
-    similarity_matrix_json = json.dumps(parsed)
-    return similarity_matrix_json
+
+    return similarity_matrix

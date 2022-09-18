@@ -14,7 +14,7 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms\
     .collaboration_based_recommendation import SvdClass
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, preprocess_single_post_find_by_slug
 from src.recommender_core.recommender_algorithms\
-    .user_based_algorithms.user_keywords_recommendation import UserBasedRecommendation
+    .user_based_algorithms.user_keywords_recommendation import UserBasedMethods
 from flask import Flask, request
 from flask_restful import Resource, Api
 
@@ -182,7 +182,7 @@ class GetPostsByOtherUsers(Resource):
 class GetPostsByUserPreferences(Resource):
 
     def get(self, param1, param2):
-        user_based_recommendation = UserBasedRecommendation()
+        user_based_recommendation = UserBasedMethods()
         return user_based_recommendation.load_recommended_posts_for_user(param1, param2)
 
     def post(self):

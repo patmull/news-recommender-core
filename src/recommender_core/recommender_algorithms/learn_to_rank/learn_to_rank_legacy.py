@@ -18,7 +18,7 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf 
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
     SvdClass
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation \
-    import UserBasedRecommendation
+    import UserBasedMethods
 
 REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD")
 
@@ -30,7 +30,7 @@ SEED = 2021
 @DeprecationWarning
 class LightGBM:
     tfidf = TfIdf()
-    user_based_recommendation = UserBasedRecommendation()
+    user_based_recommendation = UserBasedMethods()
     svd = SvdClass()
 
     feature_list = []
