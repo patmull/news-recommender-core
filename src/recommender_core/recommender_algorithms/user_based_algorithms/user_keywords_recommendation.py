@@ -1,5 +1,7 @@
 import json
 
+import pandas as pd
+
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
@@ -34,7 +36,7 @@ def load_ratings():
     return posts_users_categories_ratings_df
 
 
-class UserBasedRecommendation:
+class UserBasedMethods:
 
     def __init__(self):
         self.database = None
@@ -70,10 +72,20 @@ class UserBasedRecommendation:
     def get_user_keywords(self, user_id):
         pass
 
+    def get_user_categories(self, user_id):
+        sql_user_categories = """SELECT c.slug AS "category_slug" FROM user_categories uc JOIN categories c 
+        ON c.id = uc.category_id WHERE uc.user_id = (%(user_id)s);"""
+        queryParams = {'user_id': user_id}
+        df_user_categories = pd.read_sql_query(sql_user_categories, self.get_database().get_cnx(), params=queryParams)
+
+        print("df_user_categories:")
+        print(df_user_categories)
+        return df_user_categories
+
 
 def main():
     # Testing
-    user_based_recommendation = UserBasedRecommendation()
+    user_based_recommendation = UserBasedMethods()
     print(user_based_recommendation.load_recommended_posts_for_user(211, 4))
 
 

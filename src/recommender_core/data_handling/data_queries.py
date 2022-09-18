@@ -535,6 +535,9 @@ class RecommenderMethods:
         self.database.null_test_user_prefilled_records(user_id)
         self.database.disconnect()
 
+    def combine_features_from_single_df_row(self, single_row_df, list_of_features):
+        return (single_row_df[list_of_features] + ' ').sum(axis=1).str.strip()
+
 
 def get_cleaned_text(row):
     return row
