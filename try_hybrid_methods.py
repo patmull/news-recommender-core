@@ -9,7 +9,7 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2ve
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
     get_similarity_matrix_from_pairs_similarity, select_list_of_posts_for_user, \
-    get_most_similar_from_content_based_matrix_and_delivered_posts
+    get_most_similar_by_hybrid
 
 
 def main():
@@ -30,7 +30,7 @@ def main():
     get_similarity_matrix_from_pairs_similarity("word2vec", list_of_slugs, test_slugs, list_of_slugs_from_history)
     
     start = time.time()
-    print(get_most_similar_from_content_based_matrix_and_delivered_posts(test_user_id, test_slugs))
+    print(get_most_similar_by_hybrid(test_user_id, test_slugs))
     end = time.time()
     print(end - start)
 
