@@ -562,7 +562,10 @@ class TfIdfDataHandlers:
 
     def most_similar_by_keywords(self, keywords, tupple_of_fitted_matrices, number_of_recommended_posts=20):
         # combining results of all feature types to sparse matrix
-        combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices, dtype=np.float16)
+        try:
+            combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices, dtype=np.float16)
+        except ValueError:
+            raise ValueError
 
         # computing cosine similarity using matrix with combined features
         print("Computing cosine similarity using matrix with combined features...")
