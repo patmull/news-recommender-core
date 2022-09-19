@@ -1,19 +1,13 @@
 import gc
-import itertools
 import json
 import pickle
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from gensim.corpora import Dictionary
 from gensim.models import KeyedVectors
-from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
-from gensim.similarities.annoy import AnnoyIndexer
 from sklearn.preprocessing import OneHotEncoder
 
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
-    UserBasedMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
     load_doc2vec_model
@@ -65,6 +59,8 @@ def prepare_categories():
     return post_category_df
 
 
+# TODO: Remove in the next code review
+@DeprecationWarning
 def get_posts_lightgbm(results, use_categorical_columns=True):
     one_hot_encoder, categorical_columns_after_encoding = None, None
 
@@ -90,6 +86,7 @@ def get_posts_lightgbm(results, use_categorical_columns=True):
     print(post_category_df.columns)
 
     results = results.merge(post_category_df, left_on='slug', right_on='slug')
+    # noinspection DuplicatedCode
     results = results.rename({"doc2vec_representation": "doc2vec"}, axis=1)
     df2 = pd.DataFrame(results)
     doc2vec_column_name_base = "doc2vec_col_"
@@ -198,13 +195,14 @@ def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
     return results_df
 
 
-def get_most_similar_by_hybrid(user_id, posts_to_compare):
+def get_most_similar_by_hybrid(user_id: int, posts_to_compare):
     """
     Get most similar from content based matrix and delivered posts.
 
     Parameters
     ----------
     posts_to_compare: i.e. svd_recommended_posts
+    user_id: int by user id from DB
     """
     list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, posts_to_compare)
 

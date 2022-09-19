@@ -161,6 +161,10 @@ def prepare_hyperparameters_grid():
            epochs_range, sample_range, corpus_title, model_results
 
 
+def combine_features_from_single_df_row(single_row_df, list_of_features):
+    return (single_row_df[list_of_features] + ' ').sum(axis=1).str.strip()
+
+
 class RecommenderMethods:
 
     def __init__(self):
@@ -202,6 +206,7 @@ class RecommenderMethods:
         return self.posts_df
 
     def get_df_from_sql_meanwhile_insert_cache(self):
+
         def update_cache(self):
             print("Inserting file to cache in the background...")
             self.database.insert_posts_dataframe_to_cache()
@@ -408,8 +413,8 @@ class RecommenderMethods:
         if 'id_x' in self.df.columns:
             self.df = self.df.rename({'id_x': 'post_id'})
         self.df = self.df[
-            ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description',
-             'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
+            ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+             'description', 'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
         return self.df
 
     def get_all_posts(self):
@@ -534,9 +539,6 @@ class RecommenderMethods:
         self.database.connect()
         self.database.null_test_user_prefilled_records(user_id)
         self.database.disconnect()
-
-    def combine_features_from_single_df_row(self, single_row_df, list_of_features):
-        return (single_row_df[list_of_features] + ' ').sum(axis=1).str.strip()
 
 
 def get_cleaned_text(row):
