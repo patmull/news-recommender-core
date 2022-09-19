@@ -317,15 +317,18 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                 print("Skipping.")
 
 
-def prefilling_job_user_based(method):
+def prefilling_job_user_based(method, db):
     while True:
-        try:
-            fill_recommended_collab_based(method=method, skip_already_filled=True)
-        except psycopg2.OperationalError:
-            print("DB operational error. Waiting few seconds before trying again...")
-            t.sleep(30)  # wait 30 seconds then try again
-            continue
-        break
+        if db == "pgsql":
+            try:
+                fill_recommended_collab_based(method=method, skip_already_filled=True)
+            except psycopg2.OperationalError:
+                print("DB operational error. Waiting few seconds before trying again...")
+                t.sleep(30)  # wait 30 seconds then try again
+                continue
+            break
+        else:
+            raise NotImplementedError("Other DB source than PostgreSQL not implemented yet.")
 
 
 def prefilling_job_content_based(method, full_text, random_order=False, reversed_order=True):

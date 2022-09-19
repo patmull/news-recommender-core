@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
-    get_most_similar_from_content_based_matrix_and_delivered_posts
+    get_most_similar_by_hybrid
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     load_bert_model
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -60,8 +60,8 @@ def test_hybrid_by_svd_history_tfidf():
     searched_slug_3 = "sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik"
 
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
-    most_similar_hybrid_by_tfidf = get_most_similar_from_content_based_matrix_and_delivered_posts(user_id=test_user_id,
-                                                                                                  posts_to_compare=
+    most_similar_hybrid_by_tfidf = get_most_similar_by_hybrid(user_id=test_user_id,
+                                                              posts_to_compare=
                                                                                                   test_slugs)
     type_of_json = type(most_similar_hybrid_by_tfidf)
     assert type_of_json is str  # assert str
