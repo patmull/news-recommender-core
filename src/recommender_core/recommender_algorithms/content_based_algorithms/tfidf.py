@@ -438,7 +438,7 @@ class TfIdf:
         tfidf_visualizer.plot_tfidf_heatmap()
 
     @staticmethod
-    def get_prefilled_full_text(self):
+    def get_prefilled_full_text():
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_categories_dataframe()
 
