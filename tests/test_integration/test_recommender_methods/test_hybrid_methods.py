@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
-    get_most_similar_by_hybrid
+    get_most_similar_by_hybrid, select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     load_bert_model
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -60,8 +60,12 @@ def test_hybrid_by_svd_history_tfidf():
     searched_slug_3 = "sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik"
 
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
+    tested_methods = ['tfidf', 'doc2vec']
+
+    # posts delivered
     most_similar_hybrid_by_tfidf = get_most_similar_by_hybrid(user_id=test_user_id,
-                                                              posts_to_compare=test_slugs)
+                                                              posts_to_compare=test_slugs,
+                                                              list_of_methods=tested_methods)
     type_of_json = type(most_similar_hybrid_by_tfidf)
     assert type_of_json is str  # assert str
     try:
@@ -69,3 +73,27 @@ def test_hybrid_by_svd_history_tfidf():
         assert True
     except ValueError:
         pytest.fail("Encountered an unexpected exception on trying to load JSON.")
+
+    # posts not delivered
+    most_similar_hybrid_by_tfidf = get_most_similar_by_hybrid(user_id=test_user_id, list_of_methods=tested_methods)
+    type_of_json = type(most_similar_hybrid_by_tfidf)
+    assert type_of_json is str  # assert str
+    try:
+        json.loads(most_similar_hybrid_by_tfidf)
+        assert True
+    except ValueError:
+        pytest.fail("Encountered an unexpected exception on trying to load JSON.")
+
+
+def test_get_similarity_matrix_from_pairs_similarity():
+    test_user_id = 431
+    searched_slug_1 = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
+    searched_slug_2 = "salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem"
+    searched_slug_3 = "sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik"
+
+    test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
+
+    # Unit
+    list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id=test_user_id,
+                                                                              posts_to_compare=test_slugs)
+    get_similarity_matrix_from_pairs_similarity("doc2vec", list_of_slugs, test_slugs, list_of_slugs_from_history)

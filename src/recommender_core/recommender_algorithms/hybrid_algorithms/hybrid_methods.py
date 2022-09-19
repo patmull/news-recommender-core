@@ -8,6 +8,7 @@ import pandas as pd
 from gensim.models import KeyedVectors
 from sklearn.preprocessing import OneHotEncoder
 
+from recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
     load_doc2vec_model
@@ -195,47 +196,50 @@ def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
     return results_df
 
 
-def get_most_similar_by_hybrid(user_id: int, posts_to_compare):
+def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_methods=None):
     """
     Get most similar from content based matrix and delivered posts.
 
     Parameters
     ----------
-    posts_to_compare: i.e. svd_recommended_posts
+    posts_to_compare: i.e. svd_recommended_posts; if not supplied, it will calculate fresh SVD
     user_id: int by user id from DB
     """
+    list_of_supported_methods = ['tfidf', 'doc2vec', 'word2vec']
+    if list_of_methods is None:
+        list_of_methods = ['tfidf', 'doc2vec', 'word2vec']
+    elif not set(list_of_methods).issubset(list_of_supported_methods) > 0:
+        raise NotImplementedError("inserted methods are not supported.")
+    if posts_to_compare is None:
+        svd = SvdClass()
+        recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=5)
+        posts_to_compare = recommended_by_svd['slug'].to_list()
+
     list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, posts_to_compare)
 
-    # TF-IDF
-    similarity_matrix = get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_from_history)
-    results_df_tfidf = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
-    # Word2Vec
-    method = "word2vec"
-    similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
-                                                                    list_of_slugs_from_history)
-    results_df_word2vec = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
-    # Doc2Vec
-    method = "doc2vec"
-    similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
-                                                                    list_of_slugs_from_history)
-    results_df_doc2vec = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+    list_of_similarity_matrices = []
+    for method in list_of_methods:
+        if method == "tfidf":
+            similarity_matrix = get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_from_history)
+            results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+        elif method == "doc2vec" or "word2vec":
+            similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
+                                                                            list_of_slugs_from_history)
+            results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+        list_of_similarity_matrices.append(results)
+        print(list_of_similarity_matrices)
 
-    print("Results tfidf")
-    print(results_df_tfidf)
+    list_of_prefixed_methods = ['coefficient_' + x for x in list_of_methods if not str(x) == "nan"]
+    list_of_keys = ['slug'] + list_of_prefixed_methods
 
-    print("results_df_word2vec")
-    print(results_df_word2vec)
+    results_df = pd.concat(results.iloc[0]['slug'], axis=1, keys=list_of_keys)
+    for result in results:
+        results_df = pd.concat([results_df, result['coefficient'].to_list()], axis=1, keys=list_of_keys)
 
-    print("results_df_doc2vec")
-    print(results_df_doc2vec)
-
-    results_df = pd.concat([results_df_tfidf['slug'], results_df_tfidf['coefficient'],
-                            results_df_word2vec['coefficient'], results_df_doc2vec['coefficient']],
-                           axis=1, keys=['slug', 'coefficient_tfidf', 'coefficient_word2vec', 'coefficient_doc2vec'])
     print("results_df")
     print(results_df)
 
-    cofficient_columns = ['coefficient_tfidf', 'coefficient_word2vec', 'coefficient_doc2vec']
+    cofficient_columns = list_of_prefixed_methods
 
     results_df[cofficient_columns] = (results_df[cofficient_columns] - results_df[cofficient_columns].mean()) \
                                      / results_df[cofficient_columns].std()
@@ -318,7 +322,7 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_
     else:
         raise NotImplementedError("Method not supported.")
 
-    if w2v_model is None or d2v_model is None:
+    if w2v_model is None and d2v_model is None:
         raise ValueError("Word2Vec and Doc2Vec variables are set to None. Cannot continue.")
 
     similarity_list = []

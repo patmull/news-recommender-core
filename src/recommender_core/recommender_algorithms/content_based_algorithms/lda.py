@@ -508,9 +508,11 @@ class Lda:
     # @profile
     # noinspection PyUnresolvedReferences
     @accepts_first_argument(str)
-    @check_empty_string
-    def get_similar_lda_full_text(self, searched_slug, n=21, train=False, display_dominant_topics=True,
+    def get_similar_lda_full_text(self, searched_slug : str, n=21, train=False, display_dominant_topics=True,
                                   posts_from_cache=True):
+        if searched_slug == "":
+            raise ValueError("Empty string inserted instead of slug string.")
+
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_dataframe(from_cache=posts_from_cache)
         recommender_methods.get_posts_categories_dataframe()
@@ -734,7 +736,7 @@ class Lda:
         print("Results saved to csv")
 
     @staticmethod
-    def get_prefilled_full_text(self, slug, variant):
+    def get_prefilled_full_text(slug, variant):
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
         recommender_methods.get_categories_dataframe()  # load categories to dataframe
