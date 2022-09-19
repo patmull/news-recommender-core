@@ -8,7 +8,7 @@ import pandas as pd
 from gensim.models import KeyedVectors
 from sklearn.preprocessing import OneHotEncoder
 
-from recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
+from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
     load_doc2vec_model
@@ -232,7 +232,7 @@ def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_meth
     list_of_prefixed_methods = ['coefficient_' + x for x in list_of_methods if not str(x) == "nan"]
     list_of_keys = ['slug'] + list_of_prefixed_methods
 
-    results_df = pd.concat(results.iloc[0]['slug'], axis=1, keys=list_of_keys)
+    results_df = pd.concat(results[0]['slug'], axis=1, keys=list_of_keys)
     for result in results:
         results_df = pd.concat([results_df, result['coefficient'].to_list()], axis=1, keys=list_of_keys)
 
