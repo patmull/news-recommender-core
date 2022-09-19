@@ -13,7 +13,7 @@ from gensim.utils import deaccent
 from nltk import FreqDist
 from pyLDAvis import gensim_models as gensimvis
 
-from src.recommender_core.checks.data_types import check_empty_string, accepts_first_argument
+from src.recommender_core.checks.data_types import check_empty_string
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 import gensim
@@ -505,17 +505,20 @@ class Lda:
 
         return flatten(list_of_articles)
 
-    # @profile
-    # noinspection PyUnresolvedReferences
-    @accepts_first_argument(str)
-    def get_similar_lda_full_text(self, searched_slug : str, n=21, train=False, display_dominant_topics=True,
+    def get_similar_lda_full_text(self, searched_slug: str, n=21, train=False, display_dominant_topics=True,
                                   posts_from_cache=True):
+        if type(searched_slug) is not str:
+            raise TypeError("searched_slug needs to be a string!")
         if searched_slug == "":
             raise ValueError("Empty string inserted instead of slug string.")
 
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_dataframe(from_cache=posts_from_cache)
-        recommender_methods.get_posts_categories_dataframe()
+        recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
+
+        if searched_slug not in recommender_methods.df['slug'].to_list():
+            raise ValueError('Slug does not appear in dataframe.')
+
         recommender_methods.df['tokenized'] = recommender_methods.tokenize_text()
         gc.collect()
 

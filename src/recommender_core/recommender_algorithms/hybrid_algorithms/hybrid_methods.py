@@ -217,7 +217,7 @@ def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_meth
 
     list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, posts_to_compare)
 
-    list_of_similarity_matrices = []
+    list_of_similarity_results = []
     for method in list_of_methods:
         if method == "tfidf":
             similarity_matrix = get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_from_history)
@@ -226,15 +226,22 @@ def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_meth
             similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
                                                                             list_of_slugs_from_history)
             results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
-        list_of_similarity_matrices.append(results)
-        print(list_of_similarity_matrices)
-
+        list_of_similarity_results.append(results)
+        print("list_of_similarity_matrices:")
+        print(list_of_similarity_results)
+    print("list_of_similarity_matrices after finished for loop:")
+    print(list_of_similarity_results)
     list_of_prefixed_methods = ['coefficient_' + x for x in list_of_methods if not str(x) == "nan"]
     list_of_keys = ['slug'] + list_of_prefixed_methods
 
-    results_df = pd.concat(results[0]['slug'], axis=1, keys=list_of_keys)
-    for result in results:
-        results_df = pd.concat([results_df, result['coefficient'].to_list()], axis=1, keys=list_of_keys)
+    print("list_of_similarity_results[0]:")
+    print(list_of_similarity_results[0])
+
+    results_df = pd.concat([list_of_similarity_results[0]['slug']], axis=1)
+    for result in list_of_similarity_results:
+        results_df = pd.concat([results_df, result['coefficient']], axis=1)
+
+    results_df.columns = list_of_keys
 
     print("results_df")
     print(results_df)

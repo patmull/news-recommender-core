@@ -134,16 +134,37 @@ class TfIdf:
         del fit_by_all_features_preprocessed, fit_by_keywords_matrix
         gc.collect()
         if all_posts is False:
-            post_recommendations = tfidf_data_handlers \
-                .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
-                                          number_of_recommended_posts=number_of_recommended_posts)
+            try:
+                post_recommendations = tfidf_data_handlers \
+                    .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
+                                              number_of_recommended_posts=number_of_recommended_posts)
+            except ValueError as e:
+                print("Value error had occurred while computing most similar posts by keywords. Error:")
+                print(e)
+                print("Trying to solve this by updating the tfidf vectorizer file")
+                fit_by_all_features_preprocessed = tfidf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
+                save_tfidf_vectorizer(fit_by_all_features_preprocessed, path=cached_file_path)
+                post_recommendations = tfidf_data_handlers \
+                    .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
+                                              number_of_recommended_posts=number_of_recommended_posts)
             print("10")
 
         if all_posts is True:
             if self.posts_df.index is not None:
-                post_recommendations = tfidf_data_handlers \
-                    .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
-                                              number_of_recommended_posts=len(self.posts_df.index))
+                try:
+                    post_recommendations = tfidf_data_handlers \
+                        .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
+                                                  number_of_recommended_posts=len(self.posts_df.index))
+                except ValueError as e:
+                    print("Value error had occurred while computing most similar posts by keywords. Error:")
+                    print(e)
+                    print("Trying to solve this by updating the tfidf vectorizer file")
+                    fit_by_all_features_preprocessed = tfidf_data_handlers.get_fit_by_feature_(
+                        'all_features_preprocessed')
+                    save_tfidf_vectorizer(fit_by_all_features_preprocessed, path=cached_file_path)
+                    post_recommendations = tfidf_data_handlers \
+                        .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
+                                                  number_of_recommended_posts=len(self.posts_df.index))
             else:
                 raise ValueError("Dataframe of posts is None. Cannot continue with next operation.")
         del tfidf_data_handlers
