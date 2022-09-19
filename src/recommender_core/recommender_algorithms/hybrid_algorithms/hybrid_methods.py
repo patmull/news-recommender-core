@@ -221,11 +221,21 @@ def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_meth
     for method in list_of_methods:
         if method == "tfidf":
             similarity_matrix = get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_from_history)
+            similarity_matrix = similarity_matrix * 1.75
             results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
         elif method == "doc2vec" or "word2vec":
             similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
                                                                             list_of_slugs_from_history)
+            if method == "doc2vec":
+                constant = 1.7
+            elif method == "word2vec":
+                constant = 1.85
+            else:
+                raise NotImplementedError("Supplied method not implemented")
+            similarity_matrix = similarity_matrix * constant
             results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+        else:
+            raise NotImplementedError("Supplied method not implemented")
         list_of_similarity_results.append(results)
         print("list_of_similarity_matrices:")
         print(list_of_similarity_results)
@@ -246,10 +256,10 @@ def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_meth
     print("results_df")
     print(results_df)
 
-    cofficient_columns = list_of_prefixed_methods
+    coefficient_columns = list_of_prefixed_methods
 
-    results_df[cofficient_columns] = (results_df[cofficient_columns] - results_df[cofficient_columns].mean()) \
-                                     / results_df[cofficient_columns].std()
+    results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
+                                     / results_df[coefficient_columns].std()
     print("normalized_df:")
     print(results_df)
     results_df['coefficient'] = results_df.sum(axis=1)
@@ -274,7 +284,7 @@ def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_meth
 
     results_df.coefficient = np.where(
         results_df["category_slug"].isin(user_categories_list),
-        results_df.coefficient * 1.5,
+        results_df.coefficient * 2.0,
         results_df.coefficient)
 
     results_df = results_df.set_index('slug')
