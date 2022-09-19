@@ -4,8 +4,8 @@ import time
 import numpy as np
 import pandas as pd
 
-from recommender_core.data_handling.data_queries import RecommenderMethods
-from recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
