@@ -61,15 +61,16 @@ class GensimMethods:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='searched_id')
             # clean up from unnecessary columns
             self.df = self.df[
-                ['post_id', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title', 'description']]
+                ['post_id', 'post_title', 'slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
+                 'description']]
         else:
             raise ValueError("Datafame is set to None. Cannot continue with next operation.")
 
     def find_post_by_slug(self, slug):
         post_dataframe = self.df.loc[self.df['post_slug'] == slug]
         # noinspection PyPep8
-        doc = post_dataframe["category_title"] + " " + post_dataframe["keywords"] + " " \
-              + post_dataframe["post_title"] + " " + post_dataframe["excerpt"]
+        doc = post_dataframe["category_title"] + " " + post_dataframe["keywords"] \
+              + " " + post_dataframe["post_title"] + " " + post_dataframe["excerpt"]
         return str(doc.tolist())
 
     def get_categories_dataframe(self):

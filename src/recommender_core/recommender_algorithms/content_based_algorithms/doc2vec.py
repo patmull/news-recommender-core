@@ -232,8 +232,8 @@ def find_best_doc2vec_model(source, number_of_trials=512, file_name='doc2vec_fin
     hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
     """
     # noinspection PyPep8
-    negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
-    epochs_range, sample_range, corpus_title, model_results = prepare_hyperparameters_grid()
+    negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, epochs_range, \
+    sample_range, corpus_title, model_results = prepare_hyperparameters_grid()
 
     model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant \
         = random_hyperparameter_choice(model_variants=model_variants,
@@ -624,7 +624,8 @@ class Doc2VecClass:
         dict_idnes = create_dictionary_from_mongo_idnes(force_update=True)
         return dict_idnes
 
-    def get_prefilled_full_text(self, slug, variant):
+    @staticmethod
+    def get_prefilled_full_text(slug, variant):
         recommender_methods = RecommenderMethods()
         return recommender_methods.get_prefilled_full_text(slug, variant)
 
@@ -658,7 +659,7 @@ class Doc2VecClass:
 
         return cos_distance
 
-    def load_model(self, path):
+    def load_model(self, path=None):
         self.doc2vec_model = load_doc2vec_model(path_to_model=path)
         return self.doc2vec_model
 

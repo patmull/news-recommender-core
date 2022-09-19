@@ -5,8 +5,8 @@ from gensim.utils import deaccent
 
 from src.prefillers.preprocessing.cz_preprocessing import preprocess
 
-# https://www.machinelearningplus.com/nlp/gensim-tutorial/
 
+# https://www.machinelearningplus.com/nlp/gensim-tutorial/
 def get_id_from_slug(slug, df):
     return df[df.slug == slug]["row_num"].values[0]
 
@@ -48,9 +48,6 @@ def clear_blank_lines_from_txt(file_path):
         for line in inFile:
             if line.strip():
                 outFile.write(line)
-
-
-
 
 
 def verify_searched_slug_sanity(searched_slug):

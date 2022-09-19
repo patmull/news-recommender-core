@@ -216,15 +216,8 @@ class TfIdf:
             fit_by_all_features_matrix = load_sparse_csr(filename=my_file)
 
         my_file = Path("models/tfidf_category_title.npz")
-        if my_file.exists() is False:
-            # category_title = category
-            tf_idf_data_handlers = TfIdfDataHandlers(self.df)
-            fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
-            save_sparse_csr(filename=my_file, array=fit_by_title)
-        else:
-            fit_by_title = load_sparse_csr(filename=my_file)
-
-        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)  # join feature tuples into one matrix
+        fit_by_title = self.get_fit_by_title(fit_by_all_features_matrix)
+        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
 
         gc.collect()
 
@@ -444,6 +437,7 @@ class TfIdf:
         tfidf_visualizer.prepare_for_heatmap(tfidf_vectors, text_titles, tfidf_vectorizer)
         tfidf_visualizer.plot_tfidf_heatmap()
 
+    @staticmethod
     def get_prefilled_full_text(self):
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_categories_dataframe()
@@ -469,16 +463,8 @@ class TfIdf:
         else:
             fit_by_all_features_matrix = load_sparse_csr(filename=my_file)
 
-        my_file = Path("models/for_hybrid/tfidf_category_title.npz")
-        if my_file.exists() is False:
-            # category_title = category
-            tf_idf_data_handlers = TfIdfDataHandlers(self.df)
-            fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
-            save_sparse_csr(filename=my_file, array=fit_by_title)
-        else:
-            fit_by_title = load_sparse_csr(filename=my_file)
-
-        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)  # join feature tuples into one matrix
+        fit_by_title = self.get_fit_by_title(fit_by_all_features_matrix)
+        tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
 
         gc.collect()
 
@@ -511,3 +497,15 @@ class TfIdf:
             print(sim_matrix.to_csv("research/tfidf/tfidf_matrix.csv"))
 
         return sim_matrix
+
+    def get_fit_by_title(self, fit_by_all_features_matrix):
+        my_file = Path("models/for_hybrid/tfidf_category_title.npz")
+        if my_file.exists() is False:
+            # category_title = category
+            tf_idf_data_handlers = TfIdfDataHandlers(self.df)
+            fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
+            save_sparse_csr(filename=my_file, array=fit_by_title)
+        else:
+            fit_by_title = load_sparse_csr(filename=my_file)
+        #  join feature tuples into one matrix
+        return fit_by_title
