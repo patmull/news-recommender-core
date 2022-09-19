@@ -75,8 +75,8 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
         .apply(lambda x: clf
                .predict(pickle
                         .loads(x['bert_vector_representation']))[0]
-    if pd.notnull(x['bert_vector_representation'])
-    else clf.predict(bert_model(' '.join(x[col_to_combine])).vector.reshape(1, -1))[0], axis=1)
+    if pd.notnull(x['bert_vector_representation']) else
+    clf.predict(bert_model(' '.join(x[col_to_combine])).vector.reshape(1, -1))[0], axis=1)
 
     y_pred_unseen = y_pred_unseen.rename('prediction')
     df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)

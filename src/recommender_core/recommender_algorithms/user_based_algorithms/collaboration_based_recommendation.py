@@ -125,8 +125,8 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
     # Recommend the highest predicted rating posts that the user hasn't rated yet.
     # noinspection PyPep8
     recommendations = (posts_df[~posts_df['post_id'].isin(user_full['post_id'])]
-                           .merge(pd.DataFrame(sorted_user_predictions)
-                                  .reset_index(), how='left', left_on='post_id', right_on='post_id')
+                           .merge(pd.DataFrame(sorted_user_predictions).reset_index(), how='left', left_on='post_id',
+                                  right_on='post_id')
                            .rename(columns={user_row_number: 'ratings_values'})
                            .sort_values('ratings_values', ascending=False).iloc[:num_recommendations, :])
     print("recommendations")
@@ -256,9 +256,7 @@ class SvdClass:
 
         return R_demeaned
 
-    # @profile
-    def run_svd(self, user_id, num_of_recommendations=10):
-        all_user_predicted_ratings = self.get_all_users_predicted_ratings()
+    def prepare_predictions(self, all_user_predicted_ratings):
         if self.user_item_table is not None:
             preds_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
         else:
@@ -267,7 +265,15 @@ class SvdClass:
         print(preds_df)
 
         preds_df['user_id'] = self.user_item_table.index.values.tolist()
-        preds_df.set_index('user_id', drop=True, inplace=True)  # inplace for making change in callable  way
+        preds_df.set_index('user_id', drop=True, inplace=True)  # inplace for making change in callable way
+
+        return preds_df
+
+    # @profile
+    def run_svd(self, user_id, num_of_recommendations=10):
+        all_user_predicted_ratings = self.get_all_users_predicted_ratings()
+        preds_df = self.prepare_predictions(all_user_predicted_ratings)
+
         if self.df_posts is not None and self.df_ratings is not None:
             already_rated, predictions = recommend_posts(preds_df, user_id, self.df_posts, self.df_ratings,
                                                          num_of_recommendations)
@@ -294,15 +300,7 @@ class SvdClass:
 
     def rmse_all_users(self):
         all_user_predicted_ratings = self.get_all_users_predicted_ratings()
-        print(all_user_predicted_ratings.size)
-        if self.user_item_table is not None:
-            predictions_df = pd.DataFrame(all_user_predicted_ratings, columns=self.user_item_table.columns)
-        else:
-            raise ValueError("user_item_table is None, cannot continue with next operation.")
-        print("preds_df")
-        print(predictions_df)
-        predictions_df['user_id'] = self.user_item_table.index.values.tolist()
-        predictions_df.set_index('user_id', drop=True, inplace=True)  # inplace for making change in callable  way
+        predictions_df = self.prepare_predictions(all_user_predicted_ratings)
         # Get and sort the user's predictions
         # sorted_users_predictions = pd.DataFrame()
         user_ids = self.get_all_users_ids()

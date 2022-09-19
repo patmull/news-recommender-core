@@ -16,7 +16,7 @@ import regex
 import tqdm
 from gensim import corpora
 from gensim.corpora import Dictionary
-from gensim.models import KeyedVectors, Word2Vec, TfidfModel
+from gensim.models import KeyedVectors, Word2Vec
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from gensim.similarities.annoy import AnnoyIndexer
 from gensim.utils import deaccent
@@ -30,7 +30,8 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.helper
 import pandas as pd
 
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, append_training_results, save_wordsim, \
-    get_eval_results_header, prepare_hyperparameters_grid, random_hyperparameter_choice
+    get_eval_results_header, prepare_hyperparameters_grid, random_hyperparameter_choice, \
+    combine_features_from_single_df_row
 from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords, load_cz_stopwords
 from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
@@ -442,7 +443,7 @@ class Word2VecClass:
         """
         # documents_df["features_to_use"] = self.df["trigrams_full_text"]
         documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] \
-                                          + ' ' + self.df[ "all_features_preprocessed"] \
+                                          + ' ' + self.df["all_features_preprocessed"] \
                                           + " " + self.df["body_preprocessed"]
 
         if 'slug_x' in self.df.columns:
@@ -949,7 +950,7 @@ class Word2VecClass:
 
         return word_pairs_eval, overall_score
 
-    # noinspection
+    @staticmethod
     def get_prefilled_full_text(self, slug, variant):
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
@@ -982,10 +983,12 @@ class Word2VecClass:
         returned_post = found_post[column_name].iloc[0]
         return returned_post
 
+    @staticmethod
     def preprocess(self, sentence):
         stop_words = load_cz_stopwords()
         return [w for w in sentence.lower().split() if w not in stop_words]
 
+    @staticmethod
     def get_vector(self, s, models):
         return np.sum(
             np.array([models[i] for i in preprocess(s)]), axis=0)
@@ -1002,8 +1005,8 @@ class Word2VecClass:
 
         list_of_features = [feature_1, feature_2]
 
-        first_text = recommend_methods.combine_features_from_single_df_row(post_1, list_of_features)
-        second_text = recommend_methods.combine_features_from_single_df_row(post_2, list_of_features)
+        first_text = combine_features_from_single_df_row(post_1, list_of_features)
+        second_text = combine_features_from_single_df_row(post_2, list_of_features)
 
         print(first_text)
         print(second_text)
@@ -1036,6 +1039,7 @@ class Word2VecClass:
 
         return similarity
 
+    @staticmethod
     def prepare_termsim_and_dictionary_for_pair(self, documents, dictionary, first_text, second_text, w2v_model):
         print("documents:")
         print(documents)

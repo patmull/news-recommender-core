@@ -106,17 +106,6 @@ class Database:
         rs = self.cursor.fetchall()
         return rs
 
-    # noinspection
-    @DeprecationWarning
-    def get_posts_dataframe_from_sql(self, pd):
-        print("Getting posts from SQL...")
-        sql = """SELECT * FROM posts ORDER BY id;"""
-
-        # LOAD INTO A DATAFRAME
-        df = pd.read_sql_query(sql, self.get_cnx())
-        # df = pd.read_sql_query(results, database.get_cnx())
-        return df
-
     def insert_posts_dataframe_to_cache(self):
         sql = """SELECT * FROM posts ORDER BY id;"""
         # LOAD INTO A DATAFRAME
@@ -142,25 +131,6 @@ class Database:
 
     def get_users_dataframe(self):
         sql = """SELECT * FROM users ORDER BY id;"""
-        df = pd.read_sql_query(sql, self.get_cnx())
-        # df = pd.read_sql_query(results, database.get_cnx())
-        return df
-
-    # noinspection
-    @DeprecationWarning
-    def get_ratings_dataframe(self, pd):
-        sql = """SELECT * FROM ratings ORDER BY id;"""
-        # LOAD INTO A DATAFRAME
-        df = pd.read_sql_query(sql, self.get_cnx())
-        # df = pd.read_sql_query(results, database.get_cnx())
-        return df
-
-    # noinspection
-    @DeprecationWarning
-    def get_user_categories(self, pd):
-        sql = """SELECT * FROM user_categories ORDER BY id;"""
-
-        # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         # df = pd.read_sql_query(results, database.get_cnx())
         return df
@@ -220,13 +190,6 @@ class Database:
         sql = """SELECT * FROM posts ORDER BY id;"""
 
         # LOAD INTO A DATAFRAME
-        df = pd.read_sql_query(sql, self.get_cnx())
-        return df
-
-    # noinspection
-    @DeprecationWarning
-    def get_results_dataframe(self, pd):
-        sql = """SELECT * FROM relevance_testings ORDER BY id;"""
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 

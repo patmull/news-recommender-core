@@ -79,7 +79,7 @@ def fill_recommended_collab_based(method, skip_already_filled):
 
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
-    source = w2v_model = selected_model_name = None
+    source = w2v_model = None
     docsim_index, dictionary = None, None
     database = DatabaseMethods()
     if skip_already_filled is False:

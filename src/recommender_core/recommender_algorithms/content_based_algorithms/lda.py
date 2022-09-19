@@ -733,6 +733,7 @@ class Lda:
         df_dominant_topics.to_csv("exports/dominant_topics.csv", sep=';', encoding='iso8859_2', errors='replace')
         print("Results saved to csv")
 
+    @staticmethod
     def get_prefilled_full_text(self, slug, variant):
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe

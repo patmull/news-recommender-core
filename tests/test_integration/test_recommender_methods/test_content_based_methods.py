@@ -9,6 +9,7 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 # py.test tests/test_recommender_methods/test_content_based_methods.py -k 'test_tfidf_method_bad_input'
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from tests.test_integration.common_asserts import assert_recommendation
 
 
 @pytest.mark.parametrize("tested_input", [
@@ -41,28 +42,19 @@ def test_tfidf_method():
     print("similar_posts")
     print(similar_posts)
     assert len(random_post.index) == 1
-    assert type(similar_posts) is list
-    assert len(similar_posts) > 0
-    print(type(similar_posts[0]['slug']))
-    assert type(similar_posts[0]['slug']) is str
-    assert type(similar_posts[0]['coefficient']) is float
-    assert len(similar_posts) > 0
+    assert_recommendation(similar_posts)
 
     # newest article
     posts = posts.sort_values(by="created_at")
-    latest_post_slug = random_post['slug'].iloc[0]
+    # noinspection DuplicatedCode
+    latest_post_slug = posts['slug'].iloc[0]
     print("random_post slug:")
     print(latest_post_slug)
     similar_posts = tfidf.recommend_posts_by_all_features_preprocessed(latest_post_slug)
     print("similar_posts")
     print(similar_posts)
     assert len(random_post.index) == 1
-    assert type(similar_posts) is list
-    assert len(similar_posts) > 0
-    print(type(similar_posts[0]['slug']))
-    assert type(similar_posts[0]['slug']) is str
-    assert type(similar_posts[0]['coefficient']) is float
-    assert len(similar_posts) > 0
+    assert_recommendation(similar_posts)
 
 
 # pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::test_tfidf_method_bad_input
@@ -114,12 +106,7 @@ def test_doc2vec_method_for_random_post():
     print(type(similar_posts))
 
     assert len(random_post.index) == 1
-    assert type(similar_posts) is list
-    assert len(similar_posts) > 0
-    print(type(similar_posts[0]['slug']))
-    assert type(similar_posts[0]['slug']) is str
-    assert type(similar_posts[0]['coefficient']) is float
-    assert len(similar_posts) > 0
+    assert_recommendation(similar_posts)
 
 
 # pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::test_lda_method_bad_input
@@ -171,12 +158,7 @@ def test_tfidf_full_text_method():
     print(type(similar_posts))
 
     assert len(random_post.index) == 1
-    assert type(similar_posts) is list
-    assert len(similar_posts) > 0
-    print(type(similar_posts[0]['slug']))
-    assert type(similar_posts[0]['slug']) is str
-    assert type(similar_posts[0]['coefficient']) is float
-    assert len(similar_posts) > 0
+    assert_recommendation(similar_posts)
 
 
 @pytest.mark.parametrize("tested_input", [

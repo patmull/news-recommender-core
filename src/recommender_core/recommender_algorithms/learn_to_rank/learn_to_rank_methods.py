@@ -202,7 +202,7 @@ def preprocess(df):
     return merged_df
 
 
-def train_lightgbm_user_based(skip_doc2vec=False):
+def train_lightgbm_user_based():
     # TODO: Remove user searched_id if it's needed
     df_results = get_results_single_coeff_searched_doc_as_query()
     recommender_methods = RecommenderMethods()
@@ -538,58 +538,6 @@ class LightGBMMethods:
             print(f'relevance:{row["relevance"]}: {row["slug"]}:{row["title"]}')
 
         return recommend_df
-
-    # noinspection
-    @DeprecationWarning
-    def train_lightgbm_document_based(self, slug):
-
-        df_results = get_results_single_coeff_searched_doc_as_query()
-        dataframe_length = len(df_results.index)
-        split_train = int(dataframe_length * 0.8)
-        split_validation = int(dataframe_length - split_train)
-        train_df = df_results[:split_train]  # first 80%
-        train_df = train_df[["query_id", "coefficient", "relevance"]]
-        validation_df = df_results[split_validation:]  # remaining 20%
-        validation_df = validation_df[["query_id", "coefficient", "relevance"]]
-
-        print("train_df")
-        print(train_df)
-
-        query_train = train_df.groupby("query_id")["query_id"].count().to_numpy()
-        query_val = validation_df.groupby("query_id")["query_id"].count().to_numpy()
-        # query_test = [test_df.shape[0] / 2000] * 2000
-
-        model = LGBMRanker(
-            objective="lambdarank",
-            metric="ndcg"
-        )
-
-        model.fit(train_df[['coefficient']], train_df[['relevance']],
-                  group=query_train,
-                  verbose=10,
-                  eval_set=[(validation_df[['coefficient']], validation_df[['relevance']])],
-                  eval_group=[query_val],
-                  eval_at=10
-                  # Make evaluation for target=1 ranking, I chose arbitrarily
-                  )
-
-        evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
-        evaluation_results_df = evaluation_results_df.rename(columns={'id': 'query_id'})
-
-        consider_only_top_limit = 1000
-        df_results_merged = pd.merge(df_results, evaluation_results_df, on='query_id', how='right')
-        pred_df = make_post_feature(df_results_merged)
-        preds = model.predict(validation_df['coefficient'].values.reshape(1, -1))
-        # noinspection DuplicatedCode
-        topk_idx = np.argsort(preds)[::-1][:consider_only_top_limit]
-        recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
-        print("evaluation_results_df:")
-        print(evaluation_results_df)
-        print("recommend_df:")
-        print(recommend_df)
-        recommend_df = recommend_df.loc[recommend_df['query_slug'].isin([slug])]
-        print('---------- Recommend ----------')
-        print(recommend_df)
 
     def recommend_posts(self):
         pass

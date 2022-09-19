@@ -68,7 +68,8 @@ def prepare_and_run(database, method, full_text, reverse, random):
           + str(full_text))
     if len(not_prefilled_posts) > 0:
         try:
-            prefilling_job_content_based(method=method, full_text=full_text, reversed_order=reverse, random_order=random)
+            prefilling_job_content_based(method=method, full_text=full_text, reversed_order=reverse,
+                                         random_order=random)
         except Exception as e:
             print("Exception occurred " + str(e))
             traceback.print_exception(None, e, e.__traceback__)
