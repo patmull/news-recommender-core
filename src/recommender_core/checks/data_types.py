@@ -18,7 +18,7 @@ def accepts_first_argument(*types):
             print(args)
             print("first_type:")
             print(first_type)
-            # noinspection # noqa
+            # noinspection PyTypeHints
             if not isinstance(checked_argument, first_type):
                 raise ValueError("arg %r does not match %s" % (checked_argument, first_type))
             if checked_argument == "":
@@ -46,7 +46,7 @@ def accepts_third_argument(*types):
             print("types")
             print(types)
             checked_argument = args[2]
-            # noinspection # noqa
+            # noinspection PyTypeHints
             if not isinstance(checked_argument, first_type):
                 raise ValueError("arg %r does not match %s" % (checked_argument, first_type))
             if checked_argument == "":
