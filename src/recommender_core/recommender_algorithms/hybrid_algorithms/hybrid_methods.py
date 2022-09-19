@@ -198,8 +198,12 @@ def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
     return results_df
 
 
-def get_most_similar_from_content_based_matrix_and_delivered_posts(user_id, posts_to_compare):
+def get_most_similar_by_hybrid(user_id, posts_to_compare):
     """
+    Get most similar from content based matrix and delivered posts.
+
+    Parameters
+    ----------
     posts_to_compare: i.e. svd_recommended_posts
     """
     list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, posts_to_compare)
@@ -305,15 +309,19 @@ def get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_f
 
 def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
                                                 list_of_slugs_from_history):
+    w2v_model, d2v_model = None, None
     if method == "word2vec":
         path_to_model = Path("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
         content_based_method = Word2VecClass()
-        w2v_model = KeyedVectors.load(path_to_model)
+        w2v_model = KeyedVectors.load(path_to_model.as_posix())
     elif method == "doc2vec":
         content_based_method = Doc2VecClass()
         d2v_model = load_doc2vec_model('models/d2v_full_text_limited.model')
     else:
         raise NotImplementedError("Method not supported.")
+
+    if w2v_model is None or d2v_model is None:
+        raise ValueError("Word2Vec and Doc2Vec variables are set to None. Cannot continue.")
 
     similarity_list = []
     for x in list_of_slugs:
