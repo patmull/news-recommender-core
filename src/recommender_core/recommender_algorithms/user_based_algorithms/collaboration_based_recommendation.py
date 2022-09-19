@@ -270,7 +270,15 @@ class SvdClass:
         return preds_df
 
     # @profile
-    def run_svd(self, user_id, num_of_recommendations=10):
+    def run_svd(self, user_id : int, num_of_recommendations=10, dict_results=True):
+        """
+
+        @param dict_results: bool to determine whether you need JSON or rather Pandas Dataframe
+        @param user_id: int corresponding to user's id from DB
+        @param num_of_recommendations: number of returned recommended items
+        @return: Dict/JSON of posts recommended for a give user or dataframe of recommenmded posrts according to
+        json_results bool aram
+        """
         all_user_predicted_ratings = self.get_all_users_predicted_ratings()
         preds_df = self.prepare_predictions(all_user_predicted_ratings)
 
@@ -283,13 +291,12 @@ class SvdClass:
         print(already_rated.head(num_of_recommendations).to_string())
         print("List of predictions based on already rated items:")
         print(predictions.head(num_of_recommendations).to_string())
-        predictions_json = predictions.to_json(orient="split")
-        predictions_json_parsed = json.loads(predictions_json)
-        return predictions_json_parsed
-
-    # noinspection DuplicatedCode
-
-    # noinspection DuplicatedCode
+        if dict_results is True:
+            predictions_json = predictions.to_json(orient="split")
+            predictions_json_parsed = json.loads(predictions_json)
+            return predictions_json_parsed
+        else:
+            return predictions.head(num_of_recommendations)
 
     def get_all_users_predicted_ratings(self):
         # noinspection PyPep8Naming

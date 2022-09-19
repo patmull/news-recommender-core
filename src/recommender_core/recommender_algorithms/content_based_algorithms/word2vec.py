@@ -951,7 +951,7 @@ class Word2VecClass:
         return word_pairs_eval, overall_score
 
     @staticmethod
-    def get_prefilled_full_text(self, slug, variant):
+    def get_prefilled_full_text(slug, variant):
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_dataframe(force_update=False)  # load posts to dataframe
         recommender_methods.get_categories_dataframe()  # load categories to dataframe
@@ -984,12 +984,12 @@ class Word2VecClass:
         return returned_post
 
     @staticmethod
-    def preprocess(self, sentence):
+    def preprocess(sentence):
         stop_words = load_cz_stopwords()
         return [w for w in sentence.lower().split() if w not in stop_words]
 
     @staticmethod
-    def get_vector(self, s, models):
+    def get_vector(s, models):
         return np.sum(
             np.array([models[i] for i in preprocess(s)]), axis=0)
 
@@ -1040,7 +1040,7 @@ class Word2VecClass:
         return similarity
 
     @staticmethod
-    def prepare_termsim_and_dictionary_for_pair(self, documents, dictionary, first_text, second_text, w2v_model):
+    def prepare_termsim_and_dictionary_for_pair(documents, dictionary, first_text, second_text, w2v_model):
         print("documents:")
         print(documents)
 

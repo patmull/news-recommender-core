@@ -25,7 +25,7 @@ def combine_features(row):
 
 
 def cosine_similarity_n_space(m1, m2=None, batch_size=100):
-    assert m1.shape[1] == m2.shape[1] and isinstance(batch_size, int) is not True
+    assert m1.shape[1] == m2.shape[1] and not isinstance(batch_size, int) != True
 
     ret: Any = np.ndarray((m1.shape[0], m2.shape[0]))  # Added Any due to MyPy typing warning
 
