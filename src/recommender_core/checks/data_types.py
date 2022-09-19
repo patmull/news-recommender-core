@@ -35,6 +35,7 @@ def accepts_first_argument(*types):
 #  of class (well... object) itself for some reason
 #  Try to finish this.
 def accepts_third_argument(*types):
+    @PendingDeprecationWarning
     def check_accepts_third_argument(f):
         # This fails if other data types are not specified
 

@@ -133,7 +133,8 @@ def test_redis_values():
     # TODO: Restrict PgSQL from ever deleting this user
     test_user_key = "posts_by_pred_ratings_user_371"
     r.delete(test_user_key)
-    for key in test_user_key: r.delete(key)
+    for key in test_user_key:
+        r.delete(key)
     r.sadd(test_user_key, '')
     print("r.smembers(test_value):")
     print(r.smembers(test_user_key))

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from gensim.models import Doc2Vec
 
 DEFAULT_MODEL_LOCATION = "models/d2v_limited.model"

@@ -8,7 +8,7 @@ def main():
     start_time = time.time()
 
     light_gbm = LightGBMMethods()
-    # lighGBM.train_lightgbm_document_based('tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
+    #light_gbm.train_lightgbm_document_based('tradicni-remeslo-a-rucni-prace-se-ceni-i-dnes-jejich-znacka-slavi-uspech')
     get_posts_lightgbm('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy', True)
     print("--- %s seconds ---" % (time.time() - start_time))
 

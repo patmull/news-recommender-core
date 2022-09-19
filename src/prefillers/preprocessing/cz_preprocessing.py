@@ -56,9 +56,8 @@ def preprocess(sentence):
     cleantext = re.sub(cleanr, '', sentence)
     cleantext.translate(str.maketrans('', '', string.punctuation))  # removing punctuation
 
-    a_string = cleantext.split('=References=')[0]  # remove references and everything afterwards
-    a_string = html2text(a_string).lower()  # remove HTML tags, convert to lowercase
-    # noinspection
+    cleantext = cleantext.split('=References=')[0]  # remove references and everything afterwards
+    cleantext = html2text(cleantext).lower()  # remove HTML tags, convert to lowercase
 
     # 'ToktokTokenizer' does divide by '|' and '\n', but retaining this
     #   statement seems to improve its speed a little

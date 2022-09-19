@@ -25,7 +25,7 @@ def combine_features(row):
 
 
 def cosine_similarity_n_space(m1, m2=None, batch_size=100):
-    assert m1.shape[1] == m2.shape[1] and not isinstance(batch_size, int) != True
+    assert m1.shape[1] == m2.shape[1] and isinstance(batch_size, int) is not True
 
     ret: Any = np.ndarray((m1.shape[0], m2.shape[0]))  # Added Any due to MyPy typing warning
 
@@ -86,26 +86,12 @@ class CosineTransformer:
             pass
         # # print(self.cosine_sim)
 
-    # #Step 6: Get searched_id of this article from its title
-
-    # noinspection
-    @DeprecationWarning
-    def article_user_likes(self, slug):
-        article_id = get_id_from_slug(slug, self.posts_df)
-        # print("article_user_likes: " + slug)
-        # print("article_id: ")
-        # # print(article_id)
-        try:
-            self.similar_articles = list(enumerate(self.cosine_sim[article_id]))
-        except TypeError as te:
-            pass
-        # # print(self.similar_articles)
-
     # #Step 7: Get a list of similar articles in descending order of similarity score
     def get_list_of_similar_articles(self):
         try:
             self.sorted_similar_articles = sorted(self.similar_articles, key=lambda x: x[1], reverse=True)
-        except TypeError as te:
+        except TypeError as e:
+            print(e)
             pass
         return self.sorted_similar_articles
 

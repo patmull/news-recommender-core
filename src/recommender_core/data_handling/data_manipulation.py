@@ -406,14 +406,7 @@ class DatabaseMethods:
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
-            print("NOT INSERTED")
-            print("Error code:", e.pgcode)  # error number
-            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
-            print("Error:", e)  # errno, sqlstate, msg values
-            s = str(e)
-            print("Error:", s)  # errno, sqlstate, msg values
-            if self.cnx is not None:
-                self.cnx.rollback()
+            self.print_exception_not_inserted(e)
 
     # noinspection DuplicatedCode
     def insert_preprocessed_body(self, preprocessed_body, article_id):
@@ -427,14 +420,7 @@ class DatabaseMethods:
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
-            print("NOT INSERTED")
-            print("Error code:", e.pgcode)  # error number
-            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
-            print("Error:", e)  # errno, sqlstate, msg values
-            s = str(e)
-            print("Error:", s)  # errno, sqlstate, msg values
-            if self.cnx is not None:
-                self.cnx.rollback()
+            self.print_exception_not_inserted(e)
 
     def insert_phrases_text(self, bigram_text, article_id, full_text):
         try:
@@ -450,14 +436,7 @@ class DatabaseMethods:
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
-            print("NOT INSERTED")
-            print("Error code:", e.pgcode)  # error number
-            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
-            print("Error:", e)  # errno, sqlstate, msg values
-            s = str(e)
-            print("Error:", s)  # errno, sqlstate, msg values
-            if self.cnx is not None:
-                self.cnx.rollback()
+            self.print_exception_not_inserted(e)
 
     def get_not_preprocessed_posts(self):
         sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
@@ -705,14 +684,7 @@ class DatabaseMethods:
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
-            print("NOT INSERTED")
-            print("Error code:", e.pgcode)  # error number
-            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
-            print("Error:", e)  # errno, sqlstate, msg values
-            s = str(e)
-            print("Error:", s)  # errno, sqlstate, msg values
-            if self.cnx is not None:
-                self.cnx.rollback()
+            self.print_exception_not_inserted(e)
 
     def get_results_dataframe(self):
         sql = """SELECT * FROM relevance_testings ORDER BY id;"""
@@ -741,14 +713,7 @@ class DatabaseMethods:
             else:
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         except psycopg2.Error as e:
-            print("NOT INSERTED")
-            print("Error code:", e.pgcode)  # error number
-            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
-            print("Error:", e)  # errno, sqlstate, msg values
-            s = str(e)
-            print("Error:", s)  # errno, sqlstate, msg values
-            if self.cnx is not None:
-                self.cnx.rollback()
+            self.print_exception_not_inserted(e)
 
     def null_test_user_prefilled_records(self, user_id):
         try:
@@ -758,14 +723,10 @@ class DatabaseMethods:
                 self.cursor.execute(query % queried_values)
                 self.cnx.commit()
         except psycopg2.Error as e:
-            print("NOT INSERTED")
-            print("Error code:", e.pgcode)  # error number
-            print("SQLSTATE value:", e.pgerror)  # SQLSTATE value
-            print("Error:", e)  # errno, sqlstate, msg values
-            s = str(e)
-            print("Error:", s)  # errno, sqlstate, msg values
-            if self.cnx is not None:
-                self.cnx.rollback()
+            self.print_exception_not_inserted(e)
+
+    def print_exception_not_inserted(self, e):
+        self.print_exception_not_inserted(e)
 
 
 def get_redis_connection():
