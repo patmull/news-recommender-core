@@ -151,10 +151,12 @@ class Classifier:
         self.path_to_models_global_folder = "full_models/hybrid/classifiers/global_models"
         self.path_to_models_user_folder = "full_models/hybrid/classifiers/users_models"
         self.model_save_location = Path()
+        self.bert_model = None
 
     def train_classifiers(self, df, columns_to_combine, target_variable_name, user_id=None):
+        logging.debug("Loading Bert model...")
+        self.bert_model =load_bert_model()
         # https://metatext.io/models/distilbert-base-multilingual-cased
-        bert_model = load_bert_model()
         df_predicted = get_df_predicted(df, target_variable_name)
 
         df = df.fillna('')
@@ -170,7 +172,7 @@ class Classifier:
                                                                         df_predicted[target_variable_name]
                                                                         .tolist(), test_size=0.2)
         logging.debug("Converting text to vectors...")
-        df['vector'] = df['combined'].apply(lambda x: bert_model(x).vector)
+        df['vector'] = df['combined'].apply(lambda x: self.bert_model(x).vector)
         logging.debug("Splitting dataset to train_enabled / test...")
         # noinspection PyPep8Naming
         X_train, X_test, y_train, y_test = train_test_split(df['vector'].tolist(),
@@ -233,7 +235,7 @@ class Classifier:
             path_to_save_forest = Path.joinpath(path_to_models_pathlib, model_file_name)
             joblib.dump(clf_random_forest, path_to_save_forest)
 
-        return clf_svc, clf_random_forest, X_validation, y_validation, bert_model
+        return clf_svc, clf_random_forest, X_validation, y_validation, self.bert_model
 
     def load_classifiers(self, df, input_variables, predicted_variable, user_id=None):
         # https://metatext.io/models/distilbert-base-multilingual-cased
@@ -341,7 +343,6 @@ class Classifier:
                     # noinspection PyPep8Naming
                     X_validation = X_validation.sample(use_only_sample_of)
             logging.debug("Loading sentence bert multilingual model...")
-            bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
             logging.debug("=========================")
             logging.debug("Results of SVC:")
             logging.debug("=========================")
