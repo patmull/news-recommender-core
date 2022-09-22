@@ -5,7 +5,7 @@ import pytest
 from pandas.io.sql import DatabaseError
 
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import fill_recommended_collab_based
+from src.prefillers.prefiller import fill_recommended_collab_based
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 

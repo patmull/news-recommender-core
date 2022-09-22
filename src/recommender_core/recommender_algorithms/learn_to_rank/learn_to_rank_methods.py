@@ -655,8 +655,8 @@ def linear_regression(user_id, post_slug):
     lda_posts = lda.get_similar_lda(post_slug)
     lda_all_posts = lda.get_similar_lda(post_slug, n=num_of_posts)
 
-    user_preferences_posts = user_based_recommendation.load_recommended_posts_for_user(user_id,
-                                                                                       num_of_recommendations=20)
+    user_preferences_posts = user_based_recommendation.load_best_rated_by_others_in_user_categories(user_id,
+                                                                                                    num_of_recommendations=20)
     print("user_preferences_posts")
     print(user_preferences_posts)
 

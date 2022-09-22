@@ -1,7 +1,7 @@
 import traceback
 
 from src.prefillers.user_based_prefillers.prefilling_user_classifier import fill_bert_vector_representation
-from src.recommender_core.recommender_algorithms.content_based_algorithms.prefiller import prefilling_job_content_based
+from src.prefillers.prefiller import prefilling_job_content_based
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.prefilling_additional import PreFillerAdditional

@@ -102,7 +102,7 @@ print(found_df['slug'].iloc[0])
 
 """
 user_based_recommendation = UserBasedMethods()
-user_based_recommendation.load_recommended_posts_for_user(371)
+user_based_recommendation.load_best_rated_by_others_in_user_categories(371)
 """
 tfidf = TfIdf()
 print(tfidf.keyword_based_comparison("banik ostrava"))
