@@ -6,6 +6,7 @@ import psycopg2
 from gensim.models import KeyedVectors
 from pandas.io.sql import DatabaseError
 
+from src.custom_exceptions.exceptions import TestRunException
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import UserBasedMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -20,9 +21,11 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.collabora
 val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
 
-def fill_recommended_collab_based(method, skip_already_filled, test_run):
-    if test_run:
-        raise TestRunException
+
+def fill_recommended_collab_based(method, skip_already_filled, test_run=False):
+    if test_run is True:
+        print("Test run exception raised.")
+        raise TestRunException("This is test run")
 
     recommender_methods = RecommenderMethods()
     # TODO: Do this for all methods that don't need other columns
@@ -340,8 +343,8 @@ class UserBased:
                     print("DB operational error. Waiting few seconds before trying again...")
                     t.sleep(30)  # wait 30 seconds then try again
                     continue
-                except TestRunException:
-                    break
+                except TestRunException as e:
+                    raise e
                 break
             else:
                 raise NotImplementedError("Other DB source than PostgreSQL not implemented yet.")

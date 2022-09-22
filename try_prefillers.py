@@ -51,4 +51,4 @@ assert mockconnect.call_args_list[0] == call(user=DB_USER, password=DB_PASSWORD,
 
 # TODO: Prefill SVD again (was partially rewritten by keywords)
 # run_prefilling_svd()
-run_prefilling_collaborative()
+run_prefilling_collaborative(test_run=True)
