@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
+from src.custom_exceptions.exceptions import TestRunException
 from src.prefillers.prefiller import UserBased
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
@@ -74,18 +75,18 @@ class TestPrefillers:
 
 
 @pytest.mark.integtest
-@patch.object(UserBased, "prefilling_job_user_based")
-def test_user_preferences_prefiller(mock_run_prefilling_collaborative):
-    with mock_run_prefilling_collaborative.assert_called():
-        run_prefilling_collaborative()
-
-
-@pytest.mark.integtest
 class TestUserPrefillers(TestCase):
 
-    @patch('src.prefillers.prefiller.prefilling_job_user_based')
+    # @patch.object(UserBased, "prefilling_job_user_based", autospec=UserBased)
+    def test_user_preferences_prefiller(self):
+        with pytest.raises(TestRunException):
+            print("What the heck is going on.")
+            print(run_prefilling_collaborative(test_run=True))
+        # mock_run_prefilling_collaborative.assert_called()
+
+    @patch.object(UserBased, "prefilling_job_user_based", autospec=UserBased)
     def test_prefilling_job_user_based_not_called(self, mock_prefilling_job_user_based):
         methods = ['svd', 'user_keywords', 'best_rated']  # last value is BS value
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             run_prefilling_collaborative(methods)
         mock_prefilling_job_user_based.assert_not_called()
