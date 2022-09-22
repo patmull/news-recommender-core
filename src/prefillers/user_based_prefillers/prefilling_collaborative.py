@@ -1,5 +1,6 @@
 import traceback
 
+from src.custom_exceptions.exceptions import TestRunException
 from src.prefillers.prefiller import UserBased
 
 default_methods = ['svd', 'user_keywords', 'best_rated_by_others_in_user_categories']
@@ -20,6 +21,8 @@ def run_prefilling_collaborative(methods=None, test_run=False):
             print("Calling prefilling job user based...")
             user_based = UserBased()
             user_based.prefilling_job_user_based(method=method, db="pgsql", test_run=test_run)
+    except TestRunException as e:
+        raise e
     except Exception as e:
         print("Exception occurred " + str(e))
         traceback.print_exception(None, e, e.__traceback__)
