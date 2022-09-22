@@ -1,0 +1,2 @@
+class TestRunException(Exception):
+    pass

@@ -1,10 +1,12 @@
 import json
 import random
 import time as t
+
 import psycopg2
 from gensim.models import KeyedVectors
 from pandas.io.sql import DatabaseError
 
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import UserBasedMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
@@ -18,8 +20,10 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.collabora
 val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
 
+def fill_recommended_collab_based(method, skip_already_filled, test_run):
+    if test_run:
+        raise TestRunException
 
-def fill_recommended_collab_based(method, skip_already_filled):
     recommender_methods = RecommenderMethods()
     # TODO: Do this for all methods that don't need other columns
     column_name = "recommended_by_" + method
@@ -54,6 +58,14 @@ def fill_recommended_collab_based(method, skip_already_filled):
                 print("input_keywords:")
                 print(input_keywords)
                 actual_json = tfidf.keyword_based_comparison(input_keywords)
+            except ValueError as e:
+                print("Value Error had occurred in computing " + method + ". Skipping record.")
+                print(e)
+                continue
+        elif method == "best_rated_by_others_in_user_categories":
+            try:
+                user_based_methods = UserBasedMethods()
+                actual_json = user_based_methods.load_best_rated_by_others_in_user_categories(current_user_id)
             except ValueError as e:
                 print("Value Error had occurred in computing " + method + ". Skipping record.")
                 print(e)
@@ -317,18 +329,22 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                 print("Skipping.")
 
 
-def prefilling_job_user_based(method, db):
-    while True:
-        if db == "pgsql":
-            try:
-                fill_recommended_collab_based(method=method, skip_already_filled=True)
-            except psycopg2.OperationalError:
-                print("DB operational error. Waiting few seconds before trying again...")
-                t.sleep(30)  # wait 30 seconds then try again
-                continue
-            break
-        else:
-            raise NotImplementedError("Other DB source than PostgreSQL not implemented yet.")
+class UserBased:
+
+    def prefilling_job_user_based(self, method, db, test_run):
+        while True:
+            if db == "pgsql":
+                try:
+                    fill_recommended_collab_based(method=method, skip_already_filled=True, test_run=test_run)
+                except psycopg2.OperationalError:
+                    print("DB operational error. Waiting few seconds before trying again...")
+                    t.sleep(30)  # wait 30 seconds then try again
+                    continue
+                except TestRunException:
+                    break
+                break
+            else:
+                raise NotImplementedError("Other DB source than PostgreSQL not implemented yet.")
 
 
 def prefilling_job_content_based(method, full_text, random_order=False, reversed_order=True):

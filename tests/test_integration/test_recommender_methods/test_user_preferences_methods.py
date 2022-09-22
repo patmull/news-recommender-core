@@ -1,5 +1,7 @@
 import json
 import random
+from unittest import mock
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
@@ -7,6 +9,7 @@ import pytest
 
 # Run with:
 # python -m pytest .\tests\test_user_preferences_methods.py::test_user_keywords -rP
+from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
@@ -28,7 +31,7 @@ def test_user_categories():
     random_position = random.randrange(len(list_of_user_ids))
     random_id = list_of_user_ids[random_position]
     num_of_recommended_posts = 5
-    recommendations = user_based_recommendation.load_recommended_posts_for_user(random_id, num_of_recommended_posts)
+    recommendations = user_based_recommendation.load_best_rated_by_others_in_user_categories(random_id, num_of_recommended_posts)
     print("Recommendations:")
     print(recommendations)
     assert type(recommendations) is dict
@@ -57,27 +60,30 @@ def test_insert_recommended_json_user_based():
     test_json = json.dumps(test_dict)
     test_user_id = 999999
     db = 'pgsql'
-    methods = ['svd', 'user_keywords']
+    methods = ['svd', 'user_keywords', 'best_rated_by_others_in_user_categories']
     recommended_methods.remove_test_user_prefilled_records(test_user_id)
 
+    db_column_appendix = 'recommended_by_'
+    db_columns = [db_column_appendix + s for s in methods]
+
     database_methods = DatabaseMethods()
-    sql = """SELECT recommended_by_svd, recommended_by_user_keywords FROM users WHERE id = {};"""
+    sql = """SELECT {}, {}, {} FROM users WHERE id = {};"""
     # NOTICE: Connection is ok here. Need to stay here due to calling from function that's executing thread
     # operation
-    sql = sql.format(test_user_id)
+    sql = sql.format(db_columns[0], db_columns[1], db_columns[2], test_user_id)
     database_methods.connect()
     # LOAD INTO A DATAFRAME
     df = pd.read_sql_query(sql, database_methods.get_cnx())
     database_methods.disconnect()
 
-    assert df['recommended_by_svd'].iloc[0] is None
-    assert df['recommended_by_user_keywords'].iloc[0] is None
+    for method in db_columns:
+        assert df[method].iloc[0] is None
+
     for method in methods:
         recommended_methods.insert_recommended_json_user_based(recommended_json=test_json, user_id=test_user_id,
                                                                db=db, method=method)
 
     database_methods = DatabaseMethods()
-    sql = """SELECT recommended_by_svd, recommended_by_user_keywords FROM users WHERE id = {};"""
     # NOTICE: Connection is ok here. Need to stay here due to calling from function that's executing thread
     # operation
     sql = sql.format(test_user_id)
@@ -86,9 +92,8 @@ def test_insert_recommended_json_user_based():
     df = pd.read_sql_query(sql, database_methods.get_cnx())
     database_methods.disconnect()
 
-    assert df['recommended_by_svd'].iloc[0] is not None
-    assert df['recommended_by_user_keywords'].iloc[0] is not None
-    assert type(df['recommended_by_svd'].iloc[0]) is str
-    assert type(df['recommended_by_user_keywords'].iloc[0]) is str
+    for method in db_columns:
+        assert df[method].iloc[0] is not None
+        assert type(df[method].iloc[0]) is str
 
     recommended_methods.remove_test_user_prefilled_records(test_user_id)
