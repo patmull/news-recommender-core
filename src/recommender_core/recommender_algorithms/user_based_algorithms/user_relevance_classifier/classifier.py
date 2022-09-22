@@ -155,7 +155,7 @@ class Classifier:
 
     def train_classifiers(self, df, columns_to_combine, target_variable_name, user_id=None):
         logging.debug("Loading Bert model...")
-        self.bert_model =load_bert_model()
+        self.bert_model = load_bert_model()
         # https://metatext.io/models/distilbert-base-multilingual-cased
         df_predicted = get_df_predicted(df, target_variable_name)
 

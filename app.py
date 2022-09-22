@@ -183,7 +183,7 @@ class GetPostsByUserPreferences(Resource):
 
     def get(self, param1, param2):
         user_based_recommendation = UserBasedMethods()
-        return user_based_recommendation.load_recommended_posts_for_user(param1, param2)
+        return user_based_recommendation.load_best_rated_by_others_in_user_categories(param1, param2)
 
     def post(self):
         return {"data": "Posted"}

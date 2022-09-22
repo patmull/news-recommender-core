@@ -53,13 +53,13 @@ class UserBasedMethods:
     def get_database(self):
         return self.database
 
-    # loads posts for user based on his searched_id and favourite categories
-    def load_recommended_posts_for_user(self, user_id, num_of_recommendations=5):
+    # loads posts for user based on his favourite categories
+    def load_best_rated_by_others_in_user_categories(self, user_id, num_of_recommendations=5):
         self.database = DatabaseMethods()
 
         # noinspection PyPep8
-        df_posts_users_of_categories = load_ratings()[load_ratings().category_slug.isin(load_user_categories(user_id)
-                                                                                        ['category_slug'].tolist())]
+        df_posts_users_of_categories = load_ratings()[load_ratings()
+            .category_slug.isin(load_user_categories(user_id)['category_slug'].tolist())]
         df_filter_current_user = df_posts_users_of_categories[
             df_posts_users_of_categories.rating_id != self.get_user_id()]
         df_sorted_results = df_filter_current_user[['post_id', 'post_slug', 'ratings_values', 'post_created_at']] \
@@ -86,7 +86,7 @@ class UserBasedMethods:
 def main():
     # Testing
     user_based_recommendation = UserBasedMethods()
-    print(user_based_recommendation.load_recommended_posts_for_user(211, 4))
+    print(user_based_recommendation.load_best_rated_by_others_in_user_categories(211, 4))
 
 
 # noinspection PyPep8
