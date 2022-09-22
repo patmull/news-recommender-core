@@ -3,7 +3,7 @@
 # predict_ratings_for_all_users_store_to_redis()
 import os
 
-from src.prefillers.user_based_prefillers.prefilling_svd import run_prefilling_svd
+from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 """
@@ -50,4 +50,5 @@ assert mockconnect.call_args_list[0] == call(user=DB_USER, password=DB_PASSWORD,
 """
 
 # TODO: Prefill SVD again (was partially rewritten by keywords)
-run_prefilling_svd()
+# run_prefilling_svd()
+run_prefilling_collaborative()

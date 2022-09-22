@@ -1,11 +1,15 @@
 import os
 import random
+import unittest
+from unittest import TestCase
 from unittest.mock import call
 
 from unittest.mock import patch
 
 import pytest
 
+from src.prefillers.prefiller import UserBased
+from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 database = DatabaseMethods()
@@ -67,3 +71,21 @@ class TestPrefillers:
             random_full_text_choice = random.choice(full_text_options)
             assert not_prefilled_retriaval(method=random_method_choice, full_text=random_full_text_choice) \
                    is True
+
+
+@pytest.mark.integtest
+@patch.object(UserBased, "prefilling_job_user_based")
+def test_user_preferences_prefiller(mock_run_prefilling_collaborative):
+    with mock_run_prefilling_collaborative.assert_called():
+        run_prefilling_collaborative()
+
+
+@pytest.mark.integtest
+class TestUserPrefillers(TestCase):
+
+    @patch('src.prefillers.prefiller.prefilling_job_user_based')
+    def test_prefilling_job_user_based_not_called(self, mock_prefilling_job_user_based):
+        methods = ['svd', 'user_keywords', 'best_rated']  # last value is BS value
+        with self.assertRaises(ValueError):
+            run_prefilling_collaborative(methods)
+        mock_prefilling_job_user_based.assert_not_called()
