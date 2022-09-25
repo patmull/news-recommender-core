@@ -8,10 +8,14 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
+from src.constants.naming import Naming
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 import logging
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
 
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
@@ -52,9 +56,9 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     If this method takes a lot of time, use BERT vector prefilling function fill_bert_vector_representation().
     """
 
-    if predicted_var_for_redis_key_name == 'thumbs':
+    if predicted_var_for_redis_key_name == Naming.PREDICTED_BY_THUMBS_REDIS_KEY_NAME:
         threshold = 1  # binary relevance rating
-    elif predicted_var_for_redis_key_name == 'ratings':
+    elif predicted_var_for_redis_key_name == Naming.PREDICTED_BY_STARS_REDIS_KEY_NAME:
         threshold = 3  # the Likert scale
     else:
         raise ValueError("No from passed predicted rating key names matches the available options!")
@@ -64,7 +68,7 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
             raise ValueError("If BERT model is supplied, then column list needs "
                              "to be supplied to col_to_combine_parameter!")
 
-    logging.debug("Vectorizing the selected columns...")
+    logging.debug("Vectoring the selected columns...")
     # TODO: Takes a lot of time... Probably pre-calculate.
     logging.debug("X_unseen_df:")
     logging.debug(X_unseen_df)
@@ -75,8 +79,8 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
         .apply(lambda x: clf
                .predict(pickle
                         .loads(x['bert_vector_representation']))[0]
-    if pd.notnull(x['bert_vector_representation']) else
-    clf.predict(bert_model(' '.join(x[col_to_combine])).vector.reshape(1, -1))[0], axis=1)
+    if pd.notnull(x['bert_vector_representation'])
+    else clf.predict(bert_model(' '.join(str(x[col_to_combine]))).vector.reshape(1, -1))[0], axis=1)
 
     y_pred_unseen = y_pred_unseen.rename('prediction')
     df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
@@ -86,7 +90,8 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
 
     if user_id is not None:
         r = get_redis_connection()
-        user_redis_key = 'posts_by_pred_' + predicted_var_for_redis_key_name + '_user_' + str(user_id)
+        user_redis_key = 'user' + Naming.REDIS_DELIMITER + str(user_id) + Naming.REDIS_DELIMITER \
+                         + 'post-classifier-by-' + predicted_var_for_redis_key_name
         # remove old records
         r.delete(user_redis_key)
         logging.debug("iteration through records:")
@@ -280,10 +285,10 @@ class Classifier:
         return clf_svc, clf_random_forest
 
     def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
-                                   experiment_mode=False, only_with_bert_vectors=True, bert_model=None):
-        if only_with_bert_vectors is False:
+                                   experiment_mode=False, only_with_prefilled_bert_vectors=True, bert_model=None):
+        if only_with_prefilled_bert_vectors is False:
             if bert_model is None:
-                raise ValueError("Loaded BERT model needs to be supplied if only_with_bert_vectors parameter"
+                raise ValueError("Loaded BERT model needs to be supplied if only_with_prefilled_bert_vectors parameter"
                                  "is set to False")
 
         columns_to_combine = ['category_title', 'all_features_preprocessed', 'full_text']
@@ -303,24 +308,27 @@ class Classifier:
         if not type(relevance_by) == str:
             raise ValueError("Bad data type for argument relevance_by")
 
-        if not type(use_only_sample_of) == int:
-            raise ValueError("Bad data type for argument relevance_by")
+        if use_only_sample_of is not None:
+            if not type(use_only_sample_of) == int:
+                raise ValueError("Bad data type for argument use_only_sample_of")
 
         if relevance_by == 'thumbs':
             df_posts_users_categories_relevance = recommender_methods \
-                .get_posts_users_categories_thumbs_df(user_id=user_id, only_with_bert_vectors=only_with_bert_vectors)
+                .get_posts_users_categories_thumbs_df(user_id=user_id,
+                                                      only_with_bert_vectors=only_with_prefilled_bert_vectors)
             target_variable_name = 'thumbs_values'
-            predicted_var_for_redis_key_name = 'thumbs'
+            predicted_var_for_redis_key_name = Naming.PREDICTED_BY_THUMBS_REDIS_KEY_NAME
         elif relevance_by == 'stars':
             df_posts_users_categories_relevance = recommender_methods \
-                .get_posts_users_categories_ratings_df(user_id=user_id, only_with_bert_vectors=only_with_bert_vectors)
+                .get_posts_users_categories_ratings_df(user_id=user_id,
+                                                       only_with_bert_vectors=only_with_prefilled_bert_vectors)
             target_variable_name = 'ratings_values'
-            predicted_var_for_redis_key_name = 'ratings'
+            predicted_var_for_redis_key_name = Naming.PREDICTED_BY_STARS_REDIS_KEY_NAME
         else:
             raise ValueError("No options from allowed relevance options selected.")
 
         df_posts_categories = recommender_methods \
-            .get_posts_categories_dataframe(only_with_bert_vectors=only_with_bert_vectors,
+            .get_posts_categories_dataframe(only_with_bert_vectors=only_with_prefilled_bert_vectors,
                                             from_cache=False)
 
         df_posts_categories = df_posts_categories.rename(columns={'title': 'category_title'})
