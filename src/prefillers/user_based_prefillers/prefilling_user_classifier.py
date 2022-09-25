@@ -105,3 +105,8 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed_order=Fal
                 fill_bert_vector_representation(db=db, skip_already_filled=skip_already_filled,
                                                 reversed_order=reversed_order,
                                                 random_order=random_order)
+
+
+def prefill_for_user(user_id):
+    classifier = Classifier()
+    classifier.predict_relevance_for_user()
