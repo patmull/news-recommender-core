@@ -13,6 +13,18 @@ DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
 DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
 
 
+def singleton(class_):
+    instances = {}
+
+    def getinstance(*args, **kwargs):
+        if class_ not in instances:
+            instances[class_] = class_(*args, **kwargs)
+        return instances[class_]
+
+    return getinstance
+
+
+@singleton
 class DatabaseMethods:
     cnx = None
     cursor = None
@@ -715,15 +727,17 @@ class DatabaseMethods:
         except psycopg2.Error as e:
             self.print_exception_not_inserted(e)
 
-    def null_test_user_prefilled_records(self, user_id):
-        try:
-            query = """UPDATE users SET recommended_by_svd = NULL, recommended_by_user_keywords = NULL WHERE id = %s;"""
-            queried_values = user_id
-            if self.cursor is not None and self.cnx is not None:
-                self.cursor.execute(query % queried_values)
-                self.cnx.commit()
-        except psycopg2.Error as e:
-            self.print_exception_not_inserted(e)
+    def null_test_user_prefilled_records(self, user_id, db_columns):
+        for method in db_columns:
+            try:
+                query = """UPDATE users SET {} = NULL WHERE id = %s;"""
+                query = query.format(method)
+                queried_values = user_id
+                if self.cursor is not None and self.cnx is not None:
+                    self.cursor.execute(query % queried_values)
+                    self.cnx.commit()
+            except psycopg2.Error as e:
+                self.print_exception_not_inserted(e)
 
     def print_exception_not_inserted(self, e):
         self.print_exception_not_inserted(e)

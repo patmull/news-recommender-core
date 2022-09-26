@@ -7,8 +7,8 @@ default_methods = ['svd', 'user_keywords', 'best_rated_by_others_in_user_categor
 
 
 def run_prefilling_collaborative(methods=None, test_run=False):
-    # methods = ['svd, 'user_keywords'] # NOTICE: Needs to correspond with DB column names
-    # methods = ['user_keywords']
+    # db_columns = ['svd, 'user_keywords'] # NOTICE: Needs to correspond with DB column names
+    # db_columns = ['user_keywords']
     if methods is None:
         methods = default_methods
     else:

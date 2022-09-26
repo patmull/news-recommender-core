@@ -209,7 +209,7 @@ def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_meth
     if list_of_methods is None:
         list_of_methods = ['tfidf', 'doc2vec', 'word2vec']
     elif not set(list_of_methods).issubset(list_of_supported_methods) > 0:
-        raise NotImplementedError("inserted methods are not supported.")
+        raise NotImplementedError("inserted db_columns are not supported.")
     if posts_to_compare is None:
         svd = SvdClass()
         recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=5)
