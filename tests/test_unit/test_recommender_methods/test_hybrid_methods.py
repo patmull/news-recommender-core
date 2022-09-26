@@ -31,31 +31,6 @@ def test_svm_classifier_bad_relevance_by(tested_input):
         assert svm.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by=tested_input)
 
 
-@pytest.mark.parametrize("tested_input", [
-    '',
-    15505661,
-    (),
-    None,
-    'ratings'
-])
-def test_svm_classifier_bad_user_id(tested_input):
-    with pytest.raises(ValueError):
-        svm = Classifier()
-        assert svm.predict_relevance_for_user(use_only_sample_of=20, user_id=tested_input, relevance_by='stars')
-
-
-@pytest.mark.parametrize("tested_input", [
-    '',
-    (),
-    None,
-    'ratings'
-])
-def test_svm_classifier_bad_sample_number(tested_input):
-    with pytest.raises(ValueError):
-        svm = Classifier()
-        assert svm.predict_relevance_for_user(use_only_sample_of=tested_input, user_id=431, relevance_by='stars')
-
-
 def test_select_list_of_posts_for_user():
     test_user_id = 431
     searched_slug_1 = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
