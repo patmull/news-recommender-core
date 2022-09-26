@@ -41,4 +41,4 @@ jobs:
         if: failure()
         with:
           name: gitleaks
-          path: ${{ steps.gitleaks.outputs.report }}
+          path: tests/logs/gitactions
