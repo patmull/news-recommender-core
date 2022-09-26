@@ -16,7 +16,7 @@ def callback(ch, method, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
     if body.decode() == "new_articles_scrapped":
         print("Recieved message that new posts were scrapped.")
-        print("I'm calling prefilling methods...")
+        print("I'm calling prefilling db_columns...")
         try:
             run_prefilling()
         except Exception as e:
