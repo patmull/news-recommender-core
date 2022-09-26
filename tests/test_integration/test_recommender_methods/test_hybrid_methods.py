@@ -7,7 +7,7 @@ import pytest
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
     get_most_similar_by_hybrid, select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    load_bert_model
+    load_bert_model, Classifier
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
@@ -97,3 +97,16 @@ def test_get_similarity_matrix_from_pairs_similarity():
     list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id=test_user_id,
                                                                               posts_to_compare=test_slugs)
     get_similarity_matrix_from_pairs_similarity("doc2vec", list_of_slugs, test_slugs, list_of_slugs_from_history)
+
+
+@pytest.mark.parametrize("tested_input", [
+    '',
+    15505661,
+    (),
+    None,
+    'ratings'
+])
+def test_svm_classifier_bad_user_id(tested_input):
+    with pytest.raises(ValueError):
+        svm = Classifier()
+        assert svm.predict_relevance_for_user(use_only_sample_of=20, user_id=tested_input, relevance_by='stars')
