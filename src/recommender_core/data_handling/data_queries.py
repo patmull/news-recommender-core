@@ -57,8 +57,9 @@ def convert_dataframe_posts_to_json(post_recommendations, slug, cosine_sim_df):
     return list_of_article_slugs[0]
 
 
-def dropbox_file_download(access_token, dropbox_file_path, local_folder_name):
+def dropbox_file_download(dropbox_file_path, local_folder_name):
     try:
+        access_token = os.environ.get('DROPBOX_ACCESS_TOKEN')
         dbx = dropbox.Dropbox(access_token)
         # Files can be displayed here. See this method in older commits.
         dbx.files_download_to_file(dropbox_file_path, local_folder_name)
