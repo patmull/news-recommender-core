@@ -26,3 +26,19 @@ jobs:
           pip install tox tox-gh-actions
       - name: Test with tox
         run: tox
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: "0"
+      - name: Run Gitleaks
+        id: gitleaks
+        uses: DariuszPorowski/github-action-gitleaks@v2
+        with:
+          config: "MyGitleaksConfigs/MyGitleaksConfig.toml"
+
+      - name: Upload Gitleaks JSON report to artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: gitleaks
+          path: ${{ steps.gitleaks.outputs.report }}
