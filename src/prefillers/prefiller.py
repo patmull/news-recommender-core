@@ -28,7 +28,7 @@ def fill_recommended_collab_based(method, skip_already_filled, test_run=False):
         raise TestRunException("This is test run")
 
     recommender_methods = RecommenderMethods()
-    # TODO: Do this for all methods that don't need other columns
+    # TODO: Do this for all db_columns that don't need other columns
     column_name = "recommended_by_" + method
     try:
         users = recommender_methods.get_all_users(only_with_id_and_column_named=column_name)

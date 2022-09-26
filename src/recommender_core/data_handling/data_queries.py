@@ -535,9 +535,9 @@ class RecommenderMethods:
                                                          user_id=user_id, db=db, method=method)
         self.database.disconnect()
 
-    def remove_test_user_prefilled_records(self, user_id):
+    def remove_test_user_prefilled_records(self, user_id, db_columns):
         self.database.connect()
-        self.database.null_test_user_prefilled_records(user_id)
+        self.database.null_test_user_prefilled_records(user_id, db_columns=db_columns)
         self.database.disconnect()
 
 
