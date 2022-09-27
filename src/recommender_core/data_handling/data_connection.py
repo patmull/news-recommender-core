@@ -6,10 +6,10 @@ import pika
 def init_rabbitmq():
     ssl_enabled = os.environ.get("ssl", False)
 
-    rabbitmq_user = os.environ.get('CLOUDAMQP_USERNAME', '***REMOVED***')
-    rabbitmq_password = os.environ.get('CLOUDAMQP_PASSWORD', '***REMOVED***')
-    rabbitmq_host = os.environ.get('CLOUDAMQP_HOST', '***REMOVED***')
-    rabbitmq_vhost = os.environ.get('CLOUDAMQP_VHOST', rabbitmq_user)
+    rabbitmq_user = os.environ.get('RABBITMQ_USER')
+    rabbitmq_password = os.environ.get('RABBITMQ_PASSWORD')
+    rabbitmq_host = os.environ.get('RABBITMQ_HOST')
+    rabbitmq_vhost = os.environ.get('RABBITMQ_VHOST', rabbitmq_user)
 
     if ssl_enabled:
         context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
