@@ -62,8 +62,7 @@ logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging.")
 
 # TODO: Prefill SVD again (was partially rewritten by keywords)
-# run_prefilling_svd()
-# run_prefilling_collaborative(test_run=True)
+run_prefilling_collaborative(test_run=True)
 
 test_user_id = 431
 recommender_methods = RecommenderMethods()

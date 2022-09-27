@@ -6,16 +6,17 @@ import pika
 from src.recommender_core.data_handling.data_connection import init_rabbitmq
 
 
-def notify_prefiller():
+def notify_prefiller(queue, message, routing_key, exchange=''):
     rabbit_connection = init_rabbitmq()
     channel = rabbit_connection.channel()
 
-    channel.queue_declare(queue='new_articles_alert', durable=True)
+    channel.queue_declare(queue=queue, durable=True)
+    channel.queue_bind(queue=queue, exchange=exchange, routing_key=routing_key)
 
-    message = b"new_articles_scrapped"
+    message = message
     channel.basic_publish(
-        exchange='',
-        routing_key='new_articles_alert',
+        exchange=exchange,
+        routing_key=routing_key,
         body=message,
         properties=pika.BasicProperties(
             delivery_mode=2  # make message persistent
