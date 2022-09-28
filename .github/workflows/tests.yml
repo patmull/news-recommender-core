@@ -7,6 +7,12 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    env:
+      DB_RECOMMENDER_HOST: ${{secrets.DB_RECOMMENDER_HOST}}
+      DB_RECOMMENDER_NAME: ${{secrets.DB_RECOMMENDER_NAME}}
+      DB_RECOMMENDER_PASSWORD: ${{secrets.DB_RECOMMENDER_PASSWORD}}
+      DB_RECOMMENDER_USER: ${{secrets.DB_RECOMMENDER_USER}}
+      REDIS_PASSWORD: ${{secrets.REDIS_PASSWORD}}
 
     strategy:
       matrix:
@@ -25,12 +31,6 @@ jobs:
           sudo -H pip install --upgrade pip tox virtualenv
           pip install tox tox-gh-actions
       - name: Test with tox
-        env:
-          DB_RECOMMENDER_HOST: ${{secrets.DB_RECOMMENDER_HOST}}
-          DB_RECOMMENDER_NAME: ${{secrets.DB_RECOMMENDER_NAME}}
-          DB_RECOMMENDER_PASSWORD: ${{secrets.DB_RECOMMENDER_PASSWORD}}
-          DB_RECOMMENDER_USER: ${{secrets.DB_RECOMMENDER_USER}}
-          REDIS_PASSWORD: ${{secrets.REDIS_PASSWORD}}
         run: tox
       - name: Checkout
         uses: actions/checkout@v3
