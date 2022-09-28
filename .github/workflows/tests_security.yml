@@ -1,0 +1,37 @@
+name: Tests
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      DB_RECOMMENDER_HOST: ${{secrets.DB_RECOMMENDER_HOST}}
+      DB_RECOMMENDER_NAME: ${{secrets.DB_RECOMMENDER_NAME}}
+      DB_RECOMMENDER_PASSWORD: ${{secrets.DB_RECOMMENDER_PASSWORD}}
+      DB_RECOMMENDER_USER: ${{secrets.DB_RECOMMENDER_USER}}
+      REDIS_PASSWORD: ${{secrets.REDIS_PASSWORD}}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.8', '3.9', '3.10']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: "0"
+      - name: Run Gitleaks
+        id: gitleaks
+        uses: DariuszPorowski/github-action-gitleaks@v2
+        with:
+          config: "MyGitleaksConfigs/MyGitleaksConfig.toml"
+
+      - name: Upload Gitleaks JSON report to artifacts
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: gitleaks
+          path: tests/logs/gitactions
