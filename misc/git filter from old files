@@ -1,1 +1,3 @@
 git filter-branch --index-filter 'rm -f tox.ini' -- --all
+
+git filter-branch --index-filter 'git rm --cached --ignore-unmatch content_based_algorithms/word2vec.py' -- --all HEAD
