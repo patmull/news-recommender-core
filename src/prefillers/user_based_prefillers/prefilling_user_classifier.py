@@ -8,7 +8,6 @@ from src.recommender_core.data_handling.model_methods.user_methods import UserMe
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     Classifier
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 
 def predict_ratings_for_all_users_store_to_redis():

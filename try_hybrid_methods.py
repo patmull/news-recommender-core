@@ -80,7 +80,7 @@ def main():
                          bert_model=bert_model, col_to_combine=columns_to_combine,
                          save_testing_csv=True)
     """
-
+    """
     # RATINGS VALUES
     df_posts_users_categories_relevance = recommender_methods \
         .get_posts_users_categories_ratings_df(user_id=user_id,
@@ -90,6 +90,7 @@ def main():
         .to_csv(Path("tests/testing_datasets/testing_posts_categories_stars_data_for_df.csv"))
 
     target_variable_name = 'ratings_values'
+    predicted_by_stars_redis_key_name = 'stars-ratings'
 
     classifier = Classifier()
 
@@ -99,9 +100,8 @@ def main():
                                        target_variable_name=target_variable_name, user_id=user_id)
 
     predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
-                         predicted_var_for_redis_key_name=malformed_redis_key_name,
+                         predicted_var_for_redis_key_name=predicted_by_stars_redis_key_name,
                          bert_model=bert_model, col_to_combine=columns_to_combine,
                          save_testing_csv=True)
-
-
+"""
 if __name__ == "__main__": main()
