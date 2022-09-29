@@ -1,7 +1,3 @@
-from datetime import datetime
-
-from src.recommender_core.data_handling.data_manipulation import get_redis_connection
-
 """
 database = DatabaseMethods()
 database.connect()

@@ -1,20 +1,12 @@
-import ast
-import gc
 import json
 import os
-import pickle
-import time
-from pathlib import Path
 import numpy as np
 import redis
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
-from lightgbm import LGBMRanker
 
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf, get_prefilled_full_text
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
     SvdClass
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation \

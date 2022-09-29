@@ -7,6 +7,7 @@ import pytest
 # python -m pytest .\tests\test_data_handling\test_data_queries.py
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
 TEST_CACHED_PICKLE_PATH = 'db_cache/cached_posts_dataframe_test.pkl'
 CRITICAL_COLUMNS_POSTS = ['slug', 'all_features_preprocessed', 'body_preprocessed', 'trigrams_full_text']
@@ -84,8 +85,8 @@ def test_posts_dataframe_file_missing():
 
 @pytest.mark.integtest
 def test_users_dataframe():
-    recommender_methods = RecommenderMethods()
-    users_df = recommender_methods.get_users_dataframe()
+    user_methods = UserMethods()
+    users_df = user_methods.get_users_dataframe()
     common_asserts_for_dataframes(users_df, CRITICAL_COLUMNS_USERS)
 
 

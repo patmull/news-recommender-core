@@ -6,7 +6,7 @@ import pika
 from src.recommender_core.data_handling.data_connection import init_rabbitmq
 
 
-def notify_prefiller(queue, message, routing_key, exchange=''):
+def publish_channel(queue, message, routing_key, exchange=''):
     rabbit_connection = init_rabbitmq()
     channel = rabbit_connection.channel()
 

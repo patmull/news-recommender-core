@@ -8,6 +8,7 @@ import pandas as pd
 from gensim.models import KeyedVectors
 from sklearn.preprocessing import OneHotEncoder
 
+from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
@@ -274,8 +275,8 @@ def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_meth
     print("results_df after merge")
     print(results_df)
 
-    recommend_methods = RecommenderMethods()
-    user_categories = recommend_methods.get_user_categories(user_id)
+    user_methods = UserMethods()
+    user_categories = user_methods.get_user_categories(user_id)
     print("Categories for user " + str(user_id))
     print(user_categories)
     user_categories_list = user_categories['category_slug'].values.tolist()

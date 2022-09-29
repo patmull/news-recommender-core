@@ -7,7 +7,9 @@ from gensim.models import KeyedVectors
 from pandas.io.sql import DatabaseError
 
 from src.custom_exceptions.exceptions import TestRunException
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import UserBasedMethods
+from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
+    UserBasedMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
@@ -22,19 +24,31 @@ val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choo
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
 
 
-def fill_recommended_collab_based(method, skip_already_filled, test_run=False):
+def fill_recommended_collab_based(method, skip_already_filled, user_id=None, test_run=False):
+    """
+
+    @param method: i.e. "svd", "user_keywords" etc.
+    @param skip_already_filled:
+    @param user_id: Insert user id if it is supposed to prefill recommendation only for a single user
+    @param test_run: Using for tests ensuring that the method is called
+    @return:
+    """
     if test_run is True:
         print("Test run exception raised.")
         raise TestRunException("This is test run")
 
-    recommender_methods = RecommenderMethods()
+    user_methods = UserMethods()
     # TODO: Do this for all db_columns that don't need other columns
     column_name = "recommended_by_" + method
-    try:
-        users = recommender_methods.get_all_users(only_with_id_and_column_named=column_name)
-    except DatabaseError as e:
-        print("Database error occurred while executing pandas command. Check the column names.")
-        raise e
+    if user_id is None:
+        try:
+            users = user_methods.get_all_users(only_with_id_and_column_named=column_name)
+        except DatabaseError as e:
+            print("Database error occurred while executing pandas command. Check the column names.")
+            raise e
+    else:
+        # For single user
+        users = user_methods.get_user_dataframe(user_id)
 
     for user in users.to_dict("records"):
         print("user:")
@@ -56,7 +70,7 @@ def fill_recommended_collab_based(method, skip_already_filled, test_run=False):
         elif method == "user_keywords":
             try:
                 tfidf = TfIdf()
-                input_keywords = recommender_methods.get_user_keywords(current_user_id)
+                input_keywords = user_methods.get_user_keywords(current_user_id)
                 input_keywords = ' '.join(input_keywords["keyword_name"])
                 print("input_keywords:")
                 print(input_keywords)
@@ -83,13 +97,22 @@ def fill_recommended_collab_based(method, skip_already_filled, test_run=False):
         if skip_already_filled is True:
             if current_recommended is None:
                 try:
-                    recommender_methods.insert_recommended_json_user_based(recommended_json=actual_json,
-                                                                           user_id=current_user_id, db="pgsql",
-                                                                           method=method)
+                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
+                                                                    user_id=current_user_id, db="pgsql",
+                                                                    method=method)
                 except Exception as e:
                     print("Error in DB insert. Skipping.")
                     print(e)
                     pass
+        else:
+            try:
+                user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
+                                                                user_id=current_user_id, db="pgsql",
+                                                                method=method)
+            except Exception as e:
+                print("Error in DB insert. Skipping.")
+                print(e)
+                pass
 
 
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
@@ -334,11 +357,12 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
 
 class UserBased:
 
-    def prefilling_job_user_based(self, method, db, test_run):
+    def prefilling_job_user_based(self, method, db, user_id=None, test_run=False, skip_already_filled=False):
         while True:
             if db == "pgsql":
                 try:
-                    fill_recommended_collab_based(method=method, skip_already_filled=True, test_run=test_run)
+                    fill_recommended_collab_based(method=method, skip_already_filled=skip_already_filled,
+                                                  user_id=user_id, test_run=test_run)
                 except psycopg2.OperationalError:
                     print("DB operational error. Waiting few seconds before trying again...")
                     t.sleep(30)  # wait 30 seconds then try again

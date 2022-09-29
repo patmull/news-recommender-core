@@ -28,7 +28,7 @@ def get_average_post_rating():
     df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
 
     print("df_ratings")
-    print(df_ratings.to_string())
+    print(df_ratings)
     ratings_means = df_ratings.groupby("slug")["ratings_values"].mean()
     print("df_ratings_means")
     print(ratings_means)
@@ -36,16 +36,16 @@ def get_average_post_rating():
         'slug')
     df_ratings_means_list = []
     print("df_ratings_means")
-    print(df_ratings_means.to_string())
+    print(df_ratings_means)
     for slug_index, row in df_ratings_means.iterrows():
         df_ratings_means_list.append({'slug': slug_index, 'coefficient': row['ratings_values']})
     df_ratings_means_list_sorted = sorted(df_ratings_means_list, key=lambda d: d['coefficient'], reverse=True)
 
     all_posts_df = all_posts_df.set_index("slug")
     print("all_posts_df")
-    print(all_posts_df.head().to_string())
+    print(all_posts_df.head())
     print("df_ratings_means")
-    print(df_ratings_means.to_string())
+    print(df_ratings_means)
     print(all_posts_df.columns)
     print("all_posts_df.columns")
     print(all_posts_df.columns)
@@ -61,7 +61,7 @@ def get_average_post_rating():
     print(all_posts_df_means.columns)
     all_posts_df_means = all_posts_df_means[['ratings_values']]
     all_posts_df_means = all_posts_df_means[['ratings_values']].fillna(0)
-    print(all_posts_df_means.to_string())
+    print(all_posts_df_means)
     all_posts_df_means_list = []
     for slug_index, row in all_posts_df_means.iterrows():
         all_posts_df_means_list.append({'slug': slug_index, 'coefficient': row['ratings_values']})
@@ -77,8 +77,8 @@ def get_average_post_rating():
 
 
 def cross_validate_dataframe(ratings, users_id):
-    print("ratings.to_string()")
-    print(ratings.to_string())
+    print("ratings")
+    print(ratings)
     ratings = ratings.drop(columns='created_at')
     ratings = ratings.drop(columns='updated_at')
     ratings = ratings.drop(columns='searched_id')
@@ -101,9 +101,9 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
     user_row_number = user_id  # UserID starts at 1, not # 0
 
     print("predictions_df:")
-    print(predictions_df.to_string())
+    print(predictions_df)
     print("original_ratings_df:")
-    print(original_ratings_df.to_string())
+    print(original_ratings_df)
     print("user_id:")
     print(user_id)
     print("original_ratings_df['user_id'].values:")
@@ -120,8 +120,8 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
     user_full = (user_data.merge(posts_df, how='left', left_on='post_id', right_on='post_id').
                  sort_values(['ratings_values'], ascending=False)
                  )
-    print("user_full.to_string()")
-    print(user_full.to_string())
+    print("user_full")
+    print(user_full)
     # Recommend the highest predicted rating posts that the user hasn't rated yet.
     # noinspection PyPep8
     recommendations = (posts_df[~posts_df['post_id'].isin(user_full['post_id'])]
@@ -130,7 +130,7 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
                            .rename(columns={user_row_number: 'ratings_values'})
                            .sort_values('ratings_values', ascending=False).iloc[:num_recommendations, :])
     print("recommendations")
-    print(recommendations.to_string())
+    print(recommendations)
     return user_full, recommendations
 
 
@@ -173,7 +173,7 @@ def rmse(user_id):
                                                         )
     df_ratings = X_train.pivot(index='user_id', columns='post_id', values='value')
     print("df_user_item.head()")
-    print(df_ratings.to_string())
+    print(df_ratings)
 
     df_ratings_dummy = df_ratings.copy().fillna(0)
     print("df_ratings_dummy.head()")
@@ -238,7 +238,7 @@ class SvdClass:
         self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='ratings_values').fillna(0)
 
         # print("User item matrix:")
-        # print(self.user_item_table.to_string())
+        # print(self.user_item_table)
 
         return self.user_item_table
 
@@ -288,9 +288,9 @@ class SvdClass:
         else:
             raise ValueError("Dataframe of posts is None. Cannot continue with next operation.")
         print("already_rated.head(num_of_recommendations)")
-        print(already_rated.head(num_of_recommendations).to_string())
+        print(already_rated.head(num_of_recommendations))
         print("List of predictions based on already rated items:")
-        print(predictions.head(num_of_recommendations).to_string())
+        print(predictions.head(num_of_recommendations))
         if dict_results is True:
             predictions_json = predictions.to_json(orient="split")
             predictions_json_parsed = json.loads(predictions_json)

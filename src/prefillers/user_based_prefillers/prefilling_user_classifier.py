@@ -4,6 +4,7 @@ import time
 
 import spacy_sentence_bert
 
+from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     Classifier
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
@@ -11,8 +12,8 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 
 def predict_ratings_for_all_users_store_to_redis():
-    recommender_methods = RecommenderMethods()
-    all_users_df = recommender_methods.get_users_dataframe()
+    user_methods = UserMethods()
+    all_users_df = user_methods.get_users_dataframe()
     classifier = Classifier()
     print("Loading BERT multilingual model...")
     bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')

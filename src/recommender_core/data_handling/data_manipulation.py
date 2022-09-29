@@ -244,10 +244,22 @@ class DatabaseMethods:
         # df = pd.read_sql_query(results, database.get_cnx())
         return df
 
+    def get_user_dataframe(self, user_id):
+        sql = """SELECT * FROM users WHERE id = {};"""
+        sql = sql.format(user_id)
+        df = pd.read_sql_query(sql, self.get_cnx())
+        return df
+
     def get_users_dataframe(self):
         sql = """SELECT * FROM users ORDER BY id;"""
 
         # LOAD INTO A DATAFRAME
+        df = pd.read_sql_query(sql, self.get_cnx())
+        return df
+
+    def get_user_history(self, user_id):
+        sql = """SELECT * FROM user_history WHERE user_id = {} ORDER BY id;"""
+        sql = sql.format(user_id)
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
