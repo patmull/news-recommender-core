@@ -623,7 +623,7 @@ class DatabaseMethods:
 
         df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
         print("df_ratings")
-        print(df_ratings.to_string())
+        print(df_ratings)
 
         # ### Keep only newest records of same post_id + user_id combination
         # Order by date of creation
@@ -634,7 +634,7 @@ class DatabaseMethods:
             df_ratings = df_ratings.loc[df_ratings['user_id'] == user_id]
 
         print("df_ratings after drop_duplicates")
-        print(df_ratings.to_string())
+        print(df_ratings)
 
         return df_ratings
 
