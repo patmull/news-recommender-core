@@ -218,11 +218,6 @@ class RecommenderMethods:
         thread.start()
         return posts_df
 
-    def get_users_dataframe(self):
-        self.database.connect()
-        self.posts_df = self.database.get_users_dataframe()
-        self.database.disconnect()
-        return self.posts_df
 
     def get_ratings_dataframe(self):
         self.database.connect()
@@ -230,23 +225,7 @@ class RecommenderMethods:
         self.database.disconnect()
         return self.posts_df
 
-    def get_user_keywords(self, user_id):
-        self.database.connect()
-        df_user_keywords = self.database.get_user_keywords(user_id=user_id)
-        self.database.disconnect()
-        return df_user_keywords
 
-    def get_user_rating_categories(self):
-        self.database.connect()
-        user_rating_categories_df = self.database.get_user_rating_categories()
-        self.database.disconnect()
-        return user_rating_categories_df
-
-    def get_user_categories(self, user_id):
-        self.database.connect()
-        df_user_categories = self.database.get_user_categories(user_id)
-        self.database.disconnect()
-        return df_user_categories
 
     def get_categories_dataframe(self):
         # rename_title (defaul=False): for ensuring that category title does not collide with post title
@@ -484,7 +463,7 @@ class RecommenderMethods:
         return self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] + self.df[
             'tokenized_full_text']
 
-    # TODO: get into common method (possibly data_queries)
+    # TODO: get into common method (possibly model_methods)
     def get_prefilled_full_text(self, slug, variant):
         self.get_posts_dataframe(force_update=False)  # load posts to dataframe
         self.get_categories_dataframe()  # load categories to dataframe
@@ -565,8 +544,8 @@ class TfIdfDataHandlers:
         # combining results of all feature types to sparse matrix
         try:
             combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices, dtype=np.float16)
-        except ValueError:
-            raise ValueError
+        except ValueError as e:
+            raise e
 
         # computing cosine similarity using matrix with combined features
         print("Computing cosine similarity using matrix with combined features...")
@@ -603,7 +582,7 @@ class TfIdfDataHandlers:
         closest.columns.name = 'index'
 
         print("closest")
-        print(closest.to_string())
+        print(closest)
         print(closest.columns)
 
         return closest[["slug", "coefficient"]]

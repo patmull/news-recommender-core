@@ -112,4 +112,8 @@ def main():
     tfidf.get_similarity_matrix(test_slugs)
     """
 
+    from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import load_tfidf_vectorizer
+    load_tfidf_vectorizer()
+
+
 if __name__ == "__main__": main()

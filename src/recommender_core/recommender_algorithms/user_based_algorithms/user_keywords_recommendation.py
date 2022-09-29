@@ -4,11 +4,12 @@ import pandas as pd
 
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
 
 def load_user_keywords(user_id):
-    recommender_methods = RecommenderMethods()
-    recommender_methods.get_user_keywords(user_id)
+    user_methods = UserMethods()
+    return user_methods.get_user_keywords(user_id)
 
 
 def convert_to_json(df):
@@ -18,8 +19,8 @@ def convert_to_json(df):
 
 
 def load_user_categories(user_id):
-    recommender_methods = RecommenderMethods()
-    df_user_categories = recommender_methods.get_user_categories(user_id)
+    user_methods = UserMethods()
+    df_user_categories = user_methods.get_user_categories(user_id)
     df_user_categories = df_user_categories.rename(columns={'title': 'category_title'})
     if 'slug_y' in df_user_categories.columns:
         df_user_categories = df_user_categories.rename(columns={'slug_y': 'category_slug'})
@@ -70,7 +71,8 @@ class UserBasedMethods:
         return convert_to_json(df_sorted_results.head(num_of_recommendations))
 
     def get_user_keywords(self, user_id):
-        pass
+        user_methods = UserMethods()
+        return user_methods.get_user_keywords(user_id)
 
     def get_user_categories(self, user_id):
         sql_user_categories = """SELECT c.slug AS "category_slug" FROM user_categories uc JOIN categories c 

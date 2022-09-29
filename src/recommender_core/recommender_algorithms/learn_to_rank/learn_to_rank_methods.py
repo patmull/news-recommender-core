@@ -15,6 +15,7 @@ from xgboost import XGBRegressor
 from lightgbm import LGBMRanker
 
 from research.hybrid.learn_to_rank import recommend_posts
+from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
     SvdClass, get_average_post_rating
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
@@ -640,7 +641,8 @@ def linear_regression(user_id, post_slug):
     print(tfidf_all_posts)
 
     recommender_methods = RecommenderMethods()
-    user_keywords = recommender_methods.get_user_keywords(user_id)
+    user_methods = UserMethods()
+    user_keywords = user_methods.get_user_keywords(user_id)
     keyword_list = user_keywords['keyword_name'].tolist()
     tfidf_keywords = ''
     if len(keyword_list) > 0:
