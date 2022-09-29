@@ -1,11 +1,16 @@
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
 
 # RUN WITH: python -m pytest tests/test_unit/test_hybrid_methods.py
+from sklearn.ensemble._forest import RandomForestClassifier
+
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import select_list_of_posts_for_user
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    Classifier, get_df_predicted
+    Classifier, get_df_predicted, predict_from_vectors
 
 classifier = Classifier()
 

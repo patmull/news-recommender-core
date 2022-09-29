@@ -433,7 +433,7 @@ def get_posts_lightgbm(slug, use_categorical_columns=True):
     if lightgbm_model_file.exists():
         model = pickle.load(open(lightgbm_model_file, 'rb'))
     else:
-        print("LightGBMMethods model not found. Training from available relevance testing results datasets...")
+        print("LightGBMMethods model not found. Training from available relevance testing results testing_datasets...")
         train_lightgbm_user_based()
         model = pickle.load(open(lightgbm_model_file, 'rb'))
     predictions = model.predict(tf_idf_results[features_X])  # .values.reshape(-1,1) when single feature is used

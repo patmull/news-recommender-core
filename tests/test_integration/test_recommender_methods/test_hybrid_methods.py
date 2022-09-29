@@ -1,13 +1,16 @@
 import json
+from pathlib import Path
+from unittest import TestCase
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
     get_most_similar_by_hybrid, select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    load_bert_model, Classifier
+    load_bert_model, Classifier, predict_from_vectors
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
@@ -110,3 +113,64 @@ def test_svm_classifier_bad_user_id(tested_input):
     with pytest.raises(ValueError):
         svm = Classifier()
         assert svm.predict_relevance_for_user(use_only_sample_of=20, user_id=tested_input, relevance_by='stars')
+
+
+# RUN WITH: python -m pytest tests/test_integration/test_recommender_methods/test_hybrid_methods.py::TestClassifier
+class TestClassifier(TestCase):
+
+    def test_predict_from_vectors(self):
+        malformed_redis_key_name = "malformed_redis_key_name"
+        columns_to_combine = ['category_title', 'all_features_preprocessed', 'full_text']
+
+        recommender_methods = RecommenderMethods()
+        user_id = 999999
+        only_with_prefilled_bert_vectors = True
+
+        # STARS VALUES
+        df_posts_users_categories_relevance = recommender_methods \
+            .get_posts_users_categories_thumbs_df(user_id=user_id,
+                                                  only_with_bert_vectors=only_with_prefilled_bert_vectors)
+        df_posts_users_categories_relevance = df_posts_users_categories_relevance.head(20)
+        df_posts_users_categories_relevance \
+            .to_csv(Path("tests/testing_datasets/testing_posts_categories_thumbs_data_for_df.csv"))
+
+        target_variable_name = 'thumbs_values'
+
+        classifier = Classifier()
+
+        print("df_posts_users_categories_relevance")
+        print(df_posts_users_categories_relevance)
+
+        clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
+            = classifier.train_classifiers(df=df_posts_users_categories_relevance,
+                                           columns_to_combine=columns_to_combine,
+                                           target_variable_name=target_variable_name, user_id=user_id)
+
+        with pytest.raises(ValueError):
+            predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
+                                 predicted_var_for_redis_key_name=malformed_redis_key_name,
+                                 bert_model=bert_model, col_to_combine=columns_to_combine,
+                                 save_testing_csv=True)
+
+        # THUMBS VALUES
+        df_posts_users_categories_relevance = recommender_methods \
+            .get_posts_users_categories_ratings_df(user_id=user_id,
+                                                   only_with_bert_vectors=only_with_prefilled_bert_vectors)
+        df_posts_users_categories_relevance = df_posts_users_categories_relevance.head(20)
+        df_posts_users_categories_relevance \
+            .to_csv(Path("tests/testing_datasets/testing_posts_categories_stars_data_for_df.csv"))
+
+        target_variable_name = 'ratings_values'
+
+        classifier = Classifier()
+
+        clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
+            = classifier.train_classifiers(df=df_posts_users_categories_relevance,
+                                           columns_to_combine=columns_to_combine,
+                                           target_variable_name=target_variable_name, user_id=user_id)
+
+        with pytest.raises(ValueError):
+            predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
+                                 predicted_var_for_redis_key_name=malformed_redis_key_name,
+                                 bert_model=bert_model, col_to_combine=columns_to_combine,
+                                 save_testing_csv=True)

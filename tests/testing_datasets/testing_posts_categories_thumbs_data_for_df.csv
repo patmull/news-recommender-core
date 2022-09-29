@@ -1,0 +1,5 @@
+,thumb_id,post_id,user_id,post_slug,thumbs_values,category_title,category_slug,post_created_at,thumbs_created_at,all_features_preprocessed,body_preprocessed,full_text,short_text,trigrams_full_text,title,keywords,doc2vec_representation
+57,175,999999,999999,test,True,Test-Category,test,1999-01-01 00:00:00,2022-09-29 16:38:25,test,test,test,,,Test,test,
+58,176,9999999,999999,test2,False,Test-Category,test,1999-01-01 00:00:00,2022-09-29 16:38:25,test,test,test,,,Test,test,
+59,177,99999999,999999,test3,False,Test-Category,test,1999-01-01 00:00:00,2022-09-29 16:38:25,test,test,test,,,Test,test,
+60,178,999998,999999,test4,False,Test-Category,test,1999-01-01 00:00:00,2022-09-29 16:38:25,test,test,test,,,Test,test,
