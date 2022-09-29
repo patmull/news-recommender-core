@@ -612,7 +612,8 @@ class DatabaseMethods:
             sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
             p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
             c.title AS category_title, c.slug AS category_slug,
-            p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed
+            p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed,
+            p.full_text AS full_text
             FROM posts p
             JOIN ratings r ON r.post_id = p.id
             JOIN users u ON r.user_id = u.id

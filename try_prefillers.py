@@ -62,13 +62,3 @@ logging.debug("Testing logging.")
 # TODO: Prefill SVD again (was partially rewritten by keywords)
 
 run_prefilling_collaborative(test_run=True)
-
-test_user_id = 431
-user_methods = UserMethods()
-all_users_df = user_methods.get_users_dataframe()
-classifier = Classifier()
-print("Loading BERT multilingual model...")
-bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
-classifier.predict_relevance_for_user(user_id=test_user_id, relevance_by='thumbs', force_retraining=False,
-                                      bert_model=bert, use_only_sample_of=None, only_with_prefilled_bert_vectors=False,
-                                      experiment_mode=False)

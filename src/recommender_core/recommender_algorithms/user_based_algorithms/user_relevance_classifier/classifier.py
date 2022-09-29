@@ -124,6 +124,7 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
         logging.debug(r.smembers(user_redis_key))
 
 
+# noinspection PyPep8Naming
 def show_predicted(X_unseen_df, input_variables, clf, bert_model, save_testing_csv=False):
     """
     Method for evaluation on validation dataset, not actual unseen dataset.
@@ -372,6 +373,12 @@ class Classifier:
             logging.debug("=========================")
             logging.debug("Inserting by SVC:")
             logging.debug("=========================")
+
+            print("X_validation:")
+            print(X_validation)
+            print("clf_svc:")
+            print(clf_svc)
+
             predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,

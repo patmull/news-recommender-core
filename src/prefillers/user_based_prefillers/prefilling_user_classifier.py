@@ -108,6 +108,6 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed_order=Fal
                                                 random_order=random_order)
 
 
-def prefill_for_user(user_id):
-    classifier = Classifier()
-    classifier.predict_relevance_for_user()
+"""
+** prefill_for_user(user_id) METHOD WAS HERE. REMOVED DUE TO UNCLEAR USE CASE. **
+"""

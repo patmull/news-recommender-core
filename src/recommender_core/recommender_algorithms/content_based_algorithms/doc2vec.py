@@ -418,7 +418,7 @@ def train_doc2vec(documents_all_features_preprocessed, create_csv=False):
         tagged_data.append(TaggedDocument(words=selected_list, tags=[str(i)]))
         if create_csv is True:
             # Will append to exising file! CSV needs to be removed first if needs to be up updated as a whole
-            with open("datasets/idnes_preprocessed.txt", "a+", encoding="utf-8") as fp:
+            with open("testing_datasets/idnes_preprocessed.txt", "a+", encoding="utf-8") as fp:
                 wr = csv.writer(fp, dialect='excel')
                 wr.writerow(selected_list)
 

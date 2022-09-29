@@ -145,7 +145,7 @@ def get_posts_lightgbm(results, use_categorical_columns=True):
     if lightgbm_model_file.exists():
         model = pickle.load(open('models/lightgbm.pkl', 'rb'))
     else:
-        print("LightGBMMethods model not found. Training from available relevance testing results datasets...")
+        print("LightGBMMethods model not found. Training from available relevance testing results testing_datasets...")
         train_lightgbm_user_based()
         model = pickle.load(open('models/lightgbm.pkl', 'rb'))
     # noinspection PyPep8Naming

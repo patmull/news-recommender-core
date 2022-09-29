@@ -76,12 +76,10 @@ class TestPrefillers:
 @pytest.mark.integtest
 class TestUserPrefillers(TestCase):
 
-    # @patch.object(UserBased, "prefilling_job_user_based", autospec=UserBased)
     def test_user_preferences_prefiller(self):
         with pytest.raises(TestRunException):
             print("What the heck is going on...")
             print(run_prefilling_collaborative(test_run=True))
-        # mock_run_prefilling_collaborative.assert_called()
 
     @patch.object(UserBased, "prefilling_job_user_based", autospec=UserBased)
     def test_prefilling_job_user_based_not_called(self, mock_prefilling_job_user_based):
