@@ -9,6 +9,7 @@ import pytest
 # python -m pytest .\tests\test_user_preferences_methods.py::test_user_keywords
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.user_based_algorithms\
     .user_keywords_recommendation import UserBasedMethods
@@ -19,9 +20,9 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms\
 @pytest.mark.integtest
 def test_user_categories():
     user_based_recommendation = UserBasedMethods()
-    recommender_methods = RecommenderMethods()
+    user_methods = UserMethods()
     # TODO: Repair Error
-    users = recommender_methods.get_users_dataframe()
+    users = user_methods.get_users_dataframe()
     print("users:")
     print(users.columns)
     list_of_user_ids = users['id'].to_list()
