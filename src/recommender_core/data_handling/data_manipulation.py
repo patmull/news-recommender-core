@@ -1,7 +1,6 @@
 # import psycopg2.connector
 import logging
 import os
-import sys
 from pathlib import Path
 
 import psycopg2
@@ -14,15 +13,17 @@ DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
 DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
 DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
 
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
 
-root = logging.getLogger()
-root.setLevel(logging.WARNING)
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging.")
 
-handler = logging.StreamHandler(sys.stdout)
-handler.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-root.addHandler(handler)
+
+def print_exception_not_inserted(e):
+    print(e)
 
 
 class DatabaseMethods(object):
@@ -428,7 +429,7 @@ class DatabaseMethods(object):
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
-            self.print_exception_not_inserted(e)
+            print_exception_not_inserted(e)
 
     # noinspection DuplicatedCode
     def insert_preprocessed_body(self, preprocessed_body, article_id):
@@ -442,7 +443,7 @@ class DatabaseMethods(object):
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
-            self.print_exception_not_inserted(e)
+            print_exception_not_inserted(e)
 
     def insert_phrases_text(self, bigram_text, article_id, full_text):
         try:
@@ -458,7 +459,7 @@ class DatabaseMethods(object):
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
-            self.print_exception_not_inserted(e)
+            print_exception_not_inserted(e)
 
     def get_not_preprocessed_posts(self):
         sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
@@ -707,7 +708,7 @@ class DatabaseMethods(object):
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.Error as e:
-            self.print_exception_not_inserted(e)
+            print_exception_not_inserted(e)
 
     def get_results_dataframe(self):
         sql = """SELECT * FROM relevance_testings ORDER BY id;"""
@@ -736,7 +737,7 @@ class DatabaseMethods(object):
             else:
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         except psycopg2.Error as e:
-            self.print_exception_not_inserted(e)
+            print_exception_not_inserted(e)
 
     def null_test_user_prefilled_records(self, user_id, db_columns):
         """
@@ -756,13 +757,10 @@ class DatabaseMethods(object):
                     self.cursor.execute(query % queried_values)
                     self.cnx.commit()
             except psycopg2.Error as e:
-                self.print_exception_not_inserted(e)
-                logging.warning("psycopg2.Error occurred while trying to update user:")
-                logging.warning(str(e))
+                print_exception_not_inserted(e)
+                logging.debug("psycopg2.Error occurred while trying to update user:")
+                logging.debug(str(e))
                 raise e
-
-    def print_exception_not_inserted(self, e):
-        self.print_exception_not_inserted(e)
 
 
 def get_redis_connection():

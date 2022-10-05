@@ -1,4 +1,6 @@
 import json
+import logging
+import time
 import traceback
 
 import pika.exceptions
@@ -8,8 +10,6 @@ from src.prefillers.user_based_prefillers.prefilling_collaborative import run_pr
 from src.recommender_core.data_handling.data_connection import init_rabbitmq
 
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
-
-# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 
 rabbit_connection = init_rabbitmq()
 
@@ -45,8 +45,8 @@ def user_added_keywords(ch, method, properties, body):
         if body.decode() == ChannelConstants.MESSAGE:
             print("Received queue INIT message. Waiting for another messages.")
         else:
-            methods = ['user_keywords']
-            call_collaborative_prefillers(methods, body)
+            method = 'user_keywords'
+            call_collaborative_prefillers(method, body)
 
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
@@ -62,6 +62,31 @@ def user_added_categories(ch, method, properties, body):
             call_collaborative_prefillers(method, body)
 
 
+def insert_testing_json(received_user_id, method):
+
+    user_methods = UserMethods()
+    print("Inserting testing JSON for testing user.")
+
+    if method == 'user_keywords':
+        test_dict = [{"slug": "test",
+                      "coefficient": 1.0},
+                     {"slug": "test2",
+                      "coefficient": 1.0}]
+    else:
+        test_dict = {"columns": ["post_id", "slug", "ratings_values"],
+                     "index": [1, 2],
+                     "data": [
+                         [999999, "test", 1.0],
+                         [9999999, "test2", 1.0],
+                     ]}
+    actual_json = json.dumps(test_dict)
+    print("actual_json:")
+    print(str(actual_json))
+    print(type(actual_json))
+    user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
+                                                    user_id=received_user_id, db="pgsql",
+                                                    method=method)
+
 def call_collaborative_prefillers(method, msg_body):
     print("I'm calling method for updating of " + method + " prefilled recommendation...")
     try:
@@ -73,29 +98,12 @@ def call_collaborative_prefillers(method, msg_body):
         user_methods = UserMethods()
         user = user_methods.get_user_dataframe(received_user_id)
 
-        if user['name'].iloc[0].startswith('test-user'):
-
-            if method == 'user_keywords':
-                test_dict = [{"slug": "test",
-                        "coefficient": 1.0},
-                        {"slug": "test2",
-                        "coefficient": 1.0}]
-            else:
-                test_dict = {"columns": ["post_id", "slug", "ratings_values"],
-                        "index": [1, 2],
-                        "data": [
-                            [999999, "test", 1.0],
-                            [9999999, "test2", 1.0],
-                        ]}
-            actual_json = json.dumps(test_dict)
-            user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
-                                                            user_id=received_user_id, db="pgsql",
-                                                            method=method)
+        if user['name'].values[0].startswith('test-user-dusk'):
+            insert_testing_json(received_user_id, method)
         else:
             print("Recommender Core Prefilling class will be run for the user of ID:")
             print(received_user_id)
-            methods = [method]
-            run_prefilling_collaborative(methods=methods, user_id=received_user_id, test_run=False)
+            run_prefilling_collaborative(methods=[method], user_id=received_user_id, test_run=False)
     except Exception as e:
         print("Exception occurred" + str(e))
         traceback.print_exception(None, e, e.__traceback__)
@@ -106,29 +114,43 @@ def call_collaborative_prefillers(method, msg_body):
 Abandoned due to unclear use case. **
 """
 
-# convention: [object/subject]-[action]-queue
-queue_name = 'user-post-star_rating-updated-queue'
-try:
-    channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
-except pika.exceptions.ChannelClosedByBroker as e:
-    print(e)
-    publish_rabbitmq_channel(queue_name)
-    channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
 
-queue_name = 'user-keywords-updated-queue'
-try:
-    channel.basic_consume(queue=queue_name, on_message_callback=user_added_keywords)
-except pika.exceptions.ChannelClosedByBroker as e:
-    print(e)
-    publish_rabbitmq_channel(queue_name)
-    channel.basic_consume(queue=queue_name, on_message_callback=user_added_keywords)
+def init_consuming():
+    # convention: [object/subject]-[action]-queue
+    queue_name = 'user-post-star_rating-updated-queue'
+    try:
+        channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
+    except pika.exceptions.ChannelClosedByBroker as e:
+        print(e)
+        publish_rabbitmq_channel(queue_name)
+        channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
 
-queue_name = 'user-categories-updated-queue'
-try:
-    channel.basic_consume(queue=queue_name, on_message_callback=user_added_categories)
-except pika.exceptions.ChannelClosedByBroker as e:
-    print(e)
-    publish_rabbitmq_channel(queue_name)
-    channel.basic_consume(queue=queue_name, on_message_callback=user_added_categories)
+    queue_name = 'user-keywords-updated-queue'
+    try:
+        channel.basic_consume(queue=queue_name, on_message_callback=user_added_keywords)
+    except pika.exceptions.ChannelClosedByBroker as e:
+        print(e)
+        publish_rabbitmq_channel(queue_name)
+        channel.basic_consume(queue=queue_name, on_message_callback=user_added_keywords)
 
-channel.start_consuming()
+    queue_name = 'user-categories-updated-queue'
+    try:
+        channel.basic_consume(queue=queue_name, on_message_callback=user_added_categories)
+    except pika.exceptions.ChannelClosedByBroker as e:
+        print(e)
+        publish_rabbitmq_channel(queue_name)
+        channel.basic_consume(queue=queue_name, on_message_callback=user_added_categories)
+
+    channel.start_consuming()
+
+
+while True:
+    try:
+        init_consuming()
+    except Exception as e:
+        print("EXCEPTION OCCURRED WHEN RUNNING PIKA:")
+        print(e)
+    except (RuntimeError, TypeError, NameError) as e:
+        print("ERROR OCCURRED WHEN RUNNING PIKA:")
+        print(e)
+    time.sleep(15)

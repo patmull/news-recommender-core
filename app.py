@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 import traceback
 
@@ -17,6 +18,16 @@ from src.recommender_core.recommender_algorithms\
     .user_based_algorithms.user_keywords_recommendation import UserBasedMethods
 from flask import Flask, request
 from flask_restful import Resource, Api
+
+
+for handler in logging.root.handlers[:]:
+   logging.root.removeHandler(handler)
+
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging.")
+
 
 
 # TODO: Replace prints with debug logging
