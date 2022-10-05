@@ -197,6 +197,7 @@ def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
     return results_df
 
 
+# NOTICE: It would be possible to use @typechecked from typeguard here
 def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_methods=None):
     """
     Get most similar from content based matrix and delivered posts.
@@ -205,12 +206,19 @@ def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_meth
     ----------
     posts_to_compare: i.e. svd_recommended_posts; if not supplied, it will calculate fresh SVD
     user_id: int by user id from DB
+    @param posts_to_compare:
+    @param user_id:
+    @param list_of_methods:
     """
+
+    if type(user_id) is not int:
+        raise TypeError("User id muse be an int")
+
     list_of_supported_methods = ['tfidf', 'doc2vec', 'word2vec']
     if list_of_methods is None:
         list_of_methods = ['tfidf', 'doc2vec', 'word2vec']
     elif not set(list_of_methods).issubset(list_of_supported_methods) > 0:
-        raise NotImplementedError("inserted db_columns are not supported.")
+        raise NotImplementedError("Inserted methods must correspond to DB columns.")
     if posts_to_compare is None:
         svd = SvdClass()
         recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=5)

@@ -1,5 +1,7 @@
 # import psycopg2.connector
+import logging
 import os
+import sys
 from pathlib import Path
 
 import psycopg2
@@ -13,24 +15,20 @@ DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
 DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
 
 
-def singleton(class_):
-    instances = {}
+root = logging.getLogger()
+root.setLevel(logging.WARNING)
 
-    def getinstance(*args, **kwargs):
-        if class_ not in instances:
-            instances[class_] = class_(*args, **kwargs)
-        return instances[class_]
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+root.addHandler(handler)
 
-    return getinstance
 
-
-@singleton
-class DatabaseMethods:
-    cnx = None
-    cursor = None
-    df = None
+class DatabaseMethods(object):
 
     def __init__(self):
+
         self.categories_df = None
         self.posts_df = None
         self.df = None
@@ -741,16 +739,27 @@ class DatabaseMethods:
             self.print_exception_not_inserted(e)
 
     def null_test_user_prefilled_records(self, user_id, db_columns):
+        """
+        Method used for testing purposes.
+        @param user_id:
+        @param db_columns:
+        @return:
+        """
         for method in db_columns:
             try:
                 query = """UPDATE users SET {} = NULL WHERE id = %s;"""
                 query = query.format(method)
                 queried_values = user_id
+                print("Query used in null_test_user_prefilled_records:")
+                print(query)
                 if self.cursor is not None and self.cnx is not None:
                     self.cursor.execute(query % queried_values)
                     self.cnx.commit()
             except psycopg2.Error as e:
                 self.print_exception_not_inserted(e)
+                logging.warning("psycopg2.Error occurred while trying to update user:")
+                logging.warning(str(e))
+                raise e
 
     def print_exception_not_inserted(self, e):
         self.print_exception_not_inserted(e)

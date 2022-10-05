@@ -1,4 +1,4 @@
-annoy
+annoy==1.17.1
 flake8==3.9.2
 tox==3.24.3
 pytest~=7.1.2
