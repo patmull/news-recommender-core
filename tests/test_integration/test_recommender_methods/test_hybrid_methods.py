@@ -7,12 +7,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.constants.naming import Naming
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
     get_most_similar_by_hybrid, select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    load_bert_model, Classifier, predict_from_vectors
+    load_bert_model, Classifier
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods, get_redis_connection
 
@@ -116,4 +114,3 @@ def test_svm_classifier_bad_user_id(tested_input):
     with pytest.raises(ValueError):
         svm = Classifier()
         assert svm.predict_relevance_for_user(use_only_sample_of=20, user_id=tested_input, relevance_by='stars')
-

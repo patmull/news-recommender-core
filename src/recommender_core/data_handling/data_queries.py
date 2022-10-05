@@ -404,6 +404,7 @@ class RecommenderMethods:
         return all_posts_df
 
     def get_posts_users_categories_ratings_df(self, only_with_bert_vectors, user_id=None):
+        self.database = DatabaseMethods()
         self.database.connect()
         posts_users_categories_ratings_df = self.database \
             .get_posts_users_categories_ratings(user_id=user_id,
@@ -516,6 +517,7 @@ class RecommenderMethods:
         self.database.disconnect()
 
     def remove_test_user_prefilled_records(self, user_id, db_columns):
+        self.database = DatabaseMethods()
         self.database.connect()
         self.database.null_test_user_prefilled_records(user_id, db_columns=db_columns)
         self.database.disconnect()

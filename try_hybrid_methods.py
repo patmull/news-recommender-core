@@ -21,7 +21,7 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.user_rele
 
 def main():
     """
-    test_user_id = 431
+    user_id_for_test = 431
 
     searched_slug_1 = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     searched_slug_2 = "salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem"
@@ -30,18 +30,18 @@ def main():
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
 
     start = time.time()
-    print(get_most_similar_by_hybrid(test_user_id))
+    print(get_most_similar_by_hybrid(user_id_for_test))
     end = time.time()
     print(end - start)"""
 
     """
-    test_user_id = 431
+    user_id_for_test = 431
     user_methods = UserMethods()
     all_users_df = user_methods.get_users_dataframe()
     classifier = Classifier()
     print("Loading BERT multilingual model...")
     bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
-    classifier.predict_relevance_for_user(user_id=test_user_id, relevance_by='thumbs', force_retraining=False,
+    classifier.predict_relevance_for_user(user_id=user_id_for_test, relevance_by='thumbs', force_retraining=False,
                                           bert_model=bert, use_only_sample_of=None, only_with_prefilled_bert_vectors=False,
                                           experiment_mode=False)
     """
