@@ -98,7 +98,15 @@ def call_collaborative_prefillers(method, msg_body):
         user_methods = UserMethods()
         user = user_methods.get_user_dataframe(received_user_id)
 
-        if user['name'].values[0].startswith('test-user-dusk'):
+        try:
+            user_name = user['name'].values[0].startswith('test-user-dusk')
+        except IndexError as e:
+            print("Index error occurred while trying to fetch information about the user. "
+                  "User is probably not longer in database.")
+            print("SEE FULL EXCEPTION MESSAGE:")
+            raise e
+
+        if user_name:
             insert_testing_json(received_user_id, method)
         else:
             print("Recommender Core Prefilling class will be run for the user of ID:")

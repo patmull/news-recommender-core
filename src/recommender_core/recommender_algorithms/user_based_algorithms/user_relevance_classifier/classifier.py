@@ -67,7 +67,7 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     Method for actual live, deployed use. This uses the already filled vectors from PostgreSQL but if doesn't
     exists, calculate new ones from passed BERT model.
 
-    If this method takes a lot of time, use BERT vector prefilling function fill_bert_vector_representation().
+    If this method takes a lot of time, prefill BERT vectors with prefilling function fill_bert_vector_representation().
     """
     if predicted_var_for_redis_key_name == Naming.PREDICTED_BY_THUMBS_REDIS_KEY_NAME:
         if testing_mode is False:
@@ -288,7 +288,8 @@ class Classifier:
         return clf_svc, clf_random_forest
 
     def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
-                                   experiment_mode=False, only_with_prefilled_bert_vectors=True, bert_model=None):
+                                   experiment_mode=False, only_with_prefilled_bert_vectors=True, bert_model=None,
+                                   latest_posts=False):
         if only_with_prefilled_bert_vectors is False:
             if bert_model is None:
                 raise ValueError("Loaded BERT model needs to be supplied if only_with_prefilled_bert_vectors parameter"
@@ -335,6 +336,21 @@ class Classifier:
                                             from_cache=False)
 
         df_posts_categories = df_posts_categories.rename(columns={'title': 'category_title'})
+        df_posts_categories = df_posts_categories.rename(columns={'created_at_x': 'post_created_at'})
+
+        if latest_posts:
+            # TODO: Sort df by created_at date and get only cca 50 of them
+            print("df_posts_categories")
+            print(df_posts_categories)
+            print(df_posts_categories.columns)
+
+            print("df_posts_categories, created_at column")
+            print(df_posts_categories['post_created_at'].head(10))
+            df_posts_categories["post_created_at"] = pd.to_datetime(df_posts_categories["post_created_at"])
+            # Getting 50 latest posts to filter for user
+            df_posts_categories = df_posts_categories.sort_values(by="post_created_at", ascending=False).head(50)
+            print("df_posts_categories, created_at column")
+            print(df_posts_categories['post_created_at'].head(10))
 
         if force_retraining is True:
             # noinspection PyPep8Naming

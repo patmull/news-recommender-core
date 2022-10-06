@@ -28,7 +28,7 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keyw
 from sklearn.linear_model import LogisticRegression
 
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier import \
-    evaluation_results
+    user_evaluation_results
 
 """
 from dask.distributed import Client
