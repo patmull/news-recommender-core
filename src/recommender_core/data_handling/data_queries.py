@@ -218,14 +218,11 @@ class RecommenderMethods:
         thread.start()
         return posts_df
 
-
     def get_ratings_dataframe(self):
         self.database.connect()
         self.posts_df = self.database.get_ratings_dataframe()
         self.database.disconnect()
         return self.posts_df
-
-
 
     def get_categories_dataframe(self):
         # rename_title (defaul=False): for ensuring that category title does not collide with post title

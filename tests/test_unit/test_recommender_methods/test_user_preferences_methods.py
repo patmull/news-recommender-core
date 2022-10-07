@@ -28,12 +28,12 @@ class TestGetUsersGoodDay:
             column_name = "recommended_by_" + method
             database.connect()
             all_users = database.get_all_users(column_name=column_name)
-            database.connect()
+            database.disconnect()
             assert (isinstance(all_users, pd.DataFrame))
 
         database.connect()
         all_users = database.get_all_users()
-        database.connect()
+        database.disconnect()
         assert (isinstance(all_users, pd.DataFrame))
 
 
