@@ -35,3 +35,9 @@ class UserMethods(RecommenderMethods):
         df_user_categories = self.database.get_user_categories(user_id)
         self.database.disconnect()
         return df_user_categories
+
+    def get_posts_df_users_df_ratings_df(self):
+        self.database.connect()
+        df_posts, df_users, df_ratings = self.database.get_posts_df_users_df_ratings_df()
+        self.database.disconnect()
+        return df_posts, df_users, df_ratings

@@ -12,6 +12,7 @@ from surprise import Reader, Dataset, SVD, KNNBasic
 from surprise.model_selection import cross_validate
 
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
 
 def get_average_post_rating():
@@ -206,25 +207,9 @@ class SvdClass:
 
     def get_user_item_from_db(self):
         database = DatabaseMethods()
-        # Step 1
-        # database.set_row_var()
-        # EXTRACT RESULTS FROM CURSOR
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, 
-        r.value AS ratings_values FROM posts p JOIN ratings r ON r.post_id = p.id JOIN users u ON r.user_id = u.id;"""
-        # LOAD INTO A DATAFRAME
-        database.connect()
-        self.df_ratings = pd.read_sql_query(sql_rating, database.get_cnx())
-        sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
-        # LOAD INTO A DATAFRAME
-        self.df_users = pd.read_sql_query(sql_select_all_users, database.get_cnx())
-        # print("Users")
-        # print(self.df_users)
-        sql_select_all_posts = """SELECT p.id AS post_id, p.slug FROM posts p;"""
-        # LOAD INTO A DATAFRAME
-        self.df_posts = pd.read_sql_query(sql_select_all_posts, database.get_cnx())
-        database.disconnect()
-        # print("Posts:")
-        # print(self.df_posts)
+
+        user_methods = UserMethods()
+        self.df_posts, self.df_users, df_ratings = user_methods.get_posts_df_users_df_ratings_df()
         user_item_table = self.combine_user_item(self.df_ratings)
         # noinspection PyPep8Naming
         R_demeaned = self.convert_to_matrix(user_item_table)

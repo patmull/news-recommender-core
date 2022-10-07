@@ -692,6 +692,20 @@ class DatabaseMethods(object):
 
         return df_thumbs
 
+    def get_posts_users_ratings_df(self):
+        # EXTRACT RESULTS FROM CURSOR
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, 
+        r.value AS ratings_values FROM posts p JOIN ratings r ON r.post_id = p.id JOIN users u ON r.user_id = u.id;"""
+        # LOAD INTO A DATAFRAME
+        df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
+        sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
+        # LOAD INTO A DATAFRAME
+        df_users = pd.read_sql_query(sql_select_all_users, self.get_cnx())
+        sql_select_all_posts = """SELECT p.id AS post_id, p.slug FROM posts p;"""
+        # LOAD INTO A DATAFRAME
+        df_posts = pd.read_sql_query(sql_select_all_posts, self.get_cnx())
+        return df_posts, df_users, df_ratings
+
     def get_sql_columns(self):
         sql = """SELECT * FROM posts LIMIT 1;"""
 

@@ -534,8 +534,6 @@ class Doc2VecClass:
                 doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text.model")
 
         recommender_methods = RecommenderMethods()
-        # not necessary
-        recommender_methods.database.connect()
         post_found = recommender_methods.find_post_by_slug(searched_slug)
         # TODO: REPAIR
         # IndexError: single positional indexer is out-of-bounds
