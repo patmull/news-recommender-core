@@ -20,7 +20,7 @@ class Svd:
         # database.set_row_var()
         # EXTRACT RESULTS FROM CURSOR
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value AS rating_value
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value AS ratings_values
                     FROM posts p
                     JOIN ratings r ON r.post_id = p.id
                     JOIN users u ON r.user_id = u.id;"""
@@ -51,11 +51,7 @@ class Svd:
         return R_demeaned
 
     def combine_user_item(self, df_rating):
-        # self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='rating_value')
-        self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='rating_value').fillna(0)
-
-        # print("User item matrix:")
-        # print(self.user_item_table.to_string())
+        self.user_item_table = df_rating.pivot(index='user_id', columns='post_id', values='ratings_values').fillna(0)
 
         return self.user_item_table
 
@@ -113,8 +109,6 @@ class Svd:
         # Get and sort the user's predictions
         user_row_number = user_id # UserID starts at 1, not # 0
 
-        # print("predictions_df:")
-        # print(predictions_df.to_string())
         sorted_user_predictions = predictions_df.loc[user_row_number].sort_values(ascending=False).to_frame()
 
         print("sorted_user_predictions")
@@ -124,30 +118,9 @@ class Svd:
         # Get the user's data and merge in the post information.
         user_data = original_ratings_df[original_ratings_df.user_id == (user_id)]
         user_full = (user_data.merge(posts_df, how='left', left_on='post_id', right_on='post_id').
-                     sort_values(['rating_value'], ascending=False)
+                     sort_values(['ratings_values'], ascending=False)
                     )
 
-        # print("user_data")
-        # print(user_data)
-        # print("user_full")
-        # print(user_full)
-
-        # print('User {0} has already rated {1} posts.'.format(user_id, user_full.shape[0]))
-        # print('Recommending the highest {0} predicted ratings posts not already rated.'.format(num_recommendations))
-
-        # print("sorted_user_predictions type:")
-        # print(type(sorted_user_predictions))
-
-        """
-        arr = [np.array([posts_df[k] == v for k, v in x.items()]).all(axis=0) for x in sorted_user_predictions.to_dict('r')]
-        recommendations = posts_df[np.array(arr).any(axis=0)]
-        """
-        """
-
-
-        for predicted_post in sorted_user_predictions
-            recommendations_own_version = post_df[predicted_post[0]]
-        """
         # Recommend the highest predicted rating posts that the user hasn't seen yet.
         recommendations = (posts_df[~posts_df['post_id'].isin(user_full['post_id'])]
                                .merge(pd.DataFrame(sorted_user_predictions).reset_index(),
@@ -157,9 +130,6 @@ class Svd:
                                 .rename(columns={user_row_number: 'Predictions'})
                                .sort_values('Predictions', ascending=False)
                                .iloc[:num_recommendations, :-1])
-
-        # print("recommendations:")
-        # print(recommendations)
 
         return user_full, recommendations
 

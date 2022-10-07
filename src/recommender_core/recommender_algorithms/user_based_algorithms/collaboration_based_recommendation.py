@@ -206,10 +206,9 @@ class SvdClass:
         return self.df_users
 
     def get_user_item_from_db(self):
-        database = DatabaseMethods()
 
         user_methods = UserMethods()
-        self.df_posts, self.df_users, df_ratings = user_methods.get_posts_df_users_df_ratings_df()
+        self.df_posts, self.df_users, self.df_ratings = user_methods.get_posts_df_users_df_ratings_df()
         user_item_table = self.combine_user_item(self.df_ratings)
         # noinspection PyPep8Naming
         R_demeaned = self.convert_to_matrix(user_item_table)
