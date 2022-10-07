@@ -157,8 +157,6 @@ fresh-api/Environments
 
 drop_folder
 test_only_local_working_methods
-/test_only_local_working_methods
-/test_only_local_working_methods
 tests/test_integration/test_only_local_working_methods
 
 passwords.txt
@@ -166,3 +164,4 @@ bfg-1.14.0.jar
 
 /vendor
 vendor
+/tests/test_integration/test_only_local_working_methods/
