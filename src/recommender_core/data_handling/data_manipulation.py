@@ -179,8 +179,10 @@ class DatabaseMethods(object):
 
     def get_posts_dataframe(self, from_cache=True):
         if from_cache is True:
+            # TODO: This seems to not work.
             self.posts_df = self.get_posts_dataframe_from_cache()
         else:
+            # TODO: This is slow
             self.posts_df = self.get_posts_dataframe_from_sql()
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         return self.posts_df

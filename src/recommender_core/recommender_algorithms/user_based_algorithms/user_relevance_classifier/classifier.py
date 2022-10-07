@@ -49,6 +49,9 @@ def show_true_vs_predicted(features_list, contexts_list, clf, bert_model):
 
 def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, user_id=None,
                          save_testing_csv=False, bert_model=None, col_to_combine=None, testing_mode=False):
+
+    print("X_unseen_df size:")
+    print(len(X_unseen_df.index))
     """
 
     @param X_unseen_df:
@@ -90,6 +93,7 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     print("Vectoring the selected columns...")
     # TODO: Takes a lot of time... Probably pre-calculate.
     print("X_unseen_df:")
+    print(X_unseen_df)
 
     print("Loading vectors or creating new if does not exists...")
     # noinspection  PyPep8
@@ -104,7 +108,7 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
     if save_testing_csv is True:
         # noinspection PyTypeChecker
-        df_results.head(20).to_csv('research/hybrid/testing_hybrid_classifier_df_results.csv')
+        df_results.head(20).to_csv('research/user_based/testing_hybrid_classifier_df_results.csv')
 
     if user_id is not None:
         r = get_redis_connection()
@@ -133,8 +137,6 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
             else:
                 print("No predicted values found. Skipping this record.")
                 pass
-
-        print("Items saved for Redis:")
 
 
 # noinspection PyPep8Naming
@@ -289,7 +291,7 @@ class Classifier:
 
     def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
                                    experiment_mode=False, only_with_prefilled_bert_vectors=True, bert_model=None,
-                                   latest_posts=False):
+                                   latest_posts=True):
         if only_with_prefilled_bert_vectors is False:
             if bert_model is None:
                 raise ValueError("Loaded BERT model needs to be supplied if only_with_prefilled_bert_vectors parameter"
@@ -339,7 +341,6 @@ class Classifier:
         df_posts_categories = df_posts_categories.rename(columns={'created_at_x': 'post_created_at'})
 
         if latest_posts:
-            # TODO: Sort df by created_at date and get only cca 50 of them
             print("df_posts_categories")
             print(df_posts_categories)
             print(df_posts_categories.columns)
@@ -347,8 +348,10 @@ class Classifier:
             print("df_posts_categories, created_at column")
             print(df_posts_categories['post_created_at'].head(10))
             df_posts_categories["post_created_at"] = pd.to_datetime(df_posts_categories["post_created_at"])
-            # Getting 50 latest posts to filter for user
-            df_posts_categories = df_posts_categories.sort_values(by="post_created_at", ascending=False).head(50)
+
+            # Getting 50 latest (newest) posts by created date to filter only new articles for user
+            df_posts_categories = df_posts_categories.sort_values(by="post_created_at", ascending=False)
+            df_posts_categories = df_posts_categories.head(50)
             print("df_posts_categories, created_at column")
             print(df_posts_categories['post_created_at'].head(10))
 
@@ -364,40 +367,40 @@ class Classifier:
 
         if experiment_mode is True:
             # noinspection PyPep8Naming
-            X_validation = df_posts_categories[columns_to_combine]
+            X_unseen = df_posts_categories[columns_to_combine]
             if not type(use_only_sample_of) is None:
                 if type(use_only_sample_of) is int:
                     # noinspection PyPep8Naming
-                    X_validation = X_validation.sample(use_only_sample_of)
+                    X_unseen = X_unseen.sample(use_only_sample_of)
             print("Loading sentence bert multilingual model...")
             print("=========================")
             print("Results of SVC:")
             print("=========================")
-            show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_svc,
+            show_predicted(X_unseen_df=X_unseen, input_variables=columns_to_combine, clf=clf_svc,
                            bert_model=bert_model)
             print("=========================")
             print("Results of Random Forest:")
             print("=========================")
-            show_predicted(X_unseen_df=X_validation, input_variables=columns_to_combine, clf=clf_random_forest,
+            show_predicted(X_unseen_df=X_unseen, input_variables=columns_to_combine, clf=clf_random_forest,
                            bert_model=bert_model)
         else:
             columns_to_select = columns_to_combine + ['slug', 'bert_vector_representation']
             # noinspection PyPep8Naming
-            X_validation = df_posts_categories[columns_to_select]
+            X_unseen = df_posts_categories[columns_to_select]
             if not type(use_only_sample_of) is None:
                 if type(use_only_sample_of) is int:
                     # noinspection PyPep8Naming
-                    X_validation = X_validation.sample(use_only_sample_of)
+                    X_unseen = X_unseen.sample(use_only_sample_of)
             print("=========================")
             print("Inserting by SVC:")
             print("=========================")
 
-            print("X_validation:")
-            print(X_validation)
+            print("X_unseen:")
+            print(X_unseen)
             print("clf_svc:")
             print(clf_svc)
 
-            predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
+            predict_from_vectors(X_unseen_df=X_unseen, clf=clf_svc, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,
                                  save_testing_csv=True)
@@ -405,7 +408,7 @@ class Classifier:
             print("=========================")
             print("Inserting by Random Forest:")
             print("=========================")
-            predict_from_vectors(X_unseen_df=X_validation, clf=clf_random_forest, user_id=user_id,
+            predict_from_vectors(X_unseen_df=X_unseen, clf=clf_random_forest, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,
                                  save_testing_csv=True)
