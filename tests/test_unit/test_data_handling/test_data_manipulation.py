@@ -1,11 +1,1 @@
-import pytest
-
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-
-
-def test_singleton_cannot_be_instantiated_twice():
-    DatabaseMethods()
-
-    with pytest.raises(RuntimeError) as re:
-        DatabaseMethods()
-    assert str(re.value) == "Already instantiated!"
+# TODO: There is bad coverage of data_manipulation.py. Try to enhance this.
