@@ -422,6 +422,8 @@ class RecommenderMethods:
             raise ValueError("Value error had occurred when trying to get posts for user." + str(e))
         return posts_users_categories_ratings_df
 
+
+
     def get_sql_columns(self):
         self.database.connect()
         df_columns = self.database.get_sql_columns()
