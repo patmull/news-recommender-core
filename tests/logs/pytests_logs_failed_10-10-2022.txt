@@ -1,0 +1,44 @@
+FAILED tests\test_integration\test_only_local_working_methods\test_hybrid.py::test_svm_classifier_bad_sample_number[None]
+FAILED tests\test_integration\test_only_local_working_methods\test_user_relevance_classifier.py::TestClassifier::test_predict_from_vectors
+
+
+
+===============
+    @pytest.mark.parametrize("tested_input", [
+        '',
+        (),
+        None,
+        'ratings'
+    ])
+    def test_svm_classifier_bad_sample_number(tested_input):
+        with pytest.raises(ValueError):
+            svm = Classifier()
+>           assert svm.predict_relevance_for_user(use_only_sample_of=tested_input, user_id=431, relevance_by='stars')
+E           AssertionError: assert None
+E            +  where None = <bound method Classifier.predict_relevance_for_user of <src.recommender_core.recommender_algorithms.user_b
+ased_algorithms.user_relevance_classifier.classifier.Classifier object at 0x000001AE90E6B8E0>>(use_only_sample_of=None, user_id=431, re
+levance_by='stars')
+E            +    where <bound method Classifier.predict_relevance_for_user of <src.recommender_core.recommender_algorithms.user_based_
+algorithms.user_relevance_classifier.classifier.Classifier object at 0x000001AE90E6B8E0>> = <src.recommender_core.recommender_algorithm
+s.user_based_algorithms.user_relevance_classifier.classifier.Classifier object at 0x000001AE90E6B8E0>.predict_relevance_for_user
+
+
+=================
+X_unseen_df = ['Test-Category test test'], clf = SVC(gamma='auto'), predicted_var_for_redis_key_name = 'malformed_redis_key_name'
+user_id = 999999, save_testing_csv = True, bert_model = <spacy.lang.xx.MultiLanguage object at 0x000001E0CEE282B0>
+col_to_combine = ['category_title', 'all_features_preprocessed', 'full_text'], testing_mode = True
+
+    def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, user_id=None,
+                             save_testing_csv=False, bert_model=None, col_to_combine=None, testing_mode=False):
+        print("X_unseen_df size:")
+>       print(len(X_unseen_df.index))
+E       TypeError: object of type 'builtin_function_or_method' has no len()
+
+src\recommender_core\recommender_algorithms\user_based_algorithms\user_relevance_classifier\classifier.py:53: TypeError
+
+
+
+--------------
+
+
+

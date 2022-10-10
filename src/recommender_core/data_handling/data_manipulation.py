@@ -259,8 +259,8 @@ class DatabaseMethods(object):
         return df
 
     def get_user_history(self, user_id):
-        sql = """SELECT * FROM user_history WHERE user_id = ? ORDER BY id;"""
-        df = pd.read_sql_query(sql, self.get_cnx(), params=[user_id])
+        sql = """SELECT * FROM user_history WHERE user_id = %(user_id)s"""
+        df = pd.read_sql_query(sql, self.get_cnx(), params={'user_id': user_id})
         return df
 
     def get_posts_df_users_df_ratings_df(self):
