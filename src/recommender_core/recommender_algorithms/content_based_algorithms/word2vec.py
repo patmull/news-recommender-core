@@ -36,16 +36,6 @@ from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords, load_cz_stopwords
 from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
 
-PATH_TO_UNPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs-unprocessed.txt'
-PATH_TO_PREPROCESSED_QUESTIONS_WORDS = 'research/word2vec/analogies/questions-words-cs.txt'
-
-myclient = pymongo.MongoClient('localhost', 27017)
-db = myclient.test
-mongo_db = myclient["idnes"]
-mongo_collection = mongo_db["preprocessed_articles"]
-mongo_collection_stopwords_free = mongo_db["preprocessed_articles_stopwords_free"]
-mongo_collection_bigrams = mongo_db["preprocessed_articles_bigrams"]
-
 
 def save_to_mongo(data, number_of_processed_files, supplied_mongo_collection):
     dict_to_insert = dict({"number": number_of_processed_files, "text": data})
@@ -177,98 +167,6 @@ def eval_wiki():
     print("Analogies evaluation of FastText on Wikipedia.cz model:")
     print(overall_analogies_score)
 
-
-def remove_stopwords_mongodb(force_update=False):
-    cursor_any_record = mongo_collection_stopwords_free.find_one()
-    if cursor_any_record is not None and force_update is False:
-        print("There are already records in MongoDB. Skipping stopwords removal.")
-        pass
-    else:
-        print("Removing stopwords...")
-        cursor = mongo_collection.find({})
-        number = 1
-        # clearing collection from all documents
-        mongo_collection_stopwords_free.delete_many({})
-        for doc in cursor:
-            print("Before:")
-            print(doc['text'])
-            removed_stopwords = remove_stopwords(doc['text'])
-            removed_stopwords = flatten(removed_stopwords)
-            print("After removal:")
-            print(removed_stopwords)
-            save_to_mongo(number_of_processed_files=number, data=removed_stopwords,
-                          supplied_mongo_collection=mongo_collection_stopwords_free)
-            number = number + 1
-
-
-def preprocess_idnes_corpus(force_update=False):
-    print("Corpus lines are above")
-    cursor_any_record = mongo_collection.find_one()
-    if cursor_any_record is not None and force_update is False:
-        print("There are already records in MongoDB. Skipping Idnes preprocessing (1st phase)")
-        pass
-    else:
-        path_to_pickle = 'full_models/idnes/unprocessed/idnes.pkl'
-        corpus = pickle.load(open(path_to_pickle, 'rb'))
-        print("Corpus length:")
-        print(len(corpus))
-        time.sleep(120)
-        # preprocessing steps
-
-        last_record = mongo_db.mongo_collection.find()
-        print("last_record")
-        print(last_record)
-        print("Fetching records for DB...")
-        cursor_any_record = mongo_collection.find_one()
-        # Checking the cursor is empty or not
-        if cursor_any_record is None:
-            number_of_documents = 0
-        else:
-            """
-            for record in cursor:
-                number_of_documents = record['number']
-            """
-            number_of_documents = mongo_collection.estimated_document_count()
-            print("Number_of_docs already in DB:")
-            print(number_of_documents)
-
-        if number_of_documents == 0:
-            print("No file with preprocessed articles was found. Starting from 0.")
-        else:
-            print("Starting another preprocessing from document where it was halted.")
-            print("Starting from doc. num: " + str(number_of_documents))
-
-        i = 0
-        num_of_preprocessed_docs = number_of_documents
-        # clearing collection from all documents
-        mongo_collection.delete_many({})
-        for doc in generate_lines_from_mmcorpus(corpus):
-            if number_of_documents > 0:
-                number_of_documents -= 1
-                print("Skipping doc.")
-                print(doc[:10])
-                continue
-            print("Processing doc. num. " + str(num_of_preprocessed_docs))
-            print("Before:")
-            print(doc)
-            doc_string = ' '.join(doc)
-            doc_string_preprocessed = deaccent(preprocess(doc_string))
-            # tokens = doc_string_preprocessed.split(' ')
-
-            # removing words in greek, azbuka or arabian
-            # use only one of the following lines, whichever you prefer
-            tokens = [i for i in doc_string_preprocessed.split(' ') if regex.sub(r'[^\p{Latin}]', u'', i)]
-            # processed_data.append(tokens)
-            print("After:")
-            print(tokens)
-            i = i + 1
-            num_of_preprocessed_docs = num_of_preprocessed_docs + 1
-            # saving list to pickle evey Nth document
-
-            print("Preprocessing Idnes.cz doc. num. " + str(num_of_preprocessed_docs))
-            save_to_mongo(tokens, num_of_preprocessed_docs, mongo_collection)
-
-        print("Preprocessing Idnes has (finally) ended. All articles were preprocessed.")
 
 
 def get_client():
@@ -1069,33 +967,3 @@ class Word2VecClass:
 
         return termsim_matrix
 
-
-def preprocess_question_words_file():
-    # open file1 in reading mode
-    file1 = open(PATH_TO_UNPROCESSED_QUESTIONS_WORDS, 'r', encoding="utf-8")
-
-    # open file2 in writing mode
-    file2 = open(PATH_TO_PREPROCESSED_QUESTIONS_WORDS, 'w', encoding="utf-8")
-
-    # read from file1 and write to file2
-    for line in file1:
-        if len(line.split()) == 4 or line.startswith(":"):
-            if not line.startswith(":"):
-                file2.write(gensim.utils.deaccent(preprocess(line)) + "\n")
-            else:
-                file2.write(line)
-        else:
-            continue
-
-    # close file1 and file2
-    file1.close()
-    file2.close()
-
-    # open file2 in reading mode
-    file2 = open(PATH_TO_PREPROCESSED_QUESTIONS_WORDS, 'r')
-
-    # print the file2 content
-    print(file2.read())
-
-    # close the file2
-    file2.close()

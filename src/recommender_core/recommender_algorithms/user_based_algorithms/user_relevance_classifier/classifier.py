@@ -49,8 +49,6 @@ def show_true_vs_predicted(features_list, contexts_list, clf, bert_model):
 
 def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, user_id=None,
                          save_testing_csv=False, bert_model=None, col_to_combine=None, testing_mode=False):
-    print("X_unseen_df size:")
-    print(len(X_unseen_df.index))
     """
 
     @param X_unseen_df:
@@ -62,10 +60,7 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     @param col_to_combine:
     @param testing_mode: Allows threshold = 0 to make sure some value is added.
     @return:
-    """
 
-    print("predict_from_vectors method")
-    """
     Method for actual live, deployed use. This uses the already filled vectors from PostgreSQL but if doesn't
     exists, calculate new ones from passed BERT model.
 
@@ -88,6 +83,10 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
         if col_to_combine is None:
             raise ValueError("If BERT model is supplied, then column list needs "
                              "to be supplied to col_to_combine_parameter!")
+
+    print("X_unseen_df size:")
+    print(X_unseen_df)
+    print(len(X_unseen_df.index))
 
     print("Vectoring the selected columns...")
     # TODO: Takes a lot of time... Probably pre-calculate.
@@ -171,7 +170,12 @@ class Classifier:
         self.model_save_location = Path()
         self.bert_model = None
 
-    def train_classifiers(self, df, columns_to_combine, target_variable_name, user_id=None):
+    def train_classifiers(self, df, columns_to_combine, target_variable_name, user_id=None, test_run=None):
+        if test_run is None:
+            test_size = 0.2
+        else:
+            test_size = 0.5
+
         print("Loading Bert model...")
         self.bert_model = load_bert_model()
         # https://metatext.io/models/distilbert-base-multilingual-cased
@@ -188,14 +192,14 @@ class Classifier:
         # noinspection PyPep8Naming
         X_train, X_validation, y_train, y_validation = train_test_split(df['combined'].tolist(),
                                                                         df_predicted[target_variable_name]
-                                                                        .tolist(), test_size=0.2)
+                                                                        .tolist(), test_size=test_size)
         print("Converting text to vectors...")
         df['vector'] = df['combined'].apply(lambda x: self.bert_model(x).vector)
         print("Splitting dataset to train_enabled / test...")
         # noinspection PyPep8Naming
         X_train, X_test, y_train, y_test = train_test_split(df['vector'].tolist(),
                                                             df_predicted[target_variable_name]
-                                                            .tolist(), test_size=0.2)
+                                                            .tolist(), test_size=test_size)
 
         print("Training using SVC method...")
         clf_svc = SVC(gamma='auto')
@@ -290,7 +294,7 @@ class Classifier:
 
     def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
                                    experiment_mode=False, only_with_prefilled_bert_vectors=True, bert_model=None,
-                                   latest_posts=True):
+                                   latest_posts=True, save_df_posts_users_categories_relevance=False):
         if only_with_prefilled_bert_vectors is False:
             if bert_model is None:
                 raise ValueError("Loaded BERT model needs to be supplied if only_with_prefilled_bert_vectors parameter"
@@ -321,12 +325,26 @@ class Classifier:
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_thumbs_df(user_id=user_id,
                                                       only_with_bert_vectors=only_with_prefilled_bert_vectors)
+            print("df_posts_users_categories_relevance:")
+            print(df_posts_users_categories_relevance)
+
+            if save_df_posts_users_categories_relevance:
+                df_posts_users_categories_relevance.to_csv(
+                    Path('tests/testing_datasets/true_posts_categories_thumbs_data_for_df.csv'))
+
             target_variable_name = 'thumbs_values'
             predicted_var_for_redis_key_name = Naming.PREDICTED_BY_THUMBS_REDIS_KEY_NAME
         elif relevance_by == 'stars':
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_ratings_df(user_id=user_id,
                                                        only_with_bert_vectors=only_with_prefilled_bert_vectors)
+            print("df_posts_users_categories_relevance:")
+            print(df_posts_users_categories_relevance)
+
+            if save_df_posts_users_categories_relevance:
+                df_posts_users_categories_relevance.to_csv(
+                    Path('tests/testing_datasets/true_posts_categories_thumbs_data_for_df.csv'))
+
             target_variable_name = 'ratings_values'
             predicted_var_for_redis_key_name = Naming.PREDICTED_BY_STARS_REDIS_KEY_NAME
         else:
