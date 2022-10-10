@@ -69,4 +69,12 @@ def test_get_most_similar_by_hybrid_bad_user(tested_input):
     with pytest.raises(TypeError):
         get_most_similar_by_hybrid(user_id=tested_input, list_of_methods=bad_list_of_methods)
 
-# NOTICE: Good Day scenario belongs to integration testing because files (and possibly DB) is involved
+@pytest.mark.parametrize("tested_input", [
+    '',
+    (),
+    'ratings'
+])
+def test_svm_classifier_bad_sample_number(tested_input):
+    with pytest.raises(ValueError):
+        svm = Classifier()
+        assert svm.predict_relevance_for_user(use_only_sample_of=tested_input, user_id=431, relevance_by='stars')

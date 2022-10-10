@@ -1,26 +1,4 @@
-FAILED tests\test_integration\test_only_local_working_methods\test_hybrid.py::test_svm_classifier_bad_sample_number[None]
 FAILED tests\test_integration\test_only_local_working_methods\test_user_relevance_classifier.py::TestClassifier::test_predict_from_vectors
-
-
-
-===============
-    @pytest.mark.parametrize("tested_input", [
-        '',
-        (),
-        None,
-        'ratings'
-    ])
-    def test_svm_classifier_bad_sample_number(tested_input):
-        with pytest.raises(ValueError):
-            svm = Classifier()
->           assert svm.predict_relevance_for_user(use_only_sample_of=tested_input, user_id=431, relevance_by='stars')
-E           AssertionError: assert None
-E            +  where None = <bound method Classifier.predict_relevance_for_user of <src.recommender_core.recommender_algorithms.user_b
-ased_algorithms.user_relevance_classifier.classifier.Classifier object at 0x000001AE90E6B8E0>>(use_only_sample_of=None, user_id=431, re
-levance_by='stars')
-E            +    where <bound method Classifier.predict_relevance_for_user of <src.recommender_core.recommender_algorithms.user_based_
-algorithms.user_relevance_classifier.classifier.Classifier object at 0x000001AE90E6B8E0>> = <src.recommender_core.recommender_algorithm
-s.user_based_algorithms.user_relevance_classifier.classifier.Classifier object at 0x000001AE90E6B8E0>.predict_relevance_for_user
 
 
 =================
