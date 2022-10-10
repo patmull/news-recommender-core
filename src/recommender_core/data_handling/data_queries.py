@@ -19,6 +19,8 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.simila
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 import os
 
+from typing import Dict, List
+
 CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"
 
 
@@ -95,7 +97,7 @@ def random_hyperparameter_choice(model_variants, vector_size_range, window_range
 
 def get_eval_results_header():
     corpus_title = ['100% Corpus']
-    model_results = {'Validation_Set': [],
+    model_results = {'Validation_Set': [],  # type: ignore
                      'Model_Variant': [],
                      'Negative': [],
                      'Vector_size': [],
@@ -110,7 +112,7 @@ def get_eval_results_header():
                      'Word_pairs_test_Spearman_p-val': [],
                      'Word_pairs_test_Out-of-vocab_ratio': [],
                      'Analogies_test': []
-                     }  # type: dict
+                     }  # type: Dict[str, List]
     return corpus_title, model_results
 
 
@@ -158,8 +160,8 @@ def prepare_hyperparameters_grid():
 
     corpus_title, model_results = get_eval_results_header()
     # noinspection PyPep8
-    return negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
-           epochs_range, sample_range, corpus_title, model_results
+    return negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, \
+           min_count_range, epochs_range, sample_range, corpus_title, model_results
 
 
 def combine_features_from_single_df_row(single_row_df, list_of_features):
@@ -171,9 +173,9 @@ class RecommenderMethods:
     def __init__(self):
         self.database = DatabaseMethods()
         self.cached_file_path = Path(CACHED_FILE_PATH)
-        self.posts_df = None
-        self.categories_df = None
-        self.df = None
+        self.posts_df = pd.DataFrame()
+        self.categories_df = pd.DataFrame()
+        self.df = pd.DataFrame()
 
     def get_posts_dataframe(self, force_update=False, from_cache=True):
         print("4.1.1")
@@ -208,6 +210,7 @@ class RecommenderMethods:
 
     def get_df_from_sql_meanwhile_insert_cache(self):
 
+        # noinspection PyShadowingNames
         def update_cache(self):
             print("Inserting file to cache in the background...")
             self.database.insert_posts_dataframe_to_cache()
@@ -239,7 +242,7 @@ class RecommenderMethods:
     def get_user_posts_ratings(self):
         database = DatabaseMethods()
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value 
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value
         AS ratings_values
         FROM posts p
         JOIN ratings r ON r.post_id = p.id
@@ -422,8 +425,6 @@ class RecommenderMethods:
             raise ValueError("Value error had occurred when trying to get posts for user." + str(e))
         return posts_users_categories_ratings_df
 
-
-
     def get_sql_columns(self):
         self.database.connect()
         df_columns = self.database.get_sql_columns()
@@ -530,7 +531,7 @@ class TfIdfDataHandlers:
 
     def __init__(self, df=None):
         self.df = df
-        self.tfidf_vectorizer = None
+        self.tfidf_vectorizer = TfidfVectorizer()
         self.cosine_sim_df = None
         self.tfidf_tuples = None
 

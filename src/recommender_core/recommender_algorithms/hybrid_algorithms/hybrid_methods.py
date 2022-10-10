@@ -1,23 +1,20 @@
 import gc
 import json
-import pickle
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from gensim.models import KeyedVectors
-from sklearn.preprocessing import OneHotEncoder
 
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
-from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import SvdClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
     load_doc2vec_model
-from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation \
+    import SvdClass
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import preprocess_one_hot, \
-    make_post_feature, train_lightgbm_user_based
 
 
 # noinspection DuplicatedCode
@@ -59,109 +56,6 @@ def prepare_categories():
     post_category_df['model_name'] = 'tfidf'
 
     return post_category_df
-
-
-# TODO: Remove in the next code review
-@DeprecationWarning
-def get_posts_lightgbm(results, use_categorical_columns=True):
-    one_hot_encoder, categorical_columns_after_encoding = None, None
-
-    consider_only_top_limit = 20
-    if use_categorical_columns is True:
-        one_hot_encoder = OneHotEncoder(sparse=False, dtype=np.int32)
-
-    features = ["user_id", "coefficient", "relevance", "relevance_val", "views", "model_name"]
-    categorical_columns = [
-        'category_title', 'model_name'
-    ]
-
-    results['coefficient'] = results['coefficient'].astype(np.float16)
-
-    print("tf_idf_results.dtypes:")
-    print(results.dtypes)
-
-    post_category_df = prepare_categories()
-
-    print("results.columns:")
-    print(results.columns)
-    print("post_category_df.columns:")
-    print(post_category_df.columns)
-
-    results = results.merge(post_category_df, left_on='slug', right_on='slug')
-    # noinspection DuplicatedCode
-    results = results.rename({"doc2vec_representation": "doc2vec"}, axis=1)
-    df2 = pd.DataFrame(results)
-    doc2vec_column_name_base = "doc2vec_col_"
-
-    df2.dropna(subset=['doc2vec'], inplace=True)
-
-    df2['doc2vec'] = df2['doc2vec'].apply(lambda x: json.loads(x))
-    df2 = pd.DataFrame(df2['doc2vec'].to_list(), index=df2.index).add_prefix(doc2vec_column_name_base)
-    for column in df2.columns:
-        df2[column] = df2[column].astype(np.float16)
-    results = pd.concat([results, df2], axis=1)
-    print("df2.dtypes")
-    print(df2.dtypes)
-    del df2
-    gc.collect()
-
-    #####
-    # TODO: Find and fill missing Doc2Vec values (like in the training phase)
-
-    tf_idf_results_old = results
-    if use_categorical_columns is True:
-        numerical_columns = [
-            "coefficient", "views", 'doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3',
-            'doc2vec_col_4', 'doc2vec_col_5',
-            'doc2vec_col_6', 'doc2vec_col_7'
-        ]
-        one_hot_encoder.fit(post_category_df[categorical_columns])
-        del post_category_df
-        gc.collect()
-        results = preprocess_one_hot(results, one_hot_encoder, numerical_columns,
-                                     categorical_columns)
-        results['slug'] = tf_idf_results_old['slug']
-    else:
-        del post_category_df
-        gc.collect()
-
-    # noinspection PyPep8Naming
-    features_X = ['coefficient', 'views']
-
-    all_columns = ['user_id', 'query_id', 'slug', 'query_slug', 'coefficient', 'relevance', 'post_id', 'title_x',
-                   'excerpt', 'body', 'views', 'keywords', 'category', 'description', 'all_features_preprocessed',
-                   'body_preprocessed']
-    if use_categorical_columns is True:
-        categorical_columns_after_encoding = [x for x in all_columns if x.startswith("category_")]
-        features.extend(categorical_columns_after_encoding)
-    if use_categorical_columns is True:
-        features_X.extend(categorical_columns_after_encoding)
-        features_X.extend(
-            ['doc2vec_col_0', 'doc2vec_col_1', 'doc2vec_col_2', 'doc2vec_col_3', 'doc2vec_col_4', 'doc2vec_col_5',
-             'doc2vec_col_6', 'doc2vec_col_7'])
-
-    pred_df = make_post_feature(results)
-    lightgbm_model_file = Path("models/lightgbm.pkl")
-    if lightgbm_model_file.exists():
-        model = pickle.load(open('models/lightgbm.pkl', 'rb'))
-    else:
-        print("LightGBMMethods model not found. Training from available relevance testing results testing_datasets...")
-        train_lightgbm_user_based()
-        model = pickle.load(open('models/lightgbm.pkl', 'rb'))
-    # noinspection PyPep8Naming
-    predictions = model.predict(results[features_X])  # .values.reshape(-1,1) when single feature is used
-    del results
-    gc.collect()
-    topk_idx = np.argsort(predictions)[::-1][:consider_only_top_limit]
-    recommend_df = pred_df.loc[topk_idx].reset_index(drop=True)
-    recommend_df['predictions'] = predictions
-
-    recommend_df.sort_values(by=['predictions'], inplace=True, ascending=False)
-    recommend_df = recommend_df[['slug', 'predictions']]
-    recommend_df.to_json()
-    result = recommend_df.to_json(orient="records")
-    parsed = json.loads(result)
-    return json.dumps(parsed, indent=4)
 
 
 def select_list_of_posts_for_user(user_id, posts_to_compare):
@@ -268,7 +162,7 @@ def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_meth
     coefficient_columns = list_of_prefixed_methods
 
     results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
-                                     / results_df[coefficient_columns].std()
+                                      / results_df[coefficient_columns].std()
     print("normalized_df:")
     print(results_df)
     results_df['coefficient'] = results_df.sum(axis=1)
@@ -338,15 +232,18 @@ def get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_f
 def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
                                                 list_of_slugs_from_history):
     w2v_model, d2v_model = None, None
+
     if method == "word2vec":
         path_to_model = Path("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
-        content_based_method = Word2VecClass()
+        method_class = Word2VecClass()
         w2v_model = KeyedVectors.load(path_to_model.as_posix())
     elif method == "doc2vec":
-        content_based_method = Doc2VecClass()
+        method_class = Doc2VecClass()
         d2v_model = load_doc2vec_model('models/d2v_full_text_limited.model')
     else:
         raise NotImplementedError("Method not supported.")
+
+    content_based_method = method_class
 
     if w2v_model is None and d2v_model is None:
         raise ValueError("Word2Vec and Doc2Vec variables are set to None. Cannot continue.")
