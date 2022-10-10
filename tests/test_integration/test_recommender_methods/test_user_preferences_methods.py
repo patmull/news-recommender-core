@@ -94,7 +94,7 @@ def test_insert_recommended_json_user_based(methods, dict_for_test, db_columns, 
     for method in db_columns:
         assert df[method].iloc[0] is None
 
-    insert_user_recommende_to_db(methods, json_for_test, user_id_for_test, db)
+    insert_user_recommender_to_db(methods, json_for_test, user_id_for_test, db)
     df = get_users_df(db_columns, user_id_for_test)
 
     for method in db_columns:
@@ -110,7 +110,7 @@ def test_insert_recommended_json_user_based(methods, dict_for_test, db_columns, 
         assert df[method].iloc[0] is None
 
 
-def insert_user_recommende_to_db(methods, test_json, test_user_id, db):
+def insert_user_recommender_to_db(methods, test_json, test_user_id, db):
     recommended_methods = RecommenderMethods()
 
     for method in methods:

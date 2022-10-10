@@ -49,7 +49,6 @@ def show_true_vs_predicted(features_list, contexts_list, clf, bert_model):
 
 def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, user_id=None,
                          save_testing_csv=False, bert_model=None, col_to_combine=None, testing_mode=False):
-
     print("X_unseen_df size:")
     print(len(X_unseen_df.index))
     """

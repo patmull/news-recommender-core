@@ -7,6 +7,7 @@ import psycopg2
 import pandas as pd
 import redis
 from pandas.io.sql import DatabaseError
+from typing import List
 
 DB_USER = os.environ.get('DB_RECOMMENDER_USER')
 DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
@@ -29,12 +30,11 @@ def print_exception_not_inserted(e):
 class DatabaseMethods(object):
 
     def __init__(self):
-
         self.categories_df = None
-        self.posts_df = None
+        self.posts_df = pd.DataFrame()
         self.df = None
-        self.cursor = None
         self.cnx = None
+        self.cursor = None
 
     def connect(self):
         keepalive_kwargs = {
@@ -51,7 +51,7 @@ class DatabaseMethods(object):
         self.cursor = self.cnx.cursor()
 
     def disconnect(self):
-        if self.cursor is not None:
+        if self.cursor is not None and self.cnx is not None:
             self.cursor.close()
             self.cnx.close()
         else:
@@ -110,10 +110,10 @@ class DatabaseMethods(object):
 
     def get_posts_join_categories(self):
 
-        sql = """SELECT posts.slug, posts.title, categories.title, posts.excerpt, body, 
-        keywords, all_features_preprocessed, full_text, body_preprocessed, posts.recommended_tfidf, 
-        posts.recommended_word2vec, posts.recommended_doc2vec, posts.recommended_lda, posts.recommended_tfidf_full_text, 
-        posts.recommended_word2vec_full_text, posts.recommended_doc2vec_full_text, posts.recommended_lda_full_text 
+        sql = """SELECT posts.slug, posts.title, categories.title, posts.excerpt, body,
+        keywords, all_features_preprocessed, full_text, body_preprocessed, posts.recommended_tfidf,
+        posts.recommended_word2vec, posts.recommended_doc2vec, posts.recommended_lda, posts.recommended_tfidf_full_text,
+        posts.recommended_word2vec_full_text, posts.recommended_doc2vec_full_text, posts.recommended_lda_full_text
         FROM posts JOIN categories ON posts.category_id = categories.id;"""
 
         query = sql
@@ -259,15 +259,16 @@ class DatabaseMethods(object):
         return df
 
     def get_user_history(self, user_id):
-        sql = """SELECT * FROM user_history WHERE user_id = {} ORDER BY id;"""
-        sql = sql.format(user_id)
-        df = pd.read_sql_query(sql, self.get_cnx())
+        sql = """SELECT * FROM user_history WHERE user_id = ? ORDER BY id;"""
+        df = pd.read_sql_query(sql, self.get_cnx(), params=[user_id])
         return df
 
     def get_posts_df_users_df_ratings_df(self):
         # EXTRACT RESULTS FROM CURSOR
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value AS ratings_values
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id
+        AS user_id, u.name,
+        r.value AS ratings_values
                     FROM posts p
                     JOIN ratings r ON r.post_id = p.id
                     JOIN users u ON r.user_id = u.id;"""
@@ -292,7 +293,7 @@ class DatabaseMethods(object):
             df_user_categories = pd.read_sql_query(sql, self.get_cnx())
             # df = pd.read_sql_query(results, database.get_cnx())
         else:
-            sql_user_categories = """SELECT c.slug AS "category_slug" FROM user_categories uc 
+            sql_user_categories = """SELECT c.slug AS "category_slug" FROM user_categories uc
             JOIN categories c ON c.id = uc.category_id WHERE uc.user_id = (%(user_id)s);"""
             query_params = {'user_id': user_id}
             df_user_categories = pd.read_sql_query(sql_user_categories, self.get_cnx(),
@@ -326,7 +327,7 @@ class DatabaseMethods(object):
 
         # EXTRACT RESULTS FROM CURSOR
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS ratings_values, 
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS ratings_values,
         c.title AS category_title, c.slug AS category_slug, p.created_at AS post_created_at
         FROM posts p
         JOIN ratings r ON r.post_id = p.id
@@ -345,7 +346,7 @@ class DatabaseMethods(object):
         return df_ratings
 
     def get_user_keywords(self, user_id):
-        sql_user_keywords = """SELECT multi_dimensional_list.name AS "keyword_name" FROM tag_user tu JOIN tags 
+        sql_user_keywords = """SELECT multi_dimensional_list.name AS "keyword_name" FROM tag_user tu JOIN tags
         multi_dimensional_list ON multi_dimensional_list.id = tu.tag_id WHERE tu.user_id = (%(user_id)s); """
         query_params = {'user_id': user_id}
         df_user_categories = pd.read_sql_query(sql_user_keywords, self.get_cnx(), params=query_params)
@@ -431,14 +432,6 @@ class DatabaseMethods(object):
             raise Exception("Redis is not implemented yet.")
         else:
             raise ValueError("Not allowed DB method passed.")
-
-    @DeprecationWarning
-    def insert_doc2vec_vector(self, doc2vec_vector, article_id):
-        query = """UPDATE posts SET doc2vec_representation = %s WHERE id = %s;"""
-        inserted_values = (doc2vec_vector, article_id)
-        self.cursor.execute(query, inserted_values)
-        self.cnx.commit()
-        print("Inserted")
 
     def insert_preprocessed_combined(self, preprocessed_all_features, post_id):
         try:
@@ -621,7 +614,7 @@ class DatabaseMethods(object):
         if get_only_posts_with_prefilled_bert_vectors is False:
             sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
             p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
-            c.title AS category_title, c.slug AS category_slug, 
+            c.title AS category_title, c.slug AS category_slug,
             p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed,
             p.full_text AS full_text
             FROM posts p
@@ -664,10 +657,10 @@ class DatabaseMethods(object):
         if get_only_posts_with_prefilled_bert_vectors is False:
             sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
             t.value AS thumbs_values, c.title AS category_title, c.slug AS category_slug,
-            p.created_at AS post_created_at, t.created_at AS thumbs_created_at, 
+            p.created_at AS post_created_at, t.created_at AS thumbs_created_at,
             p.all_features_preprocessed AS all_features_preprocessed, p.body_preprocessed AS body_preprocessed,
             p.full_text AS full_text,
-            p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title, 
+            p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title,
             p.keywords AS keywords,
             p.doc2vec_representation AS doc2vec_representation
             FROM posts p
@@ -677,10 +670,10 @@ class DatabaseMethods(object):
         else:
             sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
             t.value AS thumbs_values, c.title AS category_title, c.slug AS category_slug,
-            p.created_at AS post_created_at, t.created_at AS thumbs_created_at, 
+            p.created_at AS post_created_at, t.created_at AS thumbs_created_at,
             p.all_features_preprocessed AS all_features_preprocessed, p.body_preprocessed AS body_preprocessed,
             p.full_text AS full_text,
-            p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title, 
+            p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title,
             p.keywords AS keywords,
             p.doc2vec_representation AS doc2vec_representation
             FROM posts p
@@ -714,7 +707,7 @@ class DatabaseMethods(object):
 
     def get_posts_users_ratings_df(self):
         # EXTRACT RESULTS FROM CURSOR
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, 
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name,
         r.value AS ratings_values FROM posts p JOIN ratings r ON r.post_id = p.id JOIN users u ON r.user_id = u.id;"""
         # LOAD INTO A DATAFRAME
         df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
@@ -751,12 +744,6 @@ class DatabaseMethods(object):
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
-    def get_user_history(self, user_id):
-        sql = """SELECT * FROM user_history WHERE user_id = {} ORDER BY id;"""
-        sql = sql.format(user_id)
-        df = pd.read_sql_query(sql, self.get_cnx())
-        return df
-
     def insert_recommended_json_user_based(self, recommended_json, user_id, db, method):
         if db != "pgsql":
             raise NotImplementedError("Other database source than PostgreSQL not implemented yet.")
@@ -775,7 +762,7 @@ class DatabaseMethods(object):
         except psycopg2.Error as e:
             print_exception_not_inserted(e)
 
-    def null_test_user_prefilled_records(self, user_id, db_columns):
+    def null_test_user_prefilled_records(self, user_id: int, db_columns: List[str]):
         """
         Method used for testing purposes.
         @param user_id:
@@ -784,13 +771,12 @@ class DatabaseMethods(object):
         """
         for method in db_columns:
             try:
-                query = """UPDATE users SET {} = NULL WHERE id = %s;"""
-                query = query.format(method)
-                queried_values = user_id
+                query = """UPDATE users SET {} = NULL WHERE id = %(id)s;""".format(method)
+                queried_values = {'id': user_id}
                 print("Query used in null_test_user_prefilled_records:")
                 print(query)
                 if self.cursor is not None and self.cnx is not None:
-                    self.cursor.execute(query % queried_values)
+                    self.cursor.execute(query, queried_values)
                     self.cnx.commit()
             except psycopg2.Error as e:
                 print_exception_not_inserted(e)

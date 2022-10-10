@@ -1,6 +1,3 @@
-import json
-from pathlib import Path
-
 import pandas as pd
 import pytest
 
@@ -10,7 +7,7 @@ import pytest
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import select_list_of_posts_for_user, \
     get_most_similar_by_hybrid
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    Classifier, get_df_predicted, predict_from_vectors
+    Classifier, get_df_predicted
 
 classifier = Classifier()
 
@@ -32,12 +29,10 @@ def test_select_list_of_posts_for_user():
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
     list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(test_user_id, test_slugs)
 
-    assert(
-        type(list_of_slugs) is list,
-        len(list_of_slugs) > 0,
-        type(list_of_slugs_from_history) is list,
-        len(list_of_slugs_from_history) > 0
-     )
+    assert(type(list_of_slugs) is list)
+    assert(len(list_of_slugs) > 0)
+    assert(type(list_of_slugs_from_history) is list)
+    assert(len(list_of_slugs_from_history) > 0)
 
 
 @pytest.fixture()
