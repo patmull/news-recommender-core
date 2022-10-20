@@ -172,7 +172,7 @@ class DocSim:
         if model == "wiki":
             source = "cswiki"
             self.w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
-        elif model.startswith("idnes_"):
+        elif model.startswith("idnes"):
             source = "idnes"
             if model.startswith("idnes_1"):
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
@@ -182,8 +182,8 @@ class DocSim:
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
             elif model.startswith("idnes_4"):
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
-            elif model.startswith("idnes"):
-                path_to_folder = "w2v_idnes.model"
+            elif model == "idnes":
+                path_to_folder = "models/"
             else:
                 raise ValueError("Wrong idnes model name chosen.")
             file_name = "w2v_idnes.model"

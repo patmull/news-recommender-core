@@ -15,6 +15,11 @@ from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, R
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
 from research.visualisation.tfidf_visualisation import TfIdfVisualizer
 
+import logging
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from tfidf module.")
 
 def get_cleaned_text(row):
     return row
@@ -201,7 +206,7 @@ class TfIdf:
         self.df = recommender_methods.join_posts_ratings_categories(include_prefilled=True)
 
     def save_sparse_matrix(self, for_hybrid=False):
-        print("Loading posts.")
+        logging.info("Loading posts.")
 
         if for_hybrid is False:
             path = Path("models/tfidf_all_features_preprocessed.npz")
@@ -210,7 +215,7 @@ class TfIdf:
 
         tfidf_data_handlers = TfIdfDataHandlers(self.df)
         fit_by_all_features_matrix = tfidf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
-        print("Saving sparse matrix into file...")
+        logging.info("Saving sparse matrix into file...")
         save_sparse_csr(filename=path, array=fit_by_all_features_matrix)
         return fit_by_all_features_matrix
 
@@ -230,13 +235,8 @@ class TfIdf:
         recommender_methods = RecommenderMethods()
         self.df = recommender_methods.get_posts_categories_dataframe()
 
-        my_file = Path("models/tfidf_all_features_preprocessed.npz")
-        if my_file.exists() is False:
-            fit_by_all_features_matrix = self.save_sparse_matrix()
-        else:
-            fit_by_all_features_matrix = load_sparse_csr(filename=my_file)
+        fit_by_all_features_matrix = self.load_matrix()
 
-        my_file = Path("models/tfidf_category_title.npz")
         fit_by_title = self.get_fit_by_title(fit_by_all_features_matrix)
         tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
 
@@ -246,7 +246,10 @@ class TfIdf:
         print(tuple_of_fitted_matrices)
 
         if searched_slug not in self.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+            print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
+            recommender_methods = RecommenderMethods()
+            recommender_methods.get_posts_dataframe(force_update=True)
+            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
 
         try:
             tfidf_data_handlers = TfIdfDataHandlers(self.df)
@@ -285,8 +288,10 @@ class TfIdf:
         gc.collect()
 
         if searched_slug not in self.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
-
+            print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
+            recommender_methods = RecommenderMethods()
+            recommender_methods.get_posts_dataframe(force_update=True)
+            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
         # replacing None values with empty strings
         recommender_methods.df['full_text'] = recommender_methods.df['full_text'].replace([None], '')
 
@@ -475,25 +480,19 @@ class TfIdf:
         self.df = self.df.merge(category_df, left_on='category_id', right_on='id')
         if 'title_y' in self.df.columns:
             self.df = self.df.rename(columns={'title_y': 'category_title'})
-        my_file = Path("models/tfidf_all_features_preprocessed.npz")
-        if my_file.exists() is False:
-            print("Cannot continue. TF-IDF of all posts was not found. "
-                  "Cannot replace with only limited TF-IDF")
-            fit_by_all_features_matrix = self.save_sparse_matrix()
 
-        else:
-            fit_by_all_features_matrix = load_sparse_csr(filename=my_file)
+        fit_by_all_features_matrix = self.load_matrix()
 
         fit_by_title = self.get_fit_by_title(fit_by_all_features_matrix)
         tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
 
         gc.collect()
 
-        print("tuple_of_fitted_matrices")
-        print(tuple_of_fitted_matrices)
+        logging.debug("tuple_of_fitted_matrices")
+        logging.debug(tuple_of_fitted_matrices)
 
-        print("self.df")
-        print(self.df.columns)
+        logging.debug("self.df")
+        logging.debug(self.df.columns)
 
         try:
             tfidf_data_handlers = TfIdfDataHandlers(self.df)
@@ -530,3 +529,19 @@ class TfIdf:
             fit_by_title = load_sparse_csr(filename=my_file)
         #  join feature tuples into one matrix
         return fit_by_title
+
+    def load_matrix(self, test_call=False):
+        file_path_to_load = "models/tfidf_all_features_preprocessed.npz"
+        my_file = Path(file_path_to_load)
+        if my_file.exists() is False:
+            logging.debug('File with matrix not found in path: ' + file_path_to_load)
+            fit_by_all_features_matrix = self.save_sparse_matrix()
+            saved_again = True
+        else:
+            fit_by_all_features_matrix = load_sparse_csr(filename=my_file)
+            saved_again = False
+
+        if test_call is True:
+            return fit_by_all_features_matrix, saved_again
+        else:
+            return fit_by_all_features_matrix

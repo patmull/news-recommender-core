@@ -217,7 +217,7 @@ class DatabaseMethods(object):
         return df
 
     def get_posts_dataframe_from_cache(self):
-        print("Reading cache file...")
+        logging.debug("Reading cache file...")
         try:
             path_to_df = Path('db_cache/cached_posts_dataframe.pkl')
             df = pd.read_pickle(path_to_df)
@@ -499,7 +499,7 @@ class DatabaseMethods(object):
             elif method == "lda":
                 sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
             else:
-                raise ValueError("Selected model_variant not implemented.")
+                raise ValueError("Selected method " + method + " not implemented.")
         else:
             if method == "tfidf":
                 sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id;"""
@@ -522,7 +522,7 @@ class DatabaseMethods(object):
             elif method == "doc2vec_eval_cswiki_1":
                 sql = """SELECT * FROM posts WHERE recommended_doc2vec_eval_cswiki_1 IS NULL ORDER BY id;"""
             else:
-                raise ValueError("Selected model_variant not implemented.")
+                raise ValueError("Selected method " + method + " not implemented.")
         query = sql
         if self.cursor is not None:
             self.cursor.execute(query)

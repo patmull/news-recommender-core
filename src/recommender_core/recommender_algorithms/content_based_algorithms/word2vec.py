@@ -308,7 +308,10 @@ class Word2VecClass:
         self.df = recommender_methods.get_posts_categories_dataframe()
 
         if searched_slug not in self.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+            print('Slug does not appear in dataframe.')
+            recommender_methods.get_posts_dataframe(force_update=True)
+            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+
 
         self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
         self.categories_df = self.categories_df.rename(columns={'slug': 'category_slug'})

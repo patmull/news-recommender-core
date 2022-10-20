@@ -498,10 +498,11 @@ class Doc2VecClass:
             self.df = self.df.rename(columns={'post_slug': 'slug'})
         if 'slug_x' in self.df.columns:
             self.df = self.df.rename(columns={'slug_x': 'slug'})
-        print("self.df['slug'].to_list()")
-        print(self.df['slug'].to_list())
         if searched_slug not in self.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+            print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
+            recommender_methods = RecommenderMethods()
+            recommender_methods.get_posts_dataframe(force_update=True)
+            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
 
         if full_text is False:
             cols = ['keywords', 'all_features_preprocessed']
@@ -567,7 +568,10 @@ class Doc2VecClass:
         # TODO: REPAIR
         # ValueError: Slug does not appear in dataframe.
         if searched_slug not in self.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+            print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
+            recommender_methods = RecommenderMethods()
+            recommender_methods.get_posts_dataframe(force_update=True)
+            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
         documents_all_features_preprocessed = preprocess_columns(self.df, cols)
