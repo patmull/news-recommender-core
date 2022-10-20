@@ -4,6 +4,7 @@
 
 import spacy_sentence_bert
 
+from src.prefillers.prefilling_all import run_prefilling
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
@@ -59,6 +60,5 @@ log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging.")
 
-# TODO: Prefill SVD again (was partially rewritten by keywords)
-
-run_prefilling_collaborative(test_run=True)
+# run_prefilling_collaborative(test_run=True)
+run_prefilling(skip_cache_refresh=True)

@@ -1,3 +1,4 @@
+import logging
 import pickle
 import random
 import time
@@ -50,7 +51,7 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed_order=Fal
     number_of_inserted_rows = 0
 
     if reversed_order is True:
-        print("Reversing list of posts...")
+        logging.debug("Reversing list of posts...")
         posts.reverse()
 
     if random_order is True:

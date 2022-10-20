@@ -1,3 +1,4 @@
+import logging
 import traceback
 
 from src.prefillers.user_based_prefillers.prefilling_user_classifier import fill_bert_vector_representation
@@ -7,6 +8,10 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.prefilling_additional import PreFillerAdditional
 
 prefiller_additional = PreFillerAdditional()
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging in prefilling_all.")
 
 
 def prefill_all_features_preprocessed():
@@ -26,13 +31,15 @@ def prefill_bert_vector_representation():
     fill_bert_vector_representation()
 
 
-def run_prefilling():
-    print("Refreshing post cache. Inserting recommender posts to cache...")
+def run_prefilling(skip_cache_refresh=False):
 
-    recommender_methods = RecommenderMethods()
-    recommender_methods.database.insert_posts_dataframe_to_cache()
+    if skip_cache_refresh == False:
+        logging.debug("Refreshing post cache. Inserting recommender posts to cache...")
 
-    print("Check needed columns posts...")
+        recommender_methods = RecommenderMethods()
+        recommender_methods.database.insert_posts_dataframe_to_cache()
+
+    logging.debug("Check needed columns posts...")
 
     database = DatabaseMethods()
     columns_needing_prefill = check_needed_columns(database)
@@ -55,7 +62,7 @@ def run_prefilling():
         prepare_and_run(database, method, full_text, reverse, random)
 
     full_text = True
-
+    methods = ["tfidf", "word2vec_eval_idnes_3", "doc2vec", "lda"]  # NOTICE: Evaluated Word2Vec is full text!
     for method in methods:
         prepare_and_run(database, method, full_text, reverse, random)
 
@@ -64,7 +71,7 @@ def prepare_and_run(database, method, full_text, reverse, random):
     database.connect()
     not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)
     database.disconnect()
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts in " + method + " full text: "
+    logging.info("Found " + str(len(not_prefilled_posts)) + " not prefilled posts in " + method + " | full text: "
           + str(full_text))
     if len(not_prefilled_posts) > 0:
         try:
@@ -91,11 +98,11 @@ def check_needed_columns(database):
     database.disconnect()
 
     if number_of_nans_in_all_features_preprocessed:
-        needed_checks.extend("all_features_preprocessed")
+        needed_checks.append("all_features_preprocessed")
     if number_of_nans_in_keywords:
-        needed_checks.extend("keywords")
+        needed_checks.append("keywords")
     if number_of_nans_in_body_preprocessed:
-        needed_checks.extend("body_preprocessed")
+        needed_checks.append("body_preprocessed")
 
     print("Values missing in:")
     print(str(needed_checks))
