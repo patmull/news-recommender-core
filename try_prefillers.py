@@ -61,4 +61,4 @@ logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging.")
 
 # run_prefilling_collaborative(test_run=True)
-run_prefilling(skip_cache_refresh=True, methods_short_text=[], methods_full_text=["word2vec_eval_cswiki_1"])
+run_prefilling(skip_cache_refresh=True)
