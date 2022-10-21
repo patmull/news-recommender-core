@@ -12,7 +12,7 @@ TEST_CACHED_PICKLE_PATH = 'tests/testing_files/cached_posts_dataframe_test.pkl'
 
 
 @pytest.mark.integtest
-def test_results_dataframe():
+def test_insert_posts_dataframe_to_cache():
     recommender_methods = RecommenderMethods()
     recommender_methods.database.insert_posts_dataframe_to_cache(TEST_CACHED_PICKLE_PATH)
     assert os.path.exists(TEST_CACHED_PICKLE_PATH)
