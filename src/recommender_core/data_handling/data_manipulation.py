@@ -9,10 +9,17 @@ import redis
 from pandas.io.sql import DatabaseError
 from typing import List
 
-DB_USER = os.environ.get('DB_RECOMMENDER_USER')
-DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
-DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
-DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
+
+if "pytest" in sys.modules:
+    DB_USER = 'postgres'
+    DB_PASSWORD = 'braf'
+    DB_HOST = 'localhost'
+    DB_NAME = 'mc_core_testing'
+else:
+    DB_USER = os.environ.get('DB_RECOMMENDER_USER')
+    DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
+    DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
+    DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
