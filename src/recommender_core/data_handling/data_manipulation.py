@@ -1,6 +1,7 @@
 # import psycopg2.connector
 import logging
 import os
+import sys
 from pathlib import Path
 
 import psycopg2
@@ -10,11 +11,11 @@ from pandas.io.sql import DatabaseError
 from typing import List
 
 
-if "pytest" in sys.modules:
+if "PYTEST_CURRENT_TEST" in os.environ:
     DB_USER = 'postgres'
     DB_PASSWORD = 'braf'
     DB_HOST = 'localhost'
-    DB_NAME = 'mc_core_testing'
+    DB_NAME = 'moje_clanky_core_testing'
 else:
     DB_USER = os.environ.get('DB_RECOMMENDER_USER')
     DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
@@ -220,7 +221,11 @@ class DatabaseMethods(object):
         print(str_path)
         print("df:")
         print(df_for_save)
-        df_for_save.to_pickle(str_path)  # dataframe of posts will be stored in selected directory
+
+        path = Path(cached_file_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        df_for_save.to_pickle(path.as_posix())  # dataframe of posts will be stored in selected directory
         return df
 
     def get_posts_dataframe_from_cache(self):
@@ -497,16 +502,23 @@ class DatabaseMethods(object):
 
     def get_not_prefilled_posts(self, full_text, method):
         if full_text is False:
-            if method == "tfidf":
-                sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
-            elif method == "word2vec":
-                sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
-            elif method == "doc2vec":
-                sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
-            elif method == "lda":
-                sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
+            if "PYTEST_CURRENT_TEST" in os.environ:
+                if method == "test_prefilled_all":
+                    sql = """SELECT * FROM posts WHERE recommended_test_prefilled_all IS NULL ORDER BY id;"""
+                else:
+                    raise ValueError("Selected method " + method + " not implemented.")
             else:
-                raise ValueError("Selected method " + method + " not implemented.")
+                logging.debug("Getting records from production DB.")
+                if method == "tfidf":
+                    sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
+                elif method == "word2vec":
+                    sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
+                elif method == "doc2vec":
+                    sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
+                elif method == "lda":
+                    sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
+                else:
+                    raise ValueError("Selected method " + method + " not implemented.")
         else:
             if method == "tfidf":
                 sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id;"""
@@ -565,6 +577,7 @@ class DatabaseMethods(object):
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
+    # TODO: Test this. Priority: LOW-MEDIUM
     def get_posts_with_no_body_preprocessed(self):
         sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
@@ -577,6 +590,7 @@ class DatabaseMethods(object):
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
+    # TODO: Test this. Priority: LOW-MEDIUM
     def get_posts_with_no_keywords(self):
         sql = """SELECT * FROM posts WHERE posts.keywords IS NULL ORDER BY id;"""
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
@@ -589,6 +603,7 @@ class DatabaseMethods(object):
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
+    # TODO: Test this. Priority: LOW-MEDIUM
     def get_posts_with_no_all_features_preprocessed(self):
         sql = """SELECT * FROM posts WHERE posts.all_features_preprocessed IS NULL ORDER BY id;"""
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
@@ -791,6 +806,41 @@ class DatabaseMethods(object):
                 logging.debug(str(e))
                 raise e
 
+
+    def null_test_prefilled_records(self):
+        posts = self.get_posts_dataframe()
+        random_post = posts.sample()
+        random_post_id = random_post['id'].iloc[0]
+        try:
+            query = """UPDATE users SET recommended_test_prefilled_all = NULL WHERE id = %(id)s;"""
+            queried_values = {'id': int(random_post_id)}
+            logging.debug("Query used in null_test_prefilled_records:")
+            logging.debug(query)
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, queried_values)
+                self.cnx.commit()
+        except psycopg2.Error as e:
+            print_exception_not_inserted(e)
+            logging.debug("psycopg2.Error occurred while trying to update user:")
+            logging.debug(str(e))
+            raise e
+
+        return int(random_post_id)
+
+    def set_test_json_in_prefilled_records(self, post_id):
+        try:
+            query = """UPDATE users SET recommended_test_prefilled_all = '[{test: json-test}]' WHERE id = %(id)s;"""
+            queried_values = {'id': post_id}
+            logging.debug("Query used in null_test_prefilled_records:")
+            logging.debug(query)
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, queried_values)
+                self.cnx.commit()
+        except psycopg2.Error as e:
+            print_exception_not_inserted(e)
+            logging.debug("psycopg2.Error occurred while trying to update user:")
+            logging.debug(str(e))
+            raise e
 
 def get_redis_connection():
     if 'REDIS_PASSWORD' in os.environ:

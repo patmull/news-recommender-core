@@ -1,15 +1,5 @@
-# fill_bert_vector_representation()
-
-# predict_ratings_for_all_users_store_to_redis()
-
-import spacy_sentence_bert
-
 from src.prefillers.prefilling_all import run_prefilling
-from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    Classifier
+
 
 """
 classifier = Classifier()
@@ -53,12 +43,6 @@ assert 1 == mockconnect.call_count
 assert mockconnect.call_args_list[0] == call(user=DB_USER, password=DB_PASSWORD,
                                              host=DB_HOST, dbname=DB_NAME)
 """
-import logging
-
-
-log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=log_format)
-logging.debug("Testing logging.")
 
 # run_prefilling_collaborative(test_run=True)
 run_prefilling(skip_cache_refresh=True)
