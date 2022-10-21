@@ -7,8 +7,6 @@ CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES = {
     'word2vec_eval_idnes_2': ['full_models/idnes/evaluated_models/word2vec_model_2_default_parameters/', 'idnes_2'],
     'word2vec_eval_idnes_3': ['full_models/idnes/evaluated_models/word2vec_model_3/', 'idnes_3'],
     'word2vec_eval_idnes_4': ['full_models/idnes/evaluated_models/word2vec_model_4/', 'idnes_4'],
-    'word2vec_limited_fasttext': ['full_models/cswiki/word2vec_fassttext_model/', 'fasttext_limited'],
-    'word2vec_limited_fasttext_full_text': ['full_models/cswiki/word2vec_fassttext_full_text_model/', 'fasttext_full_text'],
     'word2vec_eval_cswiki_1': ['full_models/cswiki/evaluated_models/word2vec_model_cswiki_1/', 'word2vec_eval_cswiki_1']
 }
 
