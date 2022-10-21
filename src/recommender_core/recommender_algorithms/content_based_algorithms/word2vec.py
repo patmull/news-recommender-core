@@ -59,6 +59,7 @@ class MyCorpus(object):
             i = i + 1
 
 
+@DeprecationWarning
 def save_full_model_to_smaller(model="wiki"):
     print("Saving full doc2vec_model to limited doc2vec_model...")
     if model == "wiki":
@@ -84,6 +85,7 @@ def save_fast_text_to_w2v():
     print("Fast text saved...")
 
 
+@DeprecationWarning
 def refresh_model():
     save_fast_text_to_w2v()
     print("Loading word2vec doc2vec_model...")
@@ -289,7 +291,7 @@ class Word2VecClass:
         self.w2v_model = None
 
     # @profile
-    def get_similar_word2vec(self, searched_slug, model_name=None, docsim_index=None, dictionary=None,
+    def get_similar_word2vec(self, searched_slug, model_name, model=None, docsim_index=None, dictionary=None,
                              force_update_data=False, posts_from_cache=True):
 
         if type(searched_slug) is not str:
@@ -362,52 +364,64 @@ class Word2VecClass:
 
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
-
-        if model_name == "wiki":
-            w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
-            print("Similarities on Wikipedia.cz model:")
-            ds = DocSim(w2v_model)
-            most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
-                                                                                          list_of_document_features)[:21]
-        elif model_name.startswith("idnes_"):
-            source = "idnes"
-            if model_name.startswith("idnes_1"):
-                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
-            elif model_name.startswith("idnes_2"):
-                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_2_default_parameters/"
-            elif model_name.startswith("idnes_3"):
-                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
-            elif model_name.startswith("idnes_4"):
-                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
-            elif model_name.startswith("idnes"):
-                path_to_folder = "w2v_idnes.model"
+        if model is not None:
+            self.w2v_model = model_name
+            if model_name.startswith("idnes"):
+                source = "idnes"
+            elif model_name.startswith("cswiki"):
+                source = "cswiki"
             else:
-                path_to_folder = None
-                ValueError("Wrong model name chosen.")
-            file_name = "w2v_idnes.model"
-            path_to_model = path_to_folder + file_name
-            self.w2v_model = KeyedVectors.load(path_to_model)
-            print("Similarities on iDNES.cz model:")
-            ds = DocSim(self.w2v_model)
-            print("found_post")
-            print(found_post)
-            if docsim_index is None and dictionary is None:
-                print("Docsim or dictionary is not passed into method. Loading.")
-                docsim_index = ds.load_docsim_index(source=source, model_name=model_name)
-            most_similar_articles_with_scores \
-                = calculate_similarity_idnes_model_gensim(found_post,
-                                                          docsim_index,
-                                                          dictionary,
-                                                          list_of_document_features)[:21]
+                raise ValueError("model_name needs to be set")
         else:
-            raise ValueError("No from option is available.")
+            if model_name == "cswiki":
+                source = "cswiki"
+
+                w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
+                print("Similarities on Wikipedia.cz model:")
+                ds = DocSim(w2v_model)
+                most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
+                                                                                              list_of_document_features)[:21]
+            elif model_name.startswith("idnes"):
+                source = "idnes"
+                if model_name.startswith("idnes_1"):
+                    path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
+                elif model_name.startswith("idnes_2"):
+                    path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_2_default_parameters/"
+                elif model_name.startswith("idnes_3"):
+                    path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
+                elif model_name.startswith("idnes_4"):
+                    path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
+                elif model_name.startswith("idnes"):
+                    path_to_folder = "w2v_idnes.model"
+                else:
+                    raise ValueError("Wrong model name chosen.")
+                file_name = "w2v_idnes.model"
+                path_to_model = path_to_folder + file_name
+                self.w2v_model = KeyedVectors.load(path_to_model)
+
+            else:
+                raise ValueError("No from option is available.")
+
+        logging.info("Calculating similarities on iDNES.cz model.")
+        ds = DocSim(self.w2v_model)
+        logging.debug("found_post:")
+        logging.debug(found_post)
+        if docsim_index is None and dictionary is None:
+            logging.debug("Docsim or dictionary is not passed into method. Loading.")
+            docsim_index = ds.load_docsim_index(source=source, model_name=model_name)
+        most_similar_articles_with_scores \
+            = calculate_similarity_idnes_model_gensim(found_post,
+                                                      docsim_index,
+                                                      dictionary,
+                                                      list_of_document_features)[:21]
+
         # removing post itself
         if len(most_similar_articles_with_scores) > 0:
-            print("most_similar_articles_with_scores:")
-            print(most_similar_articles_with_scores)
+            logging.debug("most_similar_articles_with_scores:")
+            logging.debug(most_similar_articles_with_scores)
             del most_similar_articles_with_scores[0]  # removing post itself
-            print("most_similar_articles_with_scores after del:")
-            print(most_similar_articles_with_scores)
+            logging.debug("most_similar_articles_with_scores after del:")
+            logging.debug(most_similar_articles_with_scores)
 
             # workaround due to float32 error in while converting to JSON
             return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
