@@ -1,6 +1,7 @@
 import json
 import logging
 import random
+import time
 import time as t
 from pathlib import Path
 
@@ -9,6 +10,7 @@ import psycopg2
 from gensim.models import KeyedVectors
 from pandas.io.sql import DatabaseError
 
+from src.constants.file_paths import CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES
 from src.custom_exceptions.exceptions import TestRunException
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
@@ -26,9 +28,19 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.collabora
 val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
 
+LOGGING_FILE_PATH = 'tests/logs/test_logging.txt'
+# Remove all handlers associated with the root logger object.
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.basicConfig(format='%(asctime)s %(message)s',
+                datefmt='%m/%d/%Y %I:%M:%S %p',
+                filename=LOGGING_FILE_PATH,
+                filemode='w',
+                level=logging.DEBUG)
 logging.debug("Testing logging in prefiller.")
+
 
 def fill_recommended_collab_based(method, skip_already_filled, user_id=None, test_run=False):
     """
@@ -123,7 +135,6 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
-    source = w2v_model = None
     docsim_index, dictionary = None, None
     database_methods = DatabaseMethods()
     if skip_already_filled is False:
@@ -148,27 +159,11 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
 
     if method.startswith("word2vec_"):
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-        if method == "word2vec_eval_idnes_1":
-            selected_model_name = "idnes_1"
-            path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
-        elif method == "word2vec_eval_idnes_2":
-            selected_model_name = "idnes_2"
-            path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_2_default_parameters/"
-        elif method == "word2vec_eval_idnes_3":
-            selected_model_name = "idnes_3"
-            path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
-        elif method == "word2vec_eval_idnes_4":
-            selected_model_name = "idnes_4"
-            path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
-        elif method == "word2vec_limited_fasttext":
-            selected_model_name = "fasttext_limited"
-            path_to_folder = "full_models/cswiki/word2vec_fassttext_model/"
-        elif method == "word2vec_limited_fasttext_full_text":
-            selected_model_name = "fasttext_full_text"
-            path_to_folder = "full_models/cswiki/word2vec_fassttext_full_text_model/"
-        elif method == "word2vec_eval_cswiki_1":
-            selected_model_name = "cswiki"
-            path_to_folder = "full_models/cswiki/evaluated_models/word2vec_model_cswiki_1/"
+
+        if CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES.has_key(method):
+            selected_model_name = CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][1]
+            path_to_folder = CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][0]
+
         else:
             raise ValueError("Wrong word2vec model name chosen.")
 
@@ -194,7 +189,7 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
         w2v_model = KeyedVectors.load(path_to_model.as_posix())
         ds = DocSim(w2v_model)
         docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name)
-        logging.info("LLading dictionary for Word2Vec")
+        logging.info("Loading dictionary for Word2Vec")
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
     elif method.startswith("doc2vec_"):
         if method == "doc2vec_eval_cswiki_1":
@@ -385,6 +380,24 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                 print("Skipping.")
 
 
+def prefilling_job_content_based(method: str, full_text: bool, random_order=False, reversed_order=True, test_call=False):
+    if test_call is True:
+        counter = 0
+
+    while True:
+        try:
+            fill_recommended_content_based(method=method, full_text=full_text, skip_already_filled=True,
+                                           random_order=random_order, reversed_order=reversed_order)
+
+        except psycopg2.OperationalError:
+            logging.debug("DB operational error. Waiting few seconds before trying again...")
+            if test_call:
+                break
+            t.sleep(30)  # wait 30 seconds then try again
+            continue
+
+        break
+
 class UserBased:
 
     def prefilling_job_user_based(self, method, db, user_id=None, test_run=False, skip_already_filled=False):
@@ -403,14 +416,3 @@ class UserBased:
             else:
                 raise NotImplementedError("Other DB source than PostgreSQL not implemented yet.")
 
-
-def prefilling_job_content_based(method, full_text, random_order=False, reversed_order=True):
-    while True:
-        try:
-            fill_recommended_content_based(method=method, full_text=full_text, skip_already_filled=True,
-                                           random_order=random_order, reversed_order=reversed_order)
-        except psycopg2.OperationalError:
-            print("DB operational error. Waiting few seconds before trying again...")
-            t.sleep(30)  # wait 30 seconds then try again
-            continue
-        break
