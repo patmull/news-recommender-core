@@ -33,6 +33,7 @@ jobs:
           sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'braf';"
       - name: Importing .sql
         run: |
+          export PGPASSWORD=braf
           psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_categories.sql
           psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_post_tag.sql
           psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_posts.sql
