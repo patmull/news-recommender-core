@@ -25,12 +25,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Create DB
-          run: |
-            sudo apt update --yes
-            sudo apt install postgresql --yes
-            sudo service postgresql start
-            sudo -u postgres createdb moje_clanky_core_testing
-            sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'braf';"
+        run: |
+          sudo apt update --yes
+          sudo apt install postgresql --yes
+          sudo service postgresql start
+          sudo -u postgres createdb moje_clanky_core_testing
+          sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'braf';"
       - name: Importing .sql
         run: |
           psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_categories.sql
