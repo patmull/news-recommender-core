@@ -35,10 +35,10 @@ for handler in logging.root.handlers[:]:
 
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(format='%(asctime)s %(message)s',
-                datefmt='%m/%d/%Y %I:%M:%S %p',
-                filename=LOGGING_FILE_PATH,
-                filemode='w',
-                level=logging.DEBUG)
+                    datefmt='%m/%d/%Y %I:%M:%S %p',
+                    filename=LOGGING_FILE_PATH,
+                    filemode='w',
+                    level=logging.DEBUG)
 logging.debug("Testing logging in prefiller.")
 
 
@@ -160,7 +160,7 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
     if method.startswith("word2vec_"):
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
 
-        if CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES.has_key(method):
+        if method in CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES:
             selected_model_name = CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][1]
             path_to_folder = CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][0]
 
@@ -380,7 +380,8 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                 print("Skipping.")
 
 
-def prefilling_job_content_based(method: str, full_text: bool, random_order=False, reversed_order=True, test_call=False):
+def prefilling_job_content_based(method: str, full_text: bool, random_order=False, reversed_order=True,
+                                 test_call=False):
     if test_call is True:
         counter = 0
 
@@ -397,6 +398,7 @@ def prefilling_job_content_based(method: str, full_text: bool, random_order=Fals
             continue
 
         break
+
 
 class UserBased:
 
@@ -415,4 +417,3 @@ class UserBased:
                 break
             else:
                 raise NotImplementedError("Other DB source than PostgreSQL not implemented yet.")
-

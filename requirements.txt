@@ -24,6 +24,7 @@ scipy~=1.9.1
 six==1.16.0
 smart-open==5.2.1
 threadpoolctl==3.0.0
+types-redis==4.3.21.1
 tqdm~=4.62.3
 Werkzeug>=2.2.2
 requests~=2.27.1

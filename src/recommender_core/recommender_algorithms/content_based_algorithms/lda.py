@@ -142,6 +142,7 @@ def format_topics_sentences(lda_model, corpus, texts):
 
     # Get main topic in each document
     for i, row in enumerate(lda_model[corpus]):
+        # TODO: Returning Any from function declared to return "SupportsLessThan"  [no-any-return]. Prirority: LOW
         row = sorted(row, key=lambda x: (x[1]), reverse=True)
         # Get the Dominant topic, Perc Contribution and Keywords for each document
         for j, (topic_num, prop_topic) in enumerate(row):
@@ -451,9 +452,9 @@ class Lda:
     def __init__(self):
         self.top_k_words = None
         self.documents = None
-        self.df = None
-        self.posts_df = None
-        self.categories_df = None
+        self.df = pd.DataFrame()
+        self.posts_df = pd.DataFrame()
+        self.categories_df = pd.DataFrame()
         self.database = DatabaseMethods()
 
     # @profile

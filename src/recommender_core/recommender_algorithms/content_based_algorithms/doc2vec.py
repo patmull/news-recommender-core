@@ -1,5 +1,6 @@
 import csv
 import gc
+import logging
 import os
 import random
 
@@ -79,10 +80,10 @@ def compute_eval_values(source, train_corpus=None, test_corpus=None, model_varia
     print(overall_score)
 
     doc_id = random.randint(0, len(test_corpus) - 1)
-    print("print(test_corpus[:2])")
-    print(print(train_corpus[:2]))
-    print("print(test_corpus[:2])")
-    print(print(test_corpus[:2]))
+    logging.debug("print(test_corpus[:2])")
+    logging.debug(train_corpus[:2])
+    logging.debug("print(test_corpus[:2])")
+    logging.debug(test_corpus[:2])
     inferred_vector = d2v_model.infer_vector(test_corpus[doc_id])
     sims = d2v_model.dv.most_similar([inferred_vector], topn=len(d2v_model.dv))
     # Compare and print the most/median/least similar documents from the train_enabled train_corpus

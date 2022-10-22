@@ -192,11 +192,11 @@ def rmse(user_id):
 class SvdClass:
 
     def __init__(self):
-        self.df_ratings = None
-        self.df_users = None
-        self.df_posts = None
-        self.user_ratings_mean = None
-        self.user_item_table = None  # = R_df_
+        self.df_ratings = pd.DataFrame()
+        self.df_users = pd.DataFrame()
+        self.df_posts = pd.DataFrame()
+        self.user_ratings_mean: np.ndarray()
+        self.user_item_table = pd.DataFrame()
 
     def get_all_users_ids(self):
         database = DatabaseMethods()

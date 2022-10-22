@@ -8,6 +8,7 @@ import random
 import time
 import traceback
 from collections import defaultdict
+from pathlib import Path
 
 import gensim
 import numpy as np
@@ -288,7 +289,7 @@ class Word2VecClass:
         self.df = None
         self.posts_df = None
         self.categories_df = None
-        self.w2v_model = None
+        self.w2v_model: Word2Vec
 
     # @profile
     def get_similar_word2vec(self, searched_slug, model_name, model=None, docsim_index=None, dictionary=None,
@@ -505,11 +506,11 @@ class Word2VecClass:
                        use_default_model=False, save_model=True):
         model_path = None
         if source == "idnes":
-            model_path = "models/w2v_idnes.model"
+            model_path = Path("models/w2v_idnes.model")
         elif source == "cswiki":
-            model_path = "models/w2v_cswiki.model"
+            model_path = Path("models/w2v_cswiki.model")
         else:
-            ValueError("Wrong source of the model was chosen.")
+            raise ValueError("Wrong source of the model was chosen.")
 
         if os.path.isfile(model_path) is False or force_update_model is True:
             if source == "idnes":
@@ -753,7 +754,7 @@ class Word2VecClass:
         elif source == "cswiki":
             db = client.cswiki
         else:
-            ValueError("No source is available.")
+            raise ValueError("No source is available.")
         collection = db.preprocessed_articles_trigrams
         cursor = collection.find({})
         for document in cursor:
