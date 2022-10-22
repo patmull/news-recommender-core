@@ -24,6 +24,25 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Create DB
+          run: |
+            sudo apt update --yes
+            sudo apt install postgresql --yes
+            sudo service postgresql start
+            sudo -u postgres createdb moje_clanky_core_testing
+            sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'braf';"
+      - name: Importing .sql
+        run: |
+          psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_categories.sql
+          psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_post_tag.sql
+          psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_posts.sql
+          psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_ratings.sql
+          psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_relevance_testings.sql
+          psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_tag_user.sql
+          psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_tags.sql
+          psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_thumbs.sql
+          psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_user_categories.sql
+          psql -h localhost -d  -U moje_clanky_core_testing -p 5432 -a -w -f moje_clanky_core_testing_public_users.sql
       - name: Install dependencies
         run: |
           sudo -H pip install --upgrade pip tox virtualenv
