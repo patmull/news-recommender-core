@@ -1,6 +1,5 @@
 import gc
 import os
-from collections import Set
 
 import pymongo
 import logging
@@ -32,7 +31,7 @@ def prepare_words(text):
     texts = [w for w in texts if not w.isdigit()]
 
     # remove duplicates
-    seen = Set[str]  # NOTICE: Here was simple = set(). New annotation is not tested.
+    seen = set()  # NOTICE: Here was simple = set(). New annotation is not tested.
     seen_add = seen.add
     texts = [w for w in texts if not (w in seen or seen_add(w))]
     # lemmatize
