@@ -1,5 +1,6 @@
 import gc
 import json
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -91,118 +92,6 @@ def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
     return results_df
 
 
-# NOTICE: It would be possible to use @typechecked from typeguard here
-def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_methods=None):
-    """
-    Get most similar from content based matrix and delivered posts.
-
-    Parameters
-    ----------
-    posts_to_compare: i.e. svd_recommended_posts; if not supplied, it will calculate fresh SVD
-    user_id: int by user id from DB
-    @param posts_to_compare:
-    @param user_id:
-    @param list_of_methods:
-    """
-
-    if type(user_id) is not int:
-        raise TypeError("User id muse be an int")
-
-    list_of_supported_methods = ['tfidf', 'doc2vec', 'word2vec']
-    if list_of_methods is None:
-        list_of_methods = ['tfidf', 'doc2vec', 'word2vec']
-    elif not set(list_of_methods).issubset(list_of_supported_methods) > 0:
-        raise NotImplementedError("Inserted methods must correspond to DB columns.")
-    if posts_to_compare is None:
-        svd = SvdClass()
-        recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=5)
-        posts_to_compare = recommended_by_svd['slug'].to_list()
-
-    list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, posts_to_compare)
-
-    list_of_similarity_results = []
-    for method in list_of_methods:
-        if method == "tfidf":
-            similarity_matrix = get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_from_history)
-            similarity_matrix = similarity_matrix * 1.75
-            results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
-        elif method == "doc2vec" or "word2vec":
-            similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
-                                                                            list_of_slugs_from_history)
-            if method == "doc2vec":
-                constant = 1.7
-            elif method == "word2vec":
-                constant = 1.85
-            else:
-                raise NotImplementedError("Supplied method not implemented")
-            similarity_matrix = similarity_matrix * constant
-            results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
-        else:
-            raise NotImplementedError("Supplied method not implemented")
-        list_of_similarity_results.append(results)
-        print("list_of_similarity_matrices:")
-        print(list_of_similarity_results)
-    print("list_of_similarity_matrices after finished for loop:")
-    print(list_of_similarity_results)
-    list_of_prefixed_methods = ['coefficient_' + x for x in list_of_methods if not str(x) == "nan"]
-    list_of_keys = ['slug'] + list_of_prefixed_methods
-
-    print("list_of_similarity_results[0]:")
-    print(list_of_similarity_results[0])
-
-    results_df = pd.concat([list_of_similarity_results[0]['slug']], axis=1)
-    for result in list_of_similarity_results:
-        results_df = pd.concat([results_df, result['coefficient']], axis=1)
-
-    results_df.columns = list_of_keys
-
-    print("results_df")
-    print(results_df)
-
-    coefficient_columns = list_of_prefixed_methods
-
-    results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
-                                      / results_df[coefficient_columns].std()
-    print("normalized_df:")
-    print(results_df)
-    results_df['coefficient'] = results_df.sum(axis=1)
-
-    recommender_methods = RecommenderMethods()
-    df_posts_categories = recommender_methods.get_posts_categories_dataframe()
-
-    print("results_df:")
-    print(results_df)
-
-    results_df = results_df.merge(df_posts_categories, left_on='slug', right_on='slug')
-    print("results_df after merge")
-    print(results_df)
-
-    user_methods = UserMethods()
-    user_categories = user_methods.get_user_categories(user_id)
-    print("Categories for user " + str(user_id))
-    print(user_categories)
-    user_categories_list = user_categories['category_slug'].values.tolist()
-    print("user_categories_list:")
-    print(user_categories_list)
-
-    results_df.coefficient = np.where(
-        results_df["category_slug"].isin(user_categories_list),
-        results_df.coefficient * 2.0,
-        results_df.coefficient)
-
-    results_df = results_df.set_index('slug')
-    results_df = results_df.sort_values(by='coefficient', ascending=False)
-    results_df = results_df['coefficient']
-    results_df = results_df.rename_axis('slug').reset_index()
-
-    hybrid_recommended_json = results_df.to_json(orient='records')
-    parsed = json.loads(hybrid_recommended_json)
-    hybrid_recommended_json = json.dumps(parsed)
-    print(hybrid_recommended_json)
-
-    return hybrid_recommended_json
-
-
 def drop_columns_from_similarity_matrix(similarity_matrix, posts_to_compare, list_of_slugs_from_history):
     similarity_matrix = similarity_matrix.drop(columns=posts_to_compare)
     similarity_matrix = similarity_matrix.drop(list_of_slugs_from_history)
@@ -221,6 +110,7 @@ def get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_f
 
     similarity_matrix = drop_columns_from_similarity_matrix(similarity_matrix, posts_to_compare,
                                                             list_of_slugs_from_history)
+    # TODO: Everything above can be pre-computed and loaded. Priority: VERY HIGH
 
     print("similarity_matrix:")
     print(similarity_matrix)
@@ -264,6 +154,7 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_
     print(similarity_list)
 
     similarity_matrix = pd.DataFrame(similarity_list, columns=list_of_slugs, index=list_of_slugs)
+    # TODO: Everything above can be pre-computed and loaded. Priority: VERY HIGH
 
     print("Similarity matrix:")
     print(similarity_matrix)
@@ -279,3 +170,147 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_
     print(similarity_matrix.columns)
 
     return similarity_matrix
+
+
+# NOTICE: It would be possible to use @typechecked from typeguard here
+def get_most_similar_by_hybrid(user_id: int, posts_to_compare=None, list_of_methods=None, save_result=False,
+                               load_saved_result=False):
+    """
+    Get most similar from content based matrix and delivered posts.
+
+    Parameters
+    ----------
+    posts_to_compare: i.e. svd_recommended_posts; if not supplied, it will calculate fresh SVD
+    user_id: int by user id from DB
+    @param posts_to_compare:
+    @param user_id:
+    @param list_of_methods:
+    @param save_result: saves the results (i.e. for debugging, this can be loaded with load_saved_result method below). Added to help with debugging of final boosting
+    @param load_saved_result: if True, skips the recommending calculation and jumps to final calculations. Added to help with debugging of final boosting
+    """
+    path_to_save_results = Path('research/hybrid/results_df.csv')
+
+    if load_saved_result is False:
+        if type(user_id) is not int:
+            raise TypeError("User id muse be an int")
+
+        list_of_supported_methods = ['tfidf', 'doc2vec', 'word2vec']
+        if list_of_methods is None:
+            list_of_methods = ['tfidf', 'doc2vec', 'word2vec']
+        elif not set(list_of_methods).issubset(list_of_supported_methods) > 0:
+            raise NotImplementedError("Inserted methods must correspond to DB columns.")
+        if posts_to_compare is None:
+            svd = SvdClass()
+            recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=5)
+            posts_to_compare = recommended_by_svd['slug'].to_list()
+
+        list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, posts_to_compare)
+
+        list_of_similarity_results = []
+        for method in list_of_methods:
+            if method == "tfidf":
+                constant = 1.75
+                similarity_matrix = get_similarity_matrix_tfidf(list_of_slugs, posts_to_compare, list_of_slugs_from_history)
+                similarity_matrix = similarity_matrix * constant
+                results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+            elif method == "doc2vec" or "word2vec":
+                similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, posts_to_compare,
+                                                                                list_of_slugs_from_history)
+                if method == "doc2vec":
+                    constant = 1.7
+                elif method == "word2vec":
+                    constant = 1.85
+                else:
+                    raise NotImplementedError("Supplied method not implemented")
+                similarity_matrix = similarity_matrix * constant
+                results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+            else:
+                raise NotImplementedError("Supplied method not implemented")
+            list_of_similarity_results.append(results)
+            print("list_of_similarity_matrices:")
+            print(list_of_similarity_results)
+        print("list_of_similarity_matrices after finished for loop:")
+        print(list_of_similarity_results)
+        list_of_prefixed_methods = ['coefficient_' + x for x in list_of_methods if not str(x) == "nan"]
+        list_of_keys = ['slug'] + list_of_prefixed_methods
+
+        print("list_of_similarity_results[0]:")
+        print(list_of_similarity_results[0])
+
+        results_df = pd.concat([list_of_similarity_results[0]['slug']], axis=1)
+        for result in list_of_similarity_results:
+            results_df = pd.concat([results_df, result['coefficient']], axis=1)
+
+        results_df.columns = list_of_keys
+
+        print("results_df")
+        print(results_df)
+
+        coefficient_columns = list_of_prefixed_methods
+
+        results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
+                                          / results_df[coefficient_columns].std()
+        print("normalized_df:")
+        print(results_df)
+        results_df['coefficient'] = results_df.sum(axis=1)
+
+        recommender_methods = RecommenderMethods()
+        df_posts_categories = recommender_methods.get_posts_categories_dataframe()
+
+        logging.debug("results_df:")
+        logging.debug(results_df)
+        logging.debug(results_df.columns)
+
+        results_df = results_df.merge(df_posts_categories, left_on='slug', right_on='slug')
+        logging.debug("results_df after merge")
+        logging.debug(results_df)
+        logging.debug(results_df.columns)
+
+        if save_result:
+            pd.to_csv(path_to_save_results.as_posix())
+    else:
+        results_df = pd.read_csv(path_to_save_results.as_posix())
+
+    user_methods = UserMethods()
+    user_categories = user_methods.get_user_categories(user_id)
+    print("Categories for user " + str(user_id))
+    print(user_categories)
+    user_categories_list = user_categories['category_slug'].values.tolist()
+    print("user_categories_list:")
+    print(user_categories_list)
+
+    # If post contains user category, then boost the coefficient
+    results_df.coefficient = np.where(
+        results_df["category_slug"].isin(user_categories_list),
+        results_df.coefficient * 2.0,
+        results_df.coefficient)
+
+    # TODO: Boost posts based on freshness (see Document 'Hybridní algoritmus.docx'). Priority: HIGH
+    def boost_coefficient(coeff_value, boost):
+        d = coeff_value * boost
+        return d
+
+    results_df = results_df.rename(columns={'created_at_x': 'post_created_at'})
+
+    now = pd.to_datetime('now')
+    results_df['coefficient'] = results_df.apply(
+        lambda x: boost_coefficient(x['coefficient'], 15)
+        if results_df['post_created_at'].dt.date.between(now - pd.Timedelta(1, 'h'), now)
+        else(boost_coefficient(x['coefficient'], 10)
+             if results_df['post_created_at'].dt.date.between(now - pd.Timedelta(1, 'd'), now)
+             else(boost_coefficient(x['coefficient'], 8)
+                  if results_df['post_created_at'].dt.date.between(now - pd.Timedelta(5, 'd'), now)
+                  else (boost_coefficient(x['coefficient'], 1)
+                        ))))
+
+    results_df = results_df.set_index('slug')
+    results_df = results_df.sort_values(by='coefficient', ascending=False)
+    results_df = results_df['coefficient']
+    results_df = results_df.rename_axis('slug').reset_index()
+
+    hybrid_recommended_json = results_df.to_json(orient='records')
+    parsed = json.loads(hybrid_recommended_json)
+    hybrid_recommended_json = json.dumps(parsed)
+    print(hybrid_recommended_json)
+
+    return hybrid_recommended_json
