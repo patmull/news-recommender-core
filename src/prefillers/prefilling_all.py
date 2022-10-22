@@ -32,7 +32,7 @@ def prefill_bert_vector_representation():
 
 
 def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_full_text=None):
-    if skip_cache_refresh == False:
+    if skip_cache_refresh is False:
         logging.debug("Refreshing post cache. Inserting recommender posts to cache...")
 
         recommender_methods = RecommenderMethods()
@@ -97,7 +97,7 @@ def check_needed_columns(database):
     # 'all_features_preprocessed' (probably every method relies on this)
     # 'keywords' (LDA but probably also other methods relies on this)
     # 'body_preprocessed' (LDA relies on this)
-    needed_checks = []  # type: list
+    needed_checks = []  # type: list[str]
     database.connect()
     number_of_nans_in_all_features_preprocessed = len(database.get_posts_with_no_all_features_preprocessed())
     number_of_nans_in_keywords = len(database.get_posts_with_no_keywords())

@@ -1,7 +1,6 @@
 # import psycopg2.connector
 import logging
 import os
-import sys
 from pathlib import Path
 
 import psycopg2
@@ -10,17 +9,16 @@ import redis
 from pandas.io.sql import DatabaseError
 from typing import List
 
-
 if "PYTEST_CURRENT_TEST" in os.environ:
     DB_USER = 'postgres'
     DB_PASSWORD = 'braf'
     DB_HOST = 'localhost'
     DB_NAME = 'moje_clanky_core_testing'
 else:
-    DB_USER = os.environ.get('DB_RECOMMENDER_USER')
-    DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
-    DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
-    DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
+    DB_USER = os.environ['DB_RECOMMENDER_USER']
+    DB_PASSWORD = os.environ['DB_RECOMMENDER_PASSWORD']
+    DB_HOST = os.environ['DB_RECOMMENDER_HOST']
+    DB_NAME = os.environ['DB_RECOMMENDER_NAME']
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -142,8 +140,7 @@ class DatabaseMethods(object):
                 raise TypeError('column_name is not string')
             else:
                 # noinspection
-                sql_query = 'SELECT {} FROM users ORDER BY id;'
-                sql_query = sql_query.format("id, " + column_name)
+                sql_query = 'SELECT {} FROM users ORDER BY id;'.format("id, " + column_name)
         print("sql_query:")
         print(sql_query)
         try:
@@ -258,8 +255,7 @@ class DatabaseMethods(object):
         return df
 
     def get_user_dataframe(self, user_id):
-        sql = """SELECT * FROM users WHERE id = {};"""
-        sql = sql.format(user_id)
+        sql = """SELECT * FROM users WHERE id = {};""".format(user_id)
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
@@ -771,8 +767,7 @@ class DatabaseMethods(object):
             raise NotImplementedError("Other database source than PostgreSQL not implemented yet.")
         try:
             column_name = "recommended_by_" + method
-            query = """UPDATE users SET {} = %s WHERE id = %s;"""
-            query = query.format(column_name)
+            query = """UPDATE users SET {} = %s WHERE id = %s;""".format(column_name)
             print("query used:")
             print(query)
             inserted_values = (recommended_json, user_id)
@@ -805,7 +800,6 @@ class DatabaseMethods(object):
                 logging.debug("psycopg2.Error occurred while trying to update user:")
                 logging.debug(str(e))
                 raise e
-
 
     def null_test_prefilled_records(self):
         posts = self.get_posts_dataframe()
@@ -842,9 +836,10 @@ class DatabaseMethods(object):
             logging.debug(str(e))
             raise e
 
+
 def get_redis_connection():
     if 'REDIS_PASSWORD' in os.environ:
-        redis_password = os.environ.get('REDIS_PASSWORD')
+        redis_password = os.environ['REDIS_PASSWORD']
     else:
         raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
                                "Not possible to connect to Redis.")

@@ -85,15 +85,15 @@ def display_top(word_count, cv):
 class TfIdf:
 
     def __init__(self):
-        self.posts_df = None
-        self.ratings_df = None
-        self.categories_df = None
-        self.df = None
+        self.posts_df = pd.DataFrame()
+        self.ratings_df = pd.DataFrame()
+        self.categories_df = pd.DataFrame()
+        self.df = pd.DataFrame()
         self.database = DatabaseMethods()
-        self.user_categories_df = None
+        self.user_categories_df = pd.DataFrame()
         self.tfidf_tuples = None
         self.tfidf_vectorizer = None
-        self.cosine_sim_df = None
+        self.cosine_sim_df = pd.DataFrame()
 
     # @profile
     def keyword_based_comparison(self, keywords, number_of_recommended_posts=20, all_posts=False):
@@ -412,6 +412,7 @@ class TfIdf:
 
             list_tmp = set(queried_post_stopwords_free) & set(
                 found_post_stopwords_free)  # we don'multi_dimensional_list need to list3 to actually be a list
+            # TODO:  error: Returning Any from function declared to return "SupportsLessThan". Prirotity: LOW
             list_tmp = sorted(list_tmp, key=lambda k: queried_post_stopwords_free.index(k))
             print(list_tmp)
             if len(list_tmp) > 0:

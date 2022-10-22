@@ -32,7 +32,7 @@ def load_general_stopwords():
         return flatten(general_stopwords)
 
 
-def remove_stopwords(texts, cz_punct=False):
+def remove_stopwords(texts, cz_punct=False) -> list:
     if type(texts) is list:
         cleaned_text_list = []
         stopwords_cz = load_cz_stopwords(cz_punct)
