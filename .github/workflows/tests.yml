@@ -34,16 +34,7 @@ jobs:
       - name: Importing .sql
         run: |
           export PGPASSWORD='braf'
-          psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f database/db_backups/core_testing_db_dumps/moje_clanky_core_testing_public_categories.sql
-          psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f database/db_backups/core_testing_db_dumps/moje_clanky_core_testing_public_post_tag.sql
-          psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f database/db_backups/core_testing_db_dumps/moje_clanky_core_testing_public_posts.sql
-          psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f database/db_backups/core_testing_db_dumps/moje_clanky_core_testing_public_ratings.sql
-          psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f database/db_backups/core_testing_db_dumps/moje_clanky_core_testing_public_relevance_testings.sql
-          psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f database/db_backups/core_testing_db_dumps/moje_clanky_core_testing_public_tag_user.sql
-          psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f database/db_backups/core_testing_db_dumps/moje_clanky_core_testing_public_tags.sql
-          psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f database/db_backups/core_testing_db_dumps/moje_clanky_core_testing_public_thumbs.sql
-          psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f database/db_backups/core_testing_db_dumps/moje_clanky_core_testing_public_user_categories.sql
-          psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f database/db_backups/core_testing_db_dumps/moje_clanky_core_testing_public_users.sql
+          for i in *.sql; do psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f $i"; done
       - name: Install dependencies
         run: |
           sudo -H pip install --upgrade pip tox virtualenv

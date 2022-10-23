@@ -8,6 +8,7 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 LOGGER = logging.getLogger(__name__)
 
+
 @pytest.mark.integtest
 def test_prefilling_all(caplog):
     database = DatabaseMethods()
@@ -20,15 +21,19 @@ def test_prefilling_all(caplog):
     run_prefilling(skip_cache_refresh=True, methods_short_text=["test_prefilled_all"], methods_full_text=[])
     assert 'Found 0 not prefilled posts in test_prefilled_all' in caplog.text
 
+    """
     with pytest.raises(ValueError):
         # Bad Day (sort of)
-        database.connect()
-        random_post_id = database.null_test_prefilled_records()
-        database.disconnect()
-        run_prefilling(skip_cache_refresh=True, methods_short_text=["test_prefilled_all"], methods_full_text=[])
-        assert 'Found 1 not prefilled posts in test_prefilled_all' in caplog.text
-        database.set_test_json_in_prefilled_records(random_post_id)
+        random_post_id = database.null_post_test_prefilled_record()
+        # ** HERE WAS set_test_json_in_prefilled_records(random_post_id). ABANDONED DUE TO BETTER SCENARIO BELOW **
+    """
+    database.null_post_test_prefilled_record()
+    run_prefilling(skip_cache_refresh=True, methods_short_text=["test_prefilled_all"], methods_full_text=[])
+    assert 'Found 1 not prefilled posts in test_prefilled_all' in caplog.text
 
+    # Here it fixes the problem
+    run_prefilling(skip_cache_refresh=True, methods_short_text=["test_prefilled_all"], methods_full_text=[])
+    # When running again, there should be 0 prefilled posts
     run_prefilling(skip_cache_refresh=True, methods_short_text=["test_prefilled_all"], methods_full_text=[])
     assert 'Found 0 not prefilled posts in test_prefilled_all' in caplog.text
 

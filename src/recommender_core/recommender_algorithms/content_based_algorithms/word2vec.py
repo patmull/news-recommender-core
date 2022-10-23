@@ -24,6 +24,7 @@ from gensim.utils import deaccent
 from pymongo import MongoClient
 
 from src.recommender_core.data_handling.data_handlers import flatten
+from src.recommender_core.recommender_algorithms.content_based_algorithms import gensim_methods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
     calculate_similarity_idnes_model_gensim
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder, \
@@ -36,6 +37,13 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods, 
 from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords, load_cz_stopwords
 from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from Word2vec.")
 
 
 def save_to_mongo(data, number_of_processed_files, supplied_mongo_collection):
@@ -248,7 +256,7 @@ def create_dictionary_from_dataframe(force_update=False):
 
 def create_corpus_from_mongo_idnes(dictionary, force_update=False):
     path_part_1 = "precalc_vectors"
-    path_part_2 = "/corpus_idnes.mm"
+    path_part_2 = "word2vec/corpus_idnes.mm"
     path_to_corpus = path_part_1 + path_part_2
 
     if os.path.isfile(path_to_corpus) is False or force_update is True:
@@ -269,7 +277,7 @@ def get_preprocessed_dictionary(filter_extremes, path_to_dict):
 
 def create_dictionary_from_mongo_idnes(force_update=False, filter_extremes=False):
     # a memory-friendly iterator
-    path_to_dict = 'precalc_vectors/dictionary_idnes.gensim'
+    path_to_dict = 'precalc_vectors/word2vec/dictionary_idnes.gensim'
     if os.path.isfile(path_to_dict) is False or force_update is True:
         preprocessed_dictionary = get_preprocessed_dictionary(path_to_dict=path_to_dict,
                                                               filter_extremes=filter_extremes)
@@ -295,6 +303,7 @@ class Word2VecClass:
     def get_similar_word2vec(self, searched_slug, model_name, model=None, docsim_index=None, dictionary=None,
                              force_update_data=False, posts_from_cache=True):
 
+        logging.debug("Testing logging from Word2vec.")
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a input_string.")
         else:
@@ -310,10 +319,18 @@ class Word2VecClass:
         self.categories_df = recommender_methods.get_categories_dataframe()
         self.df = recommender_methods.get_posts_categories_dataframe()
 
+        logging.debug("self.posts_df:")
+        logging.debug(self.posts_df)
+
         if searched_slug not in self.df['slug'].to_list():
+            """
             print('Slug does not appear in dataframe.')
             recommender_methods.get_posts_dataframe(force_update=True)
             self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+            """
+            # TODO: Prirority: MEDIUM. Deal with this by counting the number of trials in config file with special
+            # variable for this purpose. If num_of_trials > 1, then throw ValueError (Same as in Doc2vec)
+            raise ValueError("Slug does not appear in dataframe.")
 
 
         self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
@@ -409,6 +426,7 @@ class Word2VecClass:
         logging.debug(found_post)
         if docsim_index is None and dictionary is None:
             logging.debug("Docsim or dictionary is not passed into method. Loading.")
+
             docsim_index = ds.load_docsim_index(source=source, model_name=model_name)
         most_similar_articles_with_scores \
             = calculate_similarity_idnes_model_gensim(found_post,
@@ -911,7 +929,11 @@ class Word2VecClass:
 
     def get_pair_similarity_word2vec(self, slug_1, slug_2, w2v_model=None):
 
-        # TODO: Deliver model to method. Does not make a sense to load every time!
+        logging.debug('Calculating Word2Vec pair similarity for posts:')
+        logging.debug(slug_1)
+        logging.debug(slug_2)
+
+        # TODO: Consider mandatory model deliver to method. Does not make a sense to load every time!
         recommend_methods = RecommenderMethods()
         post_1 = recommend_methods.find_post_by_slug(slug_1)
         post_2 = recommend_methods.find_post_by_slug(slug_2)
@@ -923,9 +945,6 @@ class Word2VecClass:
 
         first_text = combine_features_from_single_df_row(post_1, list_of_features)
         second_text = combine_features_from_single_df_row(post_2, list_of_features)
-
-        print(first_text)
-        print(second_text)
 
         first_text = preprocess(first_text).split()
         second_text = preprocess(second_text).split()

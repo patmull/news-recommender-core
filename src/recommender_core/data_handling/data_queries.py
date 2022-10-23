@@ -29,6 +29,7 @@ log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from data_queries module.")
 
+
 def convert_df_to_json(dataframe):
     result = dataframe[["title", "excerpt", "body"]].to_json(orient="records", lines=True)
     parsed = json.loads(result)
@@ -170,6 +171,10 @@ def prepare_hyperparameters_grid():
 
 
 def combine_features_from_single_df_row(single_row_df, list_of_features):
+    logging.debug("single_row_df")
+    logging.debug(single_row_df)
+    logging.debug("list_of_features")
+    logging.debug(list_of_features)
     return (single_row_df[list_of_features] + ' ').sum(axis=1).str.strip()
 
 
@@ -399,6 +404,7 @@ class RecommenderMethods:
              'description', 'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
         return self.df
 
+    # NOTICE: This does not return Dataframe!
     def get_all_posts(self):
         self.database.connect()
         all_posts_df = self.database.get_all_posts()

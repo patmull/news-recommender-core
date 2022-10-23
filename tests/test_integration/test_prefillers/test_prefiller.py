@@ -6,7 +6,7 @@ import psycopg2
 
 from src.prefillers.prefiller import prefilling_job_content_based
 
-LOGGING_FILE_PATH = 'tests/logs/test_logging.txt'
+LOGGING_FILE_PATH = 'tests/logs/testing_logging.txt'
 
 
 def mocked_f2(**kargs):

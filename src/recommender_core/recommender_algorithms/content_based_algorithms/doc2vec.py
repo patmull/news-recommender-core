@@ -3,6 +3,7 @@ import gc
 import logging
 import os
 import random
+from pathlib import Path
 
 import gensim
 import pandas as pd
@@ -25,8 +26,16 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods, 
 from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
+import project_config.trials_counter
+
 DEFAULT_MODEL_LOCATION = "models/d2v_limited.model"
 
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from Doc2Vec.")
 
 def create_tagged_document(list_of_list_of_words):
     for i, list_of_words in enumerate(list_of_list_of_words):
@@ -190,8 +199,13 @@ def train(tagged_data):
 
     model = init_and_start_training(model, tagged_data, max_epochs)
 
-    model.save("models/d2v_mini_vectors.model")
-    print("Doc2Vec model Saved")
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        path_to_save = Path("tests/models/d2v_testing.model")
+        path_to_save.parent.mkdir(parents=True, exist_ok=True)
+        model.save(path_to_save.as_posix())
+    else:
+        model.save("models/d2v_mini_vectors.model")
+        print("Doc2Vec model Saved")
 
 
 def train_full_text(tagged_data, full_body, limited):
@@ -438,12 +452,25 @@ def get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_rec
 
     most_similar_items = most_similar_items[1:number_of_recommended_posts]
 
+    logging.debug("most_similar_items:")
+    logging.debug(most_similar_items)
+    logging.debug("len(most_similar_items):")
+    logging.debug(len(most_similar_items))
+    logging.debug("documents_slugs")
+    logging.debug(documents_slugs)
+    logging.debug("len(documents_slugs)")
+    logging.debug(len(documents_slugs))
     # for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('THIRD-MOST', 2), ('FOURTH-MOST', 3),
     # ('FIFTH-MOST', 4), ('MEDIAN', len(most_similar_items) // 2), ('LEAST', len(most_similar_items) - 1)]:
-    for index in range(0, len(most_similar_items)):
-        print(u'%s: %s\n' % (most_similar_items[index][1], documents_slugs[int(most_similar_items[index][0])]))
-        list_of_article_slugs.append(documents_slugs[int(most_similar_items[index][0])])
-        list_of_coefficients.append(most_similar_items[index][1])
+    # TODO: Repair. Priority: VERTY HIGH
+    for i in range(0, len(most_similar_items)):
+        logging.debug("most_similar_items[index][1]]")
+        logging.debug(most_similar_items[i][1])
+        logging.debug("documents_slugs[int(most_similar_items[index][0])]")
+        logging.debug(documents_slugs[int(most_similar_items[i][0])])
+        print(u'%s: %s\n' % (most_similar_items[i][1], documents_slugs[int(most_similar_items[i][0])]))
+        list_of_article_slugs.append(documents_slugs[int(most_similar_items[i][0])])
+        list_of_coefficients.append(most_similar_items[i][1])
     print('=====================\n')
 
     post_recommendations['slug'] = list_of_article_slugs
@@ -500,10 +527,11 @@ class Doc2VecClass:
         if 'slug_x' in self.df.columns:
             self.df = self.df.rename(columns={'slug_x': 'slug'})
         if searched_slug not in self.df['slug'].to_list():
-            print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
-            recommender_methods = RecommenderMethods()
-            recommender_methods.get_posts_dataframe(force_update=True)
-            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+            # ** HERE WAS A HANDLING OF THIS ERROR BY UPDATING POSTS_CATEGORIES DF. ABANDONED DUE TO MASKING OF ERROR
+            # FOR BAD INPUT **
+            # TODO: Prirority: MEDIUM. Deal with this by counting the number of trials in config file with special
+            # variable for this purpose. If num_of_trials > 1, then throw ValueError
+            raise ValueError("searched_slug not in dataframe")
 
         if full_text is False:
             cols = ['keywords', 'all_features_preprocessed']
@@ -524,21 +552,23 @@ class Doc2VecClass:
         del documents_all_features_preprocessed
         gc.collect()
 
-        if limited is True:
-            if full_text is False:
-                doc2vec_loaded_model = Doc2Vec.load("models/d2v_limited.model")
-            else:
-                doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text_limited.model")
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            doc2vec_loaded_model = Doc2Vec.load("tests/models/d2v_testing.model")
         else:
-            if full_text is False:
-                doc2vec_loaded_model = Doc2Vec.load("models/d2v.model")  # or download from Dropbox / AWS bucket
+            if limited is True:
+
+                if full_text is False:
+                    doc2vec_loaded_model = Doc2Vec.load("models/d2v_limited.model")
+                else:
+                    doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text_limited.model")
             else:
-                doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text.model")
+                if full_text is False:
+                    doc2vec_loaded_model = Doc2Vec.load("models/d2v.model")  # or download from Dropbox / AWS bucket
+                else:
+                    doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text.model")
 
         recommender_methods = RecommenderMethods()
         post_found = recommender_methods.find_post_by_slug(searched_slug)
-        # TODO: REPAIR
-        # IndexError: single positional indexer is out-of-bounds
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
 
@@ -551,7 +581,24 @@ class Doc2VecClass:
         vector_source = doc2vec_loaded_model.infer_vector(tokens)
         most_similar_posts = doc2vec_loaded_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
-        return get_similar_by_posts_slug(most_similar_posts, documents_slugs, number_of_recommended_posts)
+        try:
+             recommednations = get_similar_by_posts_slug(most_similar_posts, documents_slugs, number_of_recommended_posts)
+             project_config.trials_counter.NUM_OF_TRIALS = 0
+             return recommednations
+        except IndexError as e:
+            if project_config.trials_counter.NUM_OF_TRIALS < 1:
+                logging.warning('Index error occurred when trying to get Doc2Vec model for posts')
+                logging.warning(e)
+                logging.info('Trying to deal with this by retraining Doc2Vec...')
+                logging.debug('Preparing test features')
+                documents_all_features_preprocessed = preprocess_columns(self.df, cols)
+                train_doc2vec(documents_all_features_preprocessed)
+                project_config.trials_counter.NUM_OF_TRIALS += 1
+                self.get_similar_doc2vec(searched_slug, train_enabled, limited, number_of_recommended_posts,
+                                         full_text, posts_from_cache)
+            else:
+                logging.warning("Tried to train Doc2Vec again but it didn't helped and IndexError got raised again. Need to shutdown,")
+                raise e
 
     @accepts_first_argument(str)
     @check_empty_string
@@ -569,10 +616,11 @@ class Doc2VecClass:
         # TODO: REPAIR
         # ValueError: Slug does not appear in dataframe.
         if searched_slug not in self.df['slug'].to_list():
-            print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
-            recommender_methods = RecommenderMethods()
-            recommender_methods.get_posts_dataframe(force_update=True)
-            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+            # ** HERE WAS A HANDLING OF THIS ERROR BY UPDATING POSTS_CATEGORIES DF. ABANDONED DUE TO MASKING OF ERROR
+            # FOR BAD INPUT **
+            # TODO: Prirority: MEDIUM. Deal with this by counting the number of trials in config file with special
+            # variable for this purpose. If num_of_trials > 1, then throw ValueError
+            raise ValueError("searched_slug not in dataframe")
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
         documents_all_features_preprocessed = preprocess_columns(self.df, cols)
@@ -589,7 +637,10 @@ class Doc2VecClass:
         del documents_all_features_preprocessed
         gc.collect()
 
-        doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text_limited.model")
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            doc2vec_loaded_model = Doc2Vec.load("tests/models/d2v_testing.model")
+        else:
+            doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text_limited.model")
 
         recommend_methods = RecommenderMethods()
 
@@ -605,7 +656,24 @@ class Doc2VecClass:
 
         most_similar_items = doc2vec_loaded_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
-        return get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_recommended_posts)
+        try:
+            recommednations = get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_recommended_posts)
+            project_config.trials_counter.NUM_OF_TRIALS = 0
+            return recommednations
+        except IndexError as e:
+            if project_config.trials_counter.NUM_OF_TRIALS < 1:
+                logging.warning('Index error occurred when trying to get Doc2Vec model for posts')
+                logging.warning(e)
+                logging.info('Trying to deal with this by retraining Doc2Vec...')
+                logging.debug('Preparing test features')
+                documents_all_features_preprocessed = preprocess_columns(self.df, cols)
+                train_doc2vec(documents_all_features_preprocessed)
+                project_config.trials_counter.NUM_OF_TRIALS += 1
+                self.get_similar_doc2vec_with_full_text(searched_slug, train_enabled, number_of_recommended_posts, posts_from_cache)
+            else:
+                logging.warning(
+                    "Tried to train Doc2Vec again but it didn't helped and IndexError got raised again. Need to shutdown,")
+                raise e
 
     def get_vector_representation(self, searched_slug):
         """
@@ -633,6 +701,11 @@ class Doc2VecClass:
         return recommender_methods.get_prefilled_full_text(slug, variant)
 
     def get_pair_similarity_doc2vec(self, slug_1, slug_2, d2v_model=None):
+
+        logging.debug('Calculating Doc2Vec pair similarity for posts:')
+        logging.debug(slug_1)
+        logging.debug(slug_2)
+
         if d2v_model is None:
             d2v_model = self.load_model('models/d2v_full_text_limited.model')
 

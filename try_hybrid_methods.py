@@ -1,6 +1,7 @@
 
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid
+from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid, \
+    precalculate_and_save_sim_matrix_for_all_posts
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     Classifier
 
@@ -96,7 +97,8 @@ def main():
                                           force_retraining=True, save_df_posts_users_categories_relevance=True)
     """
     user_id_for_test = 431
-    print(get_most_similar_by_hybrid(user_id_for_test, save_result=True))
+    precalculate_and_save_sim_matrix_for_all_posts()
+    print(get_most_similar_by_hybrid(user_id_for_test, load_from_precalc_sim_matrix=True))
 
 
 if __name__ == "__main__": main()
