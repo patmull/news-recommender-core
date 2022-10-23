@@ -54,7 +54,7 @@ def test_get_most_similar_by_hybrid(test_user_id, bad_list_of_methods):
         print(test_user_id)
         print("bad_list_of_methods")
         print(bad_list_of_methods)
-        get_most_similar_by_hybrid(user_id=test_user_id, posts_to_compare=None, list_of_methods=bad_list_of_methods)
+        get_most_similar_by_hybrid(user_id=test_user_id, svd_posts_to_compare=None, list_of_methods=bad_list_of_methods)
         assert str(nie) == "Inserted methods must correspond to DB columns."
 
 

@@ -64,7 +64,7 @@ def test_hybrid_by_svd_history_tfidf():
 
     # posts delivered
     most_similar_hybrid_by_tfidf = get_most_similar_by_hybrid(user_id=test_user_id,
-                                                              posts_to_compare=test_slugs,
+                                                              svd_posts_to_compare=test_slugs,
                                                               list_of_methods=tested_methods)
     type_of_json = type(most_similar_hybrid_by_tfidf)
     assert type_of_json is str  # assert str

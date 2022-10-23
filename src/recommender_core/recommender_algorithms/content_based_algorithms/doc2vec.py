@@ -633,6 +633,11 @@ class Doc2VecClass:
         return recommender_methods.get_prefilled_full_text(slug, variant)
 
     def get_pair_similarity_doc2vec(self, slug_1, slug_2, d2v_model=None):
+
+        logging.debug('Calculating Doc2Vec pair similarity for posts:')
+        logging.debug(slug_1)
+        logging.debug(slug_2)
+
         if d2v_model is None:
             d2v_model = self.load_model('models/d2v_full_text_limited.model')
 

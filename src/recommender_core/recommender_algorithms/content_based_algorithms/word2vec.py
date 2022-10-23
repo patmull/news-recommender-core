@@ -911,6 +911,10 @@ class Word2VecClass:
 
     def get_pair_similarity_word2vec(self, slug_1, slug_2, w2v_model=None):
 
+        logging.debug('Calculating Word2Vec pair similarity for posts:')
+        logging.debug(slug_1)
+        logging.debug(slug_2)
+
         # TODO: Deliver model to method. Does not make a sense to load every time!
         recommend_methods = RecommenderMethods()
         post_1 = recommend_methods.find_post_by_slug(slug_1)
@@ -923,9 +927,6 @@ class Word2VecClass:
 
         first_text = combine_features_from_single_df_row(post_1, list_of_features)
         second_text = combine_features_from_single_df_row(post_2, list_of_features)
-
-        print(first_text)
-        print(second_text)
 
         first_text = preprocess(first_text).split()
         second_text = preprocess(second_text).split()
