@@ -201,9 +201,9 @@ class DatabaseMethods(object):
         if cached_file_path is None:
             if "PYTEST_CURRENT_TEST" in os.environ:
                 cached_file_path = "tests/db_cache/cached_posts_dataframe.pkl"
-        else:
-            print("Cached file path is None. Using default model_save_location.")
-            cached_file_path = "db_cache/cached_posts_dataframe.pkl"
+            else:
+                print("Cached file path is None. Using default model_save_location.")
+                cached_file_path = "db_cache/cached_posts_dataframe.pkl"
 
         # Connection needs to stay here, otherwise does not make any sense due to threading of
         # cache insert
@@ -216,8 +216,6 @@ class DatabaseMethods(object):
         path_to_save_cache.parent.mkdir(parents=True, exist_ok=True)
 
         str_path = path_to_save_cache.as_posix()
-        cache_dir = str_path.split("/")
-        Path(cache_dir[0]).mkdir(parents=True, exist_ok=True)
         # TODO: Some workaround for this? (Convert bytearray to input_string?)
         print("Column types of df:")
         print(df.dtypes)
