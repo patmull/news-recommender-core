@@ -73,6 +73,7 @@ class DatabaseMethods(object):
         else:
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
+    # NOTICE: This does not return DataFrame but list of columns!
     def get_all_posts(self):
 
         sql = """SELECT * FROM posts ORDER BY id;"""
@@ -107,6 +108,7 @@ class DatabaseMethods(object):
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
+    # TODO: This should be handled in RecommenderMethods. Priority: MEDIUM
     def join_posts_ratings_categories(self):
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
