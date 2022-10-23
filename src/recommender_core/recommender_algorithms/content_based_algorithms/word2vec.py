@@ -24,6 +24,7 @@ from gensim.utils import deaccent
 from pymongo import MongoClient
 
 from src.recommender_core.data_handling.data_handlers import flatten
+from src.recommender_core.recommender_algorithms.content_based_algorithms import gensim_methods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
     calculate_similarity_idnes_model_gensim
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder, \
@@ -255,7 +256,7 @@ def create_dictionary_from_dataframe(force_update=False):
 
 def create_corpus_from_mongo_idnes(dictionary, force_update=False):
     path_part_1 = "precalc_vectors"
-    path_part_2 = "/corpus_idnes.mm"
+    path_part_2 = "word2vec/corpus_idnes.mm"
     path_to_corpus = path_part_1 + path_part_2
 
     if os.path.isfile(path_to_corpus) is False or force_update is True:
@@ -276,7 +277,7 @@ def get_preprocessed_dictionary(filter_extremes, path_to_dict):
 
 def create_dictionary_from_mongo_idnes(force_update=False, filter_extremes=False):
     # a memory-friendly iterator
-    path_to_dict = 'precalc_vectors/dictionary_idnes.gensim'
+    path_to_dict = 'precalc_vectors/word2vec/dictionary_idnes.gensim'
     if os.path.isfile(path_to_dict) is False or force_update is True:
         preprocessed_dictionary = get_preprocessed_dictionary(path_to_dict=path_to_dict,
                                                               filter_extremes=filter_extremes)
@@ -425,6 +426,7 @@ class Word2VecClass:
         logging.debug(found_post)
         if docsim_index is None and dictionary is None:
             logging.debug("Docsim or dictionary is not passed into method. Loading.")
+
             docsim_index = ds.load_docsim_index(source=source, model_name=model_name)
         most_similar_articles_with_scores \
             = calculate_similarity_idnes_model_gensim(found_post,

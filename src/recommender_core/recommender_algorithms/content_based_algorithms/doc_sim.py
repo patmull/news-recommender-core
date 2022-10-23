@@ -129,8 +129,8 @@ class DocSim:
         the target documents."""
         termsim_index = WordEmbeddingSimilarityIndex(self.w2v_model)
         # WARNING: cswiki may not be in disk
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_cswiki.gensim')
-        bow_corpus = pickle.load(open("precalc_vectors/corpus_idnes.pkl", "rb"))
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/word2vec/dictionary_cswiki.gensim')
+        bow_corpus = pickle.load(open("precalc_vectors/word2vec/corpus_idnes.pkl", "rb"))
         similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary)  # construct similarity matrix
 
         docsim_index = SoftCosineSimilarity(bow_corpus, similarity_matrix, num_best=21)
@@ -197,7 +197,7 @@ class DocSim:
             if supplied_dictionary is None:
                 print("Dictionary not supplied. Must load. If this is repeated routine, try to supply dictionary"
                       "to speed up the program.")
-                dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+                dictionary = gensim.corpora.Dictionary.load('precalc_vectors/word2vec/dictionary_idnes.gensim')
             else:
                 dictionary = supplied_dictionary
             docsim_index_path = "full_models/idnes/docsim_index_idnes"
@@ -205,7 +205,7 @@ class DocSim:
             if supplied_dictionary is None:
                 print("Dictionary not supplied. Must load. If this is repeated routine, try to supply dictionary"
                       "to speed up the program.")
-                dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_cswiki.gensim')
+                dictionary = gensim.corpora.Dictionary.load('precalc_vectors/word2vec/dictionary_cswiki.gensim')
             else:
                 dictionary = supplied_dictionary
             docsim_index_path = "full_models/cswiki/docsim_index_cswiki"

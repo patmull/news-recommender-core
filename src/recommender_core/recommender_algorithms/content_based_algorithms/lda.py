@@ -59,8 +59,8 @@ def jensen_shannon(query, matrix):
 def load_lda():
     try:
         lda_model = LdaModel.load("models/lda_model")
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-        corpus = pickle.load(open('precalc_vectors/corpus_idnes.pkl', 'rb'))
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/dictionary_idnes.gensim')
+        corpus = pickle.load(open('precalc_vectors/lda/corpus_idnes.pkl', 'rb'))
     except Exception as e:
         print(e)
         raise Exception("Could not load_texts LDA models or precalculated vectors. Reason:")
@@ -70,14 +70,14 @@ def load_lda():
 
 def save_corpus_dict(corpus, dictionary):
     print("Saving train_corpus and dictionary...")
-    pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'))
-    dictionary.save('precalc_vectors/dictionary_idnes.gensim')
+    pickle.dump(corpus, open('precalc_vectors/lda/corpus_idnes.pkl', 'wb'))
+    dictionary.save('precalc_vectors/lda/dictionary_idnes.gensim')
 
 
 def save_corpus_dict_full_text(corpus, dictionary):
     print("Saving train_corpus and dictionary...")
-    pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
-    dictionary.save('precalc_vectors/dictionary_full_text.gensim')
+    pickle.dump(corpus, open('precalc_vectors/lda/corpus_full_text.pkl', "wb"))
+    dictionary.save('precalc_vectors/lda/dictionary_full_text.gensim')
 
 
 def make_bigrams(bigram_mod, texts):
@@ -509,7 +509,7 @@ class Lda:
         new_bow = dictionary.doc2bow([selected_by_column])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
-        doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist.npy')
+        doc_topic_dist = np.load('precalc_vectors/lda/lda_doc_topic_dist.npy')
         try:
             most_sim_ids, most_sim_coefficients = get_most_similar_documents(new_doc_distribution, doc_topic_dist, n)
             most_similar_df = recommender_methods.df.iloc[most_sim_ids]
@@ -609,7 +609,7 @@ class Lda:
         new_bow = dictionary.doc2bow(new_sentences_splitted)
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
-        doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist_full_text.npy')
+        doc_topic_dist = np.load('precalc_vectors/lda/lda_doc_topic_dist_full_text.npy')
 
         most_sim_ids, most_sim_coefficients = get_most_similar_documents(new_doc_distribution, doc_topic_dist, n)
         try:
@@ -652,8 +652,8 @@ class Lda:
 
         try:
             lda_model = LdaModel.load("models/lda_model_full_text")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/lda/dictionary_full_text.gensim')
+            corpus = pickle.load(open('precalc_vectors/lda/lda/corpus_full_text.pkl', 'rb'))
         except Exception as e:
             print("Could not load_texts LDA models or precalculated vectors. Reason:")
             print(e)
@@ -661,8 +661,8 @@ class Lda:
             # TODO: Download from Dropbox as a 2nd option before training
 
             lda_model = LdaModel.load("models/lda_model_full_text")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/lda/dictionary_full_text.gensim')
+            corpus = pickle.load(open('precalc_vectors/lda/lda/corpus_full_text.pkl', 'rb'))
 
         return dictionary, corpus, lda_model
 
@@ -741,7 +741,7 @@ class Lda:
         print("np.save")
         # save doc_topic_dist
         # https://stackoverflow.com/questions/9619199/best-way-to-preserve-numpy-arrays-on-disk
-        np.save('precalc_vectors/lda_doc_topic_dist_full_text.npy',
+        np.save('precalc_vectors/lda/lda/lda_doc_topic_dist_full_text.npy',
                 doc_topic_dist)  # IndexError: index 14969 is out of bounds for axis 1 with size 14969
         print("LDA model and documents topic distribution saved")
 
