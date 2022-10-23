@@ -37,6 +37,13 @@ from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords, load_cz_stopwords
 from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
 
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from Word2vec.")
+
 
 def save_to_mongo(data, number_of_processed_files, supplied_mongo_collection):
     dict_to_insert = dict({"number": number_of_processed_files, "text": data})
@@ -295,6 +302,7 @@ class Word2VecClass:
     def get_similar_word2vec(self, searched_slug, model_name, model=None, docsim_index=None, dictionary=None,
                              force_update_data=False, posts_from_cache=True):
 
+        logging.debug("Testing logging from Word2vec.")
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a input_string.")
         else:
@@ -310,10 +318,18 @@ class Word2VecClass:
         self.categories_df = recommender_methods.get_categories_dataframe()
         self.df = recommender_methods.get_posts_categories_dataframe()
 
+        logging.debug("self.posts_df:")
+        logging.debug(self.posts_df)
+
         if searched_slug not in self.df['slug'].to_list():
+            """
             print('Slug does not appear in dataframe.')
             recommender_methods.get_posts_dataframe(force_update=True)
             self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+            """
+            # TODO: Prirority: MEDIUM. Deal with this by counting the number of trials in config file with special
+            # variable for this purpose. If num_of_trials > 1, then throw ValueError (Same as in Doc2vec)
+            raise ValueError("Slug does not appear in dataframe.")
 
 
         self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})

@@ -170,3 +170,5 @@ w2v_idnes.model
 
 precalc_matrices
 /precalc_matrices
+
+tests/models/
