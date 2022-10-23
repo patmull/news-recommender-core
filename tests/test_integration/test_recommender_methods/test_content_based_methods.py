@@ -72,8 +72,9 @@ def test_tfidf_method():
 @pytest.mark.integtest
 def test_word2vec_method_bad_input(tested_input):
     with pytest.raises(ValueError):
+        tested_model_name = 'idnes_3'
         word2vec = Word2VecClass()
-        word2vec.get_similar_word2vec(searched_slug=tested_input, posts_from_cache=False)
+        word2vec.get_similar_word2vec(searched_slug=tested_input, posts_from_cache=False, model_name=tested_model_name)
 
 
 # pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::test_doc2vec_method_bad_input
@@ -88,7 +89,7 @@ def test_word2vec_method_bad_input(tested_input):
 def test_doc2vec_method_bad_input(tested_input):
     with pytest.raises(ValueError):
         doc2vec = Doc2VecClass()
-        doc2vec.get_similar_doc2vec(searched_slug=tested_input, posts_from_cache=False)
+        doc2vec.get_similar_doc2vec(searched_slug=tested_input, posts_from_cache=False, )
 
 
 @pytest.mark.integtest

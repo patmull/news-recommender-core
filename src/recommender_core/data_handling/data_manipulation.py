@@ -499,22 +499,20 @@ class DatabaseMethods(object):
     def get_not_prefilled_posts(self, full_text, method):
         if full_text is False:
             if "PYTEST_CURRENT_TEST" in os.environ:
+                logging.debug("Getting records from testing DB.")
+
                 if method == "test_prefilled_all":
                     sql = """SELECT * FROM posts WHERE recommended_test_prefilled_all IS NULL ORDER BY id;"""
-                else:
-                    raise ValueError("Selected method " + method + " not implemented.")
+            if method == "tfidf":
+                sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
+            elif method == "word2vec":
+                sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
+            elif method == "doc2vec":
+                sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
+            elif method == "lda":
+                sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
             else:
-                logging.debug("Getting records from production DB.")
-                if method == "tfidf":
-                    sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
-                elif method == "word2vec":
-                    sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
-                elif method == "doc2vec":
-                    sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
-                elif method == "lda":
-                    sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
-                else:
-                    raise ValueError("Selected method " + method + " not implemented.")
+                raise ValueError("Selected method " + method + " not implemented.")
         else:
             if method == "tfidf":
                 sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id;"""
