@@ -9,17 +9,6 @@ import redis
 from pandas.io.sql import DatabaseError
 from typing import List
 
-if "PYTEST_CURRENT_TEST" in os.environ:
-    DB_USER = 'postgres'
-    DB_PASSWORD = 'braf'
-    DB_HOST = 'localhost'
-    DB_NAME = 'moje_clanky_core_testing'
-else:
-    DB_USER = os.environ['DB_RECOMMENDER_USER']
-    DB_PASSWORD = os.environ['DB_RECOMMENDER_PASSWORD']
-    DB_HOST = os.environ['DB_RECOMMENDER_HOST']
-    DB_NAME = os.environ['DB_RECOMMENDER_NAME']
-
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
@@ -36,6 +25,17 @@ def print_exception_not_inserted(e):
 class DatabaseMethods(object):
 
     def __init__(self):
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            self.DB_USER = 'postgres'
+            self.DB_PASSWORD = 'braf'
+            self.DB_HOST = 'localhost'
+            self.DB_NAME = 'moje_clanky_core_testing'
+        else:
+            self.DB_USER = os.environ['DB_RECOMMENDER_USER']
+            self.DB_PASSWORD = os.environ['DB_RECOMMENDER_PASSWORD']
+            self.DB_HOST = os.environ['DB_RECOMMENDER_HOST']
+            self.DB_NAME = os.environ['DB_RECOMMENDER_NAME']
+
         self.categories_df = None
         self.posts_df = pd.DataFrame()
         self.df = None
@@ -49,10 +49,10 @@ class DatabaseMethods(object):
             "keepalives_interval": 5,
             "keepalives_count": 5,
         }
-        self.cnx = psycopg2.connect(user=DB_USER,
-                                    password=DB_PASSWORD,
-                                    host=DB_HOST,
-                                    dbname=DB_NAME, **keepalive_kwargs)
+        self.cnx = psycopg2.connect(user=self.DB_USER,
+                                    password=self.DB_PASSWORD,
+                                    host=self.DB_HOST,
+                                    dbname=self.DB_NAME, **keepalive_kwargs)
 
         self.cursor = self.cnx.cursor()
 
@@ -73,6 +73,7 @@ class DatabaseMethods(object):
         else:
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
+    # NOTICE: This does not return DataFrame but list of columns!
     def get_all_posts(self):
 
         sql = """SELECT * FROM posts ORDER BY id;"""
@@ -107,6 +108,7 @@ class DatabaseMethods(object):
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
+    # TODO: This should be handled in RecommenderMethods. Priority: MEDIUM
     def join_posts_ratings_categories(self):
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
@@ -195,8 +197,11 @@ class DatabaseMethods(object):
     def insert_posts_dataframe_to_cache(self, cached_file_path=None):
 
         if cached_file_path is None:
-            print("Cached file path is None. Using default model_save_location.")
-            cached_file_path = "db_cache/cached_posts_dataframe.pkl"
+            if "PYTEST_CURRENT_TEST" in os.environ:
+                cached_file_path = "tests/db_cache/cached_posts_dataframe.pkl"
+            else:
+                print("Cached file path is None. Using default model_save_location.")
+                cached_file_path = "db_cache/cached_posts_dataframe.pkl"
 
         # Connection needs to stay here, otherwise does not make any sense due to threading of
         # cache insert
@@ -206,18 +211,18 @@ class DatabaseMethods(object):
         df = pd.read_sql_query(sql, self.get_cnx())
         self.disconnect()
         path_to_save_cache = Path(cached_file_path)
+        path_to_save_cache.parent.mkdir(parents=True, exist_ok=True)
+
         str_path = path_to_save_cache.as_posix()
-        cache_dir = str_path.split("/")
-        Path(cache_dir[0]).mkdir(parents=True, exist_ok=True)
         # TODO: Some workaround for this? (Convert bytearray to input_string?)
-        print("Column types of df:")
-        print(df.dtypes)
+        logging.debug("Column types of df:")
+        logging.debug(df.dtypes)
         # Removing bert_vector_representation for not supported column type of pickle
         df_for_save = df.drop(columns=['bert_vector_representation'])
-        print("str_path:")
-        print(str_path)
-        print("df:")
-        print(df_for_save)
+        logging.debug("str_path:")
+        logging.debug(str_path)
+        logging.debug("df:")
+        logging.debug(df_for_save)
 
         path = Path(cached_file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -228,7 +233,10 @@ class DatabaseMethods(object):
     def get_posts_dataframe_from_cache(self):
         logging.debug("Reading cache file...")
         try:
-            path_to_df = Path('db_cache/cached_posts_dataframe.pkl')
+            if "PYTEST_CURRENT_TEST" in os.environ:
+                path_to_df = Path("tests/db_cache/cached_posts_dataframe.pkl")
+            else:
+                path_to_df = Path('db_cache/cached_posts_dataframe.pkl')
             df = pd.read_pickle(path_to_df)
             # read from current directory
         except Exception as e:
@@ -389,7 +397,12 @@ class DatabaseMethods(object):
 
     def insert_recommended_json_content_based(self, method, full_text, articles_recommended_json, article_id, db):
         if db == "pgsql":
-            try:
+            if "PYTEST_CURRENT_TEST" in os.environ:
+                if method == "test_prefilled_all" and full_text is False:
+                    query = """UPDATE posts SET recommended_test_prefilled_all = %s WHERE id = %s;"""
+                else:
+                    raise ValueError("Methods %s not implemented" % method)
+            else:
                 if method == "tfidf" and full_text is False:
                     query = """UPDATE posts SET recommended_tfidf = %s WHERE id = %s;"""
                 elif method == "tfidf" and full_text is True:
@@ -420,6 +433,7 @@ class DatabaseMethods(object):
                     query = """UPDATE posts SET recommended_doc2vec_eval_cswiki_1 = %s WHERE id = %s;"""
                 else:
                     raise Exception("Method not implemented.")
+            try:
                 inserted_values = (articles_recommended_json, article_id)
                 if self.cursor is not None and self.cnx is not None:
                     self.cursor.execute(query, inserted_values)
@@ -503,14 +517,16 @@ class DatabaseMethods(object):
 
                 if method == "test_prefilled_all":
                     sql = """SELECT * FROM posts WHERE recommended_test_prefilled_all IS NULL ORDER BY id;"""
-            if method == "tfidf":
-                sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
-            elif method == "word2vec":
-                sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
-            elif method == "doc2vec":
-                sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
-            elif method == "lda":
-                sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
+                elif method == "tfidf":
+                    sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
+                elif method == "word2vec":
+                    sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
+                elif method == "doc2vec":
+                    sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
+                elif method == "lda":
+                    sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
+                else:
+                    raise ValueError("Selected method " + method + " not implemented.")
             else:
                 raise ValueError("Selected method " + method + " not implemented.")
         else:
@@ -799,15 +815,18 @@ class DatabaseMethods(object):
                 logging.debug(str(e))
                 raise e
 
-    def null_test_prefilled_records(self):
-        posts = self.get_posts_dataframe()
+    def null_post_test_prefilled_record(self):
+        posts = self.get_posts_dataframe(from_cache=False)
         random_post = posts.sample()
         random_post_id = random_post['id'].iloc[0]
+        self.connect()
+
         try:
-            query = """UPDATE users SET recommended_test_prefilled_all = NULL WHERE id = %(id)s;"""
+            query = """UPDATE posts SET recommended_test_prefilled_all = NULL WHERE id = %(id)s;"""
             queried_values = {'id': int(random_post_id)}
-            logging.debug("Query used in null_test_prefilled_records:")
+            logging.debug("Query used in null_post_test_prefilled_record:")
             logging.debug(query)
+
             if self.cursor is not None and self.cnx is not None:
                 self.cursor.execute(query, queried_values)
                 self.cnx.commit()
@@ -816,14 +835,18 @@ class DatabaseMethods(object):
             logging.debug("psycopg2.Error occurred while trying to update user:")
             logging.debug(str(e))
             raise e
+        finally:
+            self.disconnect()
+
 
         return int(random_post_id)
 
     def set_test_json_in_prefilled_records(self, post_id):
+        self.connect()
         try:
-            query = """UPDATE users SET recommended_test_prefilled_all = '[{test: json-test}]' WHERE id = %(id)s;"""
+            query = """UPDATE posts SET recommended_test_prefilled_all = '[{test: json-test}]' WHERE id = %(id)s;"""
             queried_values = {'id': post_id}
-            logging.debug("Query used in null_test_prefilled_records:")
+            logging.debug("Query used in null_post_test_prefilled_record:")
             logging.debug(query)
             if self.cursor is not None and self.cnx is not None:
                 self.cursor.execute(query, queried_values)
@@ -833,6 +856,8 @@ class DatabaseMethods(object):
             logging.debug("psycopg2.Error occurred while trying to update user:")
             logging.debug(str(e))
             raise e
+        finally:
+            self.disconnect()
 
 
 def get_redis_connection():

@@ -10,5 +10,6 @@ CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES = {
     'word2vec_eval_cswiki_1': ['full_models/cswiki/evaluated_models/word2vec_model_cswiki_1/', 'word2vec_eval_cswiki_1']
 }
 
+
 def get_cached_posts_file_path():
     return Path(CACHED_POSTS_FILE_PATH)

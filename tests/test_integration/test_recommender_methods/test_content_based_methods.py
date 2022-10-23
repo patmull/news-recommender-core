@@ -1,3 +1,4 @@
+import logging
 import unittest
 from pathlib import Path
 
@@ -74,7 +75,8 @@ def test_word2vec_method_bad_input(tested_input):
     with pytest.raises(ValueError):
         tested_model_name = 'idnes_3'
         word2vec = Word2VecClass()
-        word2vec.get_similar_word2vec(searched_slug=tested_input, posts_from_cache=False, model_name=tested_model_name)
+        word2vec.get_similar_word2vec(searched_slug=tested_input, model_name=tested_model_name, posts_from_cache=False,
+                                      force_update_data=True)
 
 
 # pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::test_doc2vec_method_bad_input
@@ -114,20 +116,6 @@ def test_doc2vec_method_for_random_post():
 
 class TestLda:
 
-    # pytest tests/test_integration/test_recommender_methods/test_recommender_methods.py::test_lda_method_bad_input
-    @pytest.mark.parametrize("tested_input", [
-        '',
-        4,
-        (),
-        None,
-        'blah-blah'
-    ])
-    @pytest.mark.integtest
-    def test_lda_method_bad_input(self, tested_input):
-        with pytest.raises(ValueError):
-            lda = Lda()
-            lda.get_similar_lda(tested_input, posts_from_cache=False)
-
     """
     pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::TestLda::test_get_searched_doc_id
     """
@@ -138,7 +126,7 @@ class TestLda:
         random_post_slug = random_post['slug'].iloc[0]
 
         recommender_methods = RecommenderMethods()
-        recommender_methods = prepare_post_categories_df(recommender_methods, True, random_post_slug)
+        recommender_methods.df = prepare_post_categories_df(recommender_methods, True, random_post_slug)
         lda = Lda()
         searched_doc_id = lda.get_searched_doc_id(recommender_methods, random_post_slug)
         print('searched_doc_id:')

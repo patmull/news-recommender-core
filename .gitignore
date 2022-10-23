@@ -167,3 +167,8 @@ vendor
 /tests/test_integration/test_only_local_working_methods/
 
 w2v_idnes.model
+
+precalc_matrices
+/precalc_matrices
+
+tests/models/

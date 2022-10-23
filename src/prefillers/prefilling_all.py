@@ -56,7 +56,7 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
 
     full_text = False
     if methods_short_text is None:
-        methods = ["tfidf", "word2vec", "doc2vec", "lda"]
+        methods = ["tfidf", "word2vec", "doc2vec"]
     else:
         methods = methods_short_text
 
