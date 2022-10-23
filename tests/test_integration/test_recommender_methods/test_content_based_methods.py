@@ -1,3 +1,4 @@
+import logging
 import unittest
 from pathlib import Path
 
@@ -73,7 +74,8 @@ def test_tfidf_method():
 def test_word2vec_method_bad_input(tested_input):
     with pytest.raises(ValueError):
         word2vec = Word2VecClass()
-        word2vec.get_similar_word2vec(searched_slug=tested_input, posts_from_cache=False)
+        word2vec.get_similar_word2vec(searched_slug=tested_input, model_name='idnes_3', posts_from_cache=False,
+                                      force_update_data=True)
 
 
 # pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::test_doc2vec_method_bad_input
@@ -112,20 +114,6 @@ def test_doc2vec_method_for_random_post():
 
 
 class TestLda:
-
-    # pytest tests/test_integration/test_recommender_methods/test_recommender_methods.py::test_lda_method_bad_input
-    @pytest.mark.parametrize("tested_input", [
-        '',
-        4,
-        (),
-        None,
-        'blah-blah'
-    ])
-    @pytest.mark.integtest
-    def test_lda_method_bad_input(self, tested_input):
-        with pytest.raises(ValueError):
-            lda = Lda()
-            lda.get_similar_lda(tested_input, posts_from_cache=False)
 
     """
     pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::TestLda::test_get_searched_doc_id

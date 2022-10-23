@@ -288,10 +288,14 @@ class TfIdf:
         gc.collect()
 
         if searched_slug not in self.df['slug'].to_list():
+            raise ValueError("Slug not in dataframe.")
+            # TODO: Handle this by one attempt, see other methods
+            """
             print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
             recommender_methods = RecommenderMethods()
             recommender_methods.get_posts_dataframe(force_update=True)
             self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+            """
         # replacing None values with empty strings
         recommender_methods.df['full_text'] = recommender_methods.df['full_text'].replace([None], '')
 
