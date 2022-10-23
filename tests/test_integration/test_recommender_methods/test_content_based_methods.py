@@ -125,7 +125,7 @@ class TestLda:
         random_post_slug = random_post['slug'].iloc[0]
 
         recommender_methods = RecommenderMethods()
-        recommender_methods = prepare_post_categories_df(recommender_methods, True, random_post_slug)
+        recommender_methods.df = prepare_post_categories_df(recommender_methods, True, random_post_slug)
         lda = Lda()
         searched_doc_id = lda.get_searched_doc_id(recommender_methods, random_post_slug)
         print('searched_doc_id:')

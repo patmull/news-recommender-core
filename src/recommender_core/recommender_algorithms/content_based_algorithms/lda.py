@@ -652,8 +652,8 @@ class Lda:
 
         try:
             lda_model = LdaModel.load("models/lda_model_full_text")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/lda/dictionary_full_text.gensim')
-            corpus = pickle.load(open('precalc_vectors/lda/lda/corpus_full_text.pkl', 'rb'))
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/dictionary_full_text.gensim')
+            corpus = pickle.load(open('precalc_vectors/lda/corpus_full_text.pkl', 'rb'))
         except Exception as e:
             print("Could not load_texts LDA models or precalculated vectors. Reason:")
             print(e)
@@ -661,8 +661,8 @@ class Lda:
             # TODO: Download from Dropbox as a 2nd option before training
 
             lda_model = LdaModel.load("models/lda_model_full_text")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/lda/dictionary_full_text.gensim')
-            corpus = pickle.load(open('precalc_vectors/lda/lda/corpus_full_text.pkl', 'rb'))
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/dictionary_full_text.gensim')
+            corpus = pickle.load(open('precalc_vectors/lda/corpus_full_text.pkl', 'rb'))
 
         return dictionary, corpus, lda_model
 
@@ -741,7 +741,7 @@ class Lda:
         print("np.save")
         # save doc_topic_dist
         # https://stackoverflow.com/questions/9619199/best-way-to-preserve-numpy-arrays-on-disk
-        np.save('precalc_vectors/lda/lda/lda_doc_topic_dist_full_text.npy',
+        np.save('precalc_vectors/lda/lda_doc_topic_dist_full_text.npy',
                 doc_topic_dist)  # IndexError: index 14969 is out of bounds for axis 1 with size 14969
         print("LDA model and documents topic distribution saved")
 
