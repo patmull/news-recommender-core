@@ -637,7 +637,10 @@ class Doc2VecClass:
         del documents_all_features_preprocessed
         gc.collect()
 
-        doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text_limited.model")
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            doc2vec_loaded_model = Doc2Vec.load("tests/models/d2v_testing.model")
+        else:
+            doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text_limited.model")
 
         recommend_methods = RecommenderMethods()
 
@@ -653,7 +656,24 @@ class Doc2VecClass:
 
         most_similar_items = doc2vec_loaded_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
-        return get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_recommended_posts)
+        try:
+            recommednations = get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_recommended_posts)
+            project_config.trials_counter.NUM_OF_TRIALS = 0
+            return recommednations
+        except IndexError as e:
+            if project_config.trials_counter.NUM_OF_TRIALS < 1:
+                logging.warning('Index error occurred when trying to get Doc2Vec model for posts')
+                logging.warning(e)
+                logging.info('Trying to deal with this by retraining Doc2Vec...')
+                logging.debug('Preparing test features')
+                documents_all_features_preprocessed = preprocess_columns(self.df, cols)
+                train_doc2vec(documents_all_features_preprocessed)
+                project_config.trials_counter.NUM_OF_TRIALS += 1
+                self.get_similar_doc2vec_with_full_text(searched_slug, train_enabled, number_of_recommended_posts, posts_from_cache)
+            else:
+                logging.warning(
+                    "Tried to train Doc2Vec again but it didn't helped and IndexError got raised again. Need to shutdown,")
+                raise e
 
     def get_vector_representation(self, searched_slug):
         """

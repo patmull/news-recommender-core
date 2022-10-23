@@ -124,17 +124,15 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs):
             logging.debug('Calculating sim matrix for Word2Vec')
 
             path_to_model = Path("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
-            method_class = Word2VecClass()
+            content_based_method = Word2VecClass()
             w2v_model = KeyedVectors.load(path_to_model.as_posix())
         elif method == "doc2vec":
             logging.debug('Calculating sim matrix for Doc2Vec')
 
-            method_class = Doc2VecClass()
+            content_based_method = Doc2VecClass()
             d2v_model = load_doc2vec_model('models/d2v_full_text_limited.model')
         else:
             raise NotImplementedError("Method not supported.")
-
-        content_based_method = method_class
 
         if w2v_model is None and d2v_model is None:
             raise ValueError("Word2Vec and Doc2Vec variables are set to None. Cannot continue.")
@@ -299,6 +297,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
                                           / results_df[coefficient_columns].std()
         print("normalized_df:")
+
         print(results_df)
         results_df['coefficient'] = results_df.sum(axis=1)
 

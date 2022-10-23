@@ -13,6 +13,7 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 # RUN WITH:
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
+from tests.testing_methods.random_posts_generator import get_three_unique_posts
 
 
 @pytest.mark.integtest
@@ -55,9 +56,8 @@ def test_thumbs():
 
 def test_hybrid_by_svd_history_tfidf():
     test_user_id = 431
-    searched_slug_1 = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
-    searched_slug_2 = "salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem"
-    searched_slug_3 = "sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik"
+
+    searched_slug_1, searched_slug_2, searched_slug_3 = get_three_unique_posts()
 
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
     tested_methods = ['tfidf', 'doc2vec']
@@ -87,16 +87,16 @@ def test_hybrid_by_svd_history_tfidf():
 
 def test_get_similarity_matrix_from_pairs_similarity():
     test_user_id = 431
-    searched_slug_1 = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
-    searched_slug_2 = "salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem"
-    searched_slug_3 = "sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik"
+    searched_slug_1, searched_slug_2, searched_slug_3 = get_three_unique_posts()
 
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
 
     # Unit
     list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id=test_user_id,
                                                                               posts_to_compare=test_slugs)
-    get_similarity_matrix_from_pairs_similarity("doc2vec", list_of_slugs, test_slugs, list_of_slugs_from_history)
+    result = get_similarity_matrix_from_pairs_similarity("doc2vec", list_of_slugs)
+
+    assert isinstance(result, pd.DataFrame)
 
 
 @pytest.mark.parametrize("tested_input", [

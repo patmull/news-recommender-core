@@ -3,11 +3,12 @@ import pytest
 
 
 # RUN WITH: python -m pytest tests/test_unit/test_hybrid_methods.py
-
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import select_list_of_posts_for_user, \
     get_most_similar_by_hybrid
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     Classifier, get_df_predicted
+from tests.testing_methods.random_posts_generator import get_three_unique_posts
 
 classifier = Classifier()
 
@@ -22,9 +23,7 @@ def test_get_df_predicted():
 
 def test_select_list_of_posts_for_user():
     test_user_id = 431
-    searched_slug_1 = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
-    searched_slug_2 = "salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem"
-    searched_slug_3 = "sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik"
+    searched_slug_1, searched_slug_2, searched_slug_3 = get_three_unique_posts()
 
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
     list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(test_user_id, test_slugs)

@@ -933,7 +933,7 @@ class Word2VecClass:
         logging.debug(slug_1)
         logging.debug(slug_2)
 
-        # TODO: Deliver model to method. Does not make a sense to load every time!
+        # TODO: Consider mandatory model deliver to method. Does not make a sense to load every time!
         recommend_methods = RecommenderMethods()
         post_1 = recommend_methods.find_post_by_slug(slug_1)
         post_2 = recommend_methods.find_post_by_slug(slug_2)

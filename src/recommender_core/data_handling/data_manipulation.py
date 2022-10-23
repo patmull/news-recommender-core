@@ -9,8 +9,6 @@ import redis
 from pandas.io.sql import DatabaseError
 from typing import List
 
-
-
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
@@ -217,14 +215,14 @@ class DatabaseMethods(object):
 
         str_path = path_to_save_cache.as_posix()
         # TODO: Some workaround for this? (Convert bytearray to input_string?)
-        print("Column types of df:")
-        print(df.dtypes)
+        logging.debug("Column types of df:")
+        logging.debug(df.dtypes)
         # Removing bert_vector_representation for not supported column type of pickle
         df_for_save = df.drop(columns=['bert_vector_representation'])
-        print("str_path:")
-        print(str_path)
-        print("df:")
-        print(df_for_save)
+        logging.debug("str_path:")
+        logging.debug(str_path)
+        logging.debug("df:")
+        logging.debug(df_for_save)
 
         path = Path(cached_file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -517,6 +515,14 @@ class DatabaseMethods(object):
             if "PYTEST_CURRENT_TEST" in os.environ:
                 if method == "test_prefilled_all":
                     sql = """SELECT * FROM posts WHERE recommended_test_prefilled_all IS NULL ORDER BY id;"""
+                elif method == "tfidf":
+                    sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
+                elif method == "word2vec":
+                    sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
+                elif method == "doc2vec":
+                    sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
+                elif method == "lda":
+                    sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
                 else:
                     raise ValueError("Selected method " + method + " not implemented.")
             else:
