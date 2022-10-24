@@ -29,13 +29,12 @@ class TestPrefiller(TestCase):
         assert 'DB operational error' in ''.join(log_lines)
 
     # TODO: def test_fill_recommended_content_based(self): Priority: MEDIUM-HIGH
+    """
     def test_fill_recommended_content_based(self, caplog):
-        """
+        
         Testing by checking the logging output
         @return:
-        """
 
-        """
         database = DatabaseMethods()
         LOGGER.info('Testing logger now.')
         fill_recommended_content_based(skip_already_filled=True,
@@ -68,7 +67,4 @@ class TestPrefiller(TestCase):
                                        random_order=False,
                                        reversed_order=False, method="test_prefilled_all")
         assert 'Found 0 not prefilled posts in test_prefilled_all' in caplog.text
-        """
-
-
-
+    """
