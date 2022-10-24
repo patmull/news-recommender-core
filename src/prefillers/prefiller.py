@@ -29,7 +29,7 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.collabora
 val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
 
-LOGGING_FILE_PATH = 'tests/logs/testing_logging.txt'
+LOGGING_FILE_PATH = 'tests/logs/logging_testing.txt'
 # Remove all handlers associated with the root logger object.
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
