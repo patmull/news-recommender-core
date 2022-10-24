@@ -185,15 +185,16 @@ class TestSimMatrixPrecalc(TestCase):
     def test_load_posts_from_sim_matrix(self):
 
         # NOTICE: Order mey not be expected, also needs to be runnable alone
-        precalculate_and_save_sim_matrix_for_all_posts()
+        # TODO: Get this back(?)
+        # precalculate_and_save_sim_matrix_for_all_posts()
 
         recommender_methods = RecommenderMethods()
         all_posts = recommender_methods.get_posts_dataframe(from_cache=False)
         all_posts_slugs = all_posts['slug'].values.tolist()
         logging.debug("all_posts_slugs")
         logging.debug(all_posts_slugs)
-        shrinked_slugs = all_posts_slugs[:5]
+        shrinked_slugs = all_posts_slugs[:3]
         logging.debug("shrinked_slugs")
         logging.debug(shrinked_slugs)
         for method in LIST_OF_SUPPORTED_METHODS:
-            assert load_posts_from_sim_matrix(method, shrinked_slugs)
+            assert isinstance(load_posts_from_sim_matrix(method, shrinked_slugs), pd.DataFrame)
