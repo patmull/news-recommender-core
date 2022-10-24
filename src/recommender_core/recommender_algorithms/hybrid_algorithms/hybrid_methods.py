@@ -229,17 +229,31 @@ def load_posts_from_sim_matrix(method, list_of_slugs):
     @param list_of_slugs: slugs delivered from SVD algorithm = slugs that we are interested in
     @return:
     """
+    logging.debug("method:")
+    logging.debug(method)
     file_path = prepare_sim_matrix_path(method)
     sim_matrix = pd.read_feather(file_path)
-    # select from column and rows only desired articles
-    logging.debug("sim_matrix:")
-    logging.debug(sim_matrix)
-    sim_matrix = sim_matrix.loc[list_of_slugs] # This is probably incorrect(?)
-    logging.debug("sim_matrix:")
-    logging.debug(sim_matrix)
+    logging.debug("sim matrix after load from feather:")
+    logging.debug(sim_matrix.head(5))
+    try:
+        sim_matrix.index = sim_matrix['slug']
+        sim_matrix = sim_matrix.drop('slug', axis=1)
+    except KeyError as ke:
+        sim_matrix.index = sim_matrix['index']
+        sim_matrix = sim_matrix.drop('index', axis=1)
+
+    # Selecting columns
     sim_matrix = sim_matrix[list_of_slugs]
-    logging.debug("sim_matrix:")
-    logging.debug(sim_matrix)
+    logging.debug("sim_matrix.columns")
+    logging.debug(sim_matrix.columns)
+
+    sim_matrix = sim_matrix.loc[list_of_slugs, :]
+    logging.debug("sim_matrix.index")
+    logging.debug(sim_matrix.index)
+
+    logging.debug("sim matrix after index dealing:")
+    logging.debug(sim_matrix.head(5))
+
     return sim_matrix
 
 
