@@ -13,7 +13,11 @@ from src.prefillers.user_based_prefillers.prefilling_collaborative import run_pr
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 database = DatabaseMethods()
-method_options = ["tfidf", "word2vec", "doc2vec", "lda"]
+method_options_short_text = ["tfidf", "word2vec", "doc2vec", "lda"]
+method_options_full_text = ["tfidf", "word2vec", "doc2vec", "lda", "word2vec_eval_idnes_1", "word2vec_eval_idnes_2",
+                            "word2vec_eval_idnes_3", "word2vec_eval_idnes_4", "word2vec_eval_cswiki_1",
+                            "doc2vec_eval_cswiki_1"]
+
 full_text_options = [True, False]
 random_reverse_options = [True, False]
 
@@ -66,9 +70,14 @@ def not_prefilled_retriaval(method, full_text):
 class TestPrefillers:
     @pytest.mark.integtest
     def test_prefillers(self):
-        for i in range(20):
-            random_method_choice = random.choice(method_options)
-            random_full_text_choice = random.choice(full_text_options)
+        for i in range(2):
+            random_method_choice = random.choice(method_options_short_text)
+            random_full_text_choice = False
+            assert not_prefilled_retriaval(method=random_method_choice, full_text=random_full_text_choice) \
+                   is True
+
+            random_method_choice = random.choice(method_options_full_text)
+            random_full_text_choice = True
             assert not_prefilled_retriaval(method=random_method_choice, full_text=random_full_text_choice) \
                    is True
 
