@@ -1,11 +1,16 @@
 import json
+import logging
 import random
+import time
 import time as t
+from pathlib import Path
 
+import gensim
 import psycopg2
 from gensim.models import KeyedVectors
 from pandas.io.sql import DatabaseError
 
+from src.constants.file_paths import CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES
 from src.custom_exceptions.exceptions import TestRunException
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
@@ -22,6 +27,19 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.collabora
 
 val_error_msg_db = "Not allowed DB model_variant was passed for prefilling. Choose 'pgsql' or 'redis'."
 val_error_msg_algorithm = "Selected model_variant does not correspondent with any implemented model_variant."
+
+LOGGING_FILE_PATH = 'tests/logs/test_logging.txt'
+# Remove all handlers associated with the root logger object.
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(format='%(asctime)s %(message)s',
+                    datefmt='%m/%d/%Y %I:%M:%S %p',
+                    filename=LOGGING_FILE_PATH,
+                    filemode='w',
+                    level=logging.DEBUG)
+logging.debug("Testing logging in prefiller.")
 
 
 def fill_recommended_collab_based(method, skip_already_filled, user_id=None, test_run=False):
@@ -117,15 +135,16 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
-    source = w2v_model = None
     docsim_index, dictionary = None, None
-    database = DatabaseMethods()
+    database_methods = DatabaseMethods()
     if skip_already_filled is False:
-        posts = database.get_all_posts()
+        database_methods.connect()
+        posts = database_methods.get_all_posts()
+        database_methods.disconnect()
     else:
-        database.connect()
-        posts = database.get_not_prefilled_posts(full_text, method=method)
-        database.disconnect()
+        database_methods.connect()
+        posts = database_methods.get_not_prefilled_posts(full_text, method=method)
+        database_methods.disconnect()
 
     number_of_inserted_rows = 0
 
@@ -138,30 +157,15 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
         t.sleep(5)
         random.shuffle(posts)
 
-    if method.startswith("word2vec"):
-        if method == "word2vec_eval_idnes_1":
-            selected_model_name = "idnes_1"
-            path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
-        elif method == "word2vec_eval_idnes_2":
-            selected_model_name = "idnes_2"
-            path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_2_default_parameters/"
-        elif method == "word2vec_eval_idnes_3":
-            selected_model_name = "idnes_3"
-            path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
-        elif method == "word2vec_eval_idnes_4":
-            selected_model_name = "idnes_4"
-            path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
-        elif method == "word2vec_limited_fasttext":
-            selected_model_name = "fasttext_limited"
-            path_to_folder = "full_models/cswiki/word2vec_fassttext_model/"
-        elif method == "word2vec_limited_fasttext_full_text":
-            selected_model_name = "fasttext_full_text"
-            path_to_folder = "full_models/cswiki/word2vec_fassttext_full_text_model/"
-        elif method == "word2vec_eval_cswiki_1":
-            selected_model_name = "cswiki"
-            path_to_folder = "full_models/cswiki/evaluated_models/word2vec_model_cswiki_1/"
+    if method.startswith("word2vec_"):
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+
+        if method in CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES:
+            selected_model_name = CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][1]
+            path_to_folder = CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][0]
+
         else:
-            raise ValueError("Wrong doc2vec_model name chosen.")
+            raise ValueError("Wrong word2vec model name chosen.")
 
         if method.startswith("word2vec_eval_idnes_"):
             file_name = "w2v_idnes.model"
@@ -178,10 +182,20 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
 
         ds = DocSim(w2v_model)
         docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name)
-    elif method.startswith("doc2vec"):
+    elif method == 'word2vec':
+        selected_model_name = "idnes"
+        source = "idnes"
+        path_to_model = Path("models/w2v_model_limited")
+        w2v_model = KeyedVectors.load(path_to_model.as_posix())
+        ds = DocSim(w2v_model)
+        docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name)
+        logging.info("Loading dictionary for Word2Vec")
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+    elif method.startswith("doc2vec_"):
         if method == "doc2vec_eval_cswiki_1":
             print("Similarities on FastText doc2vec_model.")
             print("Loading Dov2Vec cs.Wikipedia.org doc2vec_model...")
+            # TODO: This is weird. Investigate!
 
     for post in posts:
         if len(posts) < 1:
@@ -229,29 +243,29 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
             else:
                 current_recommended = None
 
-        print("Searching similar articles for article: ")
-        print(slug)
+        logging.info("Searching similar articles for article: ")
+        logging.info(slug)
 
         if skip_already_filled is True:
             if current_recommended is None:
-                print("Post:")
-                print(slug)
-                print("Has currently no recommended posts.")
-                print("Trying to find recommended...")
+                logging.debug("Post:")
+                logging.debug(slug)
+                logging.debug("Has currently no recommended posts.")
+                logging.debug("Trying to find recommended...")
                 if full_text is False:
                     if method == "tfidf":
                         tfidf = TfIdf()
                         actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
                     elif method == "word2vec":
                         if docsim_index is None:
+                            # TODO: Fix error: ValueError: DocSim index is not set.
                             raise ValueError("DocSim index is not set.")
                         if dictionary is None:
                             raise ValueError("Dictionary is not set")
                         word2vec = Word2VecClass()
-                        path_to_model = "models/w2v_model_limited"
-                        w2v_model = KeyedVectors.load(path_to_model)
                         actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model_name=w2v_model,
+                                                                                model=w2v_model,
+                                                                                model_name='idnes',
                                                                                 docsim_index=docsim_index,
                                                                                 dictionary=dictionary)
                     elif method == "doc2vec":
@@ -279,43 +293,50 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                     elif method == "word2vec_eval_idnes_1":
                         word2vec = Word2VecClass()
                         actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model_name=w2v_model,
+                                                                                model=w2v_model,
+                                                                                model_name='idnes_1',
                                                                                 docsim_index=docsim_index,
                                                                                 dictionary=dictionary)
                     elif method == "word2vec_eval_idnes_2":
                         word2vec = Word2VecClass()
                         actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model_name=w2v_model,
+                                                                                model=w2v_model,
+                                                                                model_name='idnes_2',
                                                                                 docsim_index=docsim_index,
                                                                                 dictionary=dictionary)
                     elif method == "word2vec_eval_idnes_3":
                         word2vec = Word2VecClass()
                         actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model_name=w2v_model,
+                                                                                model=w2v_model,
+                                                                                model_name='idnes_3',
                                                                                 docsim_index=docsim_index,
                                                                                 dictionary=dictionary)
                     elif method == "word2vec_eval_idnes_4":
                         word2vec = Word2VecClass()
                         actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model_name=w2v_model,
+                                                                                model=w2v_model,
+                                                                                model_name='idnes_4',
                                                                                 docsim_index=docsim_index,
                                                                                 dictionary=dictionary)
                     elif method == "word2vec_fasttext":
                         word2vec = Word2VecClass()
                         actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model_name=w2v_model,
+                                                                                model=w2v_model,
+                                                                                model_name=method,
                                                                                 docsim_index=docsim_index,
                                                                                 dictionary=dictionary)
                     elif method == "word2vec_fasttext_full_text":
                         word2vec = Word2VecClass()
                         actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model_name=w2v_model,
+                                                                                model=w2v_model,
+                                                                                model_name=method,
                                                                                 docsim_index=docsim_index,
                                                                                 dictionary=dictionary)
                     elif method == "word2vec_eval_cswiki_1":
                         word2vec = Word2VecClass()
                         actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model_name=w2v_model,
+                                                                                model=w2v_model,
+                                                                                model_name='cswiki',
                                                                                 docsim_index=docsim_index,
                                                                                 dictionary=dictionary)
                     elif method == "doc2vec_eval_cswiki_1":
@@ -331,20 +352,24 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
 
                 if full_text is False:
                     try:
-                        database.insert_recommended_json_content_based(
+                        database_methods.connect()
+                        database_methods.insert_recommended_json_content_based(
                             articles_recommended_json=actual_recommended_json,
                             article_id=post_id, full_text=False, db="pgsql",
                             method=method)
+                        database_methods.disconnect()
                     except Exception as e:
                         print("Error in DB insert. Skipping.")
                         print(e)
                         pass
                 else:
                     try:
-                        database.insert_recommended_json_content_based(
+                        database_methods.connect()
+                        database_methods.insert_recommended_json_content_based(
                             articles_recommended_json=actual_recommended_json,
                             article_id=post_id, full_text=True, db="pgsql",
                             method=method)
+                        database_methods.disconnect()
                         number_of_inserted_rows += 1
                         print("Inserted rows in current prefilling round: " + str(number_of_inserted_rows))
                     except Exception as e:
@@ -353,6 +378,26 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                         pass
             else:
                 print("Skipping.")
+
+
+def prefilling_job_content_based(method: str, full_text: bool, random_order=False, reversed_order=True,
+                                 test_call=False):
+    if test_call is True:
+        counter = 0
+
+    while True:
+        try:
+            fill_recommended_content_based(method=method, full_text=full_text, skip_already_filled=True,
+                                           random_order=random_order, reversed_order=reversed_order)
+
+        except psycopg2.OperationalError:
+            logging.debug("DB operational error. Waiting few seconds before trying again...")
+            if test_call:
+                break
+            t.sleep(30)  # wait 30 seconds then try again
+            continue
+
+        break
 
 
 class UserBased:
@@ -372,15 +417,3 @@ class UserBased:
                 break
             else:
                 raise NotImplementedError("Other DB source than PostgreSQL not implemented yet.")
-
-
-def prefilling_job_content_based(method, full_text, random_order=False, reversed_order=True):
-    while True:
-        try:
-            fill_recommended_content_based(method=method, full_text=full_text, skip_already_filled=True,
-                                           random_order=random_order, reversed_order=reversed_order)
-        except psycopg2.OperationalError:
-            print("DB operational error. Waiting few seconds before trying again...")
-            t.sleep(30)  # wait 30 seconds then try again
-            continue
-        break

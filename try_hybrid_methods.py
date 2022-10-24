@@ -1,22 +1,8 @@
-import json
-import time
-from pathlib import Path
-
-import numpy as np
-import pandas as pd
-import spacy_sentence_bert
-
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
-from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
-    SvdClass
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
-    get_similarity_matrix_from_pairs_similarity, select_list_of_posts_for_user, \
-    get_most_similar_by_hybrid
+from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid, \
+    precalculate_and_save_sim_matrix_for_all_posts
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    Classifier, predict_from_vectors
+    Classifier
 
 
 def main():
@@ -45,7 +31,6 @@ def main():
                                           bert_model=bert, use_only_sample_of=None, only_with_prefilled_bert_vectors=False,
                                           experiment_mode=False)
     """
-
 
     malformed_redis_key_name = "malformed_redis_key_name"
     columns_to_combine = ['category_title', 'all_features_preprocessed', 'full_text']
@@ -103,5 +88,18 @@ def main():
                          predicted_var_for_redis_key_name=predicted_by_stars_redis_key_name,
                          bert_model=bert_model, col_to_combine=columns_to_combine,
                          save_testing_csv=True)
-"""
+    """
+    """
+    classifier = Classifier()
+    classifier.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by='stars',
+                                          force_retraining=True, save_df_posts_users_categories_relevance=True)
+    """
+    user_id_for_test = 431
+    precalculate_and_save_sim_matrix_for_all_posts()
+    print("=====================================")
+    print("PRECALCULATION DONE")
+    print("=====================================")
+    print(get_most_similar_by_hybrid(user_id_for_test, load_from_precalc_sim_matrix=True))
+
+
 if __name__ == "__main__": main()

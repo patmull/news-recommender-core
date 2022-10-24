@@ -1,7 +1,9 @@
+import logging
 import os.path
 import pickle
 import re
 import traceback
+from pathlib import Path
 
 import gensim
 import numpy as np
@@ -153,26 +155,25 @@ class DocSim:
         common_texts = gensim_methods.load_texts()
 
         if source == "idnes":
-            path_to_docsim_index = "full_models/idnes/docsim_index_idnes"
+            path_to_docsim_index = Path("full_models/idnes/docsim_index_idnes")
         elif source == "cswiki":
-            path_to_docsim_index = "full_models/cswiki/docsim_index_cswiki"
+            path_to_docsim_index = Path("full_models/cswiki/docsim_index_cswiki")
         else:
             raise ValueError("Bad source name selected")
 
-        if os.path.exists(path_to_docsim_index) and force_update is False:
-            docsim_index = SoftCosineSimilarity.load(path_to_docsim_index)
+        if os.path.exists(path_to_docsim_index.as_posix()) and force_update is False:
+            docsim_index = SoftCosineSimilarity.load(path_to_docsim_index.as_posix())
         else:
-            print("Docsim index not found or forced to update. Will create a new from available articles.")
-            # TODO: This can be preloaded
+            logging.info("Docsim index not found or forced to update. Will create a new from available articles.")
             docsim_index = self.update_docsim_index(model=model_name, common_texts=common_texts)
         return docsim_index
 
     def update_docsim_index(self, model, supplied_dictionary=None, common_texts=None, tfidf_corpus=None):
 
-        if model == "wiki":
+        if model == "cswiki":
             source = "cswiki"
             self.w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
-        elif model.startswith("idnes_"):
+        elif model.startswith("idnes"):
             source = "idnes"
             if model.startswith("idnes_1"):
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
@@ -182,8 +183,8 @@ class DocSim:
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
             elif model.startswith("idnes_4"):
                 path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
-            elif model.startswith("idnes"):
-                path_to_folder = "w2v_idnes.model"
+            elif model == "idnes":
+                path_to_folder = "models/"
             else:
                 raise ValueError("Wrong idnes model name chosen.")
             file_name = "w2v_idnes.model"
