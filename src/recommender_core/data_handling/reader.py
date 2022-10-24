@@ -29,10 +29,9 @@ def prepare_words(text):
     texts = [w for w in texts if w.isalnum()]
     # remove numbers only
     texts = [w for w in texts if not w.isdigit()]
-    # remove stopped words
-    # texts = [w for w in texts if not w in self.stop]
+
     # remove duplicates
-    seen = set()
+    seen = set()  # NOTICE: Here was simple = set(). New annotation is not tested.
     seen_add = seen.add
     texts = [w for w in texts if not (w in seen or seen_add(w))]
     # lemmatize
@@ -73,7 +72,7 @@ def get_value(value):
 def build_sentences():
     print("Building sentences...")
     sentences = []
-    client = MongoClient("localhost", 27017, maxPoolSize=50)
+    client = MongoClient("localhost", 27017, maxPoolSize=50)  # TypeHint missing. Blame pymongo creators.
     db = client.idnes
     collection = db.preprocessed_articles_bigrams
     cursor = collection.find({})

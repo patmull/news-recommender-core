@@ -1,3 +1,4 @@
+import logging
 import traceback
 
 from src.prefillers.user_based_prefillers.prefilling_user_classifier import fill_bert_vector_representation
@@ -7,6 +8,10 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.prefilling_additional import PreFillerAdditional
 
 prefiller_additional = PreFillerAdditional()
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging in prefilling_all.")
 
 
 def prefill_all_features_preprocessed():
@@ -26,13 +31,14 @@ def prefill_bert_vector_representation():
     fill_bert_vector_representation()
 
 
-def run_prefilling():
-    print("Refreshing post cache. Inserting recommender posts to cache...")
+def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_full_text=None):
+    if skip_cache_refresh is False:
+        logging.debug("Refreshing post cache. Inserting recommender posts to cache...")
 
-    recommender_methods = RecommenderMethods()
-    recommender_methods.database.insert_posts_dataframe_to_cache()
+        recommender_methods = RecommenderMethods()
+        recommender_methods.database.insert_posts_dataframe_to_cache()
 
-    print("Check needed columns posts...")
+    logging.debug("Check needed columns posts...")
 
     database = DatabaseMethods()
     columns_needing_prefill = check_needed_columns(database)
@@ -49,12 +55,20 @@ def run_prefilling():
     random = False
 
     full_text = False
-    methods = ["tfidf", "word2vec", "doc2vec", "lda"]
+    if methods_short_text is None:
+        methods = ["tfidf", "word2vec", "doc2vec"]
+    else:
+        methods = methods_short_text
 
     for method in methods:
         prepare_and_run(database, method, full_text, reverse, random)
 
     full_text = True
+    if methods_full_text is None:
+        methods = ["tfidf", "word2vec_eval_idnes_3", "word2vec_eval_cswiki_1", "doc2vec_eval_cswiki_1",
+                   "lda"]  # NOTICE: Evaluated Word2Vec is full text!
+    else:
+        methods = methods_full_text
 
     for method in methods:
         prepare_and_run(database, method, full_text, reverse, random)
@@ -64,8 +78,8 @@ def prepare_and_run(database, method, full_text, reverse, random):
     database.connect()
     not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)
     database.disconnect()
-    print("Found " + str(len(not_prefilled_posts)) + " not prefilled posts in " + method + " full text: "
-          + str(full_text))
+    logging.info("Found " + str(len(not_prefilled_posts)) + " not prefilled posts in " + method + " | full text: "
+                 + str(full_text))
     if len(not_prefilled_posts) > 0:
         try:
             prefilling_job_content_based(method=method, full_text=full_text, reversed_order=reverse,
@@ -74,16 +88,16 @@ def prepare_and_run(database, method, full_text, reverse, random):
             print("Exception occurred " + str(e))
             traceback.print_exception(None, e, e.__traceback__)
     else:
-        print("No not prefilled posts found")
-        print("Skipping " + method + " full text")
+        logging.info("No not prefilled posts found")
+        logging.info("Skipping " + method + " full text: " + str(full_text))
 
 
 def check_needed_columns(database):
     # TODO: Check needed columns
-    # TODO: 'all_features_preprocessed' (probably every method relies on this)
-    # TODO: 'keywords' (LDA but probably also other columns relies on this)
-    # TODO: 'body_preprocessed' (LDA relies on this)
-    needed_checks = []  # type: list
+    # 'all_features_preprocessed' (probably every method relies on this)
+    # 'keywords' (LDA but probably also other methods relies on this)
+    # 'body_preprocessed' (LDA relies on this)
+    needed_checks = []  # type: list[str]
     database.connect()
     number_of_nans_in_all_features_preprocessed = len(database.get_posts_with_no_all_features_preprocessed())
     number_of_nans_in_keywords = len(database.get_posts_with_no_keywords())
@@ -91,11 +105,11 @@ def check_needed_columns(database):
     database.disconnect()
 
     if number_of_nans_in_all_features_preprocessed:
-        needed_checks.extend("all_features_preprocessed")
+        needed_checks.append("all_features_preprocessed")
     if number_of_nans_in_keywords:
-        needed_checks.extend("keywords")
+        needed_checks.append("keywords")
     if number_of_nans_in_body_preprocessed:
-        needed_checks.extend("body_preprocessed")
+        needed_checks.append("body_preprocessed")
 
     print("Values missing in:")
     print(str(needed_checks))

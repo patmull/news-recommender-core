@@ -8,6 +8,7 @@ import random
 import time
 import traceback
 from collections import defaultdict
+from pathlib import Path
 
 import gensim
 import numpy as np
@@ -23,6 +24,7 @@ from gensim.utils import deaccent
 from pymongo import MongoClient
 
 from src.recommender_core.data_handling.data_handlers import flatten
+from src.recommender_core.recommender_algorithms.content_based_algorithms import gensim_methods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
     calculate_similarity_idnes_model_gensim
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder, \
@@ -35,6 +37,13 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods, 
 from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords, load_cz_stopwords
 from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from Word2vec.")
 
 
 def save_to_mongo(data, number_of_processed_files, supplied_mongo_collection):
@@ -59,6 +68,7 @@ class MyCorpus(object):
             i = i + 1
 
 
+@DeprecationWarning
 def save_full_model_to_smaller(model="wiki"):
     print("Saving full doc2vec_model to limited doc2vec_model...")
     if model == "wiki":
@@ -84,6 +94,7 @@ def save_fast_text_to_w2v():
     print("Fast text saved...")
 
 
+@DeprecationWarning
 def refresh_model():
     save_fast_text_to_w2v()
     print("Loading word2vec doc2vec_model...")
@@ -245,7 +256,7 @@ def create_dictionary_from_dataframe(force_update=False):
 
 def create_corpus_from_mongo_idnes(dictionary, force_update=False):
     path_part_1 = "precalc_vectors"
-    path_part_2 = "/corpus_idnes.mm"
+    path_part_2 = "word2vec/corpus_idnes.mm"
     path_to_corpus = path_part_1 + path_part_2
 
     if os.path.isfile(path_to_corpus) is False or force_update is True:
@@ -266,7 +277,7 @@ def get_preprocessed_dictionary(filter_extremes, path_to_dict):
 
 def create_dictionary_from_mongo_idnes(force_update=False, filter_extremes=False):
     # a memory-friendly iterator
-    path_to_dict = 'precalc_vectors/dictionary_idnes.gensim'
+    path_to_dict = 'precalc_vectors/word2vec/dictionary_idnes.gensim'
     if os.path.isfile(path_to_dict) is False or force_update is True:
         preprocessed_dictionary = get_preprocessed_dictionary(path_to_dict=path_to_dict,
                                                               filter_extremes=filter_extremes)
@@ -286,12 +297,13 @@ class Word2VecClass:
         self.df = None
         self.posts_df = None
         self.categories_df = None
-        self.w2v_model = None
+        self.w2v_model: Word2Vec
 
     # @profile
-    def get_similar_word2vec(self, searched_slug, model_name=None, docsim_index=None, dictionary=None,
+    def get_similar_word2vec(self, searched_slug, model_name, model=None, docsim_index=None, dictionary=None,
                              force_update_data=False, posts_from_cache=True):
 
+        logging.debug("Testing logging from Word2vec.")
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a input_string.")
         else:
@@ -307,8 +319,19 @@ class Word2VecClass:
         self.categories_df = recommender_methods.get_categories_dataframe()
         self.df = recommender_methods.get_posts_categories_dataframe()
 
+        logging.debug("self.posts_df:")
+        logging.debug(self.posts_df)
+
         if searched_slug not in self.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+            """
+            print('Slug does not appear in dataframe.')
+            recommender_methods.get_posts_dataframe(force_update=True)
+            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+            """
+            # TODO: Prirority: MEDIUM. Deal with this by counting the number of trials in config file with special
+            # variable for this purpose. If num_of_trials > 1, then throw ValueError (Same as in Doc2vec)
+            raise ValueError("Slug does not appear in dataframe.")
+
 
         self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
         self.categories_df = self.categories_df.rename(columns={'slug': 'category_slug'})
@@ -359,52 +382,65 @@ class Word2VecClass:
 
         del documents_df
         # https://github.com/v1shwa/document-similarity with my edits
-
-        if model_name == "wiki":
-            w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
-            print("Similarities on Wikipedia.cz model:")
-            ds = DocSim(w2v_model)
-            most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
-                                                                                          list_of_document_features)[:21]
-        elif model_name.startswith("idnes_"):
-            source = "idnes"
-            if model_name.startswith("idnes_1"):
-                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
-            elif model_name.startswith("idnes_2"):
-                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_2_default_parameters/"
-            elif model_name.startswith("idnes_3"):
-                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
-            elif model_name.startswith("idnes_4"):
-                path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
-            elif model_name.startswith("idnes"):
-                path_to_folder = "w2v_idnes.model"
+        if model is not None:
+            self.w2v_model = model_name
+            if model_name.startswith("idnes"):
+                source = "idnes"
+            elif model_name.startswith("cswiki"):
+                source = "cswiki"
             else:
-                path_to_folder = None
-                ValueError("Wrong model name chosen.")
-            file_name = "w2v_idnes.model"
-            path_to_model = path_to_folder + file_name
-            self.w2v_model = KeyedVectors.load(path_to_model)
-            print("Similarities on iDNES.cz model:")
-            ds = DocSim(self.w2v_model)
-            print("found_post")
-            print(found_post)
-            if docsim_index is None and dictionary is None:
-                print("Docsim or dictionary is not passed into method. Loading.")
-                docsim_index = ds.load_docsim_index(source=source, model_name=model_name)
-            most_similar_articles_with_scores \
-                = calculate_similarity_idnes_model_gensim(found_post,
-                                                          docsim_index,
-                                                          dictionary,
-                                                          list_of_document_features)[:21]
+                raise ValueError("model_name needs to be set")
         else:
-            raise ValueError("No from option is available.")
+            if model_name == "cswiki":
+                source = "cswiki"
+
+                w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
+                print("Similarities on Wikipedia.cz model:")
+                ds = DocSim(w2v_model)
+                most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
+                                                                                              list_of_document_features)[:21]
+            elif model_name.startswith("idnes"):
+                source = "idnes"
+                if model_name.startswith("idnes_1"):
+                    path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_1/"
+                elif model_name.startswith("idnes_2"):
+                    path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_2_default_parameters/"
+                elif model_name.startswith("idnes_3"):
+                    path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_3/"
+                elif model_name.startswith("idnes_4"):
+                    path_to_folder = "full_models/idnes/evaluated_models/word2vec_model_4/"
+                elif model_name.startswith("idnes"):
+                    path_to_folder = "w2v_idnes.model"
+                else:
+                    raise ValueError("Wrong model name chosen.")
+                file_name = "w2v_idnes.model"
+                path_to_model = path_to_folder + file_name
+                self.w2v_model = KeyedVectors.load(path_to_model)
+
+            else:
+                raise ValueError("No from option is available.")
+
+        logging.info("Calculating similarities on iDNES.cz model.")
+        ds = DocSim(self.w2v_model)
+        logging.debug("found_post:")
+        logging.debug(found_post)
+        if docsim_index is None and dictionary is None:
+            logging.debug("Docsim or dictionary is not passed into method. Loading.")
+
+            docsim_index = ds.load_docsim_index(source=source, model_name=model_name)
+        most_similar_articles_with_scores \
+            = calculate_similarity_idnes_model_gensim(found_post,
+                                                      docsim_index,
+                                                      dictionary,
+                                                      list_of_document_features)[:21]
+
         # removing post itself
         if len(most_similar_articles_with_scores) > 0:
-            print("most_similar_articles_with_scores:")
-            print(most_similar_articles_with_scores)
+            logging.debug("most_similar_articles_with_scores:")
+            logging.debug(most_similar_articles_with_scores)
             del most_similar_articles_with_scores[0]  # removing post itself
-            print("most_similar_articles_with_scores after del:")
-            print(most_similar_articles_with_scores)
+            logging.debug("most_similar_articles_with_scores after del:")
+            logging.debug(most_similar_articles_with_scores)
 
             # workaround due to float32 error in while converting to JSON
             return json.loads(json.dumps(most_similar_articles_with_scores, cls=NumpyEncoder))
@@ -488,11 +524,11 @@ class Word2VecClass:
                        use_default_model=False, save_model=True):
         model_path = None
         if source == "idnes":
-            model_path = "models/w2v_idnes.model"
+            model_path = Path("models/w2v_idnes.model")
         elif source == "cswiki":
-            model_path = "models/w2v_cswiki.model"
+            model_path = Path("models/w2v_cswiki.model")
         else:
-            ValueError("Wrong source of the model was chosen.")
+            raise ValueError("Wrong source of the model was chosen.")
 
         if os.path.isfile(model_path) is False or force_update_model is True:
             if source == "idnes":
@@ -736,7 +772,7 @@ class Word2VecClass:
         elif source == "cswiki":
             db = client.cswiki
         else:
-            ValueError("No source is available.")
+            raise ValueError("No source is available.")
         collection = db.preprocessed_articles_trigrams
         cursor = collection.find({})
         for document in cursor:
@@ -893,7 +929,11 @@ class Word2VecClass:
 
     def get_pair_similarity_word2vec(self, slug_1, slug_2, w2v_model=None):
 
-        # TODO: Deliver model to method. Does not make a sense to load every time!
+        logging.debug('Calculating Word2Vec pair similarity for posts:')
+        logging.debug(slug_1)
+        logging.debug(slug_2)
+
+        # TODO: Consider mandatory model deliver to method. Does not make a sense to load every time!
         recommend_methods = RecommenderMethods()
         post_1 = recommend_methods.find_post_by_slug(slug_1)
         post_2 = recommend_methods.find_post_by_slug(slug_2)
@@ -905,9 +945,6 @@ class Word2VecClass:
 
         first_text = combine_features_from_single_df_row(post_1, list_of_features)
         second_text = combine_features_from_single_df_row(post_2, list_of_features)
-
-        print(first_text)
-        print(second_text)
 
         first_text = preprocess(first_text).split()
         second_text = preprocess(second_text).split()
