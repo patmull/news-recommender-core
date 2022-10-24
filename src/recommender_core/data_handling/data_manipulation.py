@@ -191,7 +191,7 @@ class DatabaseMethods(object):
         else:
             # TODO: This is slow
             self.posts_df = self.get_posts_dataframe_from_sql()
-        self.posts_df.drop_duplicates(subset=['title'], inplace=True)
+        self.posts_df = self.posts_df.drop_duplicates(subset=['title'])
         return self.posts_df
 
     def insert_posts_dataframe_to_cache(self, cached_file_path=None):
