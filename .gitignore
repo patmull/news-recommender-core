@@ -170,3 +170,8 @@ w2v_idnes.model
 
 precalc_matrices
 /precalc_matrices
+
+requirements-generated.txt
+requirements_dev_py38_py39.txt
+requirements_dev_py310.txt
+requirements_generated.txt
