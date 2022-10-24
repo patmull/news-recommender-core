@@ -527,11 +527,20 @@ class Doc2VecClass:
         if 'slug_x' in self.df.columns:
             self.df = self.df.rename(columns={'slug_x': 'slug'})
         if searched_slug not in self.df['slug'].to_list():
-            # ** HERE WAS A HANDLING OF THIS ERROR BY UPDATING POSTS_CATEGORIES DF. ABANDONED DUE TO MASKING OF ERROR
-            # FOR BAD INPUT **
-            # TODO: Prirority: MEDIUM. Deal with this by counting the number of trials in config file with special
-            # variable for this purpose. If num_of_trials > 1, then throw ValueError
-            raise ValueError("searched_slug not in dataframe")
+            if project_config.trials_counter.NUM_OF_TRIALS < 1:
+                print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
+                recommender_methods = RecommenderMethods()
+                recommender_methods.get_posts_dataframe(force_update=True)
+                self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+                project_config.trials_counter.NUM_OF_TRIALS += 1
+                self.get_similar_doc2vec(searched_slug, train_enabled, limited, number_of_recommended_posts,
+                                    full_text, posts_from_cache)
+            else:
+                project_config.trials_counter.NUM_OF_TRIALS = 0
+                raise ValueError("searched_slug not in dataframe. Tried to deal with this by updating posts_categories "
+                                 "df but didn't helped")
+
+        project_config.trials_counter.NUM_OF_TRIALS = 0
 
         if full_text is False:
             cols = ['keywords', 'all_features_preprocessed']
@@ -582,9 +591,9 @@ class Doc2VecClass:
         most_similar_posts = doc2vec_loaded_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
         try:
-             recommednations = get_similar_by_posts_slug(most_similar_posts, documents_slugs, number_of_recommended_posts)
+             recommendations = get_similar_by_posts_slug(most_similar_posts, documents_slugs, number_of_recommended_posts)
              project_config.trials_counter.NUM_OF_TRIALS = 0
-             return recommednations
+             return recommendations
         except IndexError as e:
             if project_config.trials_counter.NUM_OF_TRIALS < 1:
                 logging.warning('Index error occurred when trying to get Doc2Vec model for posts')
@@ -597,7 +606,8 @@ class Doc2VecClass:
                 self.get_similar_doc2vec(searched_slug, train_enabled, limited, number_of_recommended_posts,
                                          full_text, posts_from_cache)
             else:
-                logging.warning("Tried to train Doc2Vec again but it didn't helped and IndexError got raised again. Need to shutdown,")
+                logging.warning("Tried to train Doc2Vec again but it didn't helped and IndexError got raised again. "
+                                "Need to shutdown,")
                 raise e
 
     @accepts_first_argument(str)
