@@ -193,12 +193,3 @@ class TestTfIdf(unittest.TestCase):
         print(type(matrix))
         assert str(type(matrix)) == "<class 'scipy.sparse._csr.csr_matrix'>"
         assert saved is False
-
-
-# python -m pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::TestWord2Vec
-class TestWord2Vec:
-
-    def test_load_word2vec_model(self):
-        path_to_model = Path("models/w2v_model_limited")
-        w2v_model = KeyedVectors.load(path_to_model.as_posix())
-        assert w2v_model
