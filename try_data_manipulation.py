@@ -1,4 +1,5 @@
 from app import check_if_cache_exists_and_fresh
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
@@ -17,6 +18,12 @@ if not check_if_cache_exists_and_fresh():
     recommender_methods = RecommenderMethods()
     recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
 """
-
+"""
 user_methods = UserMethods()
+
 print(user_methods.get_user_dataframe(user_id=371))
+"""
+database_methods = DatabaseMethods()
+database_methods.connect()
+database_methods.null_test_user_prefilled_records(241, ['recommended_by_best_rated_by_others_in_user_categories'])
+database_methods.disconnect()

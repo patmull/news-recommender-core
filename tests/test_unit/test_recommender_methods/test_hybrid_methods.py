@@ -1,6 +1,3 @@
-import json
-from pathlib import Path
-
 import pandas as pd
 import pytest
 
@@ -10,7 +7,7 @@ import pytest
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import select_list_of_posts_for_user, \
     get_most_similar_by_hybrid
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    Classifier, get_df_predicted, predict_from_vectors
+    Classifier, get_df_predicted
 
 classifier = Classifier()
 
@@ -32,12 +29,10 @@ def test_select_list_of_posts_for_user():
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
     list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(test_user_id, test_slugs)
 
-    assert(
-        type(list_of_slugs) is list,
-        len(list_of_slugs) > 0,
-        type(list_of_slugs_from_history) is list,
-        len(list_of_slugs_from_history) > 0
-     )
+    assert(type(list_of_slugs) is list)
+    assert(len(list_of_slugs) > 0)
+    assert(type(list_of_slugs_from_history) is list)
+    assert(len(list_of_slugs_from_history) > 0)
 
 
 @pytest.fixture()
@@ -59,7 +54,7 @@ def test_get_most_similar_by_hybrid(test_user_id, bad_list_of_methods):
         print(test_user_id)
         print("bad_list_of_methods")
         print(bad_list_of_methods)
-        get_most_similar_by_hybrid(user_id=test_user_id, posts_to_compare=None, list_of_methods=bad_list_of_methods)
+        get_most_similar_by_hybrid(user_id=test_user_id, svd_posts_to_compare=None, list_of_methods=bad_list_of_methods)
         assert str(nie) == "Inserted methods must correspond to DB columns."
 
 
@@ -74,4 +69,12 @@ def test_get_most_similar_by_hybrid_bad_user(tested_input):
     with pytest.raises(TypeError):
         get_most_similar_by_hybrid(user_id=tested_input, list_of_methods=bad_list_of_methods)
 
-# NOTICE: Good Day scenario belongs to integration testing because files (and possibly DB) is involved
+@pytest.mark.parametrize("tested_input", [
+    '',
+    (),
+    'ratings'
+])
+def test_svm_classifier_bad_sample_number(tested_input):
+    with pytest.raises(ValueError):
+        svm = Classifier()
+        assert svm.predict_relevance_for_user(use_only_sample_of=tested_input, user_id=431, relevance_by='stars')

@@ -16,7 +16,7 @@ def get_general_stopwords_file_path():
 
 
 def load_cz_stopwords(remove_punct=True):
-    with open(get_cz_stopwords_file_path(), encoding="utf-8") as file:
+    with open(get_cz_stopwords_file_path().as_posix(), encoding="utf-8") as file:
         cz_stopwords = file.readlines()
         if remove_punct is False:
             cz_stopwords = [line.rstrip() for line in cz_stopwords]
@@ -26,13 +26,13 @@ def load_cz_stopwords(remove_punct=True):
 
 
 def load_general_stopwords():
-    with open(get_general_stopwords_file_path(), encoding="utf-8") as file:
+    with open(get_general_stopwords_file_path().as_posix(), encoding="utf-8") as file:
         general_stopwords = file.readlines()
         general_stopwords = [line.rstrip() for line in general_stopwords]
         return flatten(general_stopwords)
 
 
-def remove_stopwords(texts, cz_punct=False):
+def remove_stopwords(texts, cz_punct=False) -> list:
     if type(texts) is list:
         cleaned_text_list = []
         stopwords_cz = load_cz_stopwords(cz_punct)

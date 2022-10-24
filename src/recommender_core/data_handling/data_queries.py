@@ -19,7 +19,18 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.simila
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 import os
 
+from typing import Dict, List
+
 CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"
+
+import logging
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from data_queries module.")
 
 
 def convert_df_to_json(dataframe):
@@ -95,7 +106,7 @@ def random_hyperparameter_choice(model_variants, vector_size_range, window_range
 
 def get_eval_results_header():
     corpus_title = ['100% Corpus']
-    model_results = {'Validation_Set': [],
+    model_results = {'Validation_Set': [],  # type: ignore
                      'Model_Variant': [],
                      'Negative': [],
                      'Vector_size': [],
@@ -110,7 +121,7 @@ def get_eval_results_header():
                      'Word_pairs_test_Spearman_p-val': [],
                      'Word_pairs_test_Out-of-vocab_ratio': [],
                      'Analogies_test': []
-                     }  # type: dict
+                     }  # type: Dict[str, List]
     return corpus_title, model_results
 
 
@@ -158,8 +169,8 @@ def prepare_hyperparameters_grid():
 
     corpus_title, model_results = get_eval_results_header()
     # noinspection PyPep8
-    return negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, \
-           epochs_range, sample_range, corpus_title, model_results
+    return negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, \
+           min_count_range, epochs_range, sample_range, corpus_title, model_results
 
 
 def combine_features_from_single_df_row(single_row_df, list_of_features):
@@ -171,33 +182,38 @@ class RecommenderMethods:
     def __init__(self):
         self.database = DatabaseMethods()
         self.cached_file_path = Path(CACHED_FILE_PATH)
-        self.posts_df = None
-        self.categories_df = None
-        self.df = None
+        self.posts_df = pd.DataFrame()
+        self.categories_df = pd.DataFrame()
+        self.df = pd.DataFrame()
 
     def get_posts_dataframe(self, force_update=False, from_cache=True):
-        print("4.1.1")
         if force_update is True:
             self.database.connect()
             self.posts_df = self.database.insert_posts_dataframe_to_cache(self.cached_file_path)
             self.database.disconnect()
         else:
-            print("Trying reading from cache as default...")
+            logging.debug("Trying reading from cache as default...")
             if os.path.isfile(self.cached_file_path):
                 try:
-                    print("Reading from cache...")
+                    logging.debug("Reading from cache...")
                     self.posts_df = self.database.get_posts_dataframe(from_cache=from_cache)
                 except Exception as e:
-                    print(e)
-                    print(traceback.format_exc())
-                    self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
+                    logging.warning("Exception occurred when trying to read post from cache:")
+                    logging.warning(e)
+                    logging.warning(traceback.format_exc())
+                    self.posts_df = self.get_df_from_sql_meanwhile_insert_to_cache()
             else:
-                self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
+                self.posts_df = self.get_df_from_sql_meanwhile_insert_to_cache()
 
-        print("4.1.2")
-        self.posts_df.drop_duplicates(subset=['title'], inplace=True)
-        print("4.1.3")
+        # ** HERE WAS DROP DUPLICATION. ABANDONED TO UNNECESSARZ DUPLICATED OPERATION AND MOVED TO
+        # ABOVE CHILDREN METHODS **
         return self.posts_df
+
+    def update_cache_of_posts_df(self):
+        logging.info("Updating posts cache...")
+        self.database.connect()
+        self.posts_df = self.database.insert_posts_dataframe_to_cache(self.cached_file_path)
+        self.database.disconnect()
 
     def get_posts_dataframe_only_with_bert(self):
         self.database.connect()
@@ -206,13 +222,14 @@ class RecommenderMethods:
 
         return self.posts_df
 
-    def get_df_from_sql_meanwhile_insert_cache(self):
+    def get_df_from_sql_meanwhile_insert_to_cache(self):
 
+        # noinspection PyShadowingNames
         def update_cache(self):
-            print("Inserting file to cache in the background...")
+            logging.debug("Inserting file to cache in the background...")
             self.database.insert_posts_dataframe_to_cache()
 
-        print("Posts not found on cache. Will use PgSQL command.")
+        logging.debug("Posts not found on cache. Will use PgSQL command.")
         posts_df = self.database.get_posts_dataframe_from_sql()
         thread = Thread(target=update_cache, kwargs={'self': self})
         thread.start()
@@ -239,7 +256,7 @@ class RecommenderMethods:
     def get_user_posts_ratings(self):
         database = DatabaseMethods()
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value 
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value
         AS ratings_values
         FROM posts p
         JOIN ratings r ON r.post_id = p.id
@@ -297,7 +314,7 @@ class RecommenderMethods:
                      'recommended_tfidf_full_text', 'trigrams_full_text']]
             except KeyError:
                 self.df = self.database.insert_posts_dataframe_to_cache()
-                self.posts_df.drop_duplicates(subset=['title'], inplace=True)
+                self.posts_df = self.posts_df.drop_duplicates(subset=['title'])
                 print(self.df.columns.values)
                 self.df = self.df[
                     ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
@@ -339,10 +356,8 @@ class RecommenderMethods:
                 raise ValueError("Entered input_string is empty.")
             else:
                 pass
-
-        return self.get_posts_dataframe(from_cache=from_cache).loc[
-            self.get_posts_dataframe(from_cache=from_cache)['slug'] == searched_slug
-            ]
+        posts_df = self.get_posts_dataframe(from_cache=from_cache)
+        return posts_df.loc[posts_df['slug'] == searched_slug]
 
     def get_posts_categories_dataframe(self, only_with_bert_vectors=False, from_cache=True):
         if only_with_bert_vectors is False:
@@ -358,12 +373,12 @@ class RecommenderMethods:
             categories_df = categories_df.rename(columns={'slug_y': 'category_slug'})
         elif 'slug' in categories_df.columns:
             categories_df = categories_df.rename(columns={'slug': 'category_slug'})
-        print("posts_df")
-        print(posts_df)
-        print(posts_df.columns)
-        print("categories_df")
-        print(categories_df)
-        print(categories_df.columns)
+        logging.debug("posts_df")
+        logging.debug(posts_df)
+        logging.debug(posts_df.columns)
+        logging.debug("categories_df")
+        logging.debug(categories_df)
+        logging.debug(categories_df.columns)
         self.df = pd.merge(posts_df, categories_df, left_on='category_id', right_on='id')
         if 'id_x' in self.df.columns:
             self.df = self.df.rename(columns={'id_x': 'post_id'})
@@ -394,6 +409,7 @@ class RecommenderMethods:
              'description', 'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
         return self.df
 
+    # NOTICE: This does not return Dataframe!
     def get_all_posts(self):
         self.database.connect()
         all_posts_df = self.database.get_all_posts()
@@ -421,8 +437,6 @@ class RecommenderMethods:
             self.database.disconnect()
             raise ValueError("Value error had occurred when trying to get posts for user." + str(e))
         return posts_users_categories_ratings_df
-
-
 
     def get_sql_columns(self):
         self.database.connect()
@@ -530,7 +544,7 @@ class TfIdfDataHandlers:
 
     def __init__(self, df=None):
         self.df = df
-        self.tfidf_vectorizer = None
+        self.tfidf_vectorizer = TfidfVectorizer()
         self.cosine_sim_df = None
         self.tfidf_tuples = None
 
@@ -597,8 +611,8 @@ class TfIdfDataHandlers:
 
         self.set_tfid_vectorizer()
         if fit_by_2 is None:
-            print("self.df")
-            print(self.df)
+            logging.debug("self.df")
+            logging.debug(self.df)
             self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[
                                                                         fit_by])
         else:
@@ -627,11 +641,11 @@ class TfIdfDataHandlers:
                                                 stop_words=stopwords)
 
     def calculate_cosine_sim_matrix(self, tupple_of_fitted_matrices):
-        print("tupple_of_fitted_matrices:")
-        print(tupple_of_fitted_matrices)
+        logging.debug("tupple_of_fitted_matrices:")
+        logging.debug(tupple_of_fitted_matrices)
         combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
-        print("combined_matrix1:")
-        print(combined_matrix1)
+        logging.debug("combined_matrix1:")
+        logging.debug(combined_matrix1)
 
         cosine_transform = CosineTransformer()
         self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix(combined_matrix1, self.df)
@@ -668,8 +682,8 @@ class TfIdfDataHandlers:
         return recommended_posts_in_json
 
     def get_closest_posts(self, find_by_string, data_frame, items, k=20):
-        print("self.cosine_sim_df:")
-        print(self.cosine_sim_df)
+        logging.debug("self.cosine_sim_df:")
+        logging.debug(self.cosine_sim_df)
         ix = data_frame.loc[:, find_by_string].to_numpy().argpartition(range(-1, -k, -1))
         closest = data_frame.columns[ix[-1:-(k + 2):-1]]
 

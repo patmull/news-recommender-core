@@ -2,6 +2,7 @@ import re
 import string
 from collections import defaultdict
 
+import pandas as pd
 from nltk import RegexpTokenizer
 
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, TfIdfDataHandlers
@@ -35,6 +36,9 @@ def preprocess(sentence, stemming=False, lemma=True):
 
     elif lemma is True:
         edited_words = [cz_lemma(w) for w in tokens if len(w) > 1]
+
+        # TODO: error: Need type annotation for "edited_words_list". Prirotiy: LOW
+        #  (hint: "edited_words_list: List[<type>] = ...")  [var-annotated]
         edited_words_list = list(filter(None, edited_words))  # empty strings removal
         return " ".join(edited_words_list)
     else:
@@ -47,7 +51,7 @@ class GensimMethods:
     def __init__(self):
         self.posts_df = None
         self.categories_df = None
-        self.df = None
+        self.df = pd.DataFrame()
         self.database = DatabaseMethods()
         self.documents = None
 

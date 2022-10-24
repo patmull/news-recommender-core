@@ -142,6 +142,7 @@ def format_topics_sentences(lda_model, corpus, texts):
 
     # Get main topic in each document
     for i, row in enumerate(lda_model[corpus]):
+        # TODO: Returning Any from function declared to return "SupportsLessThan"  [no-any-return]. Prirority: LOW
         row = sorted(row, key=lambda x: (x[1]), reverse=True)
         # Get the Dominant topic, Perc Contribution and Keywords for each document
         for j, (topic_num, prop_topic) in enumerate(row):
@@ -432,15 +433,28 @@ def find_optimal_model():
     pbar.close()
 
 
+def prepare_post_categories_df(recommender_methods, posts_from_cache, searched_slug):
+    recommender_methods.get_posts_dataframe(from_cache=posts_from_cache)
+    recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
+
+    if searched_slug not in recommender_methods.df['slug'].to_list():
+        print('Slug does not appear in dataframe.')
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_dataframe(force_update=True)
+        recommender_methods.get_posts_categories_dataframe(from_cache=True)
+
+    return recommender_methods
+
+
 class Lda:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/lda_all_in_one"
 
     def __init__(self):
         self.top_k_words = None
         self.documents = None
-        self.df = None
-        self.posts_df = None
-        self.categories_df = None
+        self.df = pd.DataFrame()
+        self.posts_df = pd.DataFrame()
+        self.categories_df = pd.DataFrame()
         self.database = DatabaseMethods()
 
     # @profile
@@ -455,7 +469,9 @@ class Lda:
             raise ValueError('Slug has bad data type or is empty.')
 
         if searched_slug not in recommender_methods.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+            print('Slug does not appear in dataframe.')
+            recommender_methods.get_posts_dataframe(force_update=True)
+            recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
 
         gc.collect()
 
@@ -505,6 +521,16 @@ class Lda:
 
         return flatten(list_of_articles)
 
+    def get_searched_doc_id(self, recommender_methods, searched_slug):
+        logging.info("Finding id for post with slug:")
+        logging.info(searched_slug)
+        recommender_methods.df = recommender_methods.df.rename(columns={'post_slug': 'slug'})
+        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['slug'] == searched_slug].tolist()
+        logging.debug("searched_doc_id_list:")
+        logging.debug(searched_doc_id_list)
+        searched_doc_id = searched_doc_id_list[0]
+        return searched_doc_id
+
     def get_similar_lda_full_text(self, searched_slug: str, n=21, train=False, display_dominant_topics=True,
                                   posts_from_cache=True):
         if type(searched_slug) is not str:
@@ -513,11 +539,8 @@ class Lda:
             raise ValueError("Empty string inserted instead of slug string.")
 
         recommender_methods = RecommenderMethods()
-        recommender_methods.get_posts_dataframe(from_cache=posts_from_cache)
-        recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
 
-        if searched_slug not in recommender_methods.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+        recommender_methods = prepare_post_categories_df(recommender_methods, posts_from_cache, searched_slug)
 
         recommender_methods.df['tokenized'] = recommender_methods.tokenize_text()
         gc.collect()
@@ -527,9 +550,9 @@ class Lda:
 
         dictionary, corpus, lda = self.load_lda_full_text(recommender_methods.df,
                                                           display_dominant_topics=display_dominant_topics)
-        recommender_methods.df = recommender_methods.df.rename(columns={'post_slug': 'slug'})
-        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['slug'] == searched_slug].tolist()
-        searched_doc_id = searched_doc_id_list[0]
+
+        searched_doc_id = self.get_searched_doc_id(recommender_methods, searched_slug)
+
         new_sentences = recommender_methods.df.iloc[searched_doc_id, :]
         new_sentences = new_sentences[['tokenized']]
         print("new_sentences[['tokenized']][0]:")

@@ -7,11 +7,18 @@ import psycopg2
 import pandas as pd
 import redis
 from pandas.io.sql import DatabaseError
+from typing import List
 
-DB_USER = os.environ.get('DB_RECOMMENDER_USER')
-DB_PASSWORD = os.environ.get('DB_RECOMMENDER_PASSWORD')
-DB_HOST = os.environ.get('DB_RECOMMENDER_HOST')
-DB_NAME = os.environ.get('DB_RECOMMENDER_NAME')
+if "PYTEST_CURRENT_TEST" in os.environ:
+    DB_USER = 'postgres'
+    DB_PASSWORD = 'braf'
+    DB_HOST = 'localhost'
+    DB_NAME = 'moje_clanky_core_testing'
+else:
+    DB_USER = os.environ['DB_RECOMMENDER_USER']
+    DB_PASSWORD = os.environ['DB_RECOMMENDER_PASSWORD']
+    DB_HOST = os.environ['DB_RECOMMENDER_HOST']
+    DB_NAME = os.environ['DB_RECOMMENDER_NAME']
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -19,7 +26,7 @@ for handler in logging.root.handlers[:]:
 # NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
-logging.debug("Testing logging.")
+logging.debug("Testing logging from data?manipulation.")
 
 
 def print_exception_not_inserted(e):
@@ -29,12 +36,11 @@ def print_exception_not_inserted(e):
 class DatabaseMethods(object):
 
     def __init__(self):
-
         self.categories_df = None
-        self.posts_df = None
+        self.posts_df = pd.DataFrame()
         self.df = None
-        self.cursor = None
         self.cnx = None
+        self.cursor = None
 
     def connect(self):
         keepalive_kwargs = {
@@ -51,7 +57,7 @@ class DatabaseMethods(object):
         self.cursor = self.cnx.cursor()
 
     def disconnect(self):
-        if self.cursor is not None:
+        if self.cursor is not None and self.cnx is not None:
             self.cursor.close()
             self.cnx.close()
         else:
@@ -67,6 +73,7 @@ class DatabaseMethods(object):
         else:
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
+    # NOTICE: This does not return DataFrame but list of columns!
     def get_all_posts(self):
 
         sql = """SELECT * FROM posts ORDER BY id;"""
@@ -101,6 +108,7 @@ class DatabaseMethods(object):
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
+    # TODO: This should be handled in RecommenderMethods. Priority: MEDIUM
     def join_posts_ratings_categories(self):
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
@@ -110,10 +118,10 @@ class DatabaseMethods(object):
 
     def get_posts_join_categories(self):
 
-        sql = """SELECT posts.slug, posts.title, categories.title, posts.excerpt, body, 
-        keywords, all_features_preprocessed, full_text, body_preprocessed, posts.recommended_tfidf, 
-        posts.recommended_word2vec, posts.recommended_doc2vec, posts.recommended_lda, posts.recommended_tfidf_full_text, 
-        posts.recommended_word2vec_full_text, posts.recommended_doc2vec_full_text, posts.recommended_lda_full_text 
+        sql = """SELECT posts.slug, posts.title, categories.title, posts.excerpt, body,
+        keywords, all_features_preprocessed, full_text, body_preprocessed, posts.recommended_tfidf,
+        posts.recommended_word2vec, posts.recommended_doc2vec, posts.recommended_lda, posts.recommended_tfidf_full_text,
+        posts.recommended_word2vec_full_text, posts.recommended_doc2vec_full_text, posts.recommended_lda_full_text
         FROM posts JOIN categories ON posts.category_id = categories.id;"""
 
         query = sql
@@ -134,8 +142,7 @@ class DatabaseMethods(object):
                 raise TypeError('column_name is not string')
             else:
                 # noinspection
-                sql_query = 'SELECT {} FROM users ORDER BY id;'
-                sql_query = sql_query.format("id, " + column_name)
+                sql_query = 'SELECT {} FROM users ORDER BY id;'.format("id, " + column_name)
         print("sql_query:")
         print(sql_query)
         try:
@@ -168,6 +175,7 @@ class DatabaseMethods(object):
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         self.disconnect()
+        df = df.drop_duplicates(subset=['title'])
         return df
 
     def get_posts_dataframe_only_with_bert_vectors(self):
@@ -184,7 +192,6 @@ class DatabaseMethods(object):
         else:
             # TODO: This is slow
             self.posts_df = self.get_posts_dataframe_from_sql()
-        self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         return self.posts_df
 
     def insert_posts_dataframe_to_cache(self, cached_file_path=None):
@@ -209,15 +216,21 @@ class DatabaseMethods(object):
         print(df.dtypes)
         # Removing bert_vector_representation for not supported column type of pickle
         df_for_save = df.drop(columns=['bert_vector_representation'])
+        # Removing duplicated posts that could cause problem in some future algorithms applied to this
+        df_for_save = df_for_save.drop_duplicates(subset=['title'])
         print("str_path:")
         print(str_path)
         print("df:")
         print(df_for_save)
-        df_for_save.to_pickle(str_path)  # dataframe of posts will be stored in selected directory
+
+        path = Path(cached_file_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        df_for_save.to_pickle(path.as_posix())  # dataframe of posts will be stored in selected directory
         return df
 
     def get_posts_dataframe_from_cache(self):
-        print("Reading cache file...")
+        logging.debug("Reading cache file...")
         try:
             path_to_df = Path('db_cache/cached_posts_dataframe.pkl')
             df = pd.read_pickle(path_to_df)
@@ -246,8 +259,7 @@ class DatabaseMethods(object):
         return df
 
     def get_user_dataframe(self, user_id):
-        sql = """SELECT * FROM users WHERE id = {};"""
-        sql = sql.format(user_id)
+        sql = """SELECT * FROM users WHERE id = {};""".format(user_id)
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
@@ -259,15 +271,16 @@ class DatabaseMethods(object):
         return df
 
     def get_user_history(self, user_id):
-        sql = """SELECT * FROM user_history WHERE user_id = {} ORDER BY id;"""
-        sql = sql.format(user_id)
-        df = pd.read_sql_query(sql, self.get_cnx())
+        sql = """SELECT * FROM user_history WHERE user_id = %(user_id)s"""
+        df = pd.read_sql_query(sql, self.get_cnx(), params={'user_id': user_id})
         return df
 
     def get_posts_df_users_df_ratings_df(self):
         # EXTRACT RESULTS FROM CURSOR
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, r.value AS ratings_values
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id
+        AS user_id, u.name,
+        r.value AS ratings_values
                     FROM posts p
                     JOIN ratings r ON r.post_id = p.id
                     JOIN users u ON r.user_id = u.id;"""
@@ -292,7 +305,7 @@ class DatabaseMethods(object):
             df_user_categories = pd.read_sql_query(sql, self.get_cnx())
             # df = pd.read_sql_query(results, database.get_cnx())
         else:
-            sql_user_categories = """SELECT c.slug AS "category_slug" FROM user_categories uc 
+            sql_user_categories = """SELECT c.slug AS "category_slug" FROM user_categories uc
             JOIN categories c ON c.id = uc.category_id WHERE uc.user_id = (%(user_id)s);"""
             query_params = {'user_id': user_id}
             df_user_categories = pd.read_sql_query(sql_user_categories, self.get_cnx(),
@@ -326,7 +339,7 @@ class DatabaseMethods(object):
 
         # EXTRACT RESULTS FROM CURSOR
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS ratings_values, 
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS ratings_values,
         c.title AS category_title, c.slug AS category_slug, p.created_at AS post_created_at
         FROM posts p
         JOIN ratings r ON r.post_id = p.id
@@ -345,7 +358,7 @@ class DatabaseMethods(object):
         return df_ratings
 
     def get_user_keywords(self, user_id):
-        sql_user_keywords = """SELECT multi_dimensional_list.name AS "keyword_name" FROM tag_user tu JOIN tags 
+        sql_user_keywords = """SELECT multi_dimensional_list.name AS "keyword_name" FROM tag_user tu JOIN tags
         multi_dimensional_list ON multi_dimensional_list.id = tu.tag_id WHERE tu.user_id = (%(user_id)s); """
         query_params = {'user_id': user_id}
         df_user_categories = pd.read_sql_query(sql_user_keywords, self.get_cnx(), params=query_params)
@@ -432,14 +445,6 @@ class DatabaseMethods(object):
         else:
             raise ValueError("Not allowed DB method passed.")
 
-    @DeprecationWarning
-    def insert_doc2vec_vector(self, doc2vec_vector, article_id):
-        query = """UPDATE posts SET doc2vec_representation = %s WHERE id = %s;"""
-        inserted_values = (doc2vec_vector, article_id)
-        self.cursor.execute(query, inserted_values)
-        self.cnx.commit()
-        print("Inserted")
-
     def insert_preprocessed_combined(self, preprocessed_all_features, post_id):
         try:
             query = """UPDATE posts SET all_features_preprocessed = %s WHERE id = %s;"""
@@ -497,16 +502,23 @@ class DatabaseMethods(object):
 
     def get_not_prefilled_posts(self, full_text, method):
         if full_text is False:
-            if method == "tfidf":
-                sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
-            elif method == "word2vec":
-                sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
-            elif method == "doc2vec":
-                sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
-            elif method == "lda":
-                sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
+            if "PYTEST_CURRENT_TEST" in os.environ:
+                if method == "test_prefilled_all":
+                    sql = """SELECT * FROM posts WHERE recommended_test_prefilled_all IS NULL ORDER BY id;"""
+                else:
+                    raise ValueError("Selected method " + method + " not implemented.")
             else:
-                raise ValueError("Selected model_variant not implemented.")
+                logging.debug("Getting records from production DB.")
+                if method == "tfidf":
+                    sql = """SELECT * FROM posts WHERE recommended_tfidf IS NULL ORDER BY id;"""
+                elif method == "word2vec":
+                    sql = """SELECT * FROM posts WHERE recommended_word2vec IS NULL ORDER BY id;"""
+                elif method == "doc2vec":
+                    sql = """SELECT * FROM posts WHERE recommended_doc2vec IS NULL ORDER BY id;"""
+                elif method == "lda":
+                    sql = """SELECT * FROM posts WHERE recommended_lda IS NULL ORDER BY id;"""
+                else:
+                    raise ValueError("Selected method " + method + " not implemented.")
         else:
             if method == "tfidf":
                 sql = """SELECT * FROM posts WHERE recommended_tfidf_full_text IS NULL ORDER BY id;"""
@@ -529,7 +541,7 @@ class DatabaseMethods(object):
             elif method == "doc2vec_eval_cswiki_1":
                 sql = """SELECT * FROM posts WHERE recommended_doc2vec_eval_cswiki_1 IS NULL ORDER BY id;"""
             else:
-                raise ValueError("Selected model_variant not implemented.")
+                raise ValueError("Selected method " + method + " not implemented.")
         query = sql
         if self.cursor is not None:
             self.cursor.execute(query)
@@ -565,6 +577,7 @@ class DatabaseMethods(object):
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
+    # TODO: Test this. Priority: LOW-MEDIUM
     def get_posts_with_no_body_preprocessed(self):
         sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
@@ -577,6 +590,7 @@ class DatabaseMethods(object):
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
+    # TODO: Test this. Priority: LOW-MEDIUM
     def get_posts_with_no_keywords(self):
         sql = """SELECT * FROM posts WHERE posts.keywords IS NULL ORDER BY id;"""
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
@@ -589,6 +603,7 @@ class DatabaseMethods(object):
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
+    # TODO: Test this. Priority: LOW-MEDIUM
     def get_posts_with_no_all_features_preprocessed(self):
         sql = """SELECT * FROM posts WHERE posts.all_features_preprocessed IS NULL ORDER BY id;"""
         # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
@@ -621,7 +636,7 @@ class DatabaseMethods(object):
         if get_only_posts_with_prefilled_bert_vectors is False:
             sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
             p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
-            c.title AS category_title, c.slug AS category_slug, 
+            c.title AS category_title, c.slug AS category_slug,
             p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed,
             p.full_text AS full_text
             FROM posts p
@@ -664,10 +679,10 @@ class DatabaseMethods(object):
         if get_only_posts_with_prefilled_bert_vectors is False:
             sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
             t.value AS thumbs_values, c.title AS category_title, c.slug AS category_slug,
-            p.created_at AS post_created_at, t.created_at AS thumbs_created_at, 
+            p.created_at AS post_created_at, t.created_at AS thumbs_created_at,
             p.all_features_preprocessed AS all_features_preprocessed, p.body_preprocessed AS body_preprocessed,
             p.full_text AS full_text,
-            p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title, 
+            p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title,
             p.keywords AS keywords,
             p.doc2vec_representation AS doc2vec_representation
             FROM posts p
@@ -677,10 +692,10 @@ class DatabaseMethods(object):
         else:
             sql_thumbs = """SELECT DISTINCT t.id AS thumb_id, p.id AS post_id, u.id AS user_id, p.slug AS post_slug,
             t.value AS thumbs_values, c.title AS category_title, c.slug AS category_slug,
-            p.created_at AS post_created_at, t.created_at AS thumbs_created_at, 
+            p.created_at AS post_created_at, t.created_at AS thumbs_created_at,
             p.all_features_preprocessed AS all_features_preprocessed, p.body_preprocessed AS body_preprocessed,
             p.full_text AS full_text,
-            p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title, 
+            p.trigrams_full_text AS short_text, p.trigrams_full_text AS trigrams_full_text, p.title AS title,
             p.keywords AS keywords,
             p.doc2vec_representation AS doc2vec_representation
             FROM posts p
@@ -714,7 +729,7 @@ class DatabaseMethods(object):
 
     def get_posts_users_ratings_df(self):
         # EXTRACT RESULTS FROM CURSOR
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name, 
+        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name,
         r.value AS ratings_values FROM posts p JOIN ratings r ON r.post_id = p.id JOIN users u ON r.user_id = u.id;"""
         # LOAD INTO A DATAFRAME
         df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
@@ -751,19 +766,12 @@ class DatabaseMethods(object):
         df = pd.read_sql_query(sql, self.get_cnx())
         return df
 
-    def get_user_history(self, user_id):
-        sql = """SELECT * FROM user_history WHERE user_id = {} ORDER BY id;"""
-        sql = sql.format(user_id)
-        df = pd.read_sql_query(sql, self.get_cnx())
-        return df
-
     def insert_recommended_json_user_based(self, recommended_json, user_id, db, method):
         if db != "pgsql":
             raise NotImplementedError("Other database source than PostgreSQL not implemented yet.")
         try:
             column_name = "recommended_by_" + method
-            query = """UPDATE users SET {} = %s WHERE id = %s;"""
-            query = query.format(column_name)
+            query = """UPDATE users SET {} = %s WHERE id = %s;""".format(column_name)
             print("query used:")
             print(query)
             inserted_values = (recommended_json, user_id)
@@ -775,7 +783,7 @@ class DatabaseMethods(object):
         except psycopg2.Error as e:
             print_exception_not_inserted(e)
 
-    def null_test_user_prefilled_records(self, user_id, db_columns):
+    def null_test_user_prefilled_records(self, user_id: int, db_columns: List[str]):
         """
         Method used for testing purposes.
         @param user_id:
@@ -784,13 +792,12 @@ class DatabaseMethods(object):
         """
         for method in db_columns:
             try:
-                query = """UPDATE users SET {} = NULL WHERE id = %s;"""
-                query = query.format(method)
-                queried_values = user_id
+                query = """UPDATE users SET {} = NULL WHERE id = %(id)s;""".format(method)
+                queried_values = {'id': user_id}
                 print("Query used in null_test_user_prefilled_records:")
                 print(query)
                 if self.cursor is not None and self.cnx is not None:
-                    self.cursor.execute(query % queried_values)
+                    self.cursor.execute(query, queried_values)
                     self.cnx.commit()
             except psycopg2.Error as e:
                 print_exception_not_inserted(e)
@@ -798,10 +805,45 @@ class DatabaseMethods(object):
                 logging.debug(str(e))
                 raise e
 
+    def null_test_prefilled_records(self):
+        posts = self.get_posts_dataframe()
+        random_post = posts.sample()
+        random_post_id = random_post['id'].iloc[0]
+        try:
+            query = """UPDATE users SET recommended_test_prefilled_all = NULL WHERE id = %(id)s;"""
+            queried_values = {'id': int(random_post_id)}
+            logging.debug("Query used in null_test_prefilled_records:")
+            logging.debug(query)
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, queried_values)
+                self.cnx.commit()
+        except psycopg2.Error as e:
+            print_exception_not_inserted(e)
+            logging.debug("psycopg2.Error occurred while trying to update user:")
+            logging.debug(str(e))
+            raise e
+
+        return int(random_post_id)
+
+    def set_test_json_in_prefilled_records(self, post_id):
+        try:
+            query = """UPDATE users SET recommended_test_prefilled_all = '[{test: json-test}]' WHERE id = %(id)s;"""
+            queried_values = {'id': post_id}
+            logging.debug("Query used in null_test_prefilled_records:")
+            logging.debug(query)
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, queried_values)
+                self.cnx.commit()
+        except psycopg2.Error as e:
+            print_exception_not_inserted(e)
+            logging.debug("psycopg2.Error occurred while trying to update user:")
+            logging.debug(str(e))
+            raise e
+
 
 def get_redis_connection():
     if 'REDIS_PASSWORD' in os.environ:
-        redis_password = os.environ.get('REDIS_PASSWORD')
+        redis_password = os.environ['REDIS_PASSWORD']
     else:
         raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
                                "Not possible to connect to Redis.")

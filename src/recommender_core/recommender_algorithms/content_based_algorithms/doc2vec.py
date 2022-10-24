@@ -1,5 +1,6 @@
 import csv
 import gc
+import logging
 import os
 import random
 
@@ -79,10 +80,10 @@ def compute_eval_values(source, train_corpus=None, test_corpus=None, model_varia
     print(overall_score)
 
     doc_id = random.randint(0, len(test_corpus) - 1)
-    print("print(test_corpus[:2])")
-    print(print(train_corpus[:2]))
-    print("print(test_corpus[:2])")
-    print(print(test_corpus[:2]))
+    logging.debug("print(test_corpus[:2])")
+    logging.debug(train_corpus[:2])
+    logging.debug("print(test_corpus[:2])")
+    logging.debug(test_corpus[:2])
     inferred_vector = d2v_model.infer_vector(test_corpus[doc_id])
     sims = d2v_model.dv.most_similar([inferred_vector], topn=len(d2v_model.dv))
     # Compare and print the most/median/least similar documents from the train_enabled train_corpus
@@ -498,10 +499,11 @@ class Doc2VecClass:
             self.df = self.df.rename(columns={'post_slug': 'slug'})
         if 'slug_x' in self.df.columns:
             self.df = self.df.rename(columns={'slug_x': 'slug'})
-        print("self.df['slug'].to_list()")
-        print(self.df['slug'].to_list())
         if searched_slug not in self.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+            print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
+            recommender_methods = RecommenderMethods()
+            recommender_methods.get_posts_dataframe(force_update=True)
+            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
 
         if full_text is False:
             cols = ['keywords', 'all_features_preprocessed']
@@ -567,7 +569,10 @@ class Doc2VecClass:
         # TODO: REPAIR
         # ValueError: Slug does not appear in dataframe.
         if searched_slug not in self.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+            print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
+            recommender_methods = RecommenderMethods()
+            recommender_methods.get_posts_dataframe(force_update=True)
+            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
         documents_all_features_preprocessed = preprocess_columns(self.df, cols)
@@ -628,6 +633,11 @@ class Doc2VecClass:
         return recommender_methods.get_prefilled_full_text(slug, variant)
 
     def get_pair_similarity_doc2vec(self, slug_1, slug_2, d2v_model=None):
+
+        logging.debug('Calculating Doc2Vec pair similarity for posts:')
+        logging.debug(slug_1)
+        logging.debug(slug_2)
+
         if d2v_model is None:
             d2v_model = self.load_model('models/d2v_full_text_limited.model')
 
