@@ -350,9 +350,8 @@ class RecommenderMethods:
             else:
                 pass
 
-        return self.get_posts_dataframe(from_cache=from_cache).loc[
-            self.get_posts_dataframe(from_cache=from_cache)['slug'] == searched_slug
-            ]
+        posts_df = self.get_posts_dataframe(from_cache=from_cache)
+        return posts_df.loc[posts_df['slug'] == searched_slug]
 
     def get_posts_categories_dataframe(self, only_with_bert_vectors=False, from_cache=True):
         if only_with_bert_vectors is False:
