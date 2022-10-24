@@ -46,13 +46,13 @@ def cosine_similarity_n_space(m1, m2=None, batch_size=100):
 class CosineTransformer:
 
     def __init__(self):
-        self.cosine_sim_df = None
+        self.cosine_sim_df = pd.DataFrame()
         self.cosine_sim = None
         self.count_matrix = None
         self.similar_articles = None
         self.sorted_similar_articles = None
         self.database = DatabaseMethods()
-        self.posts_df = None
+        self.posts_df = pd.DataFrame()
 
     def combine_current_posts(self):
 
@@ -89,6 +89,8 @@ class CosineTransformer:
     def get_list_of_similar_articles(self):
         try:
             self.sorted_similar_articles = sorted(self.similar_articles, key=lambda x: x[1], reverse=True)
+            # TODO: error: Argument 1 to "sorted" has incompatible type "Optional[Any]"; Priority: LOW
+            # expected "Iterable[Any]".
         except TypeError as e:
             print(e)
             pass

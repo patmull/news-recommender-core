@@ -24,6 +24,17 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Create DB
+        run: |
+          sudo apt update --yes
+          sudo apt install postgresql --yes
+          sudo service postgresql start
+          sudo -u postgres createdb moje_clanky_core_testing
+          sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'braf';"
+      - name: Importing .sql
+        run: |
+          export PGPASSWORD='braf'
+          for i in database/db_backups/core_testing_db_dumps/*.sql; do psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f $i; done
       - name: Install dependencies
         run: |
           sudo -H pip install --upgrade pip tox virtualenv
