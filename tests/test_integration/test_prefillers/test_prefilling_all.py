@@ -10,7 +10,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 @pytest.mark.integtest
-def test_prefilling_all(caplog):
+def test_run_prefilling(caplog):
     database = DatabaseMethods()
     needed_columns = check_needed_columns(database)
     assert type(needed_columns) is list
