@@ -133,7 +133,7 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                 print(e)
                 pass
 
-
+# TODO: Test this method alone, i.e. removing prefilled record, check logging for positive addition
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
     docsim_index, dictionary = None, None
@@ -186,7 +186,7 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
     elif method == 'word2vec':
         selected_model_name = "idnes"
         source = "idnes"
-        path_to_model = Path("models/w2v_model_limited")
+        path_to_model = Path("models/w2v_model_limited")  # type: ignore
         w2v_model = KeyedVectors.load(path_to_model.as_posix())
         ds = DocSim(w2v_model)
         docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name)
@@ -194,9 +194,9 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
     elif method.startswith("doc2vec_"):
         if method == "doc2vec_eval_cswiki_1":
-            print("Similarities on FastText doc2vec_model.")
-            print("Loading Dov2Vec cs.Wikipedia.org doc2vec_model...")
-            # TODO: This is weird. Investigate!
+            # Notice: Doc2Vec model gets loaded inside the Doc2Vec's class method
+            logging.debug("Similarities on FastText doc2vec_model.")
+            logging.debug("Loading Dov2Vec cs.Wikipedia.org doc2vec_model...")
 
     for post in posts:
         if len(posts) < 1:
