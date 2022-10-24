@@ -15,7 +15,7 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
     get_most_similar_by_hybrid, select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity, \
     LIST_OF_SUPPORTED_METHODS, SIM_MATRIX_OF_ALL_POSTS_PATH, SIM_MATRIX_NAME_BASE, \
-    precalculate_and_save_sim_matrix_for_all_posts
+    precalculate_and_save_sim_matrix_for_all_posts, load_posts_from_sim_matrix
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     load_bert_model, Classifier
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -78,7 +78,7 @@ def test_hybrid_by_svd_history_tfidf():
     searched_slug_1, searched_slug_2, searched_slug_3 = get_three_unique_posts()
 
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
-    tested_methods = ['tfidf', 'doc2vec']
+    tested_methods = ['tfidf', 'doc2vec'] # TODO: Why is Word2Vec not here?
 
     # posts delivered
     most_similar_hybrid_by_tfidf = get_most_similar_by_hybrid(user_id=test_user_id,
@@ -130,11 +130,11 @@ def test_svm_classifier_bad_user_id(tested_input):
         assert svm.predict_relevance_for_user(use_only_sample_of=20, user_id=tested_input, relevance_by='stars')
 
 
-def test_get_similarity_matrix_from_pairs_similarity():
+def test_get_similarity_matrix_from_pairs_similarity_test_2():
     recommender_methods = RecommenderMethods()
     all_posts = recommender_methods.get_posts_dataframe(from_cache=False)
-    all_posts_slugs = all_posts['slug'].values.tolist()
 
+    all_posts_slugs = all_posts['slug'].values.tolist()
     shrinked_slugs = all_posts_slugs[:5]
     logging.debug("shrinked_slugs:")
     logging.debug(shrinked_slugs)
@@ -154,6 +154,7 @@ class TestSimMatrixPrecalc(TestCase):
 
     recommender_methods = RecommenderMethods()
 
+    @pytest.mark.order(1)
     @patch('src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods.SIM_MATRIX_OF_ALL_POSTS_PATH',
            Path(TESTED_PATH))
     @patch('src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods.SIM_MATRIX_NAME_BASE',
@@ -175,3 +176,24 @@ class TestSimMatrixPrecalc(TestCase):
             logging.debug("tested_path")
             logging.debug(tested_path)
             assert os.path.exists(tested_path)
+
+    @pytest.mark.order(2)
+    @patch('src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods.SIM_MATRIX_OF_ALL_POSTS_PATH',
+           Path(TESTED_PATH))
+    @patch('src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods.SIM_MATRIX_NAME_BASE',
+           'testing_sim_matrix_of_all_posts')
+    def test_load_posts_from_sim_matrix(self):
+
+        # NOTICE: Order mey not be expected, also needs to be runnable alone
+        precalculate_and_save_sim_matrix_for_all_posts()
+
+        recommender_methods = RecommenderMethods()
+        all_posts = recommender_methods.get_posts_dataframe(from_cache=False)
+        all_posts_slugs = all_posts['slug'].values.tolist()
+        logging.debug("all_posts_slugs")
+        logging.debug(all_posts_slugs)
+        shrinked_slugs = all_posts_slugs[:5]
+        logging.debug("shrinked_slugs")
+        logging.debug(shrinked_slugs)
+        for method in LIST_OF_SUPPORTED_METHODS:
+            assert load_posts_from_sim_matrix(method, shrinked_slugs)

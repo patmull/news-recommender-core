@@ -192,6 +192,14 @@ def prepare_posts():
     return all_posts_slugs
 
 
+def prepare_sim_matrix_path(method):
+    file_name = "%s_%s.feather" % (SIM_MATRIX_NAME_BASE, method)
+    logging.debug("file_name:")
+    logging.debug(file_name)
+    file_path = Path.joinpath(SIM_MATRIX_OF_ALL_POSTS_PATH, file_name).as_posix()
+    return file_path
+
+
 # TODO: Add to prefillers.
 def precalculate_and_save_sim_matrix_for_all_posts():
     recommender_methods = RecommenderMethods()
@@ -202,10 +210,8 @@ def precalculate_and_save_sim_matrix_for_all_posts():
         logging.debug("Precalculating sim matrix for all posts for method: %s" % method)
         similarity_matrix_of_all_posts = get_similarity_matrix_from_pairs_similarity(method=method,
                                                                                      list_of_slugs=all_posts_slugs)
-        file_name = "%s_%s.feather" % (SIM_MATRIX_NAME_BASE, method)
-        logging.debug("file_name:")
-        logging.debug(file_name)
-        file_path = Path.joinpath(SIM_MATRIX_OF_ALL_POSTS_PATH, file_name).as_posix()
+        file_path = prepare_sim_matrix_path(method)
+
         logging.debug("file_path")
         logging.debug(file_path)
 
@@ -223,11 +229,17 @@ def load_posts_from_sim_matrix(method, list_of_slugs):
     @param list_of_slugs: slugs delivered from SVD algorithm = slugs that we are interested in
     @return:
     """
-    sim_matrix = pd.read_feather(SIM_MATRIX_OF_ALL_POSTS_PATH
-                                 .joinpath("%s_%s.feather" % (SIM_MATRIX_NAME_BASE, method)))
+    file_path = prepare_sim_matrix_path(method)
+    sim_matrix = pd.read_feather(file_path)
     # select from column and rows only desired articles
-    sim_matrix = sim_matrix.loc[list_of_slugs]
+    logging.debug("sim_matrix:")
+    logging.debug(sim_matrix)
+    sim_matrix = sim_matrix.loc[list_of_slugs] # This is probably incorrect(?)
+    logging.debug("sim_matrix:")
+    logging.debug(sim_matrix)
     sim_matrix = sim_matrix[list_of_slugs]
+    logging.debug("sim_matrix:")
+    logging.debug(sim_matrix)
     return sim_matrix
 
 
@@ -270,11 +282,11 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         for method in list_of_methods:
             if method == "tfidf":
                 constant = 1.75
+                file_path = prepare_sim_matrix_path(method)
                 # TODO: Derive from loaded feather of sim matrix instead
                 if load_from_precalc_sim_matrix \
                         and os.path \
-                        .exists(
-                    SIM_MATRIX_OF_ALL_POSTS_PATH.joinpath("%s_%s.feather" % (SIM_MATRIX_NAME_BASE, method))):
+                        .exists(file_path):
                     # Loading posts we are interested in from pre-calculated similarity matrix
                     similarity_matrix = load_posts_from_sim_matrix(method, list_of_slugs)
                 else:
@@ -285,10 +297,11 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                 similarity_matrix = similarity_matrix * constant
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
             elif method == "doc2vec" or "word2vec":
+                file_path = prepare_sim_matrix_path(method)
                 # TODO: Derive from loaded feather of sim matrix instead
                 if load_from_precalc_sim_matrix \
-                        and os.path.exists(SIM_MATRIX_OF_ALL_POSTS_PATH
-                                                   .joinpath("%s_%s.feather" % (SIM_MATRIX_NAME_BASE, method))):
+                        and os.path.exists(file_path):
+
                     # Loading posts we are interested in from pre-calculated similarity matrix
                     similarity_matrix = load_posts_from_sim_matrix(method, list_of_slugs)
                 else:
