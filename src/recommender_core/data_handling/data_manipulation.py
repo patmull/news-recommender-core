@@ -15,7 +15,7 @@ for handler in logging.root.handlers[:]:
 # NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
-logging.debug("Testing logging.")
+logging.debug("Testing logging from data?manipulation.")
 
 
 def print_exception_not_inserted(e):
@@ -175,6 +175,7 @@ class DatabaseMethods(object):
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         self.disconnect()
+        df = df.drop_duplicates(subset=['title'])
         return df
 
     def get_posts_dataframe_only_with_bert_vectors(self):
@@ -191,7 +192,6 @@ class DatabaseMethods(object):
         else:
             # TODO: This is slow
             self.posts_df = self.get_posts_dataframe_from_sql()
-        self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         return self.posts_df
 
     def insert_posts_dataframe_to_cache(self, cached_file_path=None):

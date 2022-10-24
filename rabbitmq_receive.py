@@ -1,6 +1,4 @@
-import functools
 import json
-import threading
 import time
 import traceback
 
@@ -25,17 +23,32 @@ Abandoned due to unclear use case. **
 
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
+def is_init_or_test(decoded_body):
+    if decoded_body == ChannelConstants.MESSAGE:
+        print("Received queue INIT message. Waiting for another messages.")
+        is_init_or_test_value = True
+    elif decoded_body == ChannelConstants.TEST_MESSAGE:
+        print("Received queue TEST message. Waiting for another messages.")
+        is_init_or_test_value = True
+    else:
+        is_init_or_test_value = False
+
+    if is_init_or_test_value is True:
+        print("Successfully received. Not doing any action since this was init or test.")
+
+    return is_init_or_test_value
+
+
 def user_rated_by_stars_callback(ch, method, properties, body):
     print("[x] Received %r" % body.decode())
     print("Properties:")
     print(properties)
     ch.basic_ack(delivery_tag=method.delivery_tag)
     if body.decode():
-        if body.decode() == ChannelConstants.MESSAGE:
-            print("Received queue INIT message. Waiting for another messages.")
-        else:
+        if not is_init_or_test(body.decode()):
+            print(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
+
             method = 'svd'
-            print("Received message o queue.")
             call_collaborative_prefillers(method, body)
 
 
@@ -46,9 +59,8 @@ def user_added_keywords(ch, method, properties, body):
     print(properties)
     ch.basic_ack(delivery_tag=method.delivery_tag)
     if body.decode():
-        if body.decode() == ChannelConstants.MESSAGE:
-            print("Received queue INIT message. Waiting for another messages.")
-        else:
+        if not is_init_or_test(body.decode()):
+            print(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
             method = 'user_keywords'
             call_collaborative_prefillers(method, body)
 
@@ -60,11 +72,9 @@ def user_added_categories(ch, method, properties, body):
     print(properties)
     ch.basic_ack(delivery_tag=method.delivery_tag)
     if body.decode():
-        if body.decode() == ChannelConstants.MESSAGE:
-            print("Received queue INIT message. Waiting for another messages.")
-        else:
+        if not is_init_or_test(body.decode()):
+            print(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
             method = 'best_rated_by_others_in_user_categories'
-            print("Received message to queue.")
             call_collaborative_prefillers(method, body)
 
 

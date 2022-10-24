@@ -21,6 +21,7 @@ log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from tfidf module.")
 
+
 def get_cleaned_text(row):
     return row
 
@@ -180,7 +181,7 @@ class TfIdf:
         tfidf_vectorizer = TfidfVectorizer()
         if self.df is None:
             raise ValueError("self.df is set to None. Cannot continue to next operation.")
-        self.df.drop_duplicates(subset=['title_x'], inplace=True)
+        self.df = self.df.drop_duplicates(subset=['title_x'])
         tf_train_data = pd.concat([self.df['category_title'], self.df['keywords'], self.df['title_x'],
                                    self.df['excerpt']])
         tfidf_vectorizer.fit_transform(tf_train_data)
@@ -206,7 +207,7 @@ class TfIdf:
         self.df = recommender_methods.join_posts_ratings_categories(include_prefilled=True)
 
     def save_sparse_matrix(self, for_hybrid=False):
-        logging.info("Loading posts.")
+        logging.info("Loading sparse matrix.")
 
         if for_hybrid is False:
             path = Path("models/tfidf_all_features_preprocessed.npz")
@@ -477,7 +478,11 @@ class TfIdf:
 
         recommender_methods = RecommenderMethods()
         list_of_posts_series = []
+        i = 0
         for slug in list_of_slugs:
+            logging.debug("Searching for features of post %d:" % i)
+            logging.debug(slug)
+            i += 1
             found_post = recommender_methods.find_post_by_slug(slug)
             list_of_posts_series.append(found_post)
         self.df = pd.concat(list_of_posts_series, ignore_index=True)
