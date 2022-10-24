@@ -34,7 +34,7 @@ jobs:
       - name: Importing .sql
         run: |
           export PGPASSWORD='braf'
-          for i in *.sql; do psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f $i"; done
+          for i in database/db_backups/core_testing_db_dumps/*.sql; do psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f $i; done
       - name: Install dependencies
         run: |
           sudo -H pip install --upgrade pip tox virtualenv
