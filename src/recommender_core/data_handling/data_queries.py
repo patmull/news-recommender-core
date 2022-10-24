@@ -23,6 +23,12 @@ from typing import Dict, List
 
 CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"
 
+import logging
+
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from data_queries module.")
+
 
 def convert_df_to_json(dataframe):
     result = dataframe[["title", "excerpt", "body"]].to_json(orient="records", lines=True)
@@ -165,6 +171,10 @@ def prepare_hyperparameters_grid():
 
 
 def combine_features_from_single_df_row(single_row_df, list_of_features):
+    logging.debug("single_row_df")
+    logging.debug(single_row_df)
+    logging.debug("list_of_features")
+    logging.debug(list_of_features)
     return (single_row_df[list_of_features] + ' ').sum(axis=1).str.strip()
 
 
@@ -178,16 +188,15 @@ class RecommenderMethods:
         self.df = pd.DataFrame()
 
     def get_posts_dataframe(self, force_update=False, from_cache=True):
-        print("4.1.1")
         if force_update is True:
             self.database.connect()
             self.posts_df = self.database.insert_posts_dataframe_to_cache(self.cached_file_path)
             self.database.disconnect()
         else:
-            print("Trying reading from cache as default...")
+            logging.debug("Trying reading from cache as default...")
             if os.path.isfile(self.cached_file_path):
                 try:
-                    print("Reading from cache...")
+                    logging.debug("Reading from cache...")
                     self.posts_df = self.database.get_posts_dataframe(from_cache=from_cache)
                 except Exception as e:
                     print(e)
@@ -196,9 +205,7 @@ class RecommenderMethods:
             else:
                 self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
 
-        print("4.1.2")
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
-        print("4.1.3")
         return self.posts_df
 
     def get_posts_dataframe_only_with_bert(self):
@@ -361,12 +368,12 @@ class RecommenderMethods:
             categories_df = categories_df.rename(columns={'slug_y': 'category_slug'})
         elif 'slug' in categories_df.columns:
             categories_df = categories_df.rename(columns={'slug': 'category_slug'})
-        print("posts_df")
-        print(posts_df)
-        print(posts_df.columns)
-        print("categories_df")
-        print(categories_df)
-        print(categories_df.columns)
+        logging.debug("posts_df")
+        logging.debug(posts_df)
+        logging.debug(posts_df.columns)
+        logging.debug("categories_df")
+        logging.debug(categories_df)
+        logging.debug(categories_df.columns)
         self.df = pd.merge(posts_df, categories_df, left_on='category_id', right_on='id')
         if 'id_x' in self.df.columns:
             self.df = self.df.rename(columns={'id_x': 'post_id'})
@@ -397,6 +404,7 @@ class RecommenderMethods:
              'description', 'all_features_preprocessed', 'body_preprocessed', 'full_text', 'category_id']]
         return self.df
 
+    # NOTICE: This does not return Dataframe!
     def get_all_posts(self):
         self.database.connect()
         all_posts_df = self.database.get_all_posts()
@@ -598,8 +606,8 @@ class TfIdfDataHandlers:
 
         self.set_tfid_vectorizer()
         if fit_by_2 is None:
-            print("self.df")
-            print(self.df)
+            logging.debug("self.df")
+            logging.debug(self.df)
             self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[
                                                                         fit_by])
         else:
@@ -628,11 +636,11 @@ class TfIdfDataHandlers:
                                                 stop_words=stopwords)
 
     def calculate_cosine_sim_matrix(self, tupple_of_fitted_matrices):
-        print("tupple_of_fitted_matrices:")
-        print(tupple_of_fitted_matrices)
+        logging.debug("tupple_of_fitted_matrices:")
+        logging.debug(tupple_of_fitted_matrices)
         combined_matrix1 = sparse.hstack(tupple_of_fitted_matrices)
-        print("combined_matrix1:")
-        print(combined_matrix1)
+        logging.debug("combined_matrix1:")
+        logging.debug(combined_matrix1)
 
         cosine_transform = CosineTransformer()
         self.cosine_sim_df = cosine_transform.get_cosine_sim_use_own_matrix(combined_matrix1, self.df)
@@ -669,8 +677,8 @@ class TfIdfDataHandlers:
         return recommended_posts_in_json
 
     def get_closest_posts(self, find_by_string, data_frame, items, k=20):
-        print("self.cosine_sim_df:")
-        print(self.cosine_sim_df)
+        logging.debug("self.cosine_sim_df:")
+        logging.debug(self.cosine_sim_df)
         ix = data_frame.loc[:, find_by_string].to_numpy().argpartition(range(-1, -k, -1))
         closest = data_frame.columns[ix[-1:-(k + 2):-1]]
 

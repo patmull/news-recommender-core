@@ -4,6 +4,7 @@ import logging
 import os
 import pickle
 import time
+from pathlib import Path
 
 import pyLDAvis
 import regex
@@ -28,6 +29,8 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.prefillers.preprocessing import cz_preprocessing
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
 from src.recommender_core.dataset_statistics.corpus_statistics import CorpusStatistics, most_common_words
+
+import project_config.trials_counter
 
 
 def apply_tokenize(text):
@@ -56,8 +59,8 @@ def jensen_shannon(query, matrix):
 def load_lda():
     try:
         lda_model = LdaModel.load("models/lda_model")
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-        corpus = pickle.load(open('precalc_vectors/corpus_idnes.pkl', 'rb'))
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/dictionary_idnes.gensim')
+        corpus = pickle.load(open('precalc_vectors/lda/corpus_idnes.pkl', 'rb'))
     except Exception as e:
         print(e)
         raise Exception("Could not load_texts LDA models or precalculated vectors. Reason:")
@@ -67,14 +70,14 @@ def load_lda():
 
 def save_corpus_dict(corpus, dictionary):
     print("Saving train_corpus and dictionary...")
-    pickle.dump(corpus, open('precalc_vectors/corpus_idnes.pkl', 'wb'))
-    dictionary.save('precalc_vectors/dictionary_idnes.gensim')
+    pickle.dump(corpus, open('precalc_vectors/lda/corpus_idnes.pkl', 'wb'))
+    dictionary.save('precalc_vectors/lda/dictionary_idnes.gensim')
 
 
 def save_corpus_dict_full_text(corpus, dictionary):
     print("Saving train_corpus and dictionary...")
-    pickle.dump(corpus, open('precalc_vectors/corpus_full_text.pkl', "wb"))
-    dictionary.save('precalc_vectors/dictionary_full_text.gensim')
+    pickle.dump(corpus, open('precalc_vectors/lda/corpus_full_text.pkl', "wb"))
+    dictionary.save('precalc_vectors/lda/dictionary_full_text.gensim')
 
 
 def make_bigrams(bigram_mod, texts):
@@ -142,6 +145,7 @@ def format_topics_sentences(lda_model, corpus, texts):
 
     # Get main topic in each document
     for i, row in enumerate(lda_model[corpus]):
+        # TODO: Returning Any from function declared to return "SupportsLessThan"  [no-any-return]. Prirority: LOW
         row = sorted(row, key=lambda x: (x[1]), reverse=True)
         # Get the Dominant topic, Perc Contribution and Keywords for each document
         for j, (topic_num, prop_topic) in enumerate(row):
@@ -215,7 +219,11 @@ def get_most_similar_documents(query, matrix, k=20):
 
 
 def build_bigrams_and_trigrams(data_words):
+    logging.debug('data_words:')
+    logging.debug(data_words)
     bigram = gensim.models.Phrases(data_words, min_count=5, threshold=100)
+    logging.debug('bigram')
+    logging.debug(bigram)
     trigram = gensim.models.Phrases(bigram[data_words], threshold=100)
 
     # Faster way to get a sentence clubbed as a trigram/bigram
@@ -296,7 +304,6 @@ def preprocess_wiki_corpus():
 
 
 def find_optimal_model():
-
     # Enabling LDA logging
     logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO,
                         filename='content_based_algorithms/training_logs/lda/logs.log')
@@ -432,30 +439,54 @@ def find_optimal_model():
     pbar.close()
 
 
+def prepare_post_categories_df(recommender_methods, posts_from_cache, searched_slug):
+    recommender_methods.get_posts_dataframe(from_cache=posts_from_cache)
+    df = recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
+
+    if searched_slug not in recommender_methods.df['slug'].to_list():
+        print('Slug does not appear in dataframe.')
+        recommender_methods = RecommenderMethods()
+        recommender_methods.get_posts_dataframe(force_update=True)
+        df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+
+    return df
+
+
 class Lda:
     # amazon_bucket_url = 's3://' + AWS_ACCESS_KEY_ID + ":" + AWS_SECRET_ACCESS_KEY + "@moje-clanky/lda_all_in_one"
 
     def __init__(self):
         self.top_k_words = None
         self.documents = None
-        self.df = None
-        self.posts_df = None
-        self.categories_df = None
+        self.df = pd.DataFrame()
+        self.posts_df = pd.DataFrame()
+        self.categories_df = pd.DataFrame()
         self.database = DatabaseMethods()
 
     # @profile
+    # TODO: Think about deprecating this in the favor of LDA Full Text
     @check_empty_string
+    @PendingDeprecationWarning
     def get_similar_lda(self, searched_slug, train=False, display_dominant_topics=False, n=21, posts_from_cache=True):
 
         recommender_methods = RecommenderMethods()
-        recommender_methods.get_posts_dataframe(from_cache=posts_from_cache)
-        recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
+        recommender_methods.df = recommender_methods.get_posts_dataframe(from_cache=posts_from_cache)
+        recommender_methods.df = recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
 
         if searched_slug == "" or type(searched_slug) is not str:
             raise ValueError('Slug has bad data type or is empty.')
 
         if searched_slug not in recommender_methods.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+            """
+            print('Slug does not appear in dataframe.')
+            recommender_methods.get_posts_dataframe(force_update=True)
+            recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
+            """
+            # ** HERE WAS A HANDLING OF THIS ERROR BY UPDATING POSTS_CATEGORIES DF. ABANDONED DUE TO MASKING OF ERROR
+            # FOR BAD INPUT **
+            # TODO: Prirority: MEDIUM. Deal with this by counting the number of trials in config file with special
+            # variable for this purpose. If num_of_trials > 1, then throw ValueError
+            raise ValueError("searched_slug not in dataframe")
 
         gc.collect()
 
@@ -478,11 +509,25 @@ class Lda:
         new_bow = dictionary.doc2bow([selected_by_column])
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
-        doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist.npy')
+        doc_topic_dist = np.load('precalc_vectors/lda/lda_doc_topic_dist.npy')
+        try:
+            most_sim_ids, most_sim_coefficients = get_most_similar_documents(new_doc_distribution, doc_topic_dist, n)
+            most_similar_df = recommender_methods.df.iloc[most_sim_ids]
+        except IndexError as e:
+            if project_config.trials_counter.NUM_OF_TRIALS < 1:
+                logging.warning('Index error occurred when trying to get Doc2Vec model for posts')
+                logging.warning(e)
+                logging.info('Trying to deal with this by retraining Doc2Vec...')
+                logging.debug('Preparing test features')
 
-        most_sim_ids, most_sim_coefficients = get_most_similar_documents(new_doc_distribution, doc_topic_dist, n)
-
-        most_similar_df = recommender_methods.df.iloc[most_sim_ids]
+                self.train_lda_full_text(recommender_methods.df, display_dominant_topics=display_dominant_topics)
+                project_config.trials_counter.NUM_OF_TRIALS += 1
+                self.get_similar_lda(searched_slug, train, display_dominant_topics, n, posts_from_cache)
+            else:
+                logging.warning(
+                    "Tried to train Doc2Vec again but it didn't helped and IndexError got raised again. "
+                    "Need to shutdown.")
+                raise e
 
         most_similar_df = most_similar_df.iloc[1:, :]
 
@@ -505,6 +550,16 @@ class Lda:
 
         return flatten(list_of_articles)
 
+    def get_searched_doc_id(self, recommender_methods, searched_slug):
+        logging.info("Finding id for post with slug:")
+        logging.info(searched_slug)
+        recommender_methods.df = recommender_methods.df.rename(columns={'post_slug': 'slug'})
+        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['slug'] == searched_slug].tolist()
+        logging.debug("searched_doc_id_list:")
+        logging.debug(searched_doc_id_list)
+        searched_doc_id = searched_doc_id_list[0]
+        return searched_doc_id
+
     def get_similar_lda_full_text(self, searched_slug: str, n=21, train=False, display_dominant_topics=True,
                                   posts_from_cache=True):
         if type(searched_slug) is not str:
@@ -513,23 +568,35 @@ class Lda:
             raise ValueError("Empty string inserted instead of slug string.")
 
         recommender_methods = RecommenderMethods()
-        recommender_methods.get_posts_dataframe(from_cache=posts_from_cache)
-        recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
 
-        if searched_slug not in recommender_methods.df['slug'].to_list():
-            raise ValueError('Slug does not appear in dataframe.')
+        recommender_methods.df = prepare_post_categories_df(recommender_methods, posts_from_cache, searched_slug)
+
+        logging.debug('recommender_methods.df')
+        logging.debug(recommender_methods.df)
 
         recommender_methods.df['tokenized'] = recommender_methods.tokenize_text()
         gc.collect()
+
+        if searched_slug not in recommender_methods.df['slug'].to_list():
+            """
+            print('Slug does not appear in dataframe.')
+            recommender_methods.get_posts_dataframe(force_update=True)
+            recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
+            """
+            # ** HERE WAS A HANDLING OF THIS ERROR BY UPDATING POSTS_CATEGORIES DF. ABANDONED DUE TO MASKING OF ERROR
+            # FOR BAD INPUT **
+            # TODO: Priority: MEDIUM. Deal with this by counting the number of trials in config file with special
+            # variable for this purpose. If num_of_trials > 1, then throw ValueError
+            raise ValueError("searched_slug not in dataframe")
 
         if train is True:
             self.train_lda_full_text(recommender_methods.df, display_dominant_topics=display_dominant_topics)
 
         dictionary, corpus, lda = self.load_lda_full_text(recommender_methods.df,
                                                           display_dominant_topics=display_dominant_topics)
-        recommender_methods.df = recommender_methods.df.rename(columns={'post_slug': 'slug'})
-        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['slug'] == searched_slug].tolist()
-        searched_doc_id = searched_doc_id_list[0]
+
+        searched_doc_id = self.get_searched_doc_id(recommender_methods, searched_slug)
+
         new_sentences = recommender_methods.df.iloc[searched_doc_id, :]
         new_sentences = new_sentences[['tokenized']]
         print("new_sentences[['tokenized']][0]:")
@@ -542,14 +609,31 @@ class Lda:
         new_bow = dictionary.doc2bow(new_sentences_splitted)
         new_doc_distribution = np.array([tup[1] for tup in lda.get_document_topics(bow=new_bow)])
 
-        doc_topic_dist = np.load('precalc_vectors/lda_doc_topic_dist_full_text.npy')
+        doc_topic_dist = np.load('precalc_vectors/lda/lda_doc_topic_dist_full_text.npy')
 
         most_sim_ids, most_sim_coefficients = get_most_similar_documents(new_doc_distribution, doc_topic_dist, n)
+        try:
+            self.most_similar_df = recommender_methods.df.iloc[most_sim_ids]
+        except IndexError as e:
+            if project_config.trials_counter.NUM_OF_TRIALS < 1:
+                logging.warning('Index error occurred when trying to get Doc2Vec model for posts')
+                logging.warning(e)
+                logging.info('Trying to deal with this by retraining LDA...')
+                logging.debug('Preparing test features')
 
-        most_similar_df = recommender_methods.df.iloc[most_sim_ids]
+                logging.debug('recommender_methods.df')
+                logging.debug(recommender_methods.df)
+                self.train_lda_full_text(recommender_methods.df, display_dominant_topics=display_dominant_topics)
+                project_config.trials_counter.NUM_OF_TRIALS += 1
+                self.get_similar_lda_full_text(searched_slug, n, train, display_dominant_topics, posts_from_cache)
+            else:
+                logging.warning(
+                    "Tried to train Doc2Vec again but it didn't helped and IndexError got raised again. "
+                    "Need to shutdown.")
+                raise e
         del recommender_methods.df
         gc.collect()
-        most_similar_df = most_similar_df.iloc[1:, :]
+        most_similar_df = self.most_similar_df.iloc[1:, :]
         post_recommendations = pd.DataFrame()
         post_recommendations['slug'] = most_similar_df['slug'].iloc[:n]
         post_recommendations['coefficient'] = most_sim_coefficients[:n - 1]
@@ -568,8 +652,8 @@ class Lda:
 
         try:
             lda_model = LdaModel.load("models/lda_model_full_text")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/dictionary_full_text.gensim')
+            corpus = pickle.load(open('precalc_vectors/lda/corpus_full_text.pkl', 'rb'))
         except Exception as e:
             print("Could not load_texts LDA models or precalculated vectors. Reason:")
             print(e)
@@ -577,17 +661,18 @@ class Lda:
             # TODO: Download from Dropbox as a 2nd option before training
 
             lda_model = LdaModel.load("models/lda_model_full_text")
-            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_full_text.gensim')
-            corpus = pickle.load(open('precalc_vectors/corpus_full_text.pkl', 'rb'))
+            dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/dictionary_full_text.gensim')
+            corpus = pickle.load(open('precalc_vectors/lda/corpus_full_text.pkl', 'rb'))
 
         return dictionary, corpus, lda_model
 
     def train_lda_full_text(self, data, display_dominant_topics=True):
 
-        data_words_nostops = remove_stopwords(data['tokenized'])
+        logging.debug(data['tokenized'])
+        data_words_nostops = remove_stopwords(data['tokenized'].tolist())
         data_words_bigrams = build_bigrams_and_trigrams(data_words_nostops)
 
-        self.df.assign(tokenized=data_words_bigrams)
+        self.df = self.df.assign(tokenized=data_words_bigrams)
 
         # View
         all_words = [word for item in self.df['tokenized'] for word in item]
@@ -634,18 +719,29 @@ class Lda:
 
         t2 = time.time()
         print("Time to force_train LDA doc2vec_model on ", len(self.df), "articles: ", (t2 - t1) / 60, "min")
-        lda_model.save("models/lda_model_full_text")
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            path_to_save = Path('tests/models/lda_testing.model')
+            path_to_save.parent.mkdir(parents=True, exist_ok=True)
+            lda_model.save(path_to_save.as_posix())
+        else:
+            lda_model.save("models/lda_model_full_text")
         print("Model Saved")
 
         if display_dominant_topics is True:
             self.display_dominant_topics(optimal_model=lda_model, corpus=corpus, texts=data_words_bigrams)
 
-        lda = lda_model.load("models/lda_model_full_text")
+        if "PYTEST_CURRENT_TEST" in os.environ:
+            path_to_save = Path('tests/models/lda_testing.model')
+            path_to_save.parent.mkdir(parents=True, exist_ok=True)
+            lda = lda_model.load(path_to_save.as_posix())
+        else:
+            lda = lda_model.load("models/lda_model_full_text")
+
         doc_topic_dist = np.array([[tup[1] for tup in lst] for lst in lda[corpus]])
         print("np.save")
         # save doc_topic_dist
         # https://stackoverflow.com/questions/9619199/best-way-to-preserve-numpy-arrays-on-disk
-        np.save('precalc_vectors/lda_doc_topic_dist_full_text.npy',
+        np.save('precalc_vectors/lda/lda_doc_topic_dist_full_text.npy',
                 doc_topic_dist)  # IndexError: index 14969 is out of bounds for axis 1 with size 14969
         print("LDA model and documents topic distribution saved")
 
@@ -700,11 +796,14 @@ class Lda:
         print(self.df.head(10).to_string())
         df_dominant_topic_merged = df_dominant_topic.merge(self.df, how='outer', left_index=True, right_index=True)
         print("After join")
+        logging.debug("df_dominant_topic_merged.columns:")
+        logging.debug(df_dominant_topic_merged.columns)
         df_dominant_topic_filtered_columns = df_dominant_topic_merged[
-            ['Document_No', 'slug', 'post_title', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords']]
+            ['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords']]
         print(df_dominant_topic_filtered_columns.head(10).to_string())
         # saving dominant topics with corresponding documents
-        df_dominant_topic_filtered_columns.to_csv("exports/dominant_topics_and_documents.csv", sep=';',
+        path_to_csv = Path("research/lda/dominant_topics_and_documents.csv")
+        df_dominant_topic_filtered_columns.to_csv(path_to_csv.as_posix(), sep=';',
                                                   encoding='iso8859_2', errors='replace')
 
         # Group top 5 sentences under each topic
@@ -735,7 +834,7 @@ class Lda:
         # Change Column names
         df_dominant_topics.columns = ['Dominant_Topic', 'Topic_Keywords', 'Num_Documents', 'Perc_Documents']
         # noinspection PyTypeChecker
-        df_dominant_topics.to_csv("exports/dominant_topics.csv", sep=';', encoding='iso8859_2', errors='replace')
+        df_dominant_topics.to_csv(path_to_csv.as_posix(), sep=';', encoding='iso8859_2', errors='replace')
         print("Results saved to csv")
 
     @staticmethod

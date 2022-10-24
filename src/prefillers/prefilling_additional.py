@@ -3,6 +3,7 @@ import random
 
 from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess, preprocess
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 
 def shuffle_and_reverse(posts, reversed_order, random_order):
@@ -33,13 +34,17 @@ class PreFillerAdditional:
     # universal common method
     # TODO:
     def fill_preprocessed(self, skip_already_filled, reversed_order, random_order, db="pgsql"):
-        database = DatabaseMethods()
+        recommender_methods = RecommenderMethods()
+        database_methods = DatabaseMethods()
+
         if skip_already_filled is False:
-            posts = database.get_all_posts()
-            posts_categories = database.join_posts_ratings_categories()
+            recommender_methods.database.connect()
+            posts = recommender_methods.get_all_posts()
+            recommender_methods.database.disconnect()
+            posts_categories = database_methods.join_posts_ratings_categories()
             shuffle_and_reverse(posts=posts, reversed_order=reversed_order, random_order=random_order)
         else:
-            posts_categories = database.get_not_preprocessed_posts()
+            posts_categories = database_methods.get_not_preprocessed_posts()
             shuffle_and_reverse(posts=posts_categories, reversed_order=reversed_order, random_order=random_order)
 
         number_of_inserted_rows = 0
@@ -67,7 +72,7 @@ class PreFillerAdditional:
             if skip_already_filled is True:
                 if article_body_preprocessed is None:
                     if db == "redis":
-                        database.insert_preprocessed_body(preprocessed_body=article_body_preprocessed,
+                        database_methods.insert_preprocessed_body(preprocessed_body=article_body_preprocessed,
                                                           article_id=post_id)
                     elif db == "pgsql":
                         preprocessed_text = preprocess(article_full_text)
@@ -76,21 +81,26 @@ class PreFillerAdditional:
                         print("preprocessed_text:")
                         print(preprocessed_text)
 
-                        database.insert_preprocessed_body(preprocessed_body=preprocessed_text, article_id=post_id)
+                        database_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text, article_id=post_id)
                     else:
                         raise Exception
                 else:
                     print("Skipping.")
             else:
-                self.start_preprocessed_features_prefilling(db, cz_lemma, article_full_text, database, post_id,
+                self.start_preprocessed_features_prefilling(db, cz_lemma, article_full_text, database_methods, post_id,
                                                             number_of_inserted_rows, random_order)
 
     def fill_body_preprocessed(self, skip_already_filled, random_order, db="pgsql"):
         database = DatabaseMethods()
+        recommender_methods = RecommenderMethods()
         if skip_already_filled is False:
-            posts = database.get_all_posts()
+            recommender_methods.database.connect()
+            posts = recommender_methods.get_all_posts()
+            recommender_methods.database.disconnect()
         else:
+            database.connect()
             posts = database.get_not_preprocessed_posts()
+            database.disconnect()
 
         number_of_inserted_rows = 0
 
@@ -117,7 +127,9 @@ class PreFillerAdditional:
                         print("preprocessed_text:")
                         print(preprocessed_text)
 
+                        database.connect()
                         database.insert_preprocessed_body(preprocessed_body=preprocessed_text, article_id=post_id)
+                        database.disconnect()
                     else:
                         raise NotImplementedError
                 else:
@@ -132,10 +144,15 @@ class PreFillerAdditional:
 
     def fill_all_features_preprocessed(self, skip_already_filled, reversed_order, random_order, db="pgsql"):
         database = DatabaseMethods()
+        recommender_methods = RecommenderMethods()
         if skip_already_filled is False:
-            posts = database.get_all_posts()
+            recommender_methods.database.connect()
+            posts = recommender_methods.get_all_posts()
+            recommender_methods.database.disconnect()
         else:
+            database.connect()
             posts = database.get_not_preprocessed_posts()
+            database.disconnect()
 
         number_of_inserted_rows = 0
 
@@ -161,8 +178,9 @@ class PreFillerAdditional:
                         print(article_full_text)
                         print("preprocessed_text:")
                         print(preprocessed_text)
-
+                        database.connect()
                         database.insert_preprocessed_combined(preprocessed_text, post_id)
+                        database.disconnect()
                     else:
                         raise NotImplementedError
                 else:
