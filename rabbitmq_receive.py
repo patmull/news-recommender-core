@@ -5,6 +5,7 @@ import traceback
 import pika.exceptions
 
 from src.messaging.init_channels import publish_rabbitmq_channel, ChannelConstants
+from src.prefillers.prefilling_all import run_prefilling
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.recommender_core.data_handling.data_connection import init_rabbitmq
 
@@ -14,12 +15,7 @@ rabbit_connection = init_rabbitmq()
 
 channel = rabbit_connection.channel()
 
-channel.queue_declare(queue='new_articles_alert', durable=True)
 print('[*] Waiting for messages. To exit press CTRL+C')
-"""
-** HERE WAS A DECLARATION OF new_post_scrapped_callback() method.
-Abandoned due to unclear use case. **
-"""
 
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
@@ -37,6 +33,19 @@ def is_init_or_test(decoded_body):
         print("Successfully received. Not doing any action since this was init or test.")
 
     return is_init_or_test_value
+
+
+def new_post_scrapped_callback(ch, method, properties, body):
+    print("[x] Received %r" % body.decode())
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+    if body.decode() == "new_articles_scrapped":
+        print("Recieved message that new posts were scrapped.")
+        print("I'm calling prefilling db_columns...")
+        try:
+            run_prefilling()
+        except Exception as e:
+            print("Exception occurred" + str(e))
+            traceback.print_exception(None, e, e.__traceback__)
 
 
 def user_rated_by_stars_callback(ch, method, properties, body):
@@ -139,7 +148,8 @@ Abandoned due to unclear use case. **
 
 
 def init_all_consuming_channels():
-    queues = ['user-post-star_rating-updated-queue', 'user-keywords-updated-queue', 'user-categories-updated-queue']
+    queues = ['user-post-star_rating-updated-queue', 'user-keywords-updated-queue', 'user-categories-updated-queue',
+              'post-features-updated-queue']
     for queue in queues:
         init_consuming(queue)
 
@@ -160,6 +170,8 @@ def init_consuming(queue_name):
         called_function = user_added_keywords
     elif queue_name == 'user-categories-updated-queue':
         called_function = user_added_categories
+    elif queue_name == 'post-features-updated-queue':
+        called_function = new_post_scrapped_callback
     else:
         raise ValueError('Bad queue_name supplied.')
 
