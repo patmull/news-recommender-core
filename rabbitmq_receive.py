@@ -57,9 +57,9 @@ def user_rated_by_stars_callback(ch, method, properties, body):
     if body.decode():
         if not is_init_or_test(body.decode()):
             print(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
-
             method = 'svd'
             call_collaborative_prefillers(method, body)
+            # TODO: Here needs to be Hybrid prefiller
 
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
@@ -185,17 +185,3 @@ def init_consuming(queue_name):
         channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
 
     channel.start_consuming()
-
-
-while True:
-    try:
-        # init_all_consuming_channels()
-        # TODO: Split RabbitMQ to separate files!
-        init_consuming('post-features-updated-queue')
-    except Exception as e:
-        print("EXCEPTION OCCURRED WHEN RUNNING PIKA:")
-        print(e)
-    except (RuntimeError, TypeError, NameError) as e:
-        print("ERROR OCCURRED WHEN RUNNING PIKA:")
-        print(e)
-    time.sleep(15)

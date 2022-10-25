@@ -106,6 +106,14 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                 print("Value Error had occurred in computing " + method + ". Skipping record.")
                 print(e)
                 continue
+        elif method == "hybrid":
+            try:
+                user_based_methods = UserBasedMethods()
+                actual_json = user_based_methods.load_hybrid(current_user_id)
+            except ValueError as e:
+                print("Value Error had occurred in computing " + method + ". Skipping record.")
+                print(e)
+                continue
         else:
             raise ValueError("Method not implemented.")
         print("dict actual_svd_json")
