@@ -94,10 +94,10 @@ def main():
     """
 
     user_id_for_test = 431
-    precalculate_and_save_sim_matrix_for_all_posts()
+    # precalculate_and_save_sim_matrix_for_all_posts()
     print("=====================================")
     print("PRECALCULATION DONE")
     print("=====================================")
-    print(get_most_similar_by_hybrid(user_id_for_test, load_from_precalc_sim_matrix=True))
+    print(get_most_similar_by_hybrid(user_id_for_test, load_from_precalc_sim_matrix=False))
 
 if __name__ == "__main__": main()
