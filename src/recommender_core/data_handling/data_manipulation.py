@@ -357,13 +357,24 @@ class DatabaseMethods(object):
         return df_ratings
 
     def get_user_keywords(self, user_id):
-        sql_user_keywords = """SELECT multi_dimensional_list.name AS "keyword_name" FROM tag_user tu JOIN tags
-        multi_dimensional_list ON multi_dimensional_list.id = tu.tag_id WHERE tu.user_id = (%(user_id)s); """
+        sql_user_keywords = """SELECT tags.name AS "keyword_name" FROM tag_user tu JOIN tags
+        ON tags.id = tu.tag_id WHERE tu.user_id = (%(user_id)s); """
         query_params = {'user_id': user_id}
         df_user_categories = pd.read_sql_query(sql_user_keywords, self.get_cnx(), params=query_params)
         print("df_user_categories:")
         print(df_user_categories)
         return df_user_categories
+
+    def get_user_hybrid(self, user_id):
+        # TODO: Test this.
+        """
+        HYBRID FORMAT:
+        [{"slug": "z-hromady-kameni-povstal-hrad-hartenstejn-i-s-karlovarskou-vezi", "coefficient": 4.3861717013},
+        {"slug": "porozumime-nekdy-reci-zvirat-zatim-to-umeji-jenom-pohadky", "coefficient": 1.0055361237}]
+        """
+        sql_user_hybrid = """SELECT id, recommend_by_hybrid FROM users"""
+        df_user_hybrid = pd.read_sql_query(sql_user_hybrid, self.get_cnx())
+        return df_user_hybrid
 
     @DeprecationWarning
     def insert_recommended_tfidf_json(self, articles_recommended_json, article_id, db):
