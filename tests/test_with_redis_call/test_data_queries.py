@@ -1,11 +1,12 @@
 from datetime import datetime
+from unittest import TestCase
 
 import pytest
 
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 
 
-class RedisTest:
+class RedisTest(TestCase):
 
     @pytest.mark.integtest
     def test_redis(self):

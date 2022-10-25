@@ -833,7 +833,6 @@ class DatabaseMethods(object):
         finally:
             self.disconnect()
 
-
         return int(random_post_id)
 
     def set_test_json_in_prefilled_records(self, post_id):
@@ -862,7 +861,7 @@ def get_redis_connection():
         raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
                                "Not possible to connect to Redis.")
 
-    return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',
-                             port=13695, db=0,
-                             username="admin",
-                             password=redis_password)
+    return redis.Redis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',
+                       port=13695, db=0,
+                       username="admin",
+                       password=redis_password)
