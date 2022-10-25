@@ -94,26 +94,6 @@ def test_doc2vec_method_bad_input(tested_input):
         doc2vec.get_similar_doc2vec(searched_slug=tested_input, posts_from_cache=False, )
 
 
-@pytest.mark.integtest
-def test_doc2vec_method_for_random_post():
-    doc2vec = Doc2VecClass()
-    # random_order article
-    database = DatabaseMethods()
-    posts = database.get_posts_dataframe(from_cache=False)
-    random_post = posts.sample()
-    random_post_slug = random_post['slug'].iloc[0]
-    print("random_post slug:")
-    print(random_post_slug)
-    similar_posts = doc2vec.get_similar_doc2vec(searched_slug=random_post_slug, posts_from_cache=False)
-    print("similar_posts")
-    print(similar_posts)
-    print("similar_posts type:")
-    print(type(similar_posts))
-
-    assert len(random_post.index) == 1
-    assert_recommendation(similar_posts)
-
-
 class TestLda:
 
     """

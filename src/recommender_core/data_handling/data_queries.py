@@ -30,7 +30,6 @@ for handler in logging.root.handlers[:]:
 
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
-logging.debug("Testing logging from data_queries module.")
 
 
 def convert_df_to_json(dataframe):
@@ -335,7 +334,7 @@ class RecommenderMethods:
                      'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text',
                      'trigrams_full_text']]
             except KeyError as key_error:
-                self.df = self.get_df_from_sql_meanwhile_insert_cache()
+                self.df = self.get_df_from_sql_meanwhile_insert_to_cache()
                 print(key_error)
                 print("Columns of self.df:")
                 print(self.df.columns)
@@ -443,10 +442,24 @@ class RecommenderMethods:
         return posts_users_categories_ratings_df
 
     def get_sql_columns(self):
+        """
+        Init method from app.py. Need for post's cache sanity check
+        @return: list of post's columns from DB
+        """
         self.database.connect()
         df_columns = self.database.get_sql_columns()
         self.database.disconnect()
         return df_columns
+
+    def get_sql_num_of_rows(self):
+        """
+       Init method from app.py. Need for post's cache sanity check
+       @return: number of post's rows from DB
+       """
+        self.database.connect()
+        df = self.database.get_posts_dataframe(from_cache=False)
+        self.database.disconnect()
+        return len(df.index)
 
     def get_relevance_results_dataframe(self):
         self.database.connect()
@@ -707,3 +720,7 @@ class TfIdfDataHandlers:
         # join feature tuples into one matrix
         tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
         return tuple_of_fitted_matrices
+
+
+if __name__ == '__main__':
+    logging.debug("Testing logging from data_queries module.")

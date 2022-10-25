@@ -2,6 +2,7 @@
 import logging
 import os
 from pathlib import Path
+from threading import Thread
 
 import psycopg2
 import pandas as pd
@@ -215,14 +216,8 @@ class DatabaseMethods(object):
 
         str_path = path_to_save_cache.as_posix()
         # TODO: Some workaround for this? (Convert bytearray to input_string?)
-        logging.debug("Column types of df:")
-        logging.debug(df.dtypes)
         # Removing bert_vector_representation for not supported column type of pickle
         df_for_save = df.drop(columns=['bert_vector_representation'])
-        logging.debug("str_path:")
-        logging.debug(str_path)
-        logging.debug("df:")
-        logging.debug(df_for_save)
 
         path = Path(cached_file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
