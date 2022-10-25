@@ -59,8 +59,8 @@ def user_rated_by_stars_callback(ch, method, properties, body):
             print(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
             method = 'svd'
             call_collaborative_prefillers(method, body)
-            # TODO: Here needs to be Hybrid prefiller
-
+            method = 'hybrid'
+            call_collaborative_prefillers(method, body)
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
 def user_added_keywords(ch, method, properties, body):
