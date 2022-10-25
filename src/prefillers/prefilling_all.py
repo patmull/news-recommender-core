@@ -17,8 +17,6 @@ logging.debug("Testing logging in prefilling_all.")
 def prefill_all_features_preprocessed():
     prefiller_additional.fill_all_features_preprocessed(skip_already_filled=True, reversed_order=True,
                                                         random_order=False)
-
-
 def prefill_keywords():
     prefiller_additional.fill_keywords(skip_already_filled=True, random_order=False, reversed_order=False)
 
@@ -29,7 +27,6 @@ def prefill_body_preprocessed():
 
 def prefill_bert_vector_representation():
     fill_bert_vector_representation()
-
 
 def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_full_text=None):
     if skip_cache_refresh is False:
@@ -72,6 +69,8 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
 
     for method in methods:
         prepare_and_run(database, method, full_text, reverse, random)
+
+
 
 
 def prepare_and_run(database, method, full_text, reverse, random):
