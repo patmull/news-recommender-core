@@ -5,7 +5,7 @@ import pika
 # Normally, this is used in news-parser module for notification of this module (rabbitmq_receive.py file)
 from src.recommender_core.data_handling.data_connection import init_rabbitmq
 
-@PendingDeprecationWarning
+
 def publish_channel(queue, message, routing_key, exchange=''):
     rabbit_connection = init_rabbitmq()
     channel = rabbit_connection.channel()

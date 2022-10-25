@@ -39,13 +39,14 @@ def new_post_scrapped_callback(ch, method, properties, body):
     print("[x] Received %r" % body.decode())
     ch.basic_ack(delivery_tag=method.delivery_tag)
     if body.decode() == "new_articles_scrapped":
-        print("Recieved message that new posts were scrapped.")
+        print("Received message that new posts were scrapped.")
         print("I'm calling prefilling db_columns...")
-        try:
-            run_prefilling()
-        except Exception as e:
-            print("Exception occurred" + str(e))
-            traceback.print_exception(None, e, e.__traceback__)
+        if not is_init_or_test(body.decode()):
+            try:
+                run_prefilling()
+            except Exception as e:
+                print("Exception occurred" + str(e))
+                traceback.print_exception(None, e, e.__traceback__)
 
 
 def user_rated_by_stars_callback(ch, method, properties, body):
@@ -146,7 +147,8 @@ def call_collaborative_prefillers(method, msg_body):
 Abandoned due to unclear use case. **
 """
 
-
+# WARNING! This does not work. It consumes only the first queue in list!!!
+@DeprecationWarning
 def init_all_consuming_channels():
     queues = ['user-post-star_rating-updated-queue', 'user-keywords-updated-queue', 'user-categories-updated-queue',
               'post-features-updated-queue']
@@ -187,7 +189,9 @@ def init_consuming(queue_name):
 
 while True:
     try:
-        init_all_consuming_channels()
+        # init_all_consuming_channels()
+        # TODO: Split RabbitMQ to separate files!
+        init_consuming('post-features-updated-queue')
     except Exception as e:
         print("EXCEPTION OCCURRED WHEN RUNNING PIKA:")
         print(e)
