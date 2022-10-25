@@ -8,53 +8,48 @@ from src.prefillers.preprocessing.cz_preprocessing import cz_lemma
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from src.recommender_core.data_handling.data_queries import RecommenderMethods, preprocess_single_post_find_by_slug
-
-from flask import Flask, request, app
-from flask_restful import Resource, Api
-
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 from src.recommender_core.recommender_algorithms.learn_to_rank.learn_to_rank_methods import train_lightgbm_user_based, \
     linear_regression
-from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
-    SvdClass
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
-    UserBasedMethods
+from src.recommender_core.recommender_algorithms.user_based_algorithms\
+    .collaboration_based_recommendation import SvdClass
+from src.recommender_core.data_handling.data_queries import RecommenderMethods, preprocess_single_post_find_by_slug
+from src.recommender_core.recommender_algorithms\
+    .user_based_algorithms.user_keywords_recommendation import UserBasedMethods
+from flask import Flask, request
+from flask_restful import Resource, Api
+
 
 for handler in logging.root.handlers[:]:
-    logging.root.removeHandler(handler)
+   logging.root.removeHandler(handler)
 
-# NOTICE: Logging didn't work really well for Pika so far... That's way using logging.debugs.
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging.")
 
 
-# TODO: Replace logging.debugs with debug logging. Priority: MIDDLE
+
+# TODO: Replace prints with debug logging
 def check_if_cache_exists_and_fresh():
     if os.path.exists(get_cached_posts_file_path()):
         today = datetime.datetime.today()
         modified_date = datetime.datetime.fromtimestamp(os.path.getmtime(get_cached_posts_file_path()))
         duration = today - modified_date
         # if file older than 1 day
-        if duration.total_seconds() / (24 * 60 * 60) > 1:
+        if duration.total_seconds()/(24*60*60) > 1:
             return False
         else:
             recommender_methods = RecommenderMethods()
             cached_df = recommender_methods.get_posts_dataframe(force_update=False, from_cache=True)
             sql_columns = recommender_methods.get_sql_columns().tolist()  # tolist() for converting Pandas index to list
-            num_of_sql_rows = recommender_methods.get_sql_num_of_rows()
-            logging.debug("sql_columns:")
-            logging.debug(sql_columns)
+            print("sql_columns:")
+            print(sql_columns)
             sql_columns.remove('bert_vector_representation')
-            # -1 because bert_vector_representation needs to be excluded from cache
-            if len(cached_df.columns) == (len(sql_columns) - 1):
+            if len(cached_df.columns) == len(sql_columns):
+                # -1 because bert_vector_representation needs to be excluded from cache
                 if set(cached_df.columns) == set(sql_columns):
-                    if len(cached_df.index) == len(num_of_sql_rows):
-                        return True
-                    else:
-                        return False
-                else:
-                    return False
+                    return True
             else:
                 return False
     else:
@@ -66,24 +61,18 @@ def create_app():
     # checking needed parts...
 
     if not check_if_cache_exists_and_fresh():
-        logging.info("Posts cache file does not exists, older than 1 day or columns do not match PostgreSQL "
-                     "columns and rows.")
-        logging.debug("Creating posts cache file...")
+        print("Posts cache file does not exists, older than 1 day or columns do not match PostgreSQL columns.")
+        print("Creating posts cache file...")
         recommender_methods = RecommenderMethods()
         recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
-    logging.debug("Crating flask app...")
+    print("Crating flask app...")
     flask_app = Flask(__name__)
-    logging.debug("FLASK APP READY TO START!")
+    print("FLASK APP READY TO START!")
     return flask_app
 
 
 app = create_app()
 api = Api(app)
-
-
-@app.route('/', methods=['GET'])
-def home():
-    return '''<h1>Moje články</h1><p>API pro doporučovací algoritmy.</p>'''
 
 
 @app.route('/', methods=['GET'])
@@ -267,8 +256,5 @@ api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-t
 api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<string:param>")
 
-# ** HERE WAS AN API DECLARATION. REMOVED DUE TO USE IN DIFFERENT MODULE: FRESH-API **
-
 if __name__ == "__main__":
-    logging.debug("Testing logging from Flask.")
     app.run(debug=True)

@@ -92,15 +92,12 @@ def main():
     classifier.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by='stars',
                                           force_retraining=True, save_df_posts_users_categories_relevance=True)
     """
-    hybrid_constants = HybridConstants()
-    hybrid_constants.set_constants_to_redis()
-    """
+
     user_id_for_test = 431
     precalculate_and_save_sim_matrix_for_all_posts()
     print("=====================================")
     print("PRECALCULATION DONE")
     print("=====================================")
     print(get_most_similar_by_hybrid(user_id_for_test, load_from_precalc_sim_matrix=True))
-    """
 
 if __name__ == "__main__": main()
