@@ -54,7 +54,7 @@ def test_user_keyword_bad_input(tested_input):
 
 @pytest.fixture()
 def methods():
-    methods = ['svd', 'user_keywords', 'best_rated_by_others_in_user_categories']
+    methods = ['svd', 'user_keywords', 'best_rated_by_others_in_user_categories', 'hybrid']
     return methods
 
 
@@ -121,10 +121,10 @@ def insert_user_recommender_to_db(methods, test_json, test_user_id, db):
 def get_users_df(db_columns, test_user_id):
 
     database_methods = DatabaseMethods()
-    sql = """SELECT {}, {}, {} FROM users WHERE id = {};"""
+    sql = """SELECT {}, {}, {}, {} FROM users WHERE id = {};"""
     # NOTICE: Connection is ok here. Need to stay here due to calling from function that's executing thread
     # operation
-    sql = sql.format(db_columns[0], db_columns[1], db_columns[2], test_user_id)
+    sql = sql.format(db_columns[0], db_columns[1], db_columns[2], db_columns[3], test_user_id)
     database_methods.connect()
     # LOAD INTO A DATAFRAME
     df = pd.read_sql_query(sql, database_methods.get_cnx())

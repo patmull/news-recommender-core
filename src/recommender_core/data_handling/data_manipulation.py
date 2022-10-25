@@ -365,17 +365,14 @@ class DatabaseMethods(object):
         print(df_user_categories)
         return df_user_categories
 
+    # TODO: Remove this.
+    """
     def get_user_hybrid(self, user_id):
-        # TODO: Test this.
-        """
-        HYBRID FORMAT:
-        [{"slug": "z-hromady-kameni-povstal-hrad-hartenstejn-i-s-karlovarskou-vezi", "coefficient": 4.3861717013},
-        {"slug": "porozumime-nekdy-reci-zvirat-zatim-to-umeji-jenom-pohadky", "coefficient": 1.0055361237}]
-        """
-        sql_user_hybrid = """SELECT id, recommend_by_hybrid FROM users"""
+
+        sql_user_hybrid = "SELECT id, recommend_by_hybrid FROM users"
         df_user_hybrid = pd.read_sql_query(sql_user_hybrid, self.get_cnx())
         return df_user_hybrid
-
+    """
     @DeprecationWarning
     def insert_recommended_tfidf_json(self, articles_recommended_json, article_id, db):
         if db == "pgsql":

@@ -321,7 +321,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     @param save_result: saves the results (i.e. for debugging, this can be loaded with load_saved_result method below). Added to help with debugging of final boosting
     @param load_saved_result: if True, skips the recommending calculation and jumps to final calculations. Added to help with debugging of final boosting
     """
-    path_to_save_results = Path('research/hybrid/results_df.pkl')
+    path_to_save_results = Path('research/hybrid/results_df.pkl') # Primarily for debugging purposes
 
     if load_saved_result is False or not os.path.exists(path_to_save_results):
         if type(user_id) is not int:
@@ -428,11 +428,11 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
     user_methods = UserMethods()
     user_categories = user_methods.get_user_categories(user_id)
-    print("Categories for user " + str(user_id))
-    print(user_categories)
+    logging.debug("Categories for user " + str(user_id))
+    logging.debug(user_categories)
     user_categories_list = user_categories['category_slug'].values.tolist()
-    print("user_categories_list:")
-    print(user_categories_list)
+    logging.debug("user_categories_list:")
+    logging.debug(user_categories_list)
 
     # If post contains user category, then boost the coefficient
     results_df.coefficient = np.where(
