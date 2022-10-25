@@ -72,37 +72,6 @@ def test_thumbs():
     assert len(user_categories_thumbs_df.index) > 0  # assert there are rows in dataframe
 
 
-def test_hybrid_by_svd_history_tfidf():
-    test_user_id = 431
-
-    searched_slug_1, searched_slug_2, searched_slug_3 = get_three_unique_posts()
-
-    test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
-    tested_methods = ['tfidf', 'doc2vec'] # TODO: Why is Word2Vec not here?
-
-    # posts delivered
-    most_similar_hybrid_by_tfidf = get_most_similar_by_hybrid(user_id=test_user_id,
-                                                              svd_posts_to_compare=test_slugs,
-                                                              list_of_methods=tested_methods)
-    type_of_json = type(most_similar_hybrid_by_tfidf)
-    assert type_of_json is str  # assert str
-    try:
-        json.loads(most_similar_hybrid_by_tfidf)
-        assert True
-    except ValueError:
-        pytest.fail("Encountered an unexpected exception on trying to load JSON.")
-
-    # posts not delivered
-    most_similar_hybrid_by_tfidf = get_most_similar_by_hybrid(user_id=test_user_id, list_of_methods=tested_methods)
-    type_of_json = type(most_similar_hybrid_by_tfidf)
-    assert type_of_json is str  # assert str
-    try:
-        json.loads(most_similar_hybrid_by_tfidf)
-        assert True
-    except ValueError:
-        pytest.fail("Encountered an unexpected exception on trying to load JSON.")
-
-
 def test_get_similarity_matrix_from_pairs_similarity():
     test_user_id = 431
     searched_slug_1, searched_slug_2, searched_slug_3 = get_three_unique_posts()
