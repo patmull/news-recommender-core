@@ -1,11 +1,15 @@
+import logging
+from datetime import datetime, timezone, timedelta
+from unittest import TestCase
+
 import pandas as pd
 import pytest
 
 
 # RUN WITH: python -m pytest tests/test_unit/test_hybrid_methods.py
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods, get_redis_connection
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import select_list_of_posts_for_user, \
-    get_most_similar_by_hybrid
+    get_most_similar_by_hybrid, boost_by_article_freshness, HybridConstants
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     Classifier, get_df_predicted
 from tests.testing_methods.random_posts_generator import get_three_unique_posts
@@ -77,3 +81,27 @@ def test_svm_classifier_bad_sample_number(tested_input):
     with pytest.raises(ValueError):
         svm = Classifier()
         assert svm.predict_relevance_for_user(use_only_sample_of=tested_input, user_id=431, relevance_by='stars')
+
+
+def test_boost_by_freshness():
+    coeff_1 = 0.5
+    coeff_2 = 0.8
+    coeff_3 = 0.6
+    coeff_4 = 0.856
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    fresh = now + timedelta(minutes=-30)
+    older_than_hour = now + timedelta(hours=-3)
+    older_than_day = now + timedelta(days=-3)
+    older_than_5_days = now + timedelta(days=-6)
+    tested_data = {
+        'coefficient': [coeff_1, coeff_2, coeff_3, coeff_4],
+        'post_created_at': [fresh, older_than_hour, older_than_day, older_than_5_days]
+    }
+    tested_df = pd.DataFrame(tested_data)
+    tested_df = boost_by_article_freshness(tested_df)
+
+    hybrid_constants = HybridConstants()
+    assert tested_df.iloc[0]['coefficient'] == coeff_1 * hybrid_constants.coeff_and_hours_1[0]
+    assert tested_df.iloc[1]['coefficient'] == coeff_2 * hybrid_constants.coeff_and_hours_2[0]
+    assert tested_df.iloc[2]['coefficient'] == coeff_3 * hybrid_constants.coeff_and_hours_3[0]
+    assert tested_df.iloc[3]['coefficient'] == coeff_4 * hybrid_constants.coeff_and_hours_4[0]

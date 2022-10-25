@@ -21,7 +21,6 @@ log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from tfidf module.")
 
-
 def get_cleaned_text(row):
     return row
 
@@ -555,3 +554,7 @@ class TfIdf:
             return fit_by_all_features_matrix, saved_again
         else:
             return fit_by_all_features_matrix
+
+
+if __name__ == '__main__':
+    logging.info("TF-IDF Module")

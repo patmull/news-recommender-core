@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from gensim.models import KeyedVectors
 
+from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
@@ -30,6 +31,29 @@ for handler in logging.root.handlers[:]:
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from hybrid_methods.")
+
+
+class HybridConstants:
+
+    def __init__(self):
+        self.coeff_and_hours_1 = (15, 1)
+        self.coeff_and_hours_2 = (10, 24)  # 1 day
+        self.coeff_and_hours_3 = (8, 120)  # 5 days
+        self.coeff_and_hours_4 = (1, 100000000)
+
+        self.dict_of_coeffs_and_hours = {
+            'boost_fresh_1': self.coeff_and_hours_1,
+            'boost_fresh_2': self.coeff_and_hours_2,
+            'boost_fresh_3': self.coeff_and_hours_3,
+            'boost_fresh_4': self.coeff_and_hours_4,
+        }
+
+    def set_constants_to_redis(self):
+        r = get_redis_connection()
+        for key, value in self.dict_of_coeffs_and_hours.items():
+            r.set((key + '_coeff'), value[0])
+        for key, value in self.dict_of_coeffs_and_hours.items():
+            r.set((key + '_hours'), value[1])
 
 
 # noinspection DuplicatedCode
@@ -257,6 +281,28 @@ def load_posts_from_sim_matrix(method, list_of_slugs):
     return sim_matrix
 
 
+def boost_by_article_freshness(results_df):
+    def boost_coefficient(coeff_value, boost):
+        d = coeff_value * boost
+        return d
+
+    # TODO: Get boost values from DB. Priority MEDIUM
+    # See: hybrid_settings table where it was layed out
+    now = pd.to_datetime('now')
+    r = get_redis_connection()
+    results_df['coefficient'] = results_df.apply(
+        lambda x: boost_coefficient(x['coefficient'], int(r.get('boost_fresh_1_coeff')))
+        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get('boost_fresh_1_hours')), 'h'))
+        else (boost_coefficient(x['coefficient'], int(r.get('boost_fresh_2_coeff'))))
+        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get('boost_fresh_2_hours')), 'h'))
+        else (boost_coefficient(x['coefficient'], int(r.get('boost_fresh_3_coeff'))))
+        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get('boost_fresh_3_hours')), 'h'))
+        else (boost_coefficient(x['coefficient'], int(r.get('boost_fresh_4_coeff'))))
+        , axis=1
+    )
+    return results_df
+
+
 def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, svd_posts_to_compare=None,
                                list_of_methods=None, save_result=False,
                                load_saved_result=False):
@@ -394,27 +440,11 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         results_df.coefficient * 2.0,
         results_df.coefficient)
 
-    # TODO: Boost posts based on freshness (see Document 'Hybridní algoritmus.docx'). Priority: HIGH
-    def boost_coefficient(coeff_value, boost):
-        d = coeff_value * boost
-        return d
-
     results_df = results_df.rename(columns={'created_at_x': 'post_created_at'})
 
     logging.debug(results_df.columns)
 
-    now = pd.to_datetime('now')
-    results_df['coefficient'] = results_df.apply(
-        lambda x: boost_coefficient(x['coefficient'], 15)
-        if ((now - x['post_created_at']) < pd.Timedelta(1, 'h'))
-        else (boost_coefficient(x['coefficient'], 10)
-              if ((now - x['post_created_at']) < pd.Timedelta(1, 'd'))
-              else (boost_coefficient(x['coefficient'], 8)
-                    if ((now - x['post_created_at']) < pd.Timedelta(5, 'd'))
-                    else (boost_coefficient(x['coefficient'], 1))
-                    )
-              ), axis=1
-    )
+    results_df = boost_by_article_freshness(results_df)
 
     results_df = results_df.set_index('slug')
     results_df = results_df.sort_values(by='coefficient', ascending=False)
