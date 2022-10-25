@@ -1,6 +1,5 @@
-from datetime import datetime, timezone, timedelta
-
 import pandas as pd
+import datetime
 
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import boost_by_article_freshness, \
     HybridConstants
@@ -11,11 +10,11 @@ def test_boost_by_freshness():
     coeff_2 = 0.8
     coeff_3 = 0.6
     coeff_4 = 0.856
-    now = datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    now = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
     fresh = now + datetime.timedelta(minutes=-30)
-    older_than_hour = now + timedelta(hours=-3)
-    older_than_day = now + timedelta(days=-3)
-    older_than_5_days = now + timedelta(days=-6)
+    older_than_hour = now + datetime.timedelta(hours=-3)
+    older_than_day = now + datetime.timedelta(days=-3)
+    older_than_5_days = now + datetime.timedelta(days=-6)
     tested_data = {
         'coefficient': [coeff_1, coeff_2, coeff_3, coeff_4],
         'post_created_at': [fresh, older_than_hour, older_than_day, older_than_5_days]
