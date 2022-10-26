@@ -13,3 +13,9 @@ def test_insert_posts_dataframe_to_cache():
     recommender_methods = RecommenderMethods()
     recommender_methods.database.insert_posts_dataframe_to_cache(TEST_CACHED_PICKLE_PATH)
     assert os.path.exists(TEST_CACHED_PICKLE_PATH)
+
+# TODO: Remove this  when not needed anymore
+"""
+    [{"slug": "z-hromady-kameni-povstal-hrad-hartenstejn-i-s-karlovarskou-vezi", "coefficient": 4.3861717013},
+     {"slug": "porozumime-nekdy-reci-zvirat-zatim-to-umeji-jenom-pohadky", "coefficient": 1.0055361237}]
+"""

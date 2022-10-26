@@ -2,6 +2,7 @@
 import logging
 import os
 from pathlib import Path
+from threading import Thread
 
 import psycopg2
 import pandas as pd
@@ -15,7 +16,7 @@ for handler in logging.root.handlers[:]:
 # NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
-logging.debug("Testing logging.")
+logging.debug("Testing logging from data?manipulation.")
 
 
 def print_exception_not_inserted(e):
@@ -175,6 +176,7 @@ class DatabaseMethods(object):
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
         self.disconnect()
+        df = df.drop_duplicates(subset=['title'])
         return df
 
     def get_posts_dataframe_only_with_bert_vectors(self):
@@ -191,6 +193,7 @@ class DatabaseMethods(object):
         else:
             # TODO: This is slow
             self.posts_df = self.get_posts_dataframe_from_sql()
+
         self.posts_df = self.posts_df.drop_duplicates(subset=['title'])
         return self.posts_df
 
@@ -215,14 +218,8 @@ class DatabaseMethods(object):
 
         str_path = path_to_save_cache.as_posix()
         # TODO: Some workaround for this? (Convert bytearray to input_string?)
-        logging.debug("Column types of df:")
-        logging.debug(df.dtypes)
         # Removing bert_vector_representation for not supported column type of pickle
         df_for_save = df.drop(columns=['bert_vector_representation'])
-        logging.debug("str_path:")
-        logging.debug(str_path)
-        logging.debug("df:")
-        logging.debug(df_for_save)
 
         path = Path(cached_file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -362,14 +359,22 @@ class DatabaseMethods(object):
         return df_ratings
 
     def get_user_keywords(self, user_id):
-        sql_user_keywords = """SELECT multi_dimensional_list.name AS "keyword_name" FROM tag_user tu JOIN tags
-        multi_dimensional_list ON multi_dimensional_list.id = tu.tag_id WHERE tu.user_id = (%(user_id)s); """
+        sql_user_keywords = """SELECT tags.name AS "keyword_name" FROM tag_user tu JOIN tags
+        ON tags.id = tu.tag_id WHERE tu.user_id = (%(user_id)s); """
         query_params = {'user_id': user_id}
         df_user_categories = pd.read_sql_query(sql_user_keywords, self.get_cnx(), params=query_params)
         print("df_user_categories:")
         print(df_user_categories)
         return df_user_categories
 
+    # TODO: Remove this.
+    """
+    def get_user_hybrid(self, user_id):
+
+        sql_user_hybrid = "SELECT id, recommend_by_hybrid FROM users"
+        df_user_hybrid = pd.read_sql_query(sql_user_hybrid, self.get_cnx())
+        return df_user_hybrid
+    """
     @DeprecationWarning
     def insert_recommended_tfidf_json(self, articles_recommended_json, article_id, db):
         if db == "pgsql":
@@ -838,7 +843,6 @@ class DatabaseMethods(object):
         finally:
             self.disconnect()
 
-
         return int(random_post_id)
 
     def set_test_json_in_prefilled_records(self, post_id):
@@ -867,7 +871,7 @@ def get_redis_connection():
         raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
                                "Not possible to connect to Redis.")
 
-    return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',
-                             port=13695, db=0,
-                             username="admin",
-                             password=redis_password)
+    return redis.Redis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',
+                       port=13695, db=0,
+                       username="admin",
+                       password=redis_password)

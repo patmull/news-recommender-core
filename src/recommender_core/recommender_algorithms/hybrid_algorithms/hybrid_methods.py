@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from gensim.models import KeyedVectors
 
+from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
@@ -19,7 +20,40 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.collabora
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 LIST_OF_SUPPORTED_METHODS = ['tfidf', 'doc2vec', 'word2vec']
-SIM_MATRIX_OF_ALL_POSTS_PATH = Path('precalc_matrices/sim_matrix_all_posts')
+SIM_MATRIX_OF_ALL_POSTS_PATH = Path('precalc_matrices')
+SIM_MATRIX_OF_ALL_POSTS_PATH.mkdir(parents=True, exist_ok=True)
+SIM_MATRIX_NAME_BASE = 'sim_matrix_of_all_posts'
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from hybrid_methods.")
+
+
+class HybridConstants:
+
+    def __init__(self):
+        self.coeff_and_hours_1 = (15, 1)
+        self.coeff_and_hours_2 = (10, 24)  # 1 day
+        self.coeff_and_hours_3 = (8, 120)  # 5 days
+        self.coeff_and_hours_4 = (1, 100000000)
+
+        self.dict_of_coeffs_and_hours = {
+            'boost_fresh_1': self.coeff_and_hours_1,
+            'boost_fresh_2': self.coeff_and_hours_2,
+            'boost_fresh_3': self.coeff_and_hours_3,
+            'boost_fresh_4': self.coeff_and_hours_4,
+        }
+
+    def set_constants_to_redis(self):
+        r = get_redis_connection()
+        for key, value in self.dict_of_coeffs_and_hours.items():
+            r.set((key + '_coeff'), value[0])
+        for key, value in self.dict_of_coeffs_and_hours.items():
+            r.set((key + '_hours'), value[1])
 
 
 # noinspection DuplicatedCode
@@ -105,7 +139,7 @@ def drop_columns_from_similarity_matrix(similarity_matrix, posts_to_compare, lis
 def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs):
     w2v_model, d2v_model = None, None
 
-    logging.debug("Calculating sim matrice for %d posts:" % (len(list_of_slugs)))
+    logging.debug("Calculating sim matrix for %d posts:" % (len(list_of_slugs)))
 
     if method == "tfidf":
         logging.debug('Calculating sim matrix for TF-IDF')
@@ -175,15 +209,40 @@ def personalize_similarity_matrix(similarity_matrix, posts_to_compare, list_of_s
     return similarity_matrix
 
 
-# TODO: Add to prefillers.
-def precalculate_and_save_sim_matrix_for_all_posts():
+def prepare_posts():
     recommender_methods = RecommenderMethods()
     all_posts = recommender_methods.get_posts_dataframe()
     all_posts_slugs = all_posts['slug'].values.tolist()
+    return all_posts_slugs
+
+
+def prepare_sim_matrix_path(method):
+    file_name = "%s_%s.feather" % (SIM_MATRIX_NAME_BASE, method)
+    logging.debug("file_name:")
+    logging.debug(file_name)
+    file_path = Path.joinpath(SIM_MATRIX_OF_ALL_POSTS_PATH, file_name).as_posix()
+    return file_path
+
+
+# TODO: Add to prefillers.
+def precalculate_and_save_sim_matrix_for_all_posts():
+    recommender_methods = RecommenderMethods()
+    recommender_methods.update_cache_of_posts_df()
+    all_posts_slugs = prepare_posts()
+
     for method in LIST_OF_SUPPORTED_METHODS:
+        logging.debug("Precalculating sim matrix for all posts for method: %s" % method)
         similarity_matrix_of_all_posts = get_similarity_matrix_from_pairs_similarity(method=method,
                                                                                      list_of_slugs=all_posts_slugs)
-        similarity_matrix_of_all_posts.to_feather("%s_%s.feather".format(SIM_MATRIX_OF_ALL_POSTS_PATH.as_posix(), method))
+        file_path = prepare_sim_matrix_path(method)
+
+        logging.debug("file_path")
+        logging.debug(file_path)
+
+        # NOTICE: Without reset_index(), there is: ValueError:
+        similarity_matrix_of_all_posts = similarity_matrix_of_all_posts.reset_index()
+
+        similarity_matrix_of_all_posts.to_feather(file_path)
 
 
 # NOTICE: It would be possible to use @typechecked from typeguard here
@@ -194,11 +253,54 @@ def load_posts_from_sim_matrix(method, list_of_slugs):
     @param list_of_slugs: slugs delivered from SVD algorithm = slugs that we are interested in
     @return:
     """
-    sim_matrix = pd.read_feather("%s_%s.feather".format(SIM_MATRIX_OF_ALL_POSTS_PATH.as_posix(), method))
-    # select from column and rows only desired articles
-    sim_matrix = sim_matrix.loc[list_of_slugs]
+    logging.debug("method:")
+    logging.debug(method)
+    file_path = prepare_sim_matrix_path(method)
+    sim_matrix = pd.read_feather(file_path)
+    logging.debug("sim matrix after load from feather:")
+    logging.debug(sim_matrix.head(5))
+    try:
+        sim_matrix.index = sim_matrix['slug']
+        sim_matrix = sim_matrix.drop('slug', axis=1)
+    except KeyError as ke:
+        sim_matrix.index = sim_matrix['index']
+        sim_matrix = sim_matrix.drop('index', axis=1)
+
+    # Selecting columns
     sim_matrix = sim_matrix[list_of_slugs]
+    logging.debug("sim_matrix.columns")
+    logging.debug(sim_matrix.columns)
+
+    sim_matrix = sim_matrix.loc[list_of_slugs, :]
+    logging.debug("sim_matrix.index")
+    logging.debug(sim_matrix.index)
+
+    logging.debug("sim matrix after index dealing:")
+    logging.debug(sim_matrix.head(5))
+
     return sim_matrix
+
+
+def boost_by_article_freshness(results_df):
+    def boost_coefficient(coeff_value, boost):
+        d = coeff_value * boost
+        return d
+
+    # TODO: Get boost values from DB. Priority MEDIUM
+    # See: hybrid_settings table where it was layed out
+    now = pd.to_datetime('now')
+    r = get_redis_connection()
+    results_df['coefficient'] = results_df.apply(
+        lambda x: boost_coefficient(x['coefficient'], int(r.get('boost_fresh_1_coeff')))
+        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get('boost_fresh_1_hours')), 'h'))
+        else (boost_coefficient(x['coefficient'], int(r.get('boost_fresh_2_coeff'))))
+        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get('boost_fresh_2_hours')), 'h'))
+        else (boost_coefficient(x['coefficient'], int(r.get('boost_fresh_3_coeff'))))
+        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get('boost_fresh_3_hours')), 'h'))
+        else (boost_coefficient(x['coefficient'], int(r.get('boost_fresh_4_coeff'))))
+        , axis=1
+    )
+    return results_df
 
 
 def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, svd_posts_to_compare=None,
@@ -219,7 +321,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     @param save_result: saves the results (i.e. for debugging, this can be loaded with load_saved_result method below). Added to help with debugging of final boosting
     @param load_saved_result: if True, skips the recommending calculation and jumps to final calculations. Added to help with debugging of final boosting
     """
-    path_to_save_results = Path('research/hybrid/results_df.pkl')
+    path_to_save_results = Path('research/hybrid/results_df.pkl') # Primarily for debugging purposes
 
     if load_saved_result is False or not os.path.exists(path_to_save_results):
         if type(user_id) is not int:
@@ -240,9 +342,11 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         for method in list_of_methods:
             if method == "tfidf":
                 constant = 1.75
+                file_path = prepare_sim_matrix_path(method)
                 # TODO: Derive from loaded feather of sim matrix instead
-                if load_from_precalc_sim_matrix and os.path.exists("%s_%s.feather".format(SIM_MATRIX_OF_ALL_POSTS_PATH
-                                                                                                  .as_posix(), method)):
+                if load_from_precalc_sim_matrix \
+                        and os.path \
+                        .exists(file_path):
                     # Loading posts we are interested in from pre-calculated similarity matrix
                     similarity_matrix = load_posts_from_sim_matrix(method, list_of_slugs)
                 else:
@@ -253,15 +357,18 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                 similarity_matrix = similarity_matrix * constant
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
             elif method == "doc2vec" or "word2vec":
+                file_path = prepare_sim_matrix_path(method)
                 # TODO: Derive from loaded feather of sim matrix instead
-                if load_from_precalc_sim_matrix and os.path.exists("%s_%s.feather".format(SIM_MATRIX_OF_ALL_POSTS_PATH
-                                                                                                  .as_posix(), method)):
+                if load_from_precalc_sim_matrix \
+                        and os.path.exists(file_path):
+
                     # Loading posts we are interested in from pre-calculated similarity matrix
                     similarity_matrix = load_posts_from_sim_matrix(method, list_of_slugs)
                 else:
                     # Calculating new similarity matrix only based on posts we are interested
                     similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
-                similarity_matrix = personalize_similarity_matrix(similarity_matrix, svd_posts_to_compare, list_of_slugs_from_history)
+                similarity_matrix = personalize_similarity_matrix(similarity_matrix, svd_posts_to_compare,
+                                                                  list_of_slugs_from_history)
                 if method == "doc2vec":
                     constant = 1.7
                 elif method == "word2vec":
@@ -321,11 +428,11 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
     user_methods = UserMethods()
     user_categories = user_methods.get_user_categories(user_id)
-    print("Categories for user " + str(user_id))
-    print(user_categories)
+    logging.debug("Categories for user " + str(user_id))
+    logging.debug(user_categories)
     user_categories_list = user_categories['category_slug'].values.tolist()
-    print("user_categories_list:")
-    print(user_categories_list)
+    logging.debug("user_categories_list:")
+    logging.debug(user_categories_list)
 
     # If post contains user category, then boost the coefficient
     results_df.coefficient = np.where(
@@ -333,27 +440,11 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         results_df.coefficient * 2.0,
         results_df.coefficient)
 
-    # TODO: Boost posts based on freshness (see Document 'Hybridní algoritmus.docx'). Priority: HIGH
-    def boost_coefficient(coeff_value, boost):
-        d = coeff_value * boost
-        return d
-
     results_df = results_df.rename(columns={'created_at_x': 'post_created_at'})
 
     logging.debug(results_df.columns)
 
-    now = pd.to_datetime('now')
-    results_df['coefficient'] = results_df.apply(
-        lambda x: boost_coefficient(x['coefficient'], 15)
-        if ((now - x['post_created_at']) < pd.Timedelta(1, 'h'))
-        else (boost_coefficient(x['coefficient'], 10)
-              if ((now - x['post_created_at']) < pd.Timedelta(1, 'd'))
-              else (boost_coefficient(x['coefficient'], 8)
-                    if ((now - x['post_created_at']) < pd.Timedelta(5, 'd'))
-                    else (boost_coefficient(x['coefficient'], 1))
-                    )
-              ), axis=1
-    )
+    results_df = boost_by_article_freshness(results_df)
 
     results_df = results_df.set_index('slug')
     results_df = results_df.sort_values(by='coefficient', ascending=False)

@@ -11,6 +11,7 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.user_rele
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 
+# TODO: This belongs to rabbitmq_consume
 def predict_ratings_for_all_users_store_to_redis():
     user_methods = UserMethods()
     all_users_df = user_methods.get_users_dataframe()

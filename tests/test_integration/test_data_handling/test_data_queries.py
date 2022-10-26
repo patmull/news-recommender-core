@@ -1,6 +1,7 @@
 import os
 
 import pandas as pd
+import pandas.core.indexes.base
 import pytest
 
 # python -m pytest .\tests\test_data_handling\test_data_queries.py
@@ -112,3 +113,18 @@ def test_results_dataframe():
     recommender_methods = RecommenderMethods()
     evaluation_results_df = recommender_methods.get_ranking_evaluation_results_dataframe()
     common_asserts_for_dataframes(evaluation_results_df, CRITICAL_COLUMNS_EVALUATION_RESULTS)
+
+
+# INIT METHODS FROM app.py
+def test_get_sql_columns():
+    recommender_methods = RecommenderMethods()
+    sql_columns = recommender_methods.get_sql_columns()
+    assert isinstance(sql_columns, pandas.core.indexes.base.Index)
+    assert type(len(sql_columns)) is int
+
+
+def test_get_sql_rows():
+    recommender_methods = RecommenderMethods()
+    num_of_rows = recommender_methods.get_sql_num_of_rows()
+    assert type(num_of_rows) is int
+    assert num_of_rows > 0

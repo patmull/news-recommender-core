@@ -4,18 +4,24 @@ from rabbitmq_publisher import publish_channel
 
 
 class ChannelConstants:
+    """
+    TEST_MESSAGE: Used in PHPUnit tests from Moje-clanky module
+    """
+    USER_PRINT_CALLING_PREFILLERS = "Received message for pre-fillers to queue."
     MESSAGE = "Initializing queue from MC Core"
+    TEST_MESSAGE = '{"test_json":"test"}'
 
 
 def init_df_of_channel_names():
     LIST_OF_QUEUES = ['user-post-star_rating-updated-queue',
                       'user-keywords-updated-queue',
                       'user-categories-updated-queue',
-                      ]
+                      'post-features-updated-queue']
     LIST_OF_ROUTING_KEYS = ['user.post.star_rating.event.updated',
                             'user.keywords.event.updated',
-                            'user.categories.event.updated']
-    EXCHANGE = ['user', 'user', 'user']
+                            'user.categories.event.updated',
+                            'post.features.updated.queue']
+    EXCHANGE = ['user', 'user', 'user', 'post']
 
     init_messages = []
 
