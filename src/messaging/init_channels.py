@@ -16,12 +16,14 @@ def init_df_of_channel_names():
     LIST_OF_QUEUES = ['user-post-star_rating-updated-queue',
                       'user-keywords-updated-queue',
                       'user-categories-updated-queue',
-                      'post-features-updated-queue']
+                      'post-features-updated-queue',
+                      'user-post-thumb_rating-updated-queue']
     LIST_OF_ROUTING_KEYS = ['user.post.star_rating.event.updated',
                             'user.keywords.event.updated',
                             'user.categories.event.updated',
-                            'post.features.updated.queue']
-    EXCHANGE = ['user', 'user', 'user', 'post']
+                            'post.features.updated.queue',
+                            'user.post.thumb_rating.event.updated']
+    EXCHANGE = ['user', 'user', 'user', 'post', 'user']
 
     init_messages = []
 
