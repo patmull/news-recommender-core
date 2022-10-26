@@ -11,7 +11,7 @@ import psycopg2
 from gensim.models import KeyedVectors
 from pandas.io.sql import DatabaseError
 
-from src.constants.file_paths import CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES
+from src.constants.file_paths import W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES
 from src.custom_exceptions.exceptions import TestRunException
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid
@@ -147,6 +147,7 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                 print(e)
                 pass
 
+
 # TODO: Test this method alone, i.e. removing prefilled record, check logging for positive addition
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
@@ -175,9 +176,9 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
     if method.startswith("word2vec_"):
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
 
-        if method in CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES:
-            selected_model_name = CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][1]
-            path_to_folder = CONTENT_BASED_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][0]
+        if method in W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES:
+            selected_model_name = W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][1]
+            path_to_folder = W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][0]
 
         else:
             raise ValueError("Wrong word2vec model name chosen.")

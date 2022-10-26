@@ -45,4 +45,4 @@ assert mockconnect.call_args_list[0] == call(user=DB_USER, password=DB_PASSWORD,
 """
 
 # run_prefilling_collaborative(test_run=True)
-run_prefilling()
+run_prefilling(skip_cache_refresh=True)
