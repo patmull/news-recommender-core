@@ -92,7 +92,7 @@ class TestUserPrefillers(TestCase):
 
     @patch.object(UserBased, "prefilling_job_user_based", autospec=UserBased)
     def test_prefilling_job_user_based_not_called(self, mock_prefilling_job_user_based):
-        methods = ['svd', 'user_keywords', 'best_rated']  # last value is BS value
+        methods = ['svd', 'user_keywords', 'best_rated', 'hybrid']  # last value is BS value
         with pytest.raises(ValueError):
             run_prefilling_collaborative(methods)
         mock_prefilling_job_user_based.assert_not_called()

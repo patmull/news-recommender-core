@@ -20,22 +20,18 @@ from gensim.corpora import Dictionary
 from gensim.models import KeyedVectors, Word2Vec
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from gensim.similarities.annoy import AnnoyIndexer
-from gensim.utils import deaccent
 from pymongo import MongoClient
 
-from src.recommender_core.data_handling.data_handlers import flatten
-from src.recommender_core.recommender_algorithms.content_based_algorithms import gensim_methods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
     calculate_similarity_idnes_model_gensim
-from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder, \
-    generate_lines_from_mmcorpus
+from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder
 import pandas as pd
 
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, append_training_results, save_wordsim, \
     get_eval_results_header, prepare_hyperparameters_grid, random_hyperparameter_choice, \
     combine_features_from_single_df_row
 from src.prefillers.preprocessing.cz_preprocessing import preprocess
-from src.prefillers.preprocessing.stopwords_loading import remove_stopwords, load_cz_stopwords
+from src.prefillers.preprocessing.stopwords_loading import load_cz_stopwords
 from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
 
 for handler in logging.root.handlers[:]:
@@ -177,7 +173,6 @@ def eval_wiki():
         "research/word2vec/analogies/questions-words-cs.txt")
     print("Analogies evaluation of FastText on Wikipedia.cz model:")
     print(overall_analogies_score)
-
 
 
 def get_client():
@@ -332,7 +327,6 @@ class Word2VecClass:
             # variable for this purpose. If num_of_trials > 1, then throw ValueError (Same as in Doc2vec)
             raise ValueError("Slug does not appear in dataframe.")
 
-
         self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
         self.categories_df = self.categories_df.rename(columns={'slug': 'category_slug'})
 
@@ -398,7 +392,8 @@ class Word2VecClass:
                 print("Similarities on Wikipedia.cz model:")
                 ds = DocSim(w2v_model)
                 most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
-                                                                                              list_of_document_features)[:21]
+                                                                                              list_of_document_features)[
+                                                    :21]
             elif model_name.startswith("idnes"):
                 source = "idnes"
                 if model_name.startswith("idnes_1"):
@@ -1004,3 +999,6 @@ class Word2VecClass:
 
         return termsim_matrix
 
+
+if __name__ == '__main__':
+    logging.info("Word2Vec module")

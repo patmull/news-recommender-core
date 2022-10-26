@@ -14,6 +14,7 @@ from pandas.io.sql import DatabaseError
 from src.constants.file_paths import W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES
 from src.custom_exceptions.exceptions import TestRunException
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
+from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
     UserBasedMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
@@ -48,7 +49,8 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 
     @param method: i.e. "svd", "user_keywords" etc.
     @param skip_already_filled:
-    @param user_id: Insert user id if it is supposed to prefill recommendation only for a single user
+    @param user_id: Insert user id if it is supposed to prefill recommendation only for a single user,
+    otherwise will prefill for all
     @param test_run: Using for tests ensuring that the method is called
     @return:
     """
@@ -106,13 +108,25 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                 print("Value Error had occurred in computing " + method + ". Skipping record.")
                 print(e)
                 continue
+        elif method == "hybrid":
+            try:
+                actual_json = get_most_similar_by_hybrid(user_id=current_user_id, load_from_precalc_sim_matrix=True)
+            except ValueError as e:
+                print("Value Error had occurred in computing " + method + ". Skipping record.")
+                print(e)
+                continue
         else:
             raise ValueError("Method not implemented.")
-        print("dict actual_svd_json")
-        print(actual_json)
-        actual_json = json.dumps(actual_json)
-        print("dumped actual_svd_json")
-        print(actual_json)
+
+        # NOTICE: Hybrid is already doing this
+        # TODO: Shouldn't this be handled for other methods too inside the mathod and not here like in hybrid?
+        if not method == "hybrid":
+            print("dict actual_svd_json")
+            print(actual_json)
+            actual_json = json.dumps(actual_json)
+            print("dumped actual_svd_json")
+            print(actual_json)
+
         if skip_already_filled is True:
             if current_recommended is None:
                 try:

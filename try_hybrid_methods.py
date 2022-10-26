@@ -1,9 +1,6 @@
-
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid, \
     precalculate_and_save_sim_matrix_for_all_posts
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    Classifier
 
 
 def main():

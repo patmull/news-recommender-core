@@ -1,15 +1,33 @@
 import json
+import logging
+import os.path
+import random
+from pathlib import Path
+from unittest import mock, TestCase
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
 import pytest
 
+import src
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
-    get_most_similar_by_hybrid, select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity
+    get_most_similar_by_hybrid, select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity, \
+    LIST_OF_SUPPORTED_METHODS, SIM_MATRIX_OF_ALL_POSTS_PATH, SIM_MATRIX_NAME_BASE, \
+    precalculate_and_save_sim_matrix_for_all_posts, load_posts_from_sim_matrix, HybridConstants
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     load_bert_model, Classifier
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods, get_redis_connection
 
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from hybrid_methods.")
 
 # RUN WITH:
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
@@ -52,37 +70,6 @@ def test_thumbs():
     THUMBS_COLUMNS_NEEDED = ['thumbs_values', 'thumbs_created_at', 'all_features_preprocessed', 'full_text']
     assert all(elem in user_categories_thumbs_df.columns.values for elem in THUMBS_COLUMNS_NEEDED)
     assert len(user_categories_thumbs_df.index) > 0  # assert there are rows in dataframe
-
-
-def test_hybrid_by_svd_history_tfidf():
-    test_user_id = 431
-
-    searched_slug_1, searched_slug_2, searched_slug_3 = get_three_unique_posts()
-
-    test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
-    tested_methods = ['tfidf', 'doc2vec']
-
-    # posts delivered
-    most_similar_hybrid_by_tfidf = get_most_similar_by_hybrid(user_id=test_user_id,
-                                                              svd_posts_to_compare=test_slugs,
-                                                              list_of_methods=tested_methods)
-    type_of_json = type(most_similar_hybrid_by_tfidf)
-    assert type_of_json is str  # assert str
-    try:
-        json.loads(most_similar_hybrid_by_tfidf)
-        assert True
-    except ValueError:
-        pytest.fail("Encountered an unexpected exception on trying to load JSON.")
-
-    # posts not delivered
-    most_similar_hybrid_by_tfidf = get_most_similar_by_hybrid(user_id=test_user_id, list_of_methods=tested_methods)
-    type_of_json = type(most_similar_hybrid_by_tfidf)
-    assert type_of_json is str  # assert str
-    try:
-        json.loads(most_similar_hybrid_by_tfidf)
-        assert True
-    except ValueError:
-        pytest.fail("Encountered an unexpected exception on trying to load JSON.")
 
 
 def test_get_similarity_matrix_from_pairs_similarity():
