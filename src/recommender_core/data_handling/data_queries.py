@@ -25,9 +25,11 @@ CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"
 
 import logging
 
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
-logging.debug("Testing logging from data_queries module.")
 
 
 def convert_df_to_json(dataframe):
@@ -199,14 +201,22 @@ class RecommenderMethods:
                     logging.debug("Reading from cache...")
                     self.posts_df = self.database.get_posts_dataframe(from_cache=from_cache)
                 except Exception as e:
-                    print(e)
-                    print(traceback.format_exc())
-                    self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
+                    logging.warning("Exception occurred when trying to read post from cache:")
+                    logging.warning(e)
+                    logging.warning(traceback.format_exc())
+                    self.posts_df = self.get_df_from_sql_meanwhile_insert_to_cache()
             else:
-                self.posts_df = self.get_df_from_sql_meanwhile_insert_cache()
+                self.posts_df = self.get_df_from_sql_meanwhile_insert_to_cache()
 
-        self.posts_df.drop_duplicates(subset=['title'], inplace=True)
+        # ** HERE WAS DROP DUPLICATION. ABANDONED TO UNNECESSARZ DUPLICATED OPERATION AND MOVED TO
+        # ABOVE CHILDREN METHODS **
         return self.posts_df
+
+    def update_cache_of_posts_df(self):
+        logging.info("Updating posts cache...")
+        self.database.connect()
+        self.posts_df = self.database.insert_posts_dataframe_to_cache(self.cached_file_path)
+        self.database.disconnect()
 
     def get_posts_dataframe_only_with_bert(self):
         self.database.connect()
@@ -215,14 +225,14 @@ class RecommenderMethods:
 
         return self.posts_df
 
-    def get_df_from_sql_meanwhile_insert_cache(self):
+    def get_df_from_sql_meanwhile_insert_to_cache(self):
 
         # noinspection PyShadowingNames
         def update_cache(self):
-            print("Inserting file to cache in the background...")
+            logging.debug("Inserting file to cache in the background...")
             self.database.insert_posts_dataframe_to_cache()
 
-        print("Posts not found on cache. Will use PgSQL command.")
+        logging.debug("Posts not found on cache. Will use PgSQL command.")
         posts_df = self.database.get_posts_dataframe_from_sql()
         thread = Thread(target=update_cache, kwargs={'self': self})
         thread.start()
@@ -307,7 +317,7 @@ class RecommenderMethods:
                      'recommended_tfidf_full_text', 'trigrams_full_text']]
             except KeyError:
                 self.df = self.database.insert_posts_dataframe_to_cache()
-                self.posts_df.drop_duplicates(subset=['title'], inplace=True)
+                self.posts_df = self.posts_df.drop_duplicates(subset=['title'])
                 print(self.df.columns.values)
                 self.df = self.df[
                     ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
@@ -324,7 +334,7 @@ class RecommenderMethods:
                      'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text',
                      'trigrams_full_text']]
             except KeyError as key_error:
-                self.df = self.get_df_from_sql_meanwhile_insert_cache()
+                self.df = self.get_df_from_sql_meanwhile_insert_to_cache()
                 print(key_error)
                 print("Columns of self.df:")
                 print(self.df.columns)
@@ -349,7 +359,6 @@ class RecommenderMethods:
                 raise ValueError("Entered input_string is empty.")
             else:
                 pass
-
         posts_df = self.get_posts_dataframe(from_cache=from_cache)
         return posts_df.loc[posts_df['slug'] == searched_slug]
 
@@ -433,10 +442,24 @@ class RecommenderMethods:
         return posts_users_categories_ratings_df
 
     def get_sql_columns(self):
+        """
+        Init method from app.py. Need for post's cache sanity check
+        @return: list of post's columns from DB
+        """
         self.database.connect()
         df_columns = self.database.get_sql_columns()
         self.database.disconnect()
         return df_columns
+
+    def get_sql_num_of_rows(self):
+        """
+       Init method from app.py. Need for post's cache sanity check
+       @return: number of post's rows from DB
+       """
+        self.database.connect()
+        df = self.database.get_posts_dataframe(from_cache=False)
+        self.database.disconnect()
+        return len(df.index)
 
     def get_relevance_results_dataframe(self):
         self.database.connect()
@@ -573,8 +596,7 @@ class TfIdfDataHandlers:
 
         keywords_list = [keywords]
         txt_cleaned = get_cleaned_text(self.df['post_title'] + self.df['category_title'] + self.df['keywords'] +
-                                       self.df[
-                                           'excerpt'])
+                                       self.df['excerpt'])
         tfidf = self.tfidf_vectorizer.fit_transform(txt_cleaned)
         tfidf_keywords_input = self.tfidf_vectorizer.transform(keywords_list)
         cosine_similarities = flatten(cosine_similarity(tfidf_keywords_input, tfidf))
@@ -607,12 +629,10 @@ class TfIdfDataHandlers:
         if fit_by_2 is None:
             logging.debug("self.df")
             logging.debug(self.df)
-            self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[
-                                                                        fit_by])
+            self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[fit_by])
         else:
             self.df[fit_by] = self.df[fit_by_2] + " " + self.df[fit_by]
-            self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[
-                                                                        fit_by])
+            self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[fit_by])
 
         return self.tfidf_tuples  # tuples of (document_id, token_id) and tf-idf score for it
 
@@ -700,3 +720,7 @@ class TfIdfDataHandlers:
         # join feature tuples into one matrix
         tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
         return tuple_of_fitted_matrices
+
+
+if __name__ == '__main__':
+    logging.debug("Testing logging from data_queries module.")
