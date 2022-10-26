@@ -63,8 +63,11 @@ def user_rated_by_stars_callback(ch, method, properties, body):
             call_collaborative_prefillers(method, body)
             method = 'hybrid'
             call_collaborative_prefillers(method, body)
+            # TODO: Column not in DB yet
+            """
             method = 'classifier'
             call_collaborative_prefillers(method, body)
+            """
 
 
 def user_rated_by_thumb_callback(ch, method, properties, body):
@@ -76,8 +79,11 @@ def user_rated_by_thumb_callback(ch, method, properties, body):
         if not is_init_or_test(body.decode()):
             print(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
             # User classifier update
+            # TODO: Column not in DB yet. Will be in DB at all or REDIS?
+            """
             method = 'classifier'
             call_collaborative_prefillers(method, body)
+            """
             method = 'hybrid'
             call_collaborative_prefillers(method, body)
 
@@ -114,6 +120,9 @@ def user_added_categories(ch, method, properties, body):
 
 def insert_testing_json(received_user_id, method, heroku_testing_db=False):
 
+    if method == "classifier":
+        print("Storing classifier to DB is not implemented yet.")
+
     user_methods = UserMethods()
     print("Inserting testing JSON for testing user.")
 
@@ -132,14 +141,14 @@ def insert_testing_json(received_user_id, method, heroku_testing_db=False):
     print(str(actual_json))
     print(type(actual_json))
 
-    if heroku_testing_db == True:
+    if heroku_testing_db:
         db = "pgsql_heroku_testing"
     else:
         db = "pgsql"
 
     user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
                                                     user_id=received_user_id, db=db,
-                                                    method=method, heroku_testing_db=heroku_testing_db)
+                                                    method=method)
 
 
 def call_collaborative_prefillers(method, msg_body):
@@ -157,7 +166,9 @@ def call_collaborative_prefillers(method, msg_body):
                 print("User's data are empty. User is prbably not presented in"
                       "DB")
                 insert_testing_json(received_user_id, method, heroku_testing_db=True)
-            test_user_name = user['name'].values[0].startswith('test-user-dusk')
+                test_user_name = True
+            else:
+                test_user_name = user['name'].values[0].startswith('test-user-dusk')
         except IndexError as ie:
             print("Index error occurred while trying to fetch information about the user. "
                   "User is probably not longer in database.")

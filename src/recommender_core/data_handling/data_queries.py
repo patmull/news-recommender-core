@@ -551,9 +551,8 @@ class RecommenderMethods:
             database_heroku_testing = DatabaseMethods(db="pgsql_heroku_testing")
             database_heroku_testing.connect()
             database_heroku_testing.insert_recommended_json_user_based(recommended_json=recommended_json,
-                                                             user_id=user_id, db=db, method=method)
+                                                                       user_id=user_id, db=db, method=method)
             database_heroku_testing.disconnect()
-
 
     def remove_test_user_prefilled_records(self, user_id, db_columns):
         self.database = DatabaseMethods()
