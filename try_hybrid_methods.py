@@ -1,6 +1,6 @@
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid, \
-    precalculate_and_save_sim_matrix_for_all_posts, HybridConstants
+    precalculate_and_save_sim_matrix_for_all_posts
 
 
 def main():
@@ -29,6 +29,7 @@ def main():
                                           bert_model=bert, use_only_sample_of=None, only_with_prefilled_bert_vectors=False,
                                           experiment_mode=False)
     """
+
 
     malformed_redis_key_name = "malformed_redis_key_name"
     columns_to_combine = ['category_title', 'all_features_preprocessed', 'full_text']
@@ -92,12 +93,9 @@ def main():
     classifier.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by='stars',
                                           force_retraining=True, save_df_posts_users_categories_relevance=True)
     """
-
     user_id_for_test = 431
-    # precalculate_and_save_sim_matrix_for_all_posts()
-    print("=====================================")
-    print("PRECALCULATION DONE")
-    print("=====================================")
-    print(get_most_similar_by_hybrid(user_id_for_test, load_from_precalc_sim_matrix=False))
+    precalculate_and_save_sim_matrix_for_all_posts()
+    print(get_most_similar_by_hybrid(user_id_for_test, load_from_precalc_sim_matrix=True))
+
 
 if __name__ == "__main__": main()
