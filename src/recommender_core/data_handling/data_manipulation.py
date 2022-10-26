@@ -791,22 +791,23 @@ class DatabaseMethods(object):
         return df
 
     def insert_recommended_json_user_based(self, recommended_json, user_id, db, method):
-        if db != "pgsql":
+        if db == "pgsql" or db == "pgsql_heroku_testing":
+            try:
+                column_name = "recommended_by_" + method
+                query = """UPDATE users SET {} = %s WHERE id = %s;""".format(column_name)
+                print("query used:")
+                print(query)
+                inserted_values = (recommended_json, user_id)
+                if self.cursor is not None and self.cnx is not None:
+                    self.cursor.execute(query, inserted_values)
+                    self.cnx.commit()
+                else:
+                    raise ValueError("Cursor is set to None. Cannot continue with next operation.")
+            except psycopg2.Error as e:
+                print_exception_not_inserted(e)
+        else:
             raise NotImplementedError("Other database source than PostgreSQL not implemented yet.")
 
-        try:
-            column_name = "recommended_by_" + method
-            query = """UPDATE users SET {} = %s WHERE id = %s;""".format(column_name)
-            print("query used:")
-            print(query)
-            inserted_values = (recommended_json, user_id)
-            if self.cursor is not None and self.cnx is not None:
-                self.cursor.execute(query, inserted_values)
-                self.cnx.commit()
-            else:
-                raise ValueError("Cursor is set to None. Cannot continue with next operation.")
-        except psycopg2.Error as e:
-            print_exception_not_inserted(e)
 
     def null_test_user_prefilled_records(self, user_id: int, db_columns: List[str]):
         """
