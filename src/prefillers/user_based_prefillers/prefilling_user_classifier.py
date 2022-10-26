@@ -12,6 +12,24 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 
 # TODO: This belongs to rabbitmq_consume
+def predict_ratings_for_user_store_to_redis(user_id):
+    classifier = Classifier()
+    print("Loading BERT multilingual model...")
+    bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
+    try:
+        classifier.predict_relevance_for_user(user_id=user_id, relevance_by='thumbs', bert_model=bert)
+    except ValueError:
+        print("Value error occurred when trying to get relevant thumbs for user. Skipping "
+              "this user.")
+        pass
+    try:
+        classifier.predict_relevance_for_user(user_id=user_id, relevance_by='ratings', bert_model=bert)
+    except ValueError:
+        print("Value error occurred when trying to get relevant thumbs for user. Skipping "
+              "this user.")
+        pass
+
+
 def predict_ratings_for_all_users_store_to_redis():
     user_methods = UserMethods()
     all_users_df = user_methods.get_users_dataframe()

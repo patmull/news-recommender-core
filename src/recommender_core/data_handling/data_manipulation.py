@@ -25,23 +25,32 @@ def print_exception_not_inserted(e):
 
 class DatabaseMethods(object):
 
-    def __init__(self):
-        if "PYTEST_CURRENT_TEST" in os.environ:
-            self.DB_USER = 'postgres'
-            self.DB_PASSWORD = 'braf'
-            self.DB_HOST = 'localhost'
-            self.DB_NAME = 'moje_clanky_core_testing'
-        else:
-            self.DB_USER = os.environ['DB_RECOMMENDER_USER']
-            self.DB_PASSWORD = os.environ['DB_RECOMMENDER_PASSWORD']
-            self.DB_HOST = os.environ['DB_RECOMMENDER_HOST']
-            self.DB_NAME = os.environ['DB_RECOMMENDER_NAME']
-
+    def __init__(self, db="pgsql"):
         self.categories_df = None
         self.posts_df = pd.DataFrame()
         self.df = None
         self.cnx = None
         self.cursor = None
+
+        if db == "pgsql":
+            if "PYTEST_CURRENT_TEST" in os.environ:
+                self.DB_USER = 'postgres'
+                self.DB_PASSWORD = 'braf'
+                self.DB_HOST = 'localhost'
+                self.DB_NAME = 'moje_clanky_core_testing'
+            else:
+                self.DB_USER = os.environ['DB_RECOMMENDER_USER']
+                self.DB_PASSWORD = os.environ['DB_RECOMMENDER_PASSWORD']
+                self.DB_HOST = os.environ['DB_RECOMMENDER_HOST']
+                self.DB_NAME = os.environ['DB_RECOMMENDER_NAME']
+
+        elif db == "pgsql_heroku_testing":
+            self.DB_USER = os.environ['DB_RECOMMENDER_HEROKU_TESTING_USER']
+            self.DB_PASSWORD = os.environ['DB_RECOMMENDER_HEROKU_TESTING_PASSWORD']
+            self.DB_HOST = os.environ['DB_RECOMMENDER_HEROKU_TESTING_HOST']
+            self.DB_NAME = os.environ['DB_RECOMMENDER_HEROKU_TESTING_NAME']
+        else:
+            raise ValueError("No from selected databases are implemented.")
 
     def connect(self):
         keepalive_kwargs = {
@@ -784,6 +793,7 @@ class DatabaseMethods(object):
     def insert_recommended_json_user_based(self, recommended_json, user_id, db, method):
         if db != "pgsql":
             raise NotImplementedError("Other database source than PostgreSQL not implemented yet.")
+
         try:
             column_name = "recommended_by_" + method
             query = """UPDATE users SET {} = %s WHERE id = %s;""".format(column_name)
