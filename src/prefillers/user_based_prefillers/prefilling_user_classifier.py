@@ -3,8 +3,6 @@ import pickle
 import random
 import time
 
-import spacy_sentence_bert
-
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     Classifier
