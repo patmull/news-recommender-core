@@ -37,6 +37,7 @@ log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from Doc2Vec.")
 
+
 def create_tagged_document(list_of_list_of_words):
     for i, list_of_words in enumerate(list_of_list_of_words):
         yield gensim.models.doc2vec.TaggedDocument(list_of_words, [i])
@@ -322,7 +323,6 @@ def find_best_doc2vec_model(source, number_of_trials=512, file_name='doc2vec_fin
 
 
 def train_final_doc2vec_model(source):
-
     print("Building sentences...")
     # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
     train_corpus, test_corpus = prepare_train_test_corpus()
@@ -534,7 +534,7 @@ class Doc2VecClass:
                 self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
                 project_config.trials_counter.NUM_OF_TRIALS += 1
                 self.get_similar_doc2vec(searched_slug, train_enabled, limited, number_of_recommended_posts,
-                                    full_text, posts_from_cache)
+                                         full_text, posts_from_cache)
             else:
                 project_config.trials_counter.NUM_OF_TRIALS = 0
                 raise ValueError("searched_slug not in dataframe. Tried to deal with this by updating posts_categories "
@@ -591,9 +591,9 @@ class Doc2VecClass:
         most_similar_posts = doc2vec_loaded_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
         try:
-             recommendations = get_similar_by_posts_slug(most_similar_posts, documents_slugs, number_of_recommended_posts)
-             project_config.trials_counter.NUM_OF_TRIALS = 0
-             return recommendations
+            recommendations = get_similar_by_posts_slug(most_similar_posts, documents_slugs,
+                                                        number_of_recommended_posts)
+            project_config.trials_counter.NUM_OF_TRIALS = 0
         except IndexError as e:
             if project_config.trials_counter.NUM_OF_TRIALS < 1:
                 logging.warning('Index error occurred when trying to get Doc2Vec model for posts')
@@ -603,12 +603,15 @@ class Doc2VecClass:
                 documents_all_features_preprocessed = preprocess_columns(self.df, cols)
                 train_doc2vec(documents_all_features_preprocessed)
                 project_config.trials_counter.NUM_OF_TRIALS += 1
-                self.get_similar_doc2vec(searched_slug, train_enabled, limited, number_of_recommended_posts,
-                                         full_text, posts_from_cache)
+                recommendations = self.get_similar_doc2vec(searched_slug, train_enabled, limited,
+                                                           number_of_recommended_posts,
+                                                           full_text, posts_from_cache)
             else:
                 logging.warning("Tried to train Doc2Vec again but it didn't helped and IndexError got raised again. "
                                 "Need to shutdown,")
                 raise e
+
+        return recommendations
 
     @accepts_first_argument(str)
     @check_empty_string
@@ -667,9 +670,10 @@ class Doc2VecClass:
         most_similar_items = doc2vec_loaded_model.dv.most_similar([vector_source], topn=number_of_recommended_posts)
 
         try:
-            recommednations = get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_recommended_posts)
+            recommendations = get_similar_by_posts_slug(most_similar_items, documents_slugs,
+                                                        number_of_recommended_posts)
             project_config.trials_counter.NUM_OF_TRIALS = 0
-            return recommednations
+
         except IndexError as e:
             if project_config.trials_counter.NUM_OF_TRIALS < 1:
                 logging.warning('Index error occurred when trying to get Doc2Vec model for posts')
@@ -679,11 +683,16 @@ class Doc2VecClass:
                 documents_all_features_preprocessed = preprocess_columns(self.df, cols)
                 train_doc2vec(documents_all_features_preprocessed)
                 project_config.trials_counter.NUM_OF_TRIALS += 1
-                self.get_similar_doc2vec_with_full_text(searched_slug, train_enabled, number_of_recommended_posts, posts_from_cache)
+                recommendations = self.get_similar_doc2vec_with_full_text(searched_slug, train_enabled,
+                                                                          number_of_recommended_posts,
+                                                                          posts_from_cache)
             else:
                 logging.warning(
-                    "Tried to train Doc2Vec again but it didn't helped and IndexError got raised again. Need to shutdown,")
+                    "Tried to train Doc2Vec again but it didn't helped and IndexError got raised again. Need to "
+                    "shutdown.")
                 raise e
+
+        return recommendations
 
     def get_vector_representation(self, searched_slug):
         """
@@ -748,5 +757,3 @@ class Doc2VecClass:
     def load_model(self, path=None):
         self.doc2vec_model = load_doc2vec_model(path_to_model=path)
         return self.doc2vec_model
-
-
