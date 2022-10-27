@@ -63,11 +63,8 @@ def user_rated_by_stars_callback(ch, method, properties, body):
             call_collaborative_prefillers(method, body)
             method = 'hybrid'
             call_collaborative_prefillers(method, body)
-            # TODO: Column not in DB yet
-            """
             method = 'classifier'
             call_collaborative_prefillers(method, body)
-            """
 
 
 def user_rated_by_thumb_callback(ch, method, properties, body):
@@ -78,13 +75,10 @@ def user_rated_by_thumb_callback(ch, method, properties, body):
     if body.decode():
         if not is_init_or_test(body.decode()):
             print(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
-            # User classifier update
-            # TODO: Column not in DB yet. Will be in DB at all or REDIS?
-            """
-            method = 'classifier'
-            call_collaborative_prefillers(method, body)
-            """
             method = 'hybrid'
+            call_collaborative_prefillers(method, body)
+            # User classifier update
+            method = 'classifier'
             call_collaborative_prefillers(method, body)
 
 
