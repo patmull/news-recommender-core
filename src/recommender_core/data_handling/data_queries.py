@@ -540,11 +540,19 @@ class RecommenderMethods:
         print(df_history_articles.columns)
         return df_history_articles
 
-    def insert_recommended_json_user_based(self, recommended_json, user_id, db, method):
-        self.database.connect()
-        self.database.insert_recommended_json_user_based(recommended_json=recommended_json,
-                                                         user_id=user_id, db=db, method=method)
-        self.database.disconnect()
+    def insert_recommended_json_user_based(self, recommended_json, user_id, db, method, heroku_testing_db=False):
+
+        if db == "pgsql":
+            self.database.connect()
+            self.database.insert_recommended_json_user_based(recommended_json=recommended_json,
+                                                             user_id=user_id, db=db, method=method)
+            self.database.disconnect()
+        elif db == "pgsql_heroku_testing":
+            database_heroku_testing = DatabaseMethods(db="pgsql_heroku_testing")
+            database_heroku_testing.connect()
+            database_heroku_testing.insert_recommended_json_user_based(recommended_json=recommended_json,
+                                                                       user_id=user_id, db=db, method=method)
+            database_heroku_testing.disconnect()
 
     def remove_test_user_prefilled_records(self, user_id, db_columns):
         self.database = DatabaseMethods()
