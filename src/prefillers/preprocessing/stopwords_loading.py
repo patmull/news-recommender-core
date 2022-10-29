@@ -1,4 +1,3 @@
-
 import gensim
 from pathlib import Path
 
@@ -42,7 +41,7 @@ def remove_stopwords(texts, cz_punct=False) -> list:
         for word in texts:
             if word not in stopwords:
                 cleaned_text_list.append(word)
-        return cleaned_text_list
+
     elif type(texts) is str:
         stopwords_cz = load_cz_stopwords()
         stopwords_general = load_general_stopwords()
@@ -51,4 +50,10 @@ def remove_stopwords(texts, cz_punct=False) -> list:
         joined_stopwords = ' '.join(str(x) for x in stopwords)
         stopwords = gensim.utils.deaccent(joined_stopwords)
         stopwords = stopwords.split(' ')
-        return [[word for word in gensim.utils.simple_preprocess(doc) if word not in stopwords] for doc in texts]
+        cleaned_text_list = [[word for word in gensim.utils.simple_preprocess(doc)
+                              if word not in stopwords] for doc in texts]
+
+    else:
+        raise ValueError("'texts' parameter needs to be string or list.")
+
+    return cleaned_text_list

@@ -12,8 +12,7 @@ from pathlib import Path
 
 import gensim
 import numpy as np
-import pymongo as pymongo
-import regex
+import pandas as pd
 import tqdm
 from gensim import corpora
 from gensim.corpora import Dictionary
@@ -22,17 +21,15 @@ from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilari
 from gensim.similarities.annoy import AnnoyIndexer
 from pymongo import MongoClient
 
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
-    calculate_similarity_idnes_model_gensim
-from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder
-import pandas as pd
-
+from src.prefillers.preprocessing.cz_preprocessing import preprocess
+from src.prefillers.preprocessing.stopwords_loading import load_cz_stopwords
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, append_training_results, save_wordsim, \
     get_eval_results_header, prepare_hyperparameters_grid, random_hyperparameter_choice, \
     combine_features_from_single_df_row
-from src.prefillers.preprocessing.cz_preprocessing import preprocess
-from src.prefillers.preprocessing.stopwords_loading import load_cz_stopwords
 from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
+    calculate_similarity_idnes_model_gensim
+from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -88,13 +85,6 @@ def save_fast_text_to_w2v():
     word2vec_model.fill_norms()
     word2vec_model.save_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
     print("Fast text saved...")
-
-
-@DeprecationWarning
-def refresh_model():
-    save_fast_text_to_w2v()
-    print("Loading word2vec doc2vec_model...")
-    save_full_model_to_smaller()
 
 
 def save_tuple_to_csv(path, data):
@@ -288,6 +278,7 @@ class Word2VecClass:
     # "@moje-clanky/w2v_embedding_all_in_one"
 
     def __init__(self):
+        self.w2v_model = None
         self.documents = None
         self.df = None
         self.posts_df = None
@@ -391,9 +382,9 @@ class Word2VecClass:
                 w2v_model = KeyedVectors.load_word2vec_format("full_models/cswiki/word2vec/w2v_model_full")
                 print("Similarities on Wikipedia.cz model:")
                 ds = DocSim(w2v_model)
-                most_similar_articles_with_scores = ds.calculate_similarity_wiki_model_gensim(found_post,
-                                                                                              list_of_document_features)[
-                                                    :21]
+                ds.calculate_similarity_wiki_model_gensim(found_post,
+                                                          list_of_document_features)[
+                :21]
             elif model_name.startswith("idnes"):
                 source = "idnes"
                 if model_name.startswith("idnes_1"):
@@ -517,7 +508,6 @@ class Word2VecClass:
                        vector_size=None, window=None, min_count=None,
                        epochs=None, sample=None, force_update_model=True,
                        use_default_model=False, save_model=True):
-        model_path = None
         if source == "idnes":
             model_path = Path("models/w2v_idnes.model")
         elif source == "cswiki":
@@ -592,13 +582,12 @@ class Word2VecClass:
         sentences = []
 
         client = MongoClient("localhost", 27017, maxPoolSize=50)
-        global db
         if source == "idnes":
             db = client.idnes
         elif source == "cswiki":
             db = client.cswiki
         else:
-            ValueError("No from selected sources are in options.")
+            raise ValueError("No from selected sources are in options.")
         collection = db.preprocessed_articles_trigrams
         cursor = collection.find({})
         for document in cursor:
@@ -761,7 +750,6 @@ class Word2VecClass:
         """
         Method for running final evaluation based on selected parameters (i.e. through random_order search).
         """
-        global db
         if source == "idnes":
             db = client.idnes
         elif source == "cswiki":
