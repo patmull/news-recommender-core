@@ -1,5 +1,4 @@
 import json
-import time
 import traceback
 
 import pika.exceptions
@@ -7,8 +6,7 @@ import pika.exceptions
 from src.messaging.init_channels import publish_rabbitmq_channel, ChannelConstants
 from src.prefillers.prefilling_all import run_prefilling
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
-from src.prefillers.user_based_prefillers.prefilling_user_classifier import \
-    predict_ratings_for_all_users_store_to_redis, predict_ratings_for_user_store_to_redis
+from src.prefillers.user_based_prefillers.prefilling_user_classifier import predict_ratings_for_user_store_to_redis
 from src.recommender_core.data_handling.data_connection import init_rabbitmq
 
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
@@ -189,11 +187,15 @@ def call_collaborative_prefillers(method, msg_body):
 Abandoned due to unclear use case. **
 """
 
+
 # WARNING! This does not work. It consumes only the first queue in list!!!
 @DeprecationWarning
 def init_all_consuming_channels():
-    queues = ['user-post-star_rating-updated-queue', 'user-keywords-updated-queue', 'user-categories-updated-queue',
-              'post-features-updated-queue', 'user-post-thumb_rating-updated-queue']
+    queues = ['user-post-star_rating-updated-queue',
+              'user-keywords-updated-queue',
+              'user-categories-updated-queue',
+              'post-features-updated-queue',
+              'user-post-thumb_rating-updated-queue']
     for queue in queues:
         init_consuming(queue)
 

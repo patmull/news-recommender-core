@@ -70,9 +70,6 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
     for method in methods:
         prepare_and_run(database, method, full_text, reverse, random)
 
-
-
-
 def prepare_and_run(database, method, full_text, reverse, random):
     database.connect()
     not_prefilled_posts = database.get_not_prefilled_posts(method=method, full_text=full_text)

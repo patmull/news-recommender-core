@@ -32,18 +32,19 @@ def preprocess(sentence, stemming=False, lemma=True):
     if stemming is True:
         edited_words = [cz_stem(w, True) for w in tokens if len(w) > 1]  # aggresive
         edited_words = list(filter(None, edited_words))  # empty strings removal
-        return " ".join(edited_words)
+        tokens = " ".join(edited_words)
 
     elif lemma is True:
         edited_words = [cz_lemma(w) for w in tokens if len(w) > 1]
 
-        # TODO: error: Need type annotation for "edited_words_list". Prirotiy: LOW
         #  (hint: "edited_words_list: List[<type>] = ...")  [var-annotated]
         edited_words_list = list(filter(None, edited_words))  # empty strings removal
-        return " ".join(edited_words_list)
+        tokens = " ".join(edited_words_list)
+        # TODO: error: Need type annotation for "edited_words_list". Priority: LOW
     else:
         return tokens
-    # print(lemma_words)
+
+    return tokens
 
 
 class GensimMethods:
@@ -61,6 +62,10 @@ class GensimMethods:
         return self.posts_df
 
     def join_posts_ratings_categories(self):
+        """
+        :rtype: object
+
+        """
         if self.posts_df is not None:
             self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='searched_id')
             # clean up from unnecessary columns
@@ -77,7 +82,11 @@ class GensimMethods:
               + " " + post_dataframe["post_title"] + " " + post_dataframe["excerpt"]
         return str(doc.tolist())
 
-    def get_categories_dataframe(self):
+    def get_categories_dataframe(self) -> object:
+        """
+
+        :return: 
+        """
         self.categories_df = self.database.get_categories_dataframe()
         return self.categories_df
 
