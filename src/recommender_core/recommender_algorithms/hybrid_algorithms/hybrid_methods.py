@@ -263,6 +263,7 @@ def load_posts_from_sim_matrix(method, list_of_slugs):
         sim_matrix.index = sim_matrix['slug']
         sim_matrix = sim_matrix.drop('slug', axis=1)
     except KeyError as ke:
+        logging.warning(ke)
         sim_matrix.index = sim_matrix['index']
         sim_matrix = sim_matrix.drop('index', axis=1)
 
@@ -321,7 +322,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     @param save_result: saves the results (i.e. for debugging, this can be loaded with load_saved_result method below). Added to help with debugging of final boosting
     @param load_saved_result: if True, skips the recommending calculation and jumps to final calculations. Added to help with debugging of final boosting
     """
-    path_to_save_results = Path('research/hybrid/results_df.pkl') # Primarily for debugging purposes
+    path_to_save_results = Path('research/hybrid/results_df.pkl')  # Primarily for debugging purposes
 
     if load_saved_result is False or not os.path.exists(path_to_save_results):
         if type(user_id) is not int:

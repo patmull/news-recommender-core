@@ -2,7 +2,6 @@
 import logging
 import os
 from pathlib import Path
-from threading import Thread
 
 import psycopg2
 import pandas as pd
@@ -26,6 +25,10 @@ def print_exception_not_inserted(e):
 class DatabaseMethods(object):
 
     def __init__(self, db="pgsql"):
+        """
+
+        :param db:
+        """
         self.categories_df = None
         self.posts_df = pd.DataFrame()
         self.df = None
@@ -52,7 +55,10 @@ class DatabaseMethods(object):
         else:
             raise ValueError("No from selected databases are implemented.")
 
-    def connect(self):
+    def connect(self) -> object:
+        """
+
+        """
         keepalive_kwargs = {
             "keepalives": 1,
             "keepalives_idle": 30,
@@ -67,6 +73,9 @@ class DatabaseMethods(object):
         self.cursor = self.cnx.cursor()
 
     def disconnect(self):
+        """
+
+        """
         if self.cursor is not None and self.cnx is not None:
             self.cursor.close()
             self.cnx.close()
@@ -74,9 +83,16 @@ class DatabaseMethods(object):
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
     def get_cnx(self):
+        """
+
+        :return:
+        """
         return self.cnx
 
     def set_row_var(self):
+        """
+
+        """
         sql_set_var = """SET @row_number = 0;"""
         if self.cursor is not None:
             self.cursor.execute(sql_set_var)
@@ -85,7 +101,10 @@ class DatabaseMethods(object):
 
     # NOTICE: This does not return DataFrame but list of columns!
     def get_all_posts(self):
+        """
 
+        :return:
+        """
         sql = """SELECT * FROM posts ORDER BY id;"""
 
         query = sql
@@ -97,6 +116,10 @@ class DatabaseMethods(object):
         return rs
 
     def get_all_categories(self):
+        """
+
+        :return:
+        """
         sql = """SELECT * FROM categories ORDER BY id;"""
 
         query = sql
@@ -108,6 +131,10 @@ class DatabaseMethods(object):
         return rs
 
     def get_all_posts_and_categories(self):
+        """
+
+        :return:
+        """
         sql = """SELECT * FROM categories ORDER BY id;"""
 
         query = sql
@@ -120,6 +147,9 @@ class DatabaseMethods(object):
 
     # TODO: This should be handled in RecommenderMethods. Priority: MEDIUM
     def join_posts_ratings_categories(self):
+        """
+
+        """
         self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
         # clean up from unnecessary columns
         self.df = self.df[
@@ -127,7 +157,10 @@ class DatabaseMethods(object):
              'all_features_preprocessed']]
 
     def get_posts_join_categories(self):
+        """
 
+        :return:
+        """
         sql = """SELECT posts.slug, posts.title, categories.title, posts.excerpt, body,
         keywords, all_features_preprocessed, full_text, body_preprocessed, posts.recommended_tfidf,
         posts.recommended_word2vec, posts.recommended_doc2vec, posts.recommended_lda, posts.recommended_tfidf_full_text,
@@ -142,13 +175,18 @@ class DatabaseMethods(object):
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
-    def get_all_users(self, column_name=None):
+    def get_all_users(self, column_name: object = None) -> object:
+        """
+
+        :param column_name:
+        :return:
+        """
         print("type(column_name)")
         print(type(column_name))
         if column_name is None:
             sql_query = """SELECT * FROM users ORDER BY id;"""
         else:
-            if type(column_name) is not str:
+            if not isinstance(column_name, str):
                 raise TypeError('column_name is not string')
             else:
                 # noinspection
@@ -163,8 +201,13 @@ class DatabaseMethods(object):
             raise e
         return df
 
-    def get_post_by_id(self, post_id):
+    def get_post_by_id(self, post_id: object) -> object:
+        """
 
+        :return:
+        :param post_id:
+        :return:
+        """
         query = ("SELECT * FROM posts WHERE id = '%s'" % post_id)
         if self.cursor is not None:
             self.cursor.execute(query)
@@ -173,9 +216,10 @@ class DatabaseMethods(object):
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
         return rs
 
-    def get_posts_dataframe_from_sql(self):
+    def get_posts_dataframe_from_sql(self) -> object:
         """
         Slower, does load the database with query, but supports BERT vectors loading.
+        :return:
         """
         print("Getting posts from SQL...")
         sql = """SELECT * FROM posts ORDER BY id;"""
@@ -225,7 +269,7 @@ class DatabaseMethods(object):
         path_to_save_cache = Path(cached_file_path)
         path_to_save_cache.parent.mkdir(parents=True, exist_ok=True)
 
-        str_path = path_to_save_cache.as_posix()
+        path_to_save_cache.as_posix()
         # TODO: Some workaround for this? (Convert bytearray to input_string?)
         # Removing bert_vector_representation for not supported column type of pickle
         df_for_save = df.drop(columns=['bert_vector_representation'])
@@ -384,6 +428,7 @@ class DatabaseMethods(object):
         df_user_hybrid = pd.read_sql_query(sql_user_hybrid, self.get_cnx())
         return df_user_hybrid
     """
+
     @DeprecationWarning
     def insert_recommended_tfidf_json(self, articles_recommended_json, article_id, db):
         if db == "pgsql":
@@ -807,7 +852,6 @@ class DatabaseMethods(object):
                 print_exception_not_inserted(e)
         else:
             raise NotImplementedError("Other database source than PostgreSQL not implemented yet.")
-
 
     def null_test_user_prefilled_records(self, user_id: int, db_columns: List[str]):
         """

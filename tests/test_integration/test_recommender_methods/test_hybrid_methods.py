@@ -1,25 +1,15 @@
-import json
 import logging
-import os.path
-import random
-from pathlib import Path
-from unittest import mock, TestCase
-from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 import pytest
 
-import src
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
-    get_most_similar_by_hybrid, select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity, \
-    LIST_OF_SUPPORTED_METHODS, SIM_MATRIX_OF_ALL_POSTS_PATH, SIM_MATRIX_NAME_BASE, \
-    precalculate_and_save_sim_matrix_for_all_posts, load_posts_from_sim_matrix, HybridConstants
+    select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
     load_bert_model, Classifier
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods, get_redis_connection
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)

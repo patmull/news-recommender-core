@@ -10,6 +10,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer, C
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity
 
+import project_config.trials_counter
+
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
 from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
@@ -20,6 +22,7 @@ import logging
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from tfidf module.")
+
 
 def get_cleaned_text(row):
     return row
@@ -42,7 +45,6 @@ def convert_to_json_one_row(key, value):
 
 
 def convert_to_json_keyword_based(post_recommendations):
-
     list_of_article_slugs = []
     recommended_posts_dictionary = post_recommendations.to_dict('records')
     list_of_article_slugs.append(recommended_posts_dictionary.copy())
@@ -288,14 +290,19 @@ class TfIdf:
         gc.collect()
 
         if searched_slug not in self.df['slug'].to_list():
-            raise ValueError("Slug not in dataframe.")
-            # TODO: Handle this by one attempt, see other methods
-            """
-            print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
-            recommender_methods = RecommenderMethods()
-            recommender_methods.get_posts_dataframe(force_update=True)
-            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
-            """
+            if project_config.trials_counter.NUM_OF_TRIALS < 1:
+                print('Slug does not appear in dataframe. Refreshing datafreme of posts.')
+                recommender_methods = RecommenderMethods()
+                recommender_methods.get_posts_dataframe(force_update=True)
+                self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+
+                project_config.trials_counter.NUM_OF_TRIALS += 1
+
+                self.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug, posts_from_cache)
+            else:
+                project_config.trials_counter.NUM_OF_TRIALS = 0
+                raise ValueError("searched_slug not in dataframe. Tried to deal with this by updating posts_categories "
+                                 "df but didn't helped")
         # replacing None values with empty strings
         recommender_methods.df['full_text'] = recommender_methods.df['full_text'].replace([None], '')
 
@@ -313,7 +320,7 @@ class TfIdf:
         gc.collect()
 
         tf_idf_data_handlers = TfIdfDataHandlers(self.df)
-        recommended_post_recommendations = tf_idf_data_handlers\
+        recommended_post_recommendations = tf_idf_data_handlers \
             .recommend_by_more_features(searched_slug, tuple_of_fitted_matrices)
         del recommender_methods
         return recommended_post_recommendations
@@ -527,7 +534,7 @@ class TfIdf:
 
         return sim_matrix
 
-    def get_fit_by_title(self, fit_by_all_features_matrix):
+    def get_fit_by_title(self):
         my_file = Path("models/for_hybrid/tfidf_category_title.npz")
         if my_file.exists() is False:
             # category_title = category
