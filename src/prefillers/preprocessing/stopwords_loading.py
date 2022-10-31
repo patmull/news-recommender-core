@@ -32,6 +32,10 @@ def load_general_stopwords():
 
 
 def remove_stopwords(texts, cz_punct=False) -> list:
+    """
+
+    @rtype: object
+    """
     if type(texts) is list:
         cleaned_text_list = []
         stopwords_cz = load_cz_stopwords(cz_punct)

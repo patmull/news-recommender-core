@@ -1,2 +1,1 @@
-10/27/2022 10:27:50 AM Testing logging in prefiller.
-10/27/2022 10:27:50 AM DB operational error. Waiting few seconds before trying again...
+10/29/2022 03:30:29 PM Testing logging in prefiller.
