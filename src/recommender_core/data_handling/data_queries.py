@@ -20,10 +20,9 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 import os
 
 from typing import Dict, List
+import logging
 
 CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"
-
-import logging
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
