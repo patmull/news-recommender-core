@@ -239,7 +239,7 @@ class TfIdf:
 
         fit_by_all_features_matrix = self.load_matrix()
 
-        fit_by_title = self.get_fit_by_title(fit_by_all_features_matrix)
+        fit_by_title = self.get_fit_by_title()
         tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
 
         gc.collect()
@@ -499,7 +499,7 @@ class TfIdf:
 
         fit_by_all_features_matrix = self.load_matrix()
 
-        fit_by_title = self.get_fit_by_title(fit_by_all_features_matrix)
+        fit_by_title = self.get_fit_by_title()
         tuple_of_fitted_matrices = (fit_by_all_features_matrix, fit_by_title)
 
         gc.collect()

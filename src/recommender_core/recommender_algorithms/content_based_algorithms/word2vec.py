@@ -278,7 +278,6 @@ class Word2VecClass:
     # "@moje-clanky/w2v_embedding_all_in_one"
 
     def __init__(self):
-        self.w2v_model = None
         self.documents = None
         self.df = None
         self.posts_df = None
