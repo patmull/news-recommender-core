@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import random
-import time
 import time as t
 from pathlib import Path
 
@@ -17,7 +16,6 @@ from src.recommender_core.data_handling.model_methods.user_methods import UserMe
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
     UserBasedMethods
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
@@ -119,8 +117,8 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
             raise ValueError("Method not implemented.")
 
         # NOTICE: Hybrid is already doing this
-        # TODO: Shouldn't this be handled for other methods too inside the mathod and not here like in hybrid?
         if not method == "hybrid":
+            # TODO: Shouldn't this be handled for other methods too inside the mathod and not here like in hybrid?
             print("dict actual_svd_json")
             print(actual_json)
             actual_json = json.dumps(actual_json)
@@ -212,6 +210,9 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
             # Notice: Doc2Vec model gets loaded inside the Doc2Vec's class method
             logging.debug("Similarities on FastText doc2vec_model.")
             logging.debug("Loading Dov2Vec cs.Wikipedia.org doc2vec_model...")
+    else:
+        raise ValueError("Non from selected method is supported. Check the 'method' parameter"
+                         "value.")
 
     for post in posts:
         if len(posts) < 1:
@@ -278,8 +279,8 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                             tfidf = TfIdf()
                             actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
                         elif method == "word2vec":
+                            # TODO: Fix error: ValueError: DocSim index is not set.
                             if docsim_index is None:
-                                # TODO: Fix error: ValueError: DocSim index is not set.
                                 raise ValueError("DocSim index is not set.")
                             if dictionary is None:
                                 raise ValueError("Dictionary is not set")
@@ -400,8 +401,6 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
 
 def prefilling_job_content_based(method: str, full_text: bool, random_order=False, reversed_order=True,
                                  test_call=False):
-    if test_call is True:
-        counter = 0
 
     while True:
         try:
