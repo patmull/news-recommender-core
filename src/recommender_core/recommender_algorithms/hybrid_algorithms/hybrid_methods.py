@@ -340,9 +340,20 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, svd_posts_to_compare)
 
         list_of_similarity_results = []
+        r = get_redis_connection()
+
         for method in list_of_methods:
             if method == "tfidf":
-                constant = 1.75
+                constant = r.get('settings:content-based:tfidf:coeff')
+            elif method == "doc2vec":
+                constant = r.get('settings:content-based:doc2vec:coeff')
+            elif method == "word2vec":
+                constant = r.get('settings:content-based:word2vec:coeff')
+            else:
+                raise ValueError("No from selected options available.")
+
+            if method == "tfidf":
+
                 file_path = prepare_sim_matrix_path(method)
                 # TODO: Derive from loaded feather of sim matrix instead
                 if load_from_precalc_sim_matrix \
@@ -359,7 +370,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
             elif method == "doc2vec" or "word2vec":
                 file_path = prepare_sim_matrix_path(method)
-                # TODO: Derive from loaded feather of sim matrix instead
                 if load_from_precalc_sim_matrix \
                         and os.path.exists(file_path):
 
@@ -370,12 +380,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                     similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
                 similarity_matrix = personalize_similarity_matrix(similarity_matrix, svd_posts_to_compare,
                                                                   list_of_slugs_from_history)
-                if method == "doc2vec":
-                    constant = 1.7
-                elif method == "word2vec":
-                    constant = 1.85
-                else:
-                    raise NotImplementedError("Supplied method not implemented")
                 similarity_matrix = similarity_matrix * constant
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
             else:
