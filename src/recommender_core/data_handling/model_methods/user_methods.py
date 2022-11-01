@@ -1,6 +1,5 @@
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
-
 class UserMethods(RecommenderMethods):
 
     def __init__(self):
@@ -23,14 +22,6 @@ class UserMethods(RecommenderMethods):
         df_user_keywords = self.database.get_user_keywords(user_id=user_id)
         self.database.disconnect()
         return df_user_keywords
-
-    """
-    def get_user_hybrid(self, user_id):
-        self.database.connect()
-        df_user_keywords = self.database.get_user_hybrid(user_id=user_id)
-        self.database.disconnect()
-        return df_user_keywords
-    """
 
     def get_user_rating_categories(self):
         self.database.connect()

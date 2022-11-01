@@ -90,7 +90,7 @@ class PreFillerAdditional:
                 self.start_preprocessed_features_prefilling(db, cz_lemma, article_full_text, database_methods, post_id,
                                                             number_of_inserted_rows, random_order)
 
-    def fill_body_preprocessed(self, skip_already_filled, random_order, db="pgsql"):
+    def prepare_filling(self, skip_already_filled, random_order):
         database = DatabaseMethods()
         recommender_methods = RecommenderMethods()
         if skip_already_filled is False:
@@ -107,6 +107,11 @@ class PreFillerAdditional:
         shuffle_and_reverse(posts=posts, reversed_order=reversed, random_order=random_order)
 
         cz_lemma = CzPreprocess()
+
+        return posts, database, cz_lemma, number_of_inserted_rows
+
+    def fill_body_preprocessed(self, skip_already_filled, random_order, db="pgsql"):
+        posts, database, cz_lemma, number_of_inserted_rows = self.prepare_filling(skip_already_filled, random_order)
 
         for post in posts:
             if len(posts) < 1:

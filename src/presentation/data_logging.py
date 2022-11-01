@@ -1,4 +1,9 @@
-def get_logger(logging):
+def get_logger(logging: object) -> object:
+    """
+
+    :param logging:
+    :return:
+    """
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
     # Enabling Word2Vec logging

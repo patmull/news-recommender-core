@@ -37,6 +37,11 @@ def load_ratings():
     return posts_users_categories_ratings_df
 
 
+def get_user_keywords(user_id):
+    user_methods = UserMethods()
+    return user_methods.get_user_keywords(user_id)
+
+
 class UserBasedMethods:
 
     def __init__(self):
@@ -60,7 +65,8 @@ class UserBasedMethods:
 
         # noinspection PyPep8
         df_posts_users_of_categories = load_ratings()[load_ratings()
-            .category_slug.isin(load_user_categories(user_id)['category_slug'].tolist())]
+            .category_slug
+            .isin(load_user_categories(user_id)['category_slug'].tolist())]
         df_filter_current_user = df_posts_users_of_categories[
             df_posts_users_of_categories.rating_id != self.get_user_id()]
         df_sorted_results = df_filter_current_user[['post_id', 'post_slug', 'ratings_values', 'post_created_at']] \
@@ -69,10 +75,6 @@ class UserBasedMethods:
         print("df_sorted_results[['post_slug']]")
         print(df_sorted_results[['post_id', 'post_slug']])
         return convert_to_json(df_sorted_results.head(num_of_recommendations))
-
-    def get_user_keywords(self, user_id):
-        user_methods = UserMethods()
-        return user_methods.get_user_keywords(user_id)
 
     def get_user_categories(self, user_id):
         sql_user_categories = """SELECT c.slug AS "category_slug" FROM user_categories uc JOIN categories c 
@@ -86,6 +88,7 @@ class UserBasedMethods:
 
     # TODO: Priority: VERY HIGH
     # def load_hybrid(self, current_user_id):
+
 
 def main():
     # Testing
