@@ -47,7 +47,7 @@ def show_true_vs_predicted(features_list, contexts_list, clf, bert_model):
         print("CONTENT:")
 
 
-def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, user_id=None,
+def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, user_id,
                          save_testing_csv=False, bert_model=None, col_to_combine=None, testing_mode=False):
     """
 
@@ -103,7 +103,19 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     else clf.predict(bert_model(' '.join(str(x[col_to_combine]))).vector.reshape(1, -1))[0], axis=1)
 
     y_pred_unseen = y_pred_unseen.rename('prediction')
+
+    logging.debug("X_unseen_df:")
+    logging.debug(X_unseen_df.columns)
+    logging.debug("y_pred_unseen:")
+    logging.debug(pd.DataFrame(y_pred_unseen).columns)
+
     df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
+
+    logging.debug("df_results:")
+    logging.debug(df_results.columns)
+
+    # NOTICE: Freshness of articles is already handled in predict_relevance_for_user() method
+
     if save_testing_csv is True:
         # noinspection PyTypeChecker
         df_results.head(20).to_csv('research/user_based/testing_hybrid_classifier_df_results.csv')
