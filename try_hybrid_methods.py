@@ -1,7 +1,14 @@
+import json
+import logging
+
+from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid, \
-    precalculate_and_save_sim_matrix_for_all_posts
-
+    precalculate_and_save_sim_matrix_for_all_posts, select_list_of_posts_for_user, \
+    get_similarity_matrix_from_pairs_similarity
+from tests.testing_methods.random_posts_generator import get_three_unique_posts
+import pandas as pd
 
 def main():
     """
@@ -93,9 +100,51 @@ def main():
     classifier.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by='stars',
                                           force_retraining=True, save_df_posts_users_categories_relevance=True)
     """
+
+    """
     user_id_for_test = 431
     precalculate_and_save_sim_matrix_for_all_posts()
     print(get_most_similar_by_hybrid(user_id_for_test, load_from_precalc_sim_matrix=True))
+    """
+
+    """
+    test_user_id = 431
+    searched_slug_1, searched_slug_2, searched_slug_3 = get_three_unique_posts()
+
+    test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
+
+    # Unit
+    list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id=test_user_id,
+                                                                              posts_to_compare=test_slugs)
+    result = get_similarity_matrix_from_pairs_similarity("doc2vec", list_of_slugs)
+
+    assert isinstance(result, pd.DataFrame)
+    """
+
+    test_user_id = 431
+
+    database = DatabaseMethods()
+    database.null_test_user_prefilled_records(user_id=test_user_id, db_columns=['recommended_by_hybrid'])
+
+    precalculate_and_save_sim_matrix_for_all_posts()
+    method = 'hybrid'
+    run_prefilling_collaborative(methods=[method], user_id=test_user_id, test_run=False)
+
+    database.connect()
+    df_users = database.get_users_dataframe()
+    database.disconnect()
+    test_user = df_users.loc[df_users['id'] == test_user_id]
+    loaded_json = test_user['recommended_by_hybrid'].values[0]
+    logging.debug("loaded_json:")
+    logging.debug(loaded_json)
+    logging.debug(type(loaded_json))
+    loaded_json = json.loads(loaded_json)
+    """
+    loaded_json = [{"slug": "z-hromady-kameni-povstal-hrad-hartenstejn-i-s-karlovarskou-vezi", "coefficient": 4.3861717013},
+     {"slug": "porozumime-nekdy-reci-zvirat-zatim-to-umeji-jenom-pohadky", "coefficient": 1.0055361237}]
+    """
+    assert type(loaded_json[0]['slug']) is str
+    assert type(loaded_json[0]['coefficient']) is float
 
 
 if __name__ == "__main__": main()

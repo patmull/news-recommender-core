@@ -24,14 +24,14 @@ logging.debug("Testing logging from hybrid_methods.")
 from tests.testing_methods.random_posts_generator import get_three_unique_posts
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_bert_loading():
     bert_model = load_bert_model()
     print(str(type(bert_model)))
     assert str(type(bert_model)) == "<class 'spacy.lang.xx.MultiLanguage'>"
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_doc2vec_vector_representation():
     database = DatabaseMethods()
     posts = database.get_posts_dataframe()

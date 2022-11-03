@@ -18,7 +18,7 @@ CRITICAL_COLUMNS_EVALUATION_RESULTS = ['id', 'query_slug', 'results_part_1', 're
                                        'model_name', 'model_variant', 'created_at']
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_posts_dataframe_good_day():
     recommender_methods = RecommenderMethods()
     # Scenario 1: Good Day
@@ -33,7 +33,7 @@ def test_posts_dataframe_good_day():
 ** MOVED TO ONLY LOCAL TESTS 
 """
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_get_df_from_sql():
     recommender_methods = RecommenderMethods()
     posts_df = recommender_methods.database.get_posts_dataframe_from_sql()
@@ -41,7 +41,7 @@ def test_get_df_from_sql():
 
 
 # RUN WITH: pytest tests/test_integration/test_data_handling/test_data_queries.py::test_results_dataframe
-@pytest.mark.integtest
+# pytest.mark.integration
 def common_asserts_for_dataframes(df, critical_columns):
     assert isinstance(df, pd.DataFrame)
     assert len(df.index) > 1
@@ -51,7 +51,7 @@ def common_asserts_for_dataframes(df, critical_columns):
     assert set(critical_columns).issubset(df.columns.tolist())
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_find_post_by_slug():
     recommender_methods = RecommenderMethods()
     posts_df = recommender_methods.get_posts_dataframe(from_cache=False)
@@ -71,14 +71,14 @@ def test_find_post_by_slug():
     (),
     None
 ])
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_find_post_by_slug_bad_input(tested_input):
     with pytest.raises(ValueError):
         recommender_methods = RecommenderMethods()
         recommender_methods.find_post_by_slug(tested_input, from_cache=False)
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_posts_dataframe_file_missing():
     recommender_methods = RecommenderMethods()
     # Scenario 2: File does not exists
@@ -87,28 +87,28 @@ def test_posts_dataframe_file_missing():
     common_asserts_for_dataframes(posts_df, CRITICAL_COLUMNS_POSTS)
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_users_dataframe():
     user_methods = UserMethods()
     users_df = user_methods.get_users_dataframe()
     common_asserts_for_dataframes(users_df, CRITICAL_COLUMNS_USERS)
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_ratings_dataframe():
     recommender_methods = RecommenderMethods()
     ratings_df = recommender_methods.get_ratings_dataframe()
     common_asserts_for_dataframes(ratings_df, CRITICAL_COLUMNS_RATINGS)
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_categories_dataframe():
     recommender_methods = RecommenderMethods()
     categories_df = recommender_methods.get_categories_dataframe()
     common_asserts_for_dataframes(categories_df, CRITICAL_COLUMNS_CATEGORIES)
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_results_dataframe():
     recommender_methods = RecommenderMethods()
     evaluation_results_df = recommender_methods.get_ranking_evaluation_results_dataframe()

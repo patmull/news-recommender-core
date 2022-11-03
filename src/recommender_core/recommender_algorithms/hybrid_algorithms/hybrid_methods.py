@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from gensim.models import KeyedVectors
 
-from src.recommender_core.data_handling.data_manipulation import get_redis_connection
+from src.recommender_core.data_handling.data_manipulation import get_redis_connection, RedisConstants
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
@@ -36,10 +36,16 @@ logging.debug("Testing logging from hybrid_methods.")
 class HybridConstants:
 
     def __init__(self):
-        self.coeff_and_hours_1 = (15, 1)
-        self.coeff_and_hours_2 = (10, 24)  # 1 day
-        self.coeff_and_hours_3 = (8, 120)  # 5 days
-        self.coeff_and_hours_4 = (1, 100000000)
+        r = get_redis_connection()
+        redis_constants = RedisConstants()
+        self.coeff_and_hours_1 = (int(r.get(redis_constants.boost_fresh_keys[1]['coeff'])),
+                                  int(r.get(redis_constants.boost_fresh_keys[1]['hours'])))
+        self.coeff_and_hours_2 = (int(r.get(redis_constants.boost_fresh_keys[2]['coeff'])),
+                                  int(r.get(redis_constants.boost_fresh_keys[2]['hours'])))
+        self.coeff_and_hours_3 = (int(r.get(redis_constants.boost_fresh_keys[3]['coeff'])),
+                                  int(r.get(redis_constants.boost_fresh_keys[3]['hours'])))
+        self.coeff_and_hours_4 = (int(r.get(redis_constants.boost_fresh_keys[4]['coeff'])),
+                                  int(r.get(redis_constants.boost_fresh_keys[4]['hours'])))
 
         self.dict_of_coeffs_and_hours = {
             'boost_fresh_1': self.coeff_and_hours_1,
@@ -47,13 +53,6 @@ class HybridConstants:
             'boost_fresh_3': self.coeff_and_hours_3,
             'boost_fresh_4': self.coeff_and_hours_4,
         }
-
-    def set_constants_to_redis(self):
-        r = get_redis_connection()
-        for key, value in self.dict_of_coeffs_and_hours.items():
-            r.set((key + '_coeff'), value[0])
-        for key, value in self.dict_of_coeffs_and_hours.items():
-            r.set((key + '_hours'), value[1])
 
 
 # noinspection DuplicatedCode
@@ -64,14 +63,14 @@ def model_selection(tfidf_rate, word2vec_rate, doc2vec_rate, lda_rate, number_of
     number_of_recommended_doc2vec = round((doc2vec_rate / 100) * number_of_recommended)
     number_of_recommended_lda = round((lda_rate / 100) * number_of_recommended)
 
-    print("number_of_recommended_tfidf")
-    print(number_of_recommended_tfidf)
-    print("number_of_recommended_word2vec")
-    print(number_of_recommended_word2vec)
-    print("number_of_recommended_doc2vec")
-    print(number_of_recommended_doc2vec)
-    print("number_of_recommended_lda")
-    print(number_of_recommended_lda)
+    logging.debug("number_of_recommended_tfidf")
+    logging.debug(number_of_recommended_tfidf)
+    logging.debug("number_of_recommended_word2vec")
+    logging.debug(number_of_recommended_word2vec)
+    logging.debug("number_of_recommended_doc2vec")
+    logging.debug(number_of_recommended_doc2vec)
+    logging.debug("number_of_recommended_lda")
+    logging.debug(number_of_recommended_lda)
 
     tf_idf_additional_selection = tf_idf_results.head(number_of_recommended_tfidf)
     word2vec_additional_selection = word2vec_results.head(number_of_recommended_word2vec)
@@ -125,8 +124,8 @@ def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
     results_df = similarity_matrix.sort_values(by='coefficient', ascending=False)
     results_df = results_df['coefficient']
     results_df = results_df.rename_axis('slug').reset_index()
-    print("similarity_matrix after sorting:")
-    print(results_df)
+    logging.debug("similarity_matrix after sorting:")
+    logging.debug(results_df)
     return results_df
 
 
@@ -147,10 +146,10 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs):
 
         similarity_matrix = tfidf.get_similarity_matrix(list_of_slugs)
 
-        print("Similarity matrix:")
-        print(similarity_matrix)
-        print("Similarity matrix type:")
-        print(type(similarity_matrix))
+        logging.debug("Similarity matrix:")
+        logging.debug(similarity_matrix)
+        logging.debug("Similarity matrix type:")
+        logging.debug(type(similarity_matrix))
 
         # TODO: Everything above can be pre-computed and loaded. Priority: VERY HIGH
     else:
@@ -180,20 +179,20 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs):
                 elif method == "doc2vec":
                     inner_list.append(content_based_method.get_pair_similarity_doc2vec(x, y, d2v_model))
             similarity_list.append(inner_list)
-            print("similarity_list:")
-            print(similarity_list)
+            logging.debug("similarity_list:")
+            logging.debug(similarity_list)
 
-        print("similarity_list:")
-        print(similarity_list)
+        logging.debug("similarity_list:")
+        logging.debug(similarity_list)
 
         similarity_matrix = pd.DataFrame(similarity_list, columns=list_of_slugs, index=list_of_slugs)
         # TODO: Everything above can be pre-computed and loaded. Priority: VERY HIGH
 
-        print("Similarity matrix:")
-        print(similarity_matrix)
+        logging.debug("Similarity matrix:")
+        logging.debug(similarity_matrix)
 
-        print("Similarity matrix type:")
-        print(type(similarity_matrix))
+        logging.debug("Similarity matrix type:")
+        logging.debug(type(similarity_matrix))
 
     return similarity_matrix
 
@@ -284,21 +283,26 @@ def load_posts_from_sim_matrix(method, list_of_slugs):
 
 def boost_by_article_freshness(results_df):
     def boost_coefficient(coeff_value, boost):
+        logging.debug("coeff_value")
+        logging.debug(coeff_value)
+        logging.debug("boost")
+        logging.debug(boost)
         d = coeff_value * boost
         return d
 
     # TODO: Get boost values from DB. Priority MEDIUM
-    # See: hybrid_settings table where it was layed out
+    # See: hybrid_settings table where it was laid out
     now = pd.to_datetime('now')
     r = get_redis_connection()
+    redis_constants = RedisConstants()
     results_df['coefficient'] = results_df.apply(
-        lambda x: boost_coefficient(x['coefficient'], int(r.get('boost_fresh_1_coeff')))
-        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get('boost_fresh_1_hours')), 'h'))
-        else (boost_coefficient(x['coefficient'], int(r.get('boost_fresh_2_coeff'))))
-        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get('boost_fresh_2_hours')), 'h'))
-        else (boost_coefficient(x['coefficient'], int(r.get('boost_fresh_3_coeff'))))
-        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get('boost_fresh_3_hours')), 'h'))
-        else (boost_coefficient(x['coefficient'], int(r.get('boost_fresh_4_coeff'))))
+        lambda x: boost_coefficient(x['coefficient'], int(r.get(redis_constants.boost_fresh_keys[1]['coeff'])))
+        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get(redis_constants.boost_fresh_keys[1]['hours'])), 'h'))
+        else (boost_coefficient(x['coefficient'], int(r.get(redis_constants.boost_fresh_keys[2]['coeff']))))
+        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get(redis_constants.boost_fresh_keys[2]['hours'])), 'h'))
+        else (boost_coefficient(x['coefficient'], int(r.get(redis_constants.boost_fresh_keys[3]['coeff']))))
+        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get(redis_constants.boost_fresh_keys[3]['hours'])), 'h'))
+        else (boost_coefficient(x['coefficient'], int(r.get(redis_constants.boost_fresh_keys[4]['coeff']))))
         , axis=1
     )
     return results_df
@@ -352,8 +356,9 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             else:
                 raise ValueError("No from selected options available.")
 
-            if method == "tfidf":
+            constant = np.float64(constant)
 
+            if method == "tfidf":
                 file_path = prepare_sim_matrix_path(method)
                 # TODO: Derive from loaded feather of sim matrix instead
                 if load_from_precalc_sim_matrix \
@@ -385,15 +390,15 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             else:
                 raise NotImplementedError("Supplied method not implemented")
             list_of_similarity_results.append(results)
-            print("list_of_similarity_matrices:")
-            print(list_of_similarity_results)
-        print("list_of_similarity_matrices after finished for loop:")
-        print(list_of_similarity_results)
+            logging.debug("list_of_similarity_matrices:")
+            logging.debug(list_of_similarity_results)
+        logging.debug("list_of_similarity_matrices after finished for loop:")
+        logging.debug(list_of_similarity_results)
         list_of_prefixed_methods = ['coefficient_' + x for x in list_of_methods if not str(x) == "nan"]
         list_of_keys = ['slug'] + list_of_prefixed_methods
 
-        print("list_of_similarity_results[0]:")
-        print(list_of_similarity_results[0])
+        logging.debug("list_of_similarity_results[0]:")
+        logging.debug(list_of_similarity_results[0])
 
         results_df = pd.concat([list_of_similarity_results[0]['slug']], axis=1)
         for result in list_of_similarity_results:
@@ -401,16 +406,16 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
         results_df.columns = list_of_keys
 
-        print("results_df")
-        print(results_df)
+        logging.debug("results_df")
+        logging.debug(results_df)
 
         coefficient_columns = list_of_prefixed_methods
 
         results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
                                           / results_df[coefficient_columns].std()
-        print("normalized_df:")
+        logging.debug("normalized_df:")
 
-        print(results_df)
+        logging.debug(results_df)
         results_df['coefficient'] = results_df.sum(axis=1)
 
         recommender_methods = RecommenderMethods()
@@ -459,6 +464,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     hybrid_recommended_json = results_df.to_json(orient='records')
     parsed = json.loads(hybrid_recommended_json)
     hybrid_recommended_json = json.dumps(parsed)
-    print(hybrid_recommended_json)
+    logging.debug(hybrid_recommended_json)
 
     return hybrid_recommended_json

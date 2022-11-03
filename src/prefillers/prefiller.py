@@ -210,6 +210,8 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
             # Notice: Doc2Vec model gets loaded inside the Doc2Vec's class method
             logging.debug("Similarities on FastText doc2vec_model.")
             logging.debug("Loading Dov2Vec cs.Wikipedia.org doc2vec_model...")
+    elif method.startswith("test_"):
+        logging.debug("Testing method")
     else:
         raise ValueError("Non from selected method is supported. Check the 'method' parameter"
                          "value.")

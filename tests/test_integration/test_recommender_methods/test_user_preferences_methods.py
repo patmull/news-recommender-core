@@ -17,7 +17,7 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms\
 
 # TODO:
 # pytest tests\test_integration\test_recommender_methods\test_user_preferences_methods.py::test_user_categories
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_user_categories():
     user_based_recommendation = UserBasedMethods()
     user_methods = UserMethods()
@@ -44,7 +44,7 @@ def test_user_categories():
     (),
     None
 ])
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_user_keyword_bad_input(tested_input):
 
     with pytest.raises(ValueError):
