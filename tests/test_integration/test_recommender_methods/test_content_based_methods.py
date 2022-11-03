@@ -24,7 +24,7 @@ from tests.test_integration.common_asserts import assert_recommendation
     (),
     None
 ])
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_tfidf_method_bad_input(tested_input):
     with pytest.raises(ValueError):
         tfidf = TfIdf()
@@ -33,7 +33,7 @@ def test_tfidf_method_bad_input(tested_input):
 
 # python -m pytest .tests\test_content_based_methods.py::test_tfidf_method
 # py.test tests/test_recommender_methods/test_content_based_methods.py -k 'test_tfidf_method'
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_tfidf_method():
     tfidf = TfIdf()
     # random_order article
@@ -70,7 +70,7 @@ def test_tfidf_method():
     None,
     'blah-blah'
 ])
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_word2vec_method_bad_input(tested_input):
     with pytest.raises(ValueError):
         tested_model_name = 'idnes_3'
@@ -87,7 +87,7 @@ def test_word2vec_method_bad_input(tested_input):
     None,
     'blah-blah'
 ])
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_doc2vec_method_bad_input(tested_input):
     with pytest.raises(ValueError):
         doc2vec = Doc2VecClass()
@@ -121,14 +121,14 @@ class TestLda:
     None,
     'blah-blah'
 ])
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_tfidf_full_text_method_bad_input(tested_input):
     with pytest.raises(ValueError):
         tfidf = TfIdf()
         tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(tested_input, posts_from_cache=False)
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_tfidf_full_text_method():
     tfidf = TfIdf()
     # random_order article
@@ -156,7 +156,7 @@ def test_tfidf_full_text_method():
     None,
     'blah-blah'
 ])
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_doc2vec_full_text_method_bad_inputs(tested_input):
     with pytest.raises(ValueError):
         doc2vec = Doc2VecClass()
@@ -164,7 +164,7 @@ def test_doc2vec_full_text_method_bad_inputs(tested_input):
 
 
 # python -m pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::TestTfIdf
-@pytest.mark.integtest
+# pytest.mark.integration
 class TestTfIdf(unittest.TestCase):
 
     def test_load_matrix(self):

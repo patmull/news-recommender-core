@@ -24,7 +24,7 @@ random_reverse_options = [True, False]
 
 class TestConnection:
     # python -m pytest .\tests\test_prefillers_methods.py::ConnectionTest::test_db_connection
-    @pytest.mark.integtest
+    # pytest.mark.integration
     @patch("psycopg2.connect")
     def test_db_connection(self, mockconnect):
         # noinspection PyPep8Naming
@@ -57,7 +57,7 @@ class TestConnection:
 
 
 # python -m pytest .\tests\test_prefillers_methods.py::test_not_prefilled_retriaval
-@pytest.mark.integtest
+# pytest.mark.integration
 def not_prefilled_retriaval(method, full_text):
     database_methods = DatabaseMethods()
     database_methods.connect()
@@ -66,9 +66,9 @@ def not_prefilled_retriaval(method, full_text):
     return type(not_prefilled_posts) == list
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 class TestPrefillers:
-    @pytest.mark.integtest
+    # pytest.mark.integration
     def test_prefillers(self):
         for i in range(2):
             random_method_choice = random.choice(method_options_short_text)
@@ -82,7 +82,7 @@ class TestPrefillers:
                    is True
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 class TestUserPrefillers(TestCase):
 
     def test_user_preferences_prefiller(self):

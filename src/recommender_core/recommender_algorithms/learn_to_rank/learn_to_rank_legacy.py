@@ -156,7 +156,7 @@ class LearnToRank:
         return [item for sublist in t for item in sublist]
 
     def redis_test(self):
-        r = redis.Redis(host='redis-10115.c3.eu-west-1-2.ec2.cloud.redislabs.com', port=10115, db=0, username="admin",
+        r = redis.Redis(host='redis-10115.c3.eu-west-1-2.ec2.cloud.redislabs.com', port=10115, db=0, username="default",
                         password=REDIS_PASSWORD)
         r.set('foo', 'bar')
         print(r.get('foo'))

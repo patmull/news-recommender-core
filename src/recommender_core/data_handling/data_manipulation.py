@@ -37,10 +37,10 @@ class DatabaseMethods(object):
 
         if db == "pgsql":
             if "PYTEST_CURRENT_TEST" in os.environ:
-                self.DB_USER = 'postgres'
-                self.DB_PASSWORD = 'braf'
-                self.DB_HOST = 'localhost'
-                self.DB_NAME = 'moje_clanky_core_testing'
+                self.DB_USER = os.environ['DB_RECOMMENDER_TESTING_USER']
+                self.DB_PASSWORD = os.environ['DB_RECOMMENDER_TESTING_PASSWORD']
+                self.DB_HOST = os.environ['DB_RECOMMENDER_TESTING_HOST']
+                self.DB_NAME = os.environ['DB_RECOMMENDER_TESTING_NAME']
             else:
                 self.DB_USER = os.environ['DB_RECOMMENDER_USER']
                 self.DB_PASSWORD = os.environ['DB_RECOMMENDER_PASSWORD']
@@ -919,6 +919,27 @@ class DatabaseMethods(object):
             self.disconnect()
 
 
+class RedisConstants:
+    def __init__(self):
+        self.boost_fresh_keys = {
+            1: {
+                'hours': 'settings:boost-fresh:1:hours',
+                'coeff': 'settings:boost-fresh:1:coeff',
+            },
+            2: {
+                'hours': 'settings:boost-fresh:2:hours',
+                'coeff': 'settings:boost-fresh:2:coeff',
+            },
+            3: {
+                'hours': 'settings:boost-fresh:3:hours',
+                'coeff': 'settings:boost-fresh:3:coeff',
+            },
+            4: {
+                'hours': 'settings:boost-fresh:4:hours',
+                'coeff': 'settings:boost-fresh:4:coeff',
+            }
+        }
+
 def get_redis_connection():
     if 'REDIS_PASSWORD' in os.environ:
         redis_password = os.environ['REDIS_PASSWORD']
@@ -926,7 +947,8 @@ def get_redis_connection():
         raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
                                "Not possible to connect to Redis.")
 
-    return redis.Redis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',
-                       port=13695, db=0,
-                       username="admin",
-                       password=redis_password)
+    return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',
+                             port=13695, db=0,
+                             username="default",
+                             password=redis_password,
+                             decode_responses=True)

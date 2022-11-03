@@ -8,7 +8,7 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 TEST_CACHED_PICKLE_PATH = 'tests/testing_files/cached_posts_dataframe_test.pkl'
 
 
-@pytest.mark.integtest
+# pytest.mark.integration
 def test_insert_posts_dataframe_to_cache():
     recommender_methods = RecommenderMethods()
     recommender_methods.database.insert_posts_dataframe_to_cache(TEST_CACHED_PICKLE_PATH)
