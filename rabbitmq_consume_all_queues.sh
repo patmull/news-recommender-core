@@ -1,0 +1,3 @@
+gnome-terminal --working-directory='/home/patri/Documents/Codes/moje-clanky-core/news-recommender-core/' --tab --title="Run rabbitmq_consume_posts_scrapped" -- bash -ci "source ~/.profile && source /home/patri/.virtualenvs/venv_deploy/bin/activate && python3 rabbitmq_consume_posts_scrapped.py; exec bash"
+gnome-terminal --working-directory='/home/patri/Documents/Codes/moje-clanky-core/news-recommender-core/' --tab --title="Run rabbitmq_consume_posts_scrapped" -- bash -ci "source ~/.profile && source /home/patri/.virtualenvs/venv_deploy/bin/activate && python3 rabbitmq_consume_user_categories.py; exec bash"
+# TODO: SAme as above, next command
