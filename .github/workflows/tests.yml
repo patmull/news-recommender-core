@@ -13,6 +13,10 @@ jobs:
       DB_RECOMMENDER_PASSWORD: ${{secrets.DB_RECOMMENDER_PASSWORD}}
       DB_RECOMMENDER_USER: ${{secrets.DB_RECOMMENDER_USER}}
       REDIS_PASSWORD: ${{secrets.REDIS_PASSWORD}}
+      DB_RECOMMENDER_TESTING_USER: ${{secrets.DB_RECOMMENDER_TESTING_USER}}
+      DB_RECOMMENDER_TESTING_HOST: ${{secrets.DB_RECOMMENDER_TESTING_HOST}}
+      DB_RECOMMENDER_TESTING_NAME: ${{secrets.DB_RECOMMENDER_TESTING_NAME}}
+      DB_RECOMMENDER_TESTING_PASSWORD: ${{secrets.DB_RECOMMENDER_TESTING_PASSWORD}}
 
     strategy:
       matrix:
@@ -29,12 +33,12 @@ jobs:
           sudo apt update --yes
           sudo apt install postgresql --yes
           sudo service postgresql start
-          sudo -u postgres createdb moje_clanky_core_testing
-          sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'braf';"
+          sudo -u postgres createdb ${{secrets.DB_RECOMMENDER_TESTING_HOST}}
+          sudo -u postgres psql -c "ALTER USER ${{secrets.DB_RECOMMENDER_TESTING_USER}} WITH PASSWORD ${{secrets.DB_RECOMMENDER_TESTING_PASSWORD}};"
       - name: Importing .sql
         run: |
           export PGPASSWORD='braf'
-          for i in database/db_backups/core_testing_db_dumps/*.sql; do psql -h localhost -d moje_clanky_core_testing -U postgres -p 5432 -a -w -f $i; done
+          for i in database/db_backups/core_testing_db_dumps/*.sql; do psql -h ${{secrets.DB_RECOMMENDER_TESTING_HOST}} -d ${{secrets.DB_RECOMMENDER_TESTING_NAME}} -U ${{secrets.DB_RECOMMENDER_TESTING_USER}} -p 5432 -a -w -f $i; done
       - name: Install dependencies
         run: |
           sudo -H pip install --upgrade pip tox virtualenv
