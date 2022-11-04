@@ -34,7 +34,7 @@ jobs:
           sudo apt install postgresql --yes
           sudo service postgresql start
           sudo -u postgres createdb ${{secrets.DB_RECOMMENDER_TESTING_HOST}}
-          sudo -u postgres psql -c "ALTER USER ${{secrets.DB_RECOMMENDER_TESTING_USER}} WITH PASSWORD ${{secrets.DB_RECOMMENDER_TESTING_PASSWORD}};"
+          sudo -u postgres psql -c ALTER USER ${{secrets.DB_RECOMMENDER_TESTING_USER}} WITH PASSWORD ${{secrets.DB_RECOMMENDER_TESTING_PASSWORD}}
       - name: Importing .sql
         run: |
           export PGPASSWORD='braf'
