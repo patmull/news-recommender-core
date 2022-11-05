@@ -256,7 +256,7 @@ class DatabaseMethods(object):
             if "PYTEST_CURRENT_TEST" in os.environ:
                 cached_file_path = "tests/db_cache/cached_posts_dataframe.pkl"
             else:
-                print("Cached file path is None. Using default model_save_location.")
+                logging.debug("Cached file path is None. Using default model_save_location.")
                 cached_file_path = "db_cache/cached_posts_dataframe.pkl"
 
         # Connection needs to stay here, otherwise does not make any sense due to threading of

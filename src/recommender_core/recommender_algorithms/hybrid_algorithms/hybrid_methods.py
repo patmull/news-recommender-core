@@ -365,7 +365,17 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                         and os.path \
                         .exists(file_path):
                     # Loading posts we are interested in from pre-calculated similarity matrix
-                    similarity_matrix = load_posts_from_sim_matrix(method, list_of_slugs)
+                    try:
+                        similarity_matrix = load_posts_from_sim_matrix(method, list_of_slugs)
+                    except KeyError as ke:
+                        logging.warning("Key error occurred while trying to get posts from similarity matrix. "
+                                        "Sim. matrix probably not updated. Calculating fresh similarity "
+                                        "but this can take a time.")
+                        logging.warning("Consider updating the similarity matrix in the code before.")
+                        logging.warning("FULL ERROR:")
+                        logging.warning(ke)
+                        logging.info("Calculating similarities fresh only between supplied articles.")
+                        similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
                 else:
                     # Calculating new similarity matrix only based on posts we are interested
                     similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
@@ -379,7 +389,13 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                         and os.path.exists(file_path):
 
                     # Loading posts we are interested in from pre-calculated similarity matrix
-                    similarity_matrix = load_posts_from_sim_matrix(method, list_of_slugs)
+                    try:
+                        similarity_matrix = load_posts_from_sim_matrix(method, list_of_slugs)
+                    except KeyError as ke:
+                        logging.warning("KeyError occurred. Probably due to not updated sim matrix."
+                                        "Sim matrix needs to be updated by "
+                                        "precalculate_and_save_sim_matrix_for_all_posts() method.")
+                        raise ke
                 else:
                     # Calculating new similarity matrix only based on posts we are interested
                     similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)

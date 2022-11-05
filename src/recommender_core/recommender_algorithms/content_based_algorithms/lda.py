@@ -305,7 +305,7 @@ def preprocess_wiki_corpus():
 
 def find_optimal_model():
     # Enabling LDA logging
-    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO,
+    logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.DEBUG,
                         filename='content_based_algorithms/training_logs/lda/logs.log')
     preprocess_wiki_corpus()
     path_to_preprocessed_files = "full_models/cswiki/lda/preprocessed/"

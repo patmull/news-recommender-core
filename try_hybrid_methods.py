@@ -1,150 +1,26 @@
-import json
 import logging
 
-from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
+    precalculate_and_save_sim_matrix_for_all_posts
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid, \
-    precalculate_and_save_sim_matrix_for_all_posts, select_list_of_posts_for_user, \
-    get_similarity_matrix_from_pairs_similarity
-from tests.testing_methods.random_posts_generator import get_three_unique_posts
-import pandas as pd
+from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from try_hybrid_methods.")
+
 
 def main():
-    """
-    user_id_for_test = 431
-
-    searched_slug_1 = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
-    searched_slug_2 = "salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem"
-    searched_slug_3 = "sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik"
-
-    test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
-
-    start = time.time()
-    print(get_most_similar_by_hybrid(user_id_for_test))
-    end = time.time()
-    print(end - start)"""
-
-    """
-    user_id_for_test = 431
-    user_methods = UserMethods()
-    all_users_df = user_methods.get_users_dataframe()
-    classifier = Classifier()
-    print("Loading BERT multilingual model...")
-    bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
-    classifier.predict_relevance_for_user(user_id=user_id_for_test, relevance_by='thumbs', force_retraining=False,
-                                          bert_model=bert, use_only_sample_of=None, only_with_prefilled_bert_vectors=False,
-                                          experiment_mode=False)
-    """
-
-
-    malformed_redis_key_name = "malformed_redis_key_name"
-    columns_to_combine = ['category_title', 'all_features_preprocessed', 'full_text']
-
+    precalculate_and_save_sim_matrix_for_all_posts()
+    # TODO: Here were some other tryings. Those can be later used for testing.
+    # body_message = f"{user_id: 3118}"
     recommender_methods = RecommenderMethods()
-    user_id = 999999
-    only_with_prefilled_bert_vectors = True
-
-    # THUMBS VALUES
-    """
-    df_posts_users_categories_relevance = recommender_methods \
-        .get_posts_users_categories_thumbs_df(user_id=user_id,
-                                              only_with_bert_vectors=only_with_prefilled_bert_vectors)
-    df_posts_users_categories_relevance = df_posts_users_categories_relevance.head(20)
-    df_posts_users_categories_relevance \
-        .to_csv(Path("tests/testing_datasets/testing_posts_categories_thumbs_data_for_df.csv"))
-
-    target_variable_name = 'thumbs_values'
-
-    classifier = Classifier()
-
-    print("df_posts_users_categories_relevance")
-    print(df_posts_users_categories_relevance)
-
-    clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
-        = classifier.train_classifiers(df=df_posts_users_categories_relevance,
-                                       columns_to_combine=columns_to_combine,
-                                       target_variable_name=target_variable_name, user_id=user_id)
-
-    predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
-                         predicted_var_for_redis_key_name=malformed_redis_key_name,
-                         bert_model=bert_model, col_to_combine=columns_to_combine,
-                         save_testing_csv=True)
-    """
-    """
-    # RATINGS VALUES
-    df_posts_users_categories_relevance = recommender_methods \
-        .get_posts_users_categories_ratings_df(user_id=user_id,
-                                               only_with_bert_vectors=only_with_prefilled_bert_vectors)
-    df_posts_users_categories_relevance = df_posts_users_categories_relevance.head(20)
-    df_posts_users_categories_relevance \
-        .to_csv(Path("tests/testing_datasets/testing_posts_categories_stars_data_for_df.csv"))
-
-    target_variable_name = 'ratings_values'
-    predicted_by_stars_redis_key_name = 'stars-ratings'
-
-    classifier = Classifier()
-
-    clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
-        = classifier.train_classifiers(df=df_posts_users_categories_relevance,
-                                       columns_to_combine=columns_to_combine,
-                                       target_variable_name=target_variable_name, user_id=user_id)
-
-    predict_from_vectors(X_unseen_df=X_validation, clf=clf_svc, user_id=user_id,
-                         predicted_var_for_redis_key_name=predicted_by_stars_redis_key_name,
-                         bert_model=bert_model, col_to_combine=columns_to_combine,
-                         save_testing_csv=True)
-    """
-    """
-    classifier = Classifier()
-    classifier.predict_relevance_for_user(use_only_sample_of=20, user_id=431, relevance_by='stars',
-                                          force_retraining=True, save_df_posts_users_categories_relevance=True)
-    """
-
-    """
-    user_id_for_test = 431
-    precalculate_and_save_sim_matrix_for_all_posts()
-    print(get_most_similar_by_hybrid(user_id_for_test, load_from_precalc_sim_matrix=True))
-    """
-
-    """
-    test_user_id = 431
-    searched_slug_1, searched_slug_2, searched_slug_3 = get_three_unique_posts()
-
-    test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
-
-    # Unit
-    list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id=test_user_id,
-                                                                              posts_to_compare=test_slugs)
-    result = get_similarity_matrix_from_pairs_similarity("doc2vec", list_of_slugs)
-
-    assert isinstance(result, pd.DataFrame)
-    """
-
-    test_user_id = 431
-
-    database = DatabaseMethods()
-    database.null_test_user_prefilled_records(user_id=test_user_id, db_columns=['recommended_by_hybrid'])
-
-    precalculate_and_save_sim_matrix_for_all_posts()
-    method = 'hybrid'
-    run_prefilling_collaborative(methods=[method], user_id=test_user_id, test_run=False)
-
-    database.connect()
-    df_users = database.get_users_dataframe()
-    database.disconnect()
-    test_user = df_users.loc[df_users['id'] == test_user_id]
-    loaded_json = test_user['recommended_by_hybrid'].values[0]
-    logging.debug("loaded_json:")
-    logging.debug(loaded_json)
-    logging.debug(type(loaded_json))
-    loaded_json = json.loads(loaded_json)
-    """
-    loaded_json = [{"slug": "z-hromady-kameni-povstal-hrad-hartenstejn-i-s-karlovarskou-vezi", "coefficient": 4.3861717013},
-     {"slug": "porozumime-nekdy-reci-zvirat-zatim-to-umeji-jenom-pohadky", "coefficient": 1.0055361237}]
-    """
-    assert type(loaded_json[0]['slug']) is str
-    assert type(loaded_json[0]['coefficient']) is float
+    recommender_methods.update_cache_of_posts_df()
+    print(run_prefilling_collaborative(methods=["hybrid"], user_id=3118))
 
 
 if __name__ == "__main__": main()
