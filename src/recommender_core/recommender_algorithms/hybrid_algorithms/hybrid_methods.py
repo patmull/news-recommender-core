@@ -171,7 +171,10 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs):
             raise ValueError("Word2Vec and Doc2Vec variables are set to None. Cannot continue.")
 
         similarity_list = []
+        i = 0
         for x in list_of_slugs:
+            i += 1
+            logging.debug("Post num. " + str(i))
             inner_list = []
             for y in list_of_slugs:
                 if method == "word2vec":
@@ -224,12 +227,14 @@ def prepare_sim_matrix_path(method):
 
 
 # TODO: Add to prefillers.
-def precalculate_and_save_sim_matrix_for_all_posts():
+def precalculate_and_save_sim_matrix_for_all_posts(methods=None):
+    if methods is None:
+        methods = LIST_OF_SUPPORTED_METHODS
     recommender_methods = RecommenderMethods()
     recommender_methods.update_cache_of_posts_df()
     all_posts_slugs = prepare_posts()
 
-    for method in LIST_OF_SUPPORTED_METHODS:
+    for method in methods:
         logging.debug("Precalculating sim matrix for all posts for method: %s" % method)
         similarity_matrix_of_all_posts = get_similarity_matrix_from_pairs_similarity(method=method,
                                                                                      list_of_slugs=all_posts_slugs)
@@ -333,7 +338,9 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             raise TypeError("User id muse be an int")
 
         if list_of_methods is None:
-            list_of_methods = ['tfidf', 'doc2vec', 'word2vec']
+            list_of_methods = ['tfidf']
+            # TODO: Get back also other methods. Priority: VERY HIGH
+            # list_of_methods = ['tfidf', 'doc2vec', 'word2vec']
         elif not set(list_of_methods).issubset(LIST_OF_SUPPORTED_METHODS) > 0:
             raise NotImplementedError("Inserted methods must correspond to DB columns.")
         if svd_posts_to_compare is None:
