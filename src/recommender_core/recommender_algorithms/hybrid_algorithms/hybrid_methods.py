@@ -171,8 +171,10 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs):
             raise ValueError("Word2Vec and Doc2Vec variables are set to None. Cannot continue.")
 
         similarity_list = []
+        i = 0
         for x in list_of_slugs:
             inner_list = []
+            logging.debug("Searching for features of post %d:" % i)
             for y in list_of_slugs:
                 if method == "word2vec":
                     inner_list.append(content_based_method.get_pair_similarity_word2vec(x, y, w2v_model))
