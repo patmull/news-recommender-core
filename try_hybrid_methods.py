@@ -15,7 +15,7 @@ logging.debug("Testing logging from try_hybrid_methods.")
 
 
 def main():
-    precalculate_and_save_sim_matrix_for_all_posts()
+    precalculate_and_save_sim_matrix_for_all_posts(['doc2vec', 'word2vec'])
     # TODO: Here were some other tryings. Those can be later used for testing.
     # body_message = f"{user_id: 3118}"
     recommender_methods = RecommenderMethods()

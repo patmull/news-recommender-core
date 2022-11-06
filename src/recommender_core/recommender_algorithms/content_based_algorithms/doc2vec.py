@@ -738,19 +738,19 @@ class Doc2VecClass:
         first_text = post_1[feature_2].iloc[0] + ' ' + post_1[feature_1].iloc[0]
         second_text = post_2[feature_2].iloc[0] + ' ' + post_2[feature_1].iloc[0]
 
-        print(first_text)
-        print(second_text)
+        logging.debug(first_text)
+        logging.debug(second_text)
 
         vec1 = d2v_model.infer_vector(first_text.split())
         vec2 = d2v_model.infer_vector(second_text.split())
 
         cos_distance = spatial.distance.cosine(vec1, vec2)
-        print("post_1:")
-        print(post_1)
-        print("post_2:")
-        print(post_2)
-        print("cos_distance:")
-        print(cos_distance)
+        logging.debug("post_1:")
+        logging.debug(post_1)
+        logging.debug("post_2:")
+        logging.debug(post_2)
+        logging.debug("cos_distance:")
+        logging.debug(cos_distance)
 
         return cos_distance
 
