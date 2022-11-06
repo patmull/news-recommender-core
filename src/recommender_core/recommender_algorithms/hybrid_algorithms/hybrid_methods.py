@@ -176,8 +176,8 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs):
             i += 1
             logging.debug("Post num. " + str(i))
             inner_list = []
-            logging.debug("Searching for features of post %d:" % i)
             for y in list_of_slugs:
+                logging.debug("Searching for features of post %d:" % i)
                 if method == "word2vec":
                     inner_list.append(content_based_method.get_pair_similarity_word2vec(x, y, w2v_model))
                 elif method == "doc2vec":
