@@ -181,7 +181,5 @@ models/w2v_model_limited_test.vectors.npy
 venv_deploy.env
 
 *.env
-/database/db_backups/core_testing_db_dumps/*.sql
-
 database/db_backups/production_dumps/db_production.sql
 database/db_backups/local_dumps/db_preliminary.sql
