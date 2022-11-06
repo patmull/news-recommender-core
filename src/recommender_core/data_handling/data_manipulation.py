@@ -940,9 +940,12 @@ class RedisConstants:
             }
         }
 
+
 def get_redis_connection():
     if 'REDIS_PASSWORD' in os.environ:
         redis_password = os.environ['REDIS_PASSWORD']
+        logging.debug("redis_password:")
+        logging.debug(redis_password)
     else:
         raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
                                "Not possible to connect to Redis.")
