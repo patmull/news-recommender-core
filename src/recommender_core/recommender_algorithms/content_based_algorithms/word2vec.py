@@ -510,7 +510,7 @@ class Word2VecClass:
         if source == "idnes":
             model_path = Path("models/w2v_idnes.model")
         elif source == "cswiki":
-            model_path = Path("models/w2v_cswiki.model")
+            model_path = Path("full_models/cswiki/word2vec/w2v_cswiki.model")
         else:
             raise ValueError("Wrong source of the model was chosen.")
 

@@ -57,6 +57,7 @@ def jensen_shannon(query, matrix):
 
 
 def load_lda():
+    # TODO: This can be changed to Wiki model. Priority: MEDIUM
     try:
         lda_model = LdaModel.load("models/lda_model")
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/dictionary_idnes.gensim')
