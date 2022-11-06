@@ -339,9 +339,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             raise TypeError("User id muse be an int")
 
         if list_of_methods is None:
-            list_of_methods = ['tfidf']
-            # TODO: Get back also other methods. Priority: VERY HIGH
-            # list_of_methods = ['tfidf', 'doc2vec', 'word2vec']
+            list_of_methods = ['tfidf', 'doc2vec', 'word2vec']
         elif not set(list_of_methods).issubset(LIST_OF_SUPPORTED_METHODS) > 0:
             raise NotImplementedError("Inserted methods must correspond to DB columns.")
         if svd_posts_to_compare is None:
@@ -379,7 +377,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                         logging.warning("Key error occurred while trying to get posts from similarity matrix. "
                                         "Sim. matrix probably not updated. Calculating fresh similarity "
                                         "but this can take a time.")
-                        logging.warning("Consider updating the similarity matrix in the code before.")
+                        logging.warning("Consider updating the similarity matrix in the code before to save a time.")
                         logging.warning("FULL ERROR:")
                         logging.warning(ke)
                         logging.info("Calculating similarities fresh only between supplied articles.")
@@ -403,7 +401,11 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                         logging.warning("KeyError occurred. Probably due to not updated sim matrix."
                                         "Sim matrix needs to be updated by "
                                         "precalculate_and_save_sim_matrix_for_all_posts() method.")
-                        raise ke
+                        logging.warning("Consider updating the similarity matrix in the code before to save a time.")
+                        logging.warning("FULL ERROR:")
+                        logging.warning(ke)
+                        logging.info("Calculating similarities fresh only between supplied articles.")
+                        similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
                 else:
                     # Calculating new similarity matrix only based on posts we are interested
                     similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
