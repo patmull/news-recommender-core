@@ -10,6 +10,14 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.user_rele
     Classifier
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from data?manipulation.")
+
 
 # TODO: This belongs to rabbitmq_consume
 def predict_ratings_for_user_store_to_redis(user_id):
@@ -18,15 +26,17 @@ def predict_ratings_for_user_store_to_redis(user_id):
     bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
     try:
         classifier.predict_relevance_for_user(user_id=user_id, relevance_by='thumbs', bert_model=bert)
-    except ValueError:
+    except ValueError as ve:
         print("Value error occurred when trying to get relevant thumbs for user. Skipping "
               "this user.")
+        logging.warning(ve)
         pass
     try:
-        classifier.predict_relevance_for_user(user_id=user_id, relevance_by='ratings', bert_model=bert)
-    except ValueError:
+        classifier.predict_relevance_for_user(user_id=user_id, relevance_by='stars', bert_model=bert)
+    except ValueError as ve:
         print("Value error occurred when trying to get relevant thumbs for user. Skipping "
               "this user.")
+        logging.warning(ve)
         pass
 
 
@@ -41,15 +51,17 @@ def predict_ratings_for_all_users_store_to_redis():
         print(user_row[0])
         try:
             classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='thumbs', bert_model=bert)
-        except ValueError:
+        except ValueError as ve:
             print("Value error occurred when trying to get relevant thumbs for user. Skipping "
                   "this user.")
+            logging.warning(ve)
             pass
         try:
-            classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='ratings', bert_model=bert)
-        except ValueError:
+            classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='stars', bert_model=bert)
+        except ValueError as ve:
             print("Value error occurred when trying to get relevant thumbs for user. Skipping "
                   "this user.")
+            logging.warning(ve)
             pass
 
 

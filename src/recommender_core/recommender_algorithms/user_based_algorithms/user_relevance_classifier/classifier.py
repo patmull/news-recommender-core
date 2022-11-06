@@ -14,12 +14,13 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 import logging
 
-"""
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
-"""
+
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from classifier.")
 
 
 def load_bert_model():
@@ -215,8 +216,12 @@ class Classifier:
 
         print("Training using SVC method...")
         clf_svc = SVC(gamma='auto')
-        clf_svc.fit(X_train, y_train)
-        y_pred = clf_svc.predict(X_test)
+        try:
+            clf_svc.fit(X_train, y_train)
+            y_pred = clf_svc.predict(X_test)
+        except Exception as e:
+            logging.warning(e)
+            raise e
         print("SVC results accuracy score:")
         print(accuracy_score(y_test, y_pred))
 
@@ -271,7 +276,7 @@ class Classifier:
                 model_file_name_random_forest = 'random_forest_classifier_' + predicted_variable + '.pkl'
                 path_to_models_pathlib = Path(self.path_to_models_global_folder)
             else:
-                print("Loading user's personalized classifiers models for user " + str(user_id))
+                logging.info("Loading user's personalized classifiers models for user " + str(user_id))
                 model_file_name_svc = 'svc_classifier_' + predicted_variable + '_user_' + str(user_id) + '.pkl'
                 model_file_name_random_forest = 'random_forest_classifier_' + predicted_variable + '_user_' \
                                                 + str(user_id) + '.pkl'
@@ -288,8 +293,12 @@ class Classifier:
         except FileNotFoundError as file_not_found_error:
             print(file_not_found_error)
             print("Model file was not found in the location, training from the start...")
-            self.train_classifiers(df=df, columns_to_combine=input_variables,
-                                   target_variable_name=predicted_variable, user_id=user_id)
+            try:
+                self.train_classifiers(df=df, columns_to_combine=input_variables,
+                                       target_variable_name=predicted_variable, user_id=user_id)
+            except ValueError as ve:
+                logging.warning(ve)
+                raise ve
             clf_svc = joblib.load(path_to_load_svc)
 
         try:
@@ -355,7 +364,7 @@ class Classifier:
 
             if save_df_posts_users_categories_relevance:
                 df_posts_users_categories_relevance.to_csv(
-                    Path('tests/testing_datasets/true_posts_categories_thumbs_data_for_df.csv'))
+                    Path('tests/testing_datasets/true_posts_categories_stars_data_for_df.csv'))
 
             target_variable_name = 'ratings_values'
             predicted_var_for_redis_key_name = Naming.PREDICTED_BY_STARS_REDIS_KEY_NAME
@@ -378,9 +387,9 @@ class Classifier:
             print(df_posts_categories['post_created_at'].head(10))
             df_posts_categories["post_created_at"] = pd.to_datetime(df_posts_categories["post_created_at"])
 
-            # Getting 50 latest (newest) posts by created date to filter only new articles for user
+            # Getting 100 latest (newest) posts by created date to filter only new articles for user
             df_posts_categories = df_posts_categories.sort_values(by="post_created_at", ascending=False)
-            df_posts_categories = df_posts_categories.head(50)
+            df_posts_categories = df_posts_categories.head(100)
             print("df_posts_categories, created_at column")
             print(df_posts_categories['post_created_at'].head(10))
 
