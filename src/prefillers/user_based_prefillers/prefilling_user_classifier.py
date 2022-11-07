@@ -30,6 +30,7 @@ def predict_ratings_for_user_store_to_redis(user_id):
         print("Value error occurred when trying to get relevant thumbs for user. Skipping "
               "this user.")
         logging.warning(ve)
+        logging.warning("This is probably caused by insufficient number of examples for thumbs.")
         pass
     try:
         classifier.predict_relevance_for_user(user_id=user_id, relevance_by='stars', bert_model=bert)
