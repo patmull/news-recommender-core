@@ -294,6 +294,8 @@ def boost_by_article_freshness(results_df):
         logging.debug("boost")
         logging.debug(boost)
         d = coeff_value * boost
+        if d == 0.0:
+            d = d + boost
         return d
 
     # TODO: Get boost values from DB. Priority MEDIUM
