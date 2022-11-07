@@ -61,9 +61,10 @@ def user_rated_by_stars_callback(ch, method, properties, body):
             call_collaborative_prefillers(method, body)
             method = 'hybrid'
             call_collaborative_prefillers(method, body)
+            """
             method = 'classifier'
             call_collaborative_prefillers(method, body)
-
+            """
 
 def user_rated_by_thumb_callback(ch, method, properties, body):
     print("[x] Received %r" % body.decode())
