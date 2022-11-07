@@ -128,3 +128,12 @@ def test_get_sql_rows():
     num_of_rows = recommender_methods.get_sql_num_of_rows()
     assert type(num_of_rows) is int
     assert num_of_rows > 0
+
+
+def test_get_user_read_history_with_posts():
+    test_user_id = 431
+    recommender_methods = RecommenderMethods()
+    user_posts_history = recommender_methods.get_user_read_history_with_posts(test_user_id)
+    assert isinstance(user_posts_history, pandas.DataFrame)
+    assert type(len(user_posts_history)) is int
+
