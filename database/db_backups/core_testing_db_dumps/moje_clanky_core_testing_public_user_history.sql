@@ -1,4 +1,4 @@
-create table user_history
+create table user_histories
 (
     id         bigint,
     user_id    bigint,

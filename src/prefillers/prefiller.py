@@ -57,7 +57,6 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
         raise TestRunException("This is test run")
 
     user_methods = UserMethods()
-    # TODO: Do this for all db_columns that don't need other columns
     column_name = "recommended_by_" + method
     if user_id is None:
         try:

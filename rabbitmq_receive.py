@@ -143,7 +143,7 @@ def insert_testing_json(received_user_id, method, heroku_testing_db=False):
                                                     method=method)
 
 
-def call_collaborative_prefillers(method, msg_body):
+def call_collaborative_prefillers(method, msg_body, retrain=False):
     print("I'm calling method for updating of " + method + " prefilled recommendation...")
     try:
         print("Received JSON")
