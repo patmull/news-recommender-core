@@ -20,19 +20,24 @@ logging.debug("Testing logging from data?manipulation.")
 
 
 # TODO: This belongs to rabbitmq_consume
-def predict_ratings_for_user_store_to_redis(user_id):
+def predict_ratings_for_user_store_to_redis(user_id, force_retrain=False):
     classifier = Classifier()
     print("Loading BERT multilingual model...")
     bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
     try:
-        classifier.predict_relevance_for_user(user_id=user_id, relevance_by='thumbs', bert_model=bert)
+        classifier.predict_relevance_for_user(user_id=user_id, relevance_by='thumbs', bert_model=bert,
+                                              force_retraining=force_retrain)
     except ValueError as ve:
         print("Value error occurred when trying to get relevant thumbs for user. Skipping "
               "this user.")
         logging.warning(ve)
+        logging.warning("This is probably caused by insufficient number of examples for thumbs."
+                        "User also needs to rate some posts both by thumbs up and down in order "
+                        "to provide sufficient number of examples.")
         pass
     try:
-        classifier.predict_relevance_for_user(user_id=user_id, relevance_by='stars', bert_model=bert)
+        classifier.predict_relevance_for_user(user_id=user_id, relevance_by='stars', bert_model=bert,
+                                              force_retraining=force_retrain)
     except ValueError as ve:
         print("Value error occurred when trying to get relevant thumbs for user. Skipping "
               "this user.")

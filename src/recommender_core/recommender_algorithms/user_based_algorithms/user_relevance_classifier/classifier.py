@@ -127,26 +127,26 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
                          + 'post-classifier-by-' + predicted_var_for_redis_key_name
         # remove old records
         r.delete(user_redis_key)
-        print("iteration through records:")
+        logging.debug("iteration through records:")
         i = 0
         # fetch Redis set with a new set of recommended posts
         for row in zip(*df_results.to_dict("list").values()):
             slug = "" + row[3] + ""
-            print("-------------------")
-            print("Predicted rating for slug | " + slug + ":")
+            logging.info("-------------------")
+            logging.info("Predicted rating for slug | " + slug + ":")
 
-            print("row[5]:")
-            print(row[5])
+            logging.debug("row[5]:")
+            logging.info(row[5])
             if row[5] is not None:
                 # If predicted rating is == 1 (= relevant)
                 if int(row[5]) >= threshold:
                     # Saving individually to set
-                    print("Adding REDIS KEY")
+                    logging.info("Adding REDIS KEY")
                     r.sadd(user_redis_key, slug)
-                    print("Inserted record num. " + str(i))
+                    logging.info("Inserted record num. " + str(i))
                     i = i + 1
             else:
-                print("No predicted values found. Skipping this record.")
+                logging.warning("No predicted values found. Skipping this record.")
                 pass
 
 
@@ -189,32 +189,32 @@ class Classifier:
         else:
             test_size = 0.5
 
-        print("Loading Bert model...")
+        logging.debug("Loading Bert model...")
         self.bert_model = load_bert_model()
         # https://metatext.io/models/distilbert-base-multilingual-cased
         df_predicted = get_df_predicted(df, target_variable_name)
 
         df = df.fillna('')
 
-        print("df.columns:")
+        logging.debug("df.columns:")
         print(df.columns)
 
         df['combined'] = df[columns_to_combine].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
-        print("df['combined']")
-        print(df['combined'].iloc[0])
+        logging.debug("df['combined']")
+        logging.debug(df['combined'].iloc[0])
         # noinspection PyPep8Naming
         X_train, X_validation, y_train, y_validation = train_test_split(df['combined'].tolist(),
                                                                         df_predicted[target_variable_name]
                                                                         .tolist(), test_size=test_size)
-        print("Converting text to vectors...")
+        logging.debug("Converting text to vectors...")
         df['vector'] = df['combined'].apply(lambda x: self.bert_model(x).vector)
-        print("Splitting dataset to train_enabled / test...")
+        logging.debug("Splitting dataset to train_enabled / test...")
         # noinspection PyPep8Naming
         X_train, X_test, y_train, y_test = train_test_split(df['vector'].tolist(),
                                                             df_predicted[target_variable_name]
                                                             .tolist(), test_size=test_size)
 
-        print("Training using SVC method...")
+        logging.info("Training using SVC method...")
         clf_svc = SVC(gamma='auto')
         try:
             clf_svc.fit(X_train, y_train)
@@ -222,19 +222,19 @@ class Classifier:
         except Exception as e:
             logging.warning(e)
             raise e
-        print("SVC results accuracy score:")
+        logging.info("SVC results accuracy score:")
         print(accuracy_score(y_test, y_pred))
 
-        print("Training using RandomForest method...")
+        logging.info("Training using RandomForest method...")
         clf_random_forest = RandomForestClassifier(max_depth=9, random_state=0)
         clf_random_forest.fit(X_train, y_train)
         y_pred = clf_random_forest.predict(X_test)
-        print("Random Forest Classifier accuracy score:")
-        print(accuracy_score(y_test, y_pred))
+        logging.info("Random Forest Classifier accuracy score:")
+        logging.info(accuracy_score(y_test, y_pred))
 
-        print("Saving the SVC model...")
+        logging.info("Saving the SVC model...")
         if user_id is not None:
-            print("Folder: " + self.path_to_models_user_folder)
+            logging.info("Folder: " + self.path_to_models_user_folder)
             Path(self.path_to_models_user_folder).mkdir(parents=True, exist_ok=True)
 
             model_file_name_svc = 'svc_classifier_' + target_variable_name + '_user_' + str(user_id) + '.pkl'
@@ -247,20 +247,21 @@ class Classifier:
             joblib.dump(clf_random_forest, path_to_save_forest)
 
         else:
-            print("Folder: " + self.path_to_models_global_folder)
+            logging.info("Folder: " + self.path_to_models_global_folder)
             Path(self.path_to_models_global_folder).mkdir(parents=True, exist_ok=True)
             model_file_name = 'svc_classifier_' + target_variable_name + '.pkl'
-            print(self.path_to_models_global_folder)
-            print(model_file_name)
+            logging.debug("")
+            logging.debug(self.path_to_models_global_folder)
+            logging.debug(model_file_name)
             path_to_models_pathlib = Path(self.path_to_models_global_folder)
             path_to_save_svc = Path.joinpath(path_to_models_pathlib, model_file_name)
             joblib.dump(clf_svc, path_to_save_svc)
-            print("Saving the random forest model...")
-            print("Folder: " + self.path_to_models_global_folder)
+            logging.info("Saving the random forest model...")
+            logging.info("Folder: " + self.path_to_models_global_folder)
             Path(self.path_to_models_global_folder).mkdir(parents=True, exist_ok=True)
             model_file_name = 'random_forest_classifier_' + target_variable_name + '.pkl'
-            print(self.path_to_models_global_folder)
-            print(model_file_name)
+            logging.debug(self.path_to_models_global_folder)
+            logging.debug(model_file_name)
             path_to_models_pathlib = Path(self.path_to_models_global_folder)
             path_to_save_forest = Path.joinpath(path_to_models_pathlib, model_file_name)
             joblib.dump(clf_random_forest, path_to_save_forest)
@@ -288,11 +289,11 @@ class Classifier:
                              "about the value of the 'predicted_variable'?")
 
         try:
-            print("Loading SVC...")
+            logging.debug("Loading SVC...")
             clf_svc = joblib.load(path_to_load_svc)
         except FileNotFoundError as file_not_found_error:
-            print(file_not_found_error)
-            print("Model file was not found in the location, training from the start...")
+            logging.warning(file_not_found_error)
+            logging.warning("Model file was not found in the location, training from the start...")
             try:
                 self.train_classifiers(df=df, columns_to_combine=input_variables,
                                        target_variable_name=predicted_variable, user_id=user_id)
@@ -302,11 +303,11 @@ class Classifier:
             clf_svc = joblib.load(path_to_load_svc)
 
         try:
-            print("Loading Random Forest...")
+            logging.warning("Loading Random Forest...")
             clf_random_forest = joblib.load(path_to_load_random_forest)
         except FileNotFoundError as file_not_found_error:
-            print(file_not_found_error)
-            print("Model file was not found in the location, training from the start...")
+            logging.warning(file_not_found_error)
+            logging.warning("Model file was not found in the location, training from the start...")
             self.train_classifiers(df=df, columns_to_combine=input_variables,
                                    target_variable_name=predicted_variable, user_id=user_id)
             clf_random_forest = joblib.load(path_to_load_random_forest)
@@ -326,8 +327,8 @@ class Classifier:
         recommender_methods = RecommenderMethods()
         all_user_df = recommender_methods.get_all_users()
 
-        print("all_user_df.columns")
-        print(all_user_df.columns)
+        logging.debug("all_user_df.columns")
+        logging.debug(all_user_df.columns)
 
         if type(user_id) == int:
             if user_id not in all_user_df["id"].values:
@@ -346,8 +347,8 @@ class Classifier:
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_thumbs_df(user_id=user_id,
                                                       only_with_bert_vectors=only_with_prefilled_bert_vectors)
-            print("df_posts_users_categories_relevance:")
-            print(df_posts_users_categories_relevance)
+            logging.debug("df_posts_users_categories_relevance:")
+            logging.debug(df_posts_users_categories_relevance)
 
             if save_df_posts_users_categories_relevance:
                 df_posts_users_categories_relevance.to_csv(
@@ -359,8 +360,8 @@ class Classifier:
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_ratings_df(user_id=user_id,
                                                        only_with_bert_vectors=only_with_prefilled_bert_vectors)
-            print("df_posts_users_categories_relevance:")
-            print(df_posts_users_categories_relevance)
+            logging.debug("df_posts_users_categories_relevance:")
+            logging.debug(df_posts_users_categories_relevance)
 
             if save_df_posts_users_categories_relevance:
                 df_posts_users_categories_relevance.to_csv(
@@ -379,21 +380,22 @@ class Classifier:
         df_posts_categories = df_posts_categories.rename(columns={'created_at_x': 'post_created_at'})
 
         if latest_posts:
-            print("df_posts_categories")
-            print(df_posts_categories)
-            print(df_posts_categories.columns)
+            logging.debug("df_posts_categories")
+            logging.debug(df_posts_categories)
+            logging.debug(df_posts_categories.columns)
 
-            print("df_posts_categories, created_at column")
-            print(df_posts_categories['post_created_at'].head(10))
+            logging.debug("df_posts_categories, created_at column")
+            logging.debug(df_posts_categories['post_created_at'].head(10))
             df_posts_categories["post_created_at"] = pd.to_datetime(df_posts_categories["post_created_at"])
 
             # Getting 100 latest (newest) posts by created date to filter only new articles for user
             df_posts_categories = df_posts_categories.sort_values(by="post_created_at", ascending=False)
             df_posts_categories = df_posts_categories.head(100)
-            print("df_posts_categories, created_at column")
-            print(df_posts_categories['post_created_at'].head(10))
+            logging.debug("df_posts_categories, created_at column")
+            logging.debug(df_posts_categories['post_created_at'].head(10))
 
         if force_retraining is True:
+            logging.info("Retraining the classifier")
             # noinspection PyPep8Naming
             clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
                 = self.train_classifiers(df=df_posts_users_categories_relevance, columns_to_combine=columns_to_combine,
@@ -410,15 +412,15 @@ class Classifier:
                 if type(use_only_sample_of) is int:
                     # noinspection PyPep8Naming
                     X_unseen = X_unseen.sample(use_only_sample_of)
-            print("Loading sentence bert multilingual model...")
-            print("=========================")
-            print("Results of SVC:")
-            print("=========================")
+            logging.debug("Loading sentence bert multilingual model...")
+            logging.debug("=========================")
+            logging.debug("Results of SVC:")
+            logging.debug("=========================")
             show_predicted(X_unseen_df=X_unseen, input_variables=columns_to_combine, clf=clf_svc,
                            bert_model=bert_model)
-            print("=========================")
-            print("Results of Random Forest:")
-            print("=========================")
+            logging.debug("=========================")
+            logging.debug("Results of Random Forest:")
+            logging.debug("=========================")
             show_predicted(X_unseen_df=X_unseen, input_variables=columns_to_combine, clf=clf_random_forest,
                            bert_model=bert_model)
         else:
@@ -429,23 +431,23 @@ class Classifier:
                 if type(use_only_sample_of) is int:
                     # noinspection PyPep8Naming
                     X_unseen = X_unseen.sample(use_only_sample_of)
-            print("=========================")
-            print("Inserting by SVC:")
-            print("=========================")
+            logging.debug("=========================")
+            logging.debug("Inserting by SVC:")
+            logging.debug("=========================")
 
-            print("X_unseen:")
-            print(X_unseen)
-            print("clf_svc:")
-            print(clf_svc)
+            logging.debug("X_unseen:")
+            logging.debug(X_unseen)
+            logging.debug("clf_svc:")
+            logging.debug(clf_svc)
 
             predict_from_vectors(X_unseen_df=X_unseen, clf=clf_svc, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,
                                  save_testing_csv=True)
 
-            print("=========================")
-            print("Inserting by Random Forest:")
-            print("=========================")
+            logging.debug("=========================")
+            logging.debug("Inserting by Random Forest:")
+            logging.debug("=========================")
             predict_from_vectors(X_unseen_df=X_unseen, clf=clf_random_forest, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,
