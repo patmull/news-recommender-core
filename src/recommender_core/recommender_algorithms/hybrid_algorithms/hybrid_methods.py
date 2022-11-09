@@ -226,8 +226,6 @@ def prepare_sim_matrix_path(method):
     file_path = Path.joinpath(SIM_MATRIX_OF_ALL_POSTS_PATH, file_name).as_posix()
     return file_path
 
-
-# TODO: Add to prefillers.
 def precalculate_and_save_sim_matrix_for_all_posts(methods=None):
     if methods is None:
         methods = LIST_OF_SUPPORTED_METHODS
