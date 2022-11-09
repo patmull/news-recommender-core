@@ -22,8 +22,8 @@ mongo_collection = mongo_db["preprocessed_articles"]
 mongo_collection_stopwords_free = mongo_db["preprocessed_articles_stopwords_free"]
 mongo_collection_bigrams = mongo_db["preprocessed_articles_bigrams"]
 
-PATH_TO_FROZEN_BIGRAM_MODEL = "full_models/idnes/bigrams_phrase_model_frozen.pkl"
-PATH_TO_FROZEN_TRIGRAM_MODEL = "full_models/idnes/trigrams_phrase_model_frozen.pkl"
+PATH_TO_FROZEN_BIGRAM_MODEL = "full_models/idnes/ngrams/bigrams_phrase_model_frozen.pkl"
+PATH_TO_FROZEN_TRIGRAM_MODEL = "full_models/idnes/ngrams/trigrams_phrase_model_frozen.pkl"
 
 
 def train_phrases_from_mongo_idnes():
@@ -47,7 +47,7 @@ def train_phrases_from_mongo_idnes():
     time.sleep(40)
     logging.debug("Training Phrases doc2vec_model...")
     phrase_model = gensim.models.Phrases(sentences, min_count=1, threshold=1)  # higher threshold fewer phrases.
-    folder = "full_models/idnes/"
+    folder = "full_models/idnes/ngrams"
     filename = "bigrams.phrases"
     path = folder + filename
     if not os.path.exists(folder):
@@ -73,7 +73,7 @@ def freeze_existing_phrase_model(path_to_existing_phrases_model=None, path_to_fr
         logging.debug("Freezing doc2vec_model...")
         frozen_model = phrases_model.freeze()
         if path_to_frozen is None:
-            folder = "full_models/idnes/"
+            folder = "full_models/idnes/ngrams"
             filename_frozen = "bigrams_phrase_model_frozen.pkl"
             path_to_frozen = folder + filename_frozen
             logging.debug("None path to frozen doc2vec_model supplied, saving frozen doc2vec_model to default location in:")

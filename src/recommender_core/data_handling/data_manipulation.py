@@ -514,7 +514,7 @@ class DatabaseMethods(object):
         else:
             raise ValueError("Not allowed DB method passed.")
 
-    def insert_preprocessed_combined(self, preprocessed_all_features, post_id):
+    def insert_all_features_preprocessed(self, preprocessed_all_features, post_id):
         try:
             query = """UPDATE posts SET all_features_preprocessed = %s WHERE id = %s;"""
             inserted_values = (preprocessed_all_features, post_id)
@@ -527,7 +527,6 @@ class DatabaseMethods(object):
         except psycopg2.Error as e:
             print_exception_not_inserted(e)
 
-    # noinspection DuplicatedCode
     def insert_preprocessed_body(self, preprocessed_body, article_id):
         try:
             query = """UPDATE posts SET body_preprocessed = %s WHERE id = %s;"""
@@ -556,18 +555,6 @@ class DatabaseMethods(object):
 
         except psycopg2.Error as e:
             print_exception_not_inserted(e)
-
-    def get_not_preprocessed_posts(self):
-        sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
-        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
-        #  Parser module
-        query = sql
-        if self.cursor is not None:
-            self.cursor.execute(query)
-            rs = self.cursor.fetchall()
-        else:
-            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
-        return rs
 
     def get_not_prefilled_posts(self, full_text, method):
         if full_text is False:
@@ -649,7 +636,7 @@ class DatabaseMethods(object):
     # TODO: Test this. Priority: LOW-MEDIUM
     def get_posts_with_no_body_preprocessed(self):
         sql = """SELECT * FROM posts WHERE body_preprocessed IS NULL ORDER BY id;"""
-        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
+        # TODO: can be added also keywords, all_features_preprocessed to make sure they were already added in
         #  Parser module
         query = sql
         if self.cursor is not None:
@@ -660,9 +647,10 @@ class DatabaseMethods(object):
         return rs
 
     # TODO: Test this. Priority: LOW-MEDIUM
+    @PendingDeprecationWarning
     def get_posts_with_no_keywords(self):
         sql = """SELECT * FROM posts WHERE posts.keywords IS NULL ORDER BY id;"""
-        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
+        # TODO: can be added also keywords, all_features_preprocessed to make sure they were already added in
         #  Parser module
         query = sql
         if self.cursor is not None:
@@ -673,17 +661,21 @@ class DatabaseMethods(object):
         return rs
 
     # TODO: Test this. Priority: LOW-MEDIUM
-    def get_posts_with_no_all_features_preprocessed(self):
-        sql = """SELECT * FROM posts WHERE posts.all_features_preprocessed IS NULL ORDER BY id;"""
-        # TODO: can be added also keywords, all_features_preprocecessed to make sure they were already added in
-        #  Parser module
-        query = sql
-        if self.cursor is not None:
-            self.cursor.execute(query)
-            rs = self.cursor.fetchall()
+    def get_posts_with_no_features_preprocessed(self, method):
+
+        supported_columns = ['body_preprocessed', 'all_features_preprocessed', 'keywords',
+                             'trigrams_full_text']
+        if method in supported_columns:
+            sql = """SELECT * FROM posts WHERE {} IS NULL ORDER BY id;""".format(method)
+            query = sql
+            if self.cursor is not None:
+                self.cursor.execute(query)
+                rs = self.cursor.fetchall()
+            else:
+                raise ValueError("Cursor is set to None. Cannot continue with next operation.")
+            return rs
         else:
-            raise ValueError("Cursor is set to None. Cannot continue with next operation.")
-        return rs
+            raise NotImplementedError("Selected column not implemented")
 
     def get_posts_with_not_prefilled_ngrams_text(self, full_text=True):
         if full_text is False:
@@ -691,7 +683,7 @@ class DatabaseMethods(object):
         else:
             sql = """SELECT * FROM posts WHERE trigrams_full_text IS NULL ORDER BY id;"""
 
-        # TODO: can be added also: keywords, all_features_preprocecessed to make sure they were already added in
+        # TODO: can be added also: keywords, all_features_preprocessed to make sure they were already added in
         #  Parser module
         query = sql
         if self.cursor is not None:
@@ -874,6 +866,41 @@ class DatabaseMethods(object):
                 logging.debug("psycopg2.Error occurred while trying to update user:")
                 logging.debug(str(e))
                 raise e
+
+    def null_prefilled_record(self, db_columns: List[str], post_id=None):
+        """
+        Method used for testing purposes.
+        @param post_id:
+        @param user_id:
+        @param db_columns:
+        @return:
+        """
+        if post_id is None:
+            posts = self.get_posts_dataframe(from_cache=False)
+            random_post = posts.sample()
+            random_post_id = int(random_post['id'].iloc[0])
+        else:
+            random_post_id = post_id
+
+        self.connect()
+
+        for method in db_columns:
+            try:
+                query = """UPDATE posts SET {} = NULL WHERE id = %(id)s;""".format(method)
+                queried_values = {'id': random_post_id}
+                print("Query used in null_test_user_prefilled_records:")
+                print(query)
+                if self.cursor is not None and self.cnx is not None:
+                    self.cursor.execute(query, queried_values)
+                    self.cnx.commit()
+            except psycopg2.Error as e:
+                print_exception_not_inserted(e)
+                logging.debug("psycopg2.Error occurred while trying to update posts:")
+                logging.debug(str(e))
+                raise e
+
+        self.disconnect()
+
 
     def null_post_test_prefilled_record(self):
         posts = self.get_posts_dataframe(from_cache=False)

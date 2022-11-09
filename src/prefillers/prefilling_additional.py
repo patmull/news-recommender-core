@@ -1,14 +1,23 @@
 import logging
+import os
 import time
 import random
 
 import gensim
 
 from src.prefillers.preprocessing.bigrams_phrases import PhrasesCreator
-from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess, preprocess
+from src.prefillers.preprocessing.cz_preprocessing import preprocess
 from src.prefillers.preprocessing.keyword_extraction import SingleDocKeywordExtractor
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format, filename='tests/logs/prefilling_testing_logging.logs')
+logging.debug("Testing logging from %s." % os.path.basename(__file__))
 
 
 def shuffle_and_reverse(posts, random_order, reversed_order=True):
@@ -21,6 +30,8 @@ def shuffle_and_reverse(posts, random_order, reversed_order=True):
         logging.debug("Starting random_order iteration...")
         time.sleep(5)
         random.shuffle(posts)
+
+    return posts
 
 
 def get_post_columns(post):
@@ -47,90 +58,64 @@ def extract_keywords(string_for_extraction):
 
 
 def prepare_filling(skip_already_filled, random_order):
-    database = DatabaseMethods()
     recommender_methods = RecommenderMethods()
     if skip_already_filled is False:
         recommender_methods.database.connect()
         posts = recommender_methods.get_all_posts()
         recommender_methods.database.disconnect()
     else:
-        database.connect()
-        posts = database.get_not_preprocessed_posts()
-        database.disconnect()
+        posts = recommender_methods.get_posts_with_no_features_preprocessed(method='all_features_preprocessed')
 
-    number_of_inserted_rows = 0
+    posts = shuffle_and_reverse(posts=posts, random_order=random_order)
 
-    shuffle_and_reverse(posts=posts, random_order=random_order)
-
-    cz_lemma = CzPreprocess()
-
-    return posts, database, cz_lemma, number_of_inserted_rows
+    return posts
 
 
 class PreFillerAdditional:
 
     # universal common method
-    def fill_preprocessed(self, skip_already_filled, random_order, db="pgsql"):
+    @PendingDeprecationWarning
+    def fill_preprocessed(self, skip_already_filled, random_order):
         recommender_methods = RecommenderMethods()
         database_methods = DatabaseMethods()
 
         if skip_already_filled is False:
-            recommender_methods.database.connect()
-            posts = recommender_methods.get_all_posts()
-            recommender_methods.database.disconnect()
-            posts_categories = database_methods.join_posts_ratings_categories()
-            shuffle_and_reverse(posts=posts, random_order=random_order)
+            posts_categories = recommender_methods.get_posts_with_not_prefilled_ngrams_text()
+            posts_categories = shuffle_and_reverse(posts=posts_categories, random_order=random_order)
         else:
-            posts_categories = database_methods.get_not_preprocessed_posts()
-            shuffle_and_reverse(posts=posts_categories, random_order=random_order)
-
-        number_of_inserted_rows = 0
-
-        cz_lemma = CzPreprocess()
+            posts_categories = recommender_methods.get_not_preprocessed_posts_all_features_column_and_body_preprocessed()
+            posts_categories = shuffle_and_reverse(posts=posts_categories, random_order=random_order)
 
         for post in posts_categories:
             if len(posts_categories) < 1:
                 break
             post_id = post[0]
             slug = post[3]
-            """
-            article_category = post[2]
-            article_title = post[1]
-            article_excerpt = post[3]
-            article_body = post[4]
-            article_keywords = post[5]
-            article_all_features_preprocessed = post[6]
-            """
-            article_full_text = post[7]
-            article_body_preprocessed = post[8]
+            article_all_features_preprocessed = post[19]
+            article_full_text = post[20]
+            article_body_preprocessed = post[21]
+            # NOTICE: Here can be also other methods.
 
             logging.debug("Prefilling body preprocessd in article: " + slug)
 
             if skip_already_filled is True:
-                if article_body_preprocessed is None:
-                    if db == "redis":
-                        database_methods.insert_preprocessed_body(preprocessed_body=article_body_preprocessed,
-                                                                  article_id=post_id)
-                    elif db == "pgsql":
-                        preprocessed_text = preprocess(article_full_text)
-                        logging.debug("article_full_text:")
-                        logging.debug(article_full_text)
-                        logging.debug("preprocessed_text:")
-                        logging.debug(preprocessed_text)
+                if article_body_preprocessed is None or article_all_features_preprocessed is None:
+                    preprocessed_text = preprocess(article_full_text)
+                    logging.debug("article_full_text:")
+                    logging.debug(article_full_text)
+                    logging.debug("preprocessed_text:")
+                    logging.debug(preprocessed_text)
 
-                        database_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text,
-                                                                  article_id=post_id)
-                    else:
-                        raise Exception
+                    recommender_methods = RecommenderMethods()
+                    self.start_preprocessed_columns_prefilling(article_full_text=preprocessed_text,
+                                                               post_id=post_id)
                 else:
                     logging.debug("Skipping.")
             else:
-                self.start_preprocessed_features_prefilling(db, cz_lemma, article_full_text, database_methods, post_id,
-                                                            number_of_inserted_rows, random_order)
+                self.start_preprocessed_columns_prefilling(article_full_text, post_id)
 
-    def fill_body_preprocessed(self, skip_already_filled, random_order, db="pgsql"):
-        posts, database, cz_lemma, number_of_inserted_rows = prepare_filling(skip_already_filled, random_order)
-
+    def fill_body_preprocessed(self, skip_already_filled, random_order):
+        posts = prepare_filling(skip_already_filled, random_order)
         for post in posts:
             if len(posts) < 1:
                 break
@@ -139,36 +124,31 @@ class PreFillerAdditional:
             post_id, slug, article_title, article_excerpt, article_full_text, current_body_preprocessed \
                 = get_post_columns(post)
 
-            logging.debug("Prefilling body preprocessd in article: " + slug)
+            logging.debug("Prefilling body preprocessed in article: " + slug)
 
             if skip_already_filled is True:
                 if current_body_preprocessed is None:
-                    if db == "pgsql":
-                        preprocessed_text = preprocess(article_full_text)
-                        logging.debug("article_full_text:")
-                        logging.debug(article_full_text)
-                        logging.debug("preprocessed_text:")
-                        logging.debug(preprocessed_text)
+                    preprocessed_text = preprocess(article_full_text)
+                    logging.debug("article_full_text:")
+                    logging.debug(article_full_text)
+                    logging.debug("preprocessed_text:")
+                    logging.debug(preprocessed_text)
 
-                        database.connect()
-                        database.insert_preprocessed_body(preprocessed_body=preprocessed_text, article_id=post_id)
-                        database.disconnect()
-                    else:
-                        raise NotImplementedError
+                    recommender_methods = RecommenderMethods()
+                    recommender_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text,
+                                                                 article_id=post_id)
+
                 else:
                     logging.debug("Skipping.")
             else:
-                self.start_preprocessed_features_prefilling(db, cz_lemma, article_full_text,
-                                                            database, post_id,
-                                                            number_of_inserted_rows, random_order)
+                self.start_preprocessed_columns_prefilling(article_full_text, post_id)
 
     def fill_keywords(self, skip_already_filled, random_order):
-        database = DatabaseMethods()
-        database.connect()
+        recommender_methods = RecommenderMethods()
         if skip_already_filled is False:
-            posts = database.get_all_posts()
+            posts = recommender_methods.get_all_posts()
         else:
-            posts = database.get_posts_with_no_keywords()
+            posts = recommender_methods.get_posts_with_no_features_preprocessed(method='keywords')
 
         number_of_inserted_rows = 0
 
@@ -193,6 +173,7 @@ class PreFillerAdditional:
 
             logging.debug("Prefilling body preprocessd in article: " + slug)
 
+            recommender_methods = RecommenderMethods()
             if skip_already_filled is True:
                 preprocessed_keywords = extract_keywords(string_for_extraction=features)
                 logging.debug("article_full_text:")
@@ -200,7 +181,7 @@ class PreFillerAdditional:
                 logging.debug("preprocessed_keywords:")
                 logging.debug(preprocessed_keywords)
 
-                database.insert_keywords(keyword_all_types_splitted=preprocessed_keywords, article_id=post_id)
+                recommender_methods.insert_keywords(keyword_all_types_splitted=preprocessed_keywords, article_id=post_id)
             else:
                 preprocessed_keywords = extract_keywords(string_for_extraction=features)
                 logging.debug("article_full_text")
@@ -208,7 +189,7 @@ class PreFillerAdditional:
                 logging.debug("preprocessed_keywords:")
                 logging.debug(preprocessed_keywords)
 
-                database.insert_keywords(keyword_all_types_splitted=preprocessed_keywords, article_id=post_id)
+                recommender_methods.insert_keywords(keyword_all_types_splitted=preprocessed_keywords, article_id=post_id)
 
                 number_of_inserted_rows += 1
                 if number_of_inserted_rows > 20:
@@ -216,9 +197,8 @@ class PreFillerAdditional:
                     self.fill_keywords(skip_already_filled=True,
                                        random_order=random_order)
 
-    def fill_all_features_preprocessed(self, skip_already_filled, random_order, db="pgsql"):
-        posts, database, cz_lemma, number_of_inserted_rows = prepare_filling(skip_already_filled=skip_already_filled,
-                                                                             random_order=random_order)
+    def fill_all_features_preprocessed(self, skip_already_filled, random_order):
+        posts = prepare_filling(skip_already_filled=skip_already_filled, random_order=random_order)
 
         for post in posts:
             if len(posts) < 1:
@@ -227,54 +207,48 @@ class PreFillerAdditional:
             # noinspection PyPep8
             post_id, slug, article_title, article_excerpt, article_full_text, current_body_preprocessed\
                 = get_post_columns(post)
+            current_all_features_preprocessed = post[19]
+
+            logging.debug("post:")
+            logging.debug(post)
 
             logging.debug("Prefilling body preprocessd in article: " + slug)
 
+            recommender_methods = RecommenderMethods()
             if skip_already_filled is True:
-                if current_body_preprocessed is None:
-                    if db == "pgsql":
-                        preprocessed_text = preprocess(article_full_text)
-                        logging.debug("article_full_text:")
-                        logging.debug(article_full_text)
-                        logging.debug("preprocessed_text:")
-                        logging.debug(preprocessed_text)
-                        database.connect()
-                        database.insert_preprocessed_combined(preprocessed_text, post_id)
-                        database.disconnect()
-                    else:
-                        raise NotImplementedError
+                if current_all_features_preprocessed is None:
+                    preprocessed_text = preprocess(article_full_text)
+                    logging.debug("article_full_text:")
+                    logging.debug(article_full_text)
+                    logging.debug("preprocessed_text:")
+                    logging.debug(preprocessed_text)
+                    recommender_methods.insert_all_features_preprocessed_combined(preprocessed_text, post_id)
                 else:
                     logging.debug("Skipping.")
             else:
-                self.start_preprocessed_features_prefilling(self, db, cz_lemma, article_full_text,
-                                                            database, post_id,
-                                                            number_of_inserted_rows)
+                self.start_preprocessed_columns_prefilling(article_full_text=article_full_text, post_id=post_id)
 
-    def start_preprocessed_features_prefilling(self, db, cz_lemma, article_full_text, database, post_id,
-                                               number_of_inserted_rows, random_order):
-        if db == "pgsql":
-            preprocessed_text = cz_lemma.preprocess(article_full_text)
-            logging.debug("article_full_text")
-            logging.debug(article_full_text)
-            logging.debug("preprocessed_text:")
-            logging.debug(preprocessed_text)
+    def start_preprocessed_columns_prefilling(self, article_full_text, post_id):
 
-            database.insert_preprocessed_body(preprocessed_body=preprocessed_text, article_id=post_id)
-        else:
-            raise Exception
+        preprocessed_text = preprocess(article_full_text)
+        logging.debug("article_full_text")
+        logging.debug(article_full_text)
+        logging.debug("preprocessed_text:")
+        logging.debug(preprocessed_text)
+
+        recommender_methods = RecommenderMethods()
+        recommender_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text, article_id=post_id)
+        number_of_inserted_rows = 0
+
         number_of_inserted_rows += 1
-        if number_of_inserted_rows > 20:
-            logging.debug("Refreshing list of posts for finding only not prefilled posts.")
-            self.fill_all_features_preprocessed(db=db, skip_already_filled=True,
-                                                random_order=random_order)
 
     def fill_ngrams_for_all_posts(self, skip_already_filled, random_order, full_text):
-        database = DatabaseMethods()
+        recommender_methods = RecommenderMethods()
         logging.debug("Beginning prefiling of bigrams, variant full_text=" + str(full_text))
         if skip_already_filled is False:
-            posts = database.get_all_posts()
+            posts = recommender_methods.get_all_posts()
         else:
-            posts = database.get_posts_with_not_prefilled_ngrams_text(full_text)
+            posts = recommender_methods.get_posts_with_not_prefilled_ngrams_text(full_text)
 
         if len(posts) == 0:
             logging.debug("All posts full_text=" + str(full_text) + " prefilled. Skipping.")
@@ -304,11 +278,23 @@ class PreFillerAdditional:
             # TODO: Category should be there too
             # second part: checking whether current body preprocessed is not none
             if full_text is True and isinstance(article_full_text, str):
-                input_text = short_text_preprocessed + " " + current_body_preprocessed
+                if short_text_preprocessed is not None and current_body_preprocessed is not None:
+                    input_text = short_text_preprocessed + " " + current_body_preprocessed
+                else:
+                    if current_body_preprocessed is None:
+                        # Using only the short text (= all_features_preprocessed column)
+                        input_text = short_text_preprocessed
+                        logging.warning("body_preprocessed is None. Trigrams are created only from short text."
+                                        "Prefill the body_preprocessed column first to use it for trigrams.")
+                    else:
+                        raise ValueError("Either all_features_preprocessed or "
+                                         "body_preprocessed needs to be filled in,")
+
             else:
                 input_text = short_text_preprocessed
 
             logging.debug("Prefilling body preprocessd in article: " + slug)
+
             if skip_already_filled is True:
                 if current_bigrams is None:
                     input_text_splitted = input_text.split()
@@ -319,8 +305,8 @@ class PreFillerAdditional:
                     logging.debug("preprocessed_text double preprocessed:")
                     logging.debug(preprocessed_text)
 
-                    database.insert_phrases_text(bigram_text=preprocessed_text, article_id=post_id,
-                                                 full_text=full_text)
+                    recommender_methods.insert_phrases_text(bigram_text=preprocessed_text, article_id=post_id,
+                                                            full_text=full_text)
                 else:
                     logging.debug("Skipping.")
             else:
@@ -332,8 +318,8 @@ class PreFillerAdditional:
                 logging.debug("preprocessed_text:")
                 logging.debug(preprocessed_text)
 
-                database.insert_phrases_text(bigram_text=preprocessed_text, article_id=post_id,
-                                             full_text=full_text)
+                recommender_methods.insert_phrases_text(bigram_text=preprocessed_text, article_id=post_id,
+                                                        full_text=full_text)
 
                 number_of_inserted_rows += 1
                 if number_of_inserted_rows > 300:

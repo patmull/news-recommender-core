@@ -1,5 +1,6 @@
 # from src.multi_rake.model_variant import Rake
 import logging
+from pathlib import Path
 
 import pandas as pd
 from multi_rake import Rake
@@ -63,7 +64,8 @@ class SingleDocKeywordExtractor:
         # https://github.com/Alir3z4/stop-words
         k = []
         z = []
-        with open('cz_stemmer/stopwords/czech_stopwords.txt', 'r', encoding='utf-8') as f:
+        filename = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
+        with open(filename, 'r', encoding='utf-8') as f:
             for word in f:
                 word_splitted = word.split('\n')
                 k.append(word_splitted[0])
