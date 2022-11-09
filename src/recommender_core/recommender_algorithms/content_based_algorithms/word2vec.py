@@ -239,22 +239,6 @@ def create_dictionary_from_dataframe(force_update=False):
         print("Dictionary and train_corpus already exists")
 
 
-def create_corpus_from_mongo_idnes(dictionary, force_update=False):
-    path_part_1 = "precalc_vectors"
-    path_part_2 = "word2vec/corpus_idnes.mm"
-    path_to_corpus = path_part_1 + path_part_2
-
-    if os.path.isfile(path_to_corpus) is False or force_update is True:
-        corpus = MyCorpus(dictionary)
-        gc.collect()
-        print("Saving preprocessed train_corpus...")
-        corpora.MmCorpus.serialize(path_to_corpus, corpus)
-    else:
-        print("Corpus already exists. Loading...")
-        corpus = corpora.MmCorpus(path_to_corpus)
-    return corpus
-
-
 def get_preprocessed_dictionary(filter_extremes, path_to_dict):
     return get_preprocessed_dict_idnes(filter_extremes=filter_extremes,
                                        path_to_dict=path_to_dict)

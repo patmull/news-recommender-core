@@ -55,7 +55,7 @@ class DatabaseMethods(object):
         else:
             raise ValueError("No from selected databases are implemented.")
 
-    def connect(self) -> object:
+    def connect(self):
         """
 
         """
