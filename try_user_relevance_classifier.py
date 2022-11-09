@@ -1,4 +1,6 @@
 import logging
+
+from rabbitmq_receive import call_collaborative_prefillers
 from src.prefillers.user_based_prefillers.prefilling_user_classifier import predict_ratings_for_user_store_to_redis
 
 for handler in logging.root.handlers[:]:
@@ -19,5 +21,5 @@ if __name__ == '__main__':
     print(svm.predict_relevance_for_user(user_id=431, relevance_by='stars', only_with_prefilled_bert_vectors=False,
                                          bert_model=bert))
     """
-    predict_ratings_for_user_store_to_redis(3118)
-
+    # predict_ratings_for_user_store_to_redis(3118)
+    call_collaborative_prefillers(method='classifier', msg_body='{"user_id":"3118"}', retrain_classifier=True)
