@@ -15,7 +15,7 @@ logging.debug("Testing logging in prefilling_all.")
 
 
 def prefill_all_features_preprocessed():
-    prefiller_additional.fill_all_features_preprocessed(skip_already_filled=True, reversed_order=True,
+    prefiller_additional.fill_all_features_preprocessed(skip_already_filled=True,
                                                         random_order=False)
 
 
@@ -97,12 +97,12 @@ def check_needed_columns(database):
     # 'all_features_preprocessed' (probably every method relies on this)
     # 'keywords' (LDA but probably also other methods relies on this)
     # 'body_preprocessed' (LDA relies on this)
-    needed_checks = []  # type: list[str]
-    database.connect()
-    number_of_nans_in_all_features_preprocessed = len(database.get_posts_with_no_all_features_preprocessed())
-    number_of_nans_in_keywords = len(database.get_posts_with_no_keywords())
-    number_of_nans_in_body_preprocessed = len(database.get_posts_with_no_body_preprocessed())
-    database.disconnect()
+    needed_checks = []
+    recommender_methods = RecommenderMethods()
+    number_of_nans_in_all_features_preprocessed = len(recommender_methods
+                                                      .get_posts_with_no_features_preprocessed(method='body_preprocessed'))
+    number_of_nans_in_keywords = len(recommender_methods.get_posts_with_no_features_preprocessed(method='keywords'))
+    number_of_nans_in_body_preprocessed = len(recommender_methods.get_posts_with_no_features_preprocessed(method='body_preprocessed'))
 
     if number_of_nans_in_all_features_preprocessed:
         needed_checks.append("all_features_preprocessed")
