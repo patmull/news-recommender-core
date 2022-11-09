@@ -221,7 +221,7 @@ class DatabaseMethods(object):
         Slower, does load the database with query, but supports BERT vectors loading.
         :return:
         """
-        print("Getting posts from SQL...")
+        logging.info("Getting posts from SQL...")
         sql = """SELECT * FROM posts ORDER BY id;"""
         # NOTICE: Connection is ok here. Need to stay here due to calling from function that's executing thread
         # operation
@@ -233,7 +233,7 @@ class DatabaseMethods(object):
         return df
 
     def get_posts_dataframe_only_with_bert_vectors(self):
-        print("Getting posts from SQL...")
+        logging.info("Getting posts from SQL...")
         sql = """SELECT * FROM posts WHERE bert_vector_representation IS NOT NULL ORDER BY id;"""
         # LOAD INTO A DATAFRAME
         df = pd.read_sql_query(sql, self.get_cnx())
@@ -944,8 +944,6 @@ class RedisConstants:
 def get_redis_connection():
     if 'REDIS_PASSWORD' in os.environ:
         redis_password = os.environ['REDIS_PASSWORD']
-        logging.debug("redis_password:")
-        logging.debug(redis_password)
     else:
         raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
                                "Not possible to connect to Redis.")

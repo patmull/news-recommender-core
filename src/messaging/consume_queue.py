@@ -1,3 +1,4 @@
+import logging
 import time
 
 from rabbitmq_receive import init_consuming
@@ -8,9 +9,9 @@ def consume_queue(queue_name):
         try:
             init_consuming(queue_name)
         except Exception as e:
-            print("EXCEPTION OCCURRED WHEN RUNNING PIKA:")
-            print(e)
+            logging.warning("EXCEPTION OCCURRED WHEN RUNNING PIKA:")
+            logging.warning(e)
         except (RuntimeError, TypeError, NameError) as e:
-            print("ERROR OCCURRED WHEN RUNNING PIKA:")
-            print(e)
+            logging.warning("ERROR OCCURRED WHEN RUNNING PIKA:")
+            logging.warning(e)
         time.sleep(15)
