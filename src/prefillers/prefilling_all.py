@@ -1,11 +1,15 @@
 import logging
 import traceback
 
-from src.prefillers.user_based_prefillers.prefilling_user_classifier import fill_bert_vector_representation
+from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
+from src.prefillers.user_based_prefillers.prefilling_user_classifier import fill_bert_vector_representation, \
+    predict_ratings_for_all_users_store_to_redis
 from src.prefillers.prefiller import prefilling_job_content_based
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.prefilling_additional import PreFillerAdditional
+from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
+    precalculate_and_save_sim_matrix_for_all_posts
 
 prefiller_additional = PreFillerAdditional()
 
@@ -27,8 +31,25 @@ def prefill_body_preprocessed():
     prefiller_additional.fill_body_preprocessed(skip_already_filled=True, random_order=False)
 
 
+def prefill_ngrams():
+    prefiller_additional.fill_ngrams_for_all_posts(skip_already_filled=True, random_order=False,
+                                                   full_text=True)
+
+
 def prefill_bert_vector_representation():
-    fill_bert_vector_representation()
+    fill_bert_vector_representation(skip_already_filled=True, reversed_order=False, random_order=False)
+
+
+def prefill_tfidf_similarity_matrix():
+    precalculate_and_save_sim_matrix_for_all_posts(methods=['tfidf'])
+
+
+def prefill_user_based():
+    run_prefilling_collaborative()
+
+
+def prefill_to_redis_based_on_user_ratings():
+    predict_ratings_for_all_users_store_to_redis()
 
 
 def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_full_text=None):
@@ -50,6 +71,8 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
             prefill_keywords()
         if 'body_preprocessed' in columns_needing_prefill:
             prefill_body_preprocessed()
+        if 'trigrams_full_text' in columns_needing_prefill:
+            prefill_ngrams()
 
     reverse = True
     random = False
@@ -72,6 +95,14 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
 
     for method in methods:
         prepare_and_run(database, method, full_text, reverse, random)
+
+    prefill_bert_vector_representation()
+
+    # prefill_tfidf_similarity_matrix()
+
+    prefill_user_based()
+
+    prefill_to_redis_based_on_user_ratings()
 
 
 def prepare_and_run(database, method, full_text, reverse, random):
@@ -103,6 +134,8 @@ def check_needed_columns(database):
                                                       .get_posts_with_no_features_preprocessed(method='body_preprocessed'))
     number_of_nans_in_keywords = len(recommender_methods.get_posts_with_no_features_preprocessed(method='keywords'))
     number_of_nans_in_body_preprocessed = len(recommender_methods.get_posts_with_no_features_preprocessed(method='body_preprocessed'))
+    number_of_nans_in_trigrams = len(
+        recommender_methods.get_posts_with_no_features_preprocessed(method='trigrams_full_text'))
 
     if number_of_nans_in_all_features_preprocessed:
         needed_checks.append("all_features_preprocessed")
@@ -110,6 +143,8 @@ def check_needed_columns(database):
         needed_checks.append("keywords")
     if number_of_nans_in_body_preprocessed:
         needed_checks.append("body_preprocessed")
+    if number_of_nans_in_trigrams:
+        needed_checks.append("trigrams_full_text")
 
     print("Values missing in:")
     print(str(needed_checks))

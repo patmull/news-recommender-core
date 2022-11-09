@@ -19,7 +19,6 @@ logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from data?manipulation.")
 
 
-# TODO: This belongs to rabbitmq_consume
 def predict_ratings_for_user_store_to_redis(user_id, force_retrain=False):
     classifier = Classifier()
     print("Loading BERT multilingual model...")
