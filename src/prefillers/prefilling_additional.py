@@ -281,7 +281,8 @@ class PreFillerAdditional:
                 if short_text_preprocessed is not None and current_body_preprocessed is not None:
                     input_text = short_text_preprocessed + " " + current_body_preprocessed
                 else:
-                    if current_body_preprocessed is None:
+                    # TODO: Almost already fixed this. Just review the logic.
+                    if current_body_preprocessed is None and short_text_preprocessed is not None:
                         # Using only the short text (= all_features_preprocessed column)
                         input_text = short_text_preprocessed
                         logging.warning("body_preprocessed is None. Trigrams are created only from short text."
