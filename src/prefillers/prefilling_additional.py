@@ -57,14 +57,14 @@ def extract_keywords(string_for_extraction):
                                                                       .text_raw)
 
 
-def prepare_filling(skip_already_filled, random_order):
+def prepare_filling(skip_already_filled, random_order, method):
     recommender_methods = RecommenderMethods()
     if skip_already_filled is False:
         recommender_methods.database.connect()
         posts = recommender_methods.get_all_posts()
         recommender_methods.database.disconnect()
     else:
-        posts = recommender_methods.get_posts_with_no_features_preprocessed(method='all_features_preprocessed')
+        posts = recommender_methods.get_posts_with_no_features_preprocessed(method=method)
 
     posts = shuffle_and_reverse(posts=posts, random_order=random_order)
 
@@ -115,7 +115,7 @@ class PreFillerAdditional:
                 self.start_preprocessed_columns_prefilling(article_full_text, post_id)
 
     def fill_body_preprocessed(self, skip_already_filled, random_order):
-        posts = prepare_filling(skip_already_filled, random_order)
+        posts = prepare_filling(skip_already_filled, random_order, method='body_preprocessed')
         for post in posts:
             if len(posts) < 1:
                 break
@@ -198,7 +198,8 @@ class PreFillerAdditional:
                                        random_order=random_order)
 
     def fill_all_features_preprocessed(self, skip_already_filled, random_order):
-        posts = prepare_filling(skip_already_filled=skip_already_filled, random_order=random_order)
+        posts = prepare_filling(skip_already_filled=skip_already_filled, random_order=random_order,
+                                method='all_features_preprocessed')
 
         for post in posts:
             if len(posts) < 1:
