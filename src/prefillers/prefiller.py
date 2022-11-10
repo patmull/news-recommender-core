@@ -12,6 +12,7 @@ from pandas.io.sql import DatabaseError
 
 from src.constants.file_paths import W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES
 from src.custom_exceptions.exceptions import TestRunException
+from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
@@ -107,7 +108,7 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                 continue
         elif method == "hybrid":
             try:
-                actual_json = get_most_similar_by_hybrid(user_id=current_user_id, load_from_precalc_sim_matrix=True)
+                actual_json = get_most_similar_by_hybrid(user_id=current_user_id, load_from_precalc_sim_matrix=False)
             except ValueError as e:
                 print("Value Error had occurred in computing " + method + ". Skipping record.")
                 print(e)
@@ -170,8 +171,18 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
         t.sleep(5)
         random.shuffle(posts)
 
-    if method.startswith("word2vec_"):
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+    if method.startswith("tfidf"):
+        recommender_methods = RecommenderMethods()
+        df = recommender_methods.get_posts_categories_dataframe(from_cache=False)
+
+        tf_idf_data_handlers = TfIdfDataHandlers(df)
+        fit_by_all_features_matrix = tf_idf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
+        fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
+        fit_by_full_text = tf_idf_data_handlers.get_fit_by_feature_('body_preprocessed')
+
+        logging.info("Starting prefilling of the TF-IDF method.")
+    elif method.startswith("word2vec_"):
+        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/word2vec/dictionary_idnes.gensim')
 
         if method in W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES:
             selected_model_name = W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][1]
@@ -192,23 +203,27 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
             source = "cswiki"
         else:
             ValueError("Wrong doc2vec_model name chosen.")
-
         ds = DocSim(w2v_model)
-        docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name)
+        docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name, force_update=True)
     elif method == 'word2vec':
         selected_model_name = "idnes"
         source = "idnes"
+        logging.debug("Loading Word2ec limited model...")
         path_to_model = Path("models/w2v_model_limited")  # type: ignore
+        logging.debug("Loading keyed vectors...")
         w2v_model = KeyedVectors.load(path_to_model.as_posix())
+        logging.debug("Loading DocSim index...")
         ds = DocSim(w2v_model)
-        docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name)
-        logging.info("Loading dictionary for Word2Vec")
+        docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name, force_update=True)
+        logging.info("Loading dictionary for Word2Vec...")
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-    elif method.startswith("doc2vec_"):
+    elif method.startswith("doc2vec"): # Here was 'doc2vec_' to distinguish full text variant
         if method == "doc2vec_eval_cswiki_1":
             # Notice: Doc2Vec model gets loaded inside the Doc2Vec's class method
             logging.debug("Similarities on FastText doc2vec_model.")
             logging.debug("Loading Dov2Vec cs.Wikipedia.org doc2vec_model...")
+    elif method == "lda":
+        logging.debug("Prefilling with LDA method.")
     elif method.startswith("test_"):
         logging.debug("Testing method")
     else:
@@ -300,7 +315,12 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                     if method == "tfidf":
                         tfidf = TfIdf()
                         actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(
-                            slug)
+                            searched_slug=slug,
+                            tf_idf_data_handlers=tf_idf_data_handlers,
+                            fit_by_all_features_matrix=fit_by_all_features_matrix,
+                            fit_by_title=fit_by_title,
+                            fit_by_full_text=fit_by_full_text
+                        )
                     elif method == "word2vec":
                         word2vec = Word2VecClass()
                         actual_recommended_json = word2vec.get_similar_word2vec_full_text(searched_slug=slug)
@@ -326,11 +346,17 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                                                                                 dictionary=dictionary)
                     elif method == "word2vec_eval_idnes_3":
                         word2vec = Word2VecClass()
-                        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model=w2v_model,
-                                                                                model_name='idnes_3',
-                                                                                docsim_index=docsim_index,
-                                                                                dictionary=dictionary)
+                        try:
+                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+                                                                                    model=w2v_model,
+                                                                                    model_name='idnes_3',
+                                                                                    docsim_index=docsim_index,
+                                                                                    dictionary=dictionary)
+                        except ValueError as ve:
+                            logging.warning(ve)
+                            logging.warning("Skiping this record.")
+                            logging.warning("!!! This will cause a missing Word2Vce prefilled record which can cause"
+                                            "a problem later !!!")
                     elif method == "word2vec_eval_idnes_4":
                         word2vec = Word2VecClass()
                         actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,

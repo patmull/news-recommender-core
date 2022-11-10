@@ -381,7 +381,11 @@ class RecommenderMethods:
         logging.debug("categories_df")
         logging.debug(categories_df)
         logging.debug(categories_df.columns)
-        self.df = pd.merge(posts_df, categories_df, left_on='category_id', right_on='id')
+
+        # To make sure. If database contains by a mistake duplicated rows, this will cause a doubling of a final df rows
+        categories_df = categories_df.drop_duplicates()
+
+        self.df = posts_df.merge(categories_df, how='left', left_on='category_id', right_on='id')
         if 'id_x' in self.df.columns:
             self.df = self.df.rename(columns={'id_x': 'post_id'})
         return self.df
@@ -687,7 +691,20 @@ class TfIdfDataHandlers:
             logging.debug(self.df)
             self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[fit_by])
         else:
-            self.df[fit_by] = self.df[fit_by_2] + " " + self.df[fit_by]
+            if self.df[fit_by] is None and self.df[fit_by_2] is None:
+                raise ValueError("Both columns %s and %s cannot be None." % (fit_by, fit_by_2))
+
+            if self.df[fit_by] is None and self.df[fit_by_2] is not None:
+                logging.warning("Dataframe has missing data in column %s. Consider to run prefilling of this column "
+                                "first." % fit_by)
+                self.df[fit_by] = self.df[fit_by_2]
+            elif self.df[fit_by] is not None and self.df[fit_by_2] is None:
+                logging.warning("Dataframe has missing data in column %s. Consider to run prefilling of this column "
+                                "first." % fit_by)
+                self.df[fit_by] = self.df[fit_by]
+            else:
+                # Standard way of gettign both columns
+                self.df[fit_by] = self.df[fit_by_2] + " " + self.df[fit_by]
             self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[fit_by])
 
         return self.tfidf_tuples  # tuples of (document_id, token_id) and tf-idf score for it

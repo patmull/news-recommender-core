@@ -13,5 +13,6 @@ def consume_queue(queue_name):
             logging.warning(e)
         except (RuntimeError, TypeError, NameError) as e:
             logging.warning("ERROR OCCURRED WHEN RUNNING PIKA:")
+            logging.warning(type(e).__name__)
             logging.warning(e)
         time.sleep(15)

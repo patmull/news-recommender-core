@@ -8,6 +8,7 @@ from src.prefillers.prefiller import prefilling_job_content_based
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.prefilling_additional import PreFillerAdditional
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
     precalculate_and_save_sim_matrix_for_all_posts
 
@@ -62,7 +63,7 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
     logging.debug("Check needed columns posts...")
 
     database = DatabaseMethods()
-    columns_needing_prefill = check_needed_columns(database)
+    columns_needing_prefill = check_needed_columns()
 
     if len(columns_needing_prefill) > 0:
         if 'all_features_preprocessed' in columns_needing_prefill:
@@ -74,12 +75,19 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
         if 'trigrams_full_text' in columns_needing_prefill:
             prefill_ngrams()
 
+    # Preparign for CB prefilling
+    recommender_methods = RecommenderMethods()
+    recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
+
+    tfidf = TfIdf()
+    tfidf.save_sparse_matrix(for_hybrid=False)
+
     reverse = True
     random = False
 
     full_text = False
     if methods_short_text is None:
-        methods = ["tfidf", "word2vec", "doc2vec"]
+        methods = ["tfidf", "doc2vec"] # Supported short text methods
     else:
         methods = methods_short_text
 
@@ -88,19 +96,23 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
 
     full_text = True
     if methods_full_text is None:
-        methods = ["tfidf", "word2vec_eval_idnes_3", "word2vec_eval_cswiki_1", "doc2vec_eval_cswiki_1",
-                   "lda"]  # NOTICE: Evaluated Word2Vec is full text!
+        methods = ["tfidf", "word2vec_eval_idnes_3", "lda"]  # NOTICE: Evaluated Word2Vec is full text!
     else:
         methods = methods_full_text
 
     for method in methods:
         prepare_and_run(database, method, full_text, reverse, random)
 
-    prefill_bert_vector_representation()
+    recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
 
+    # prefill_bert_vector_representation()
+    recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
+
+    # Takes too long. Abandoned for now.
     # prefill_tfidf_similarity_matrix()
 
     prefill_user_based()
+    recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
 
     prefill_to_redis_based_on_user_ratings()
 
@@ -123,17 +135,19 @@ def prepare_and_run(database, method, full_text, reverse, random):
         logging.info("Skipping " + method + " full text: " + str(full_text))
 
 
-def check_needed_columns(database):
+def check_needed_columns():
     # TODO: Check needed columns
     # 'all_features_preprocessed' (probably every method relies on this)
     # 'keywords' (LDA but probably also other methods relies on this)
     # 'body_preprocessed' (LDA relies on this)
     needed_checks = []
     recommender_methods = RecommenderMethods()
-    number_of_nans_in_all_features_preprocessed = len(recommender_methods
-                                                      .get_posts_with_no_features_preprocessed(method='body_preprocessed'))
-    number_of_nans_in_keywords = len(recommender_methods.get_posts_with_no_features_preprocessed(method='keywords'))
-    number_of_nans_in_body_preprocessed = len(recommender_methods.get_posts_with_no_features_preprocessed(method='body_preprocessed'))
+    number_of_nans_in_all_features_preprocessed \
+        = len(recommender_methods.get_posts_with_no_features_preprocessed(method='all_features_preprocessed'))
+    number_of_nans_in_keywords \
+        = len(recommender_methods.get_posts_with_no_features_preprocessed(method='keywords'))
+    number_of_nans_in_body_preprocessed \
+        = len(recommender_methods.get_posts_with_no_features_preprocessed(method='body_preprocessed'))
     number_of_nans_in_trigrams = len(
         recommender_methods.get_posts_with_no_features_preprocessed(method='trigrams_full_text'))
 
@@ -146,6 +160,6 @@ def check_needed_columns(database):
     if number_of_nans_in_trigrams:
         needed_checks.append("trigrams_full_text")
 
-    print("Values missing in:")
-    print(str(needed_checks))
+    logging.info("Values missing in:")
+    logging.info(str(needed_checks))
     return needed_checks
