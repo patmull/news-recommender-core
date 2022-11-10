@@ -151,13 +151,13 @@ def check_needed_columns():
     number_of_nans_in_trigrams = len(
         recommender_methods.get_posts_with_no_features_preprocessed(method='trigrams_full_text'))
 
-    if number_of_nans_in_all_features_preprocessed:
+    if number_of_nans_in_all_features_preprocessed > 0:
         needed_checks.append("all_features_preprocessed")
-    if number_of_nans_in_keywords:
+    if number_of_nans_in_keywords > 0:
         needed_checks.append("keywords")
-    if number_of_nans_in_body_preprocessed:
+    if number_of_nans_in_body_preprocessed > 0:
         needed_checks.append("body_preprocessed")
-    if number_of_nans_in_trigrams:
+    if number_of_nans_in_trigrams > 0:
         needed_checks.append("trigrams_full_text")
 
     logging.info("Values missing in:")

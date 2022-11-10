@@ -53,7 +53,7 @@ def new_post_scrapped_callback(ch, method, properties, body):
         if not is_init_or_test(body.decode()):
             try:
                 # TODO: Remove debugging parameters
-                run_prefilling(skip_cache_refresh=False, methods_short_text=[], methods_full_text=[])
+                run_prefilling(skip_cache_refresh=False)
             except Exception as e:
                 logging.warning("Exception occurred" + str(e))
                 traceback.print_exception(None, e, e.__traceback__)
