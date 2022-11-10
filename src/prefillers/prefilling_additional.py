@@ -287,7 +287,7 @@ class PreFillerAdditional:
                         input_text = short_text_preprocessed
                         logging.warning("body_preprocessed is None. Trigrams are created only from short text."
                                         "Prefill the body_preprocessed column first to use it for trigrams.")
-                    else:
+                    elif current_body_preprocessed is None and short_text_preprocessed is None:
                         raise ValueError("Either all_features_preprocessed or "
                                          "body_preprocessed needs to be filled in,")
 

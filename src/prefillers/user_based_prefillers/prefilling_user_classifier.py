@@ -104,12 +104,18 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed_order=Fal
         current_bert_vector_representation = post[41]
         # TODO: Category should be there too
 
-        print("Prefilling body pre-processed in article: " + slug)
+        print("Prefilling BERT vector reprenentation in article: " + slug)
 
         if skip_already_filled is True:
             if current_bert_vector_representation is None:
                 if db == "pgsql":
-                    bert_vector_representation_of_current_post = bert_model(article_full_text).vector.reshape(1, -1)
+                    if article_full_text is not None:
+                        bert_vector_representation_of_current_post = bert_model(article_full_text).vector.reshape(1, -1)
+                    elif article_title is not None:
+                        bert_vector_representation_of_current_post = bert_model(article_title).vector.reshape(1, -1)
+                    else:
+                        raise ValueError("Post has not full text or even title text. Probably defected post."
+                                         "Remove from DB.")
                     bert_vector_representation_of_current_post = pickle\
                         .dumps(bert_vector_representation_of_current_post)
                     database.connect()

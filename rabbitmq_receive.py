@@ -52,10 +52,12 @@ def new_post_scrapped_callback(ch, method, properties, body):
         logging.info("I'm calling prefilling db_columns...")
         if not is_init_or_test(body.decode()):
             try:
-                run_prefilling(skip_cache_refresh=False)
+                # TODO: Remove debugging parameters
+                run_prefilling(skip_cache_refresh=False, methods_short_text=[], methods_full_text=[])
             except Exception as e:
                 logging.warning("Exception occurred" + str(e))
                 traceback.print_exception(None, e, e.__traceback__)
+                # TODO: Send e-mail. Priority: HIGH
 
 
 def user_rated_by_stars_callback(ch, method, properties, body):
@@ -76,6 +78,7 @@ def user_rated_by_stars_callback(ch, method, properties, body):
             """
             # method = 'classifier'
             # call_collaborative_prefillers(method, body)
+
 
 def user_rated_by_thumb_callback(ch, method, properties, body):
     logging.info("[x] Received %r" % body.decode())

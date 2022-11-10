@@ -456,8 +456,6 @@ def get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_rec
     logging.debug(most_similar_items)
     logging.debug("len(most_similar_items):")
     logging.debug(len(most_similar_items))
-    logging.debug("documents_slugs")
-    logging.debug(documents_slugs)
     logging.debug("len(documents_slugs)")
     logging.debug(len(documents_slugs))
     # for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('THIRD-MOST', 2), ('FOURTH-MOST', 3),

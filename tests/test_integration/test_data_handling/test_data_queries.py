@@ -143,3 +143,10 @@ def test_get_posts_with_not_prefilled_ngrams_text():
     database_methods = DatabaseMethods()
     database_methods.null_prefilled_record(db_columns=['trigrams_full_text'])
     assert type(recommender_methods.get_posts_with_not_prefilled_ngrams_text()) is list
+
+
+def test_get_posts_categories_dataframe():
+    recommender_methods = RecommenderMethods()
+    posts_categories_df = recommender_methods.get_posts_categories_dataframe()
+    posts = recommender_methods.get_posts_dataframe()
+    assert len(posts_categories_df) == len(posts)
