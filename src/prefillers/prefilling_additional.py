@@ -16,7 +16,9 @@ for handler in logging.root.handlers[:]:
 
 # NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
-logging.basicConfig(level=logging.DEBUG, format=log_format, filename='tests/logs/prefilling_testing_logging.logs')
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+# WARNING: Not tested log file:
+# handler = logging.FileHandler('tests/logs/prefilling_testing_logging.logs', 'w+')
 logging.debug("Testing logging from %s." % os.path.basename(__file__))
 
 
