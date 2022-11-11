@@ -4,6 +4,7 @@ import traceback
 
 import pika.exceptions
 
+from mail_sender import send_error_email
 from src.messaging.init_channels import publish_rabbitmq_channel, ChannelConstants
 from src.prefillers.prefilling_all import run_prefilling
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
@@ -57,7 +58,7 @@ def new_post_scrapped_callback(ch, method, properties, body):
             except Exception as e:
                 logging.warning("Exception occurred" + str(e))
                 traceback.print_exception(None, e, e.__traceback__)
-                # TODO: Send e-mail. Priority: HIGH
+                send_error_email(str(e))
 
 
 def user_rated_by_stars_callback(ch, method, properties, body):
@@ -67,11 +68,15 @@ def user_rated_by_stars_callback(ch, method, properties, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
     if body.decode():
         if not is_init_or_test(body.decode()):
-            logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
-            method = 'svd'
-            call_collaborative_prefillers(method, body)
-            method = 'hybrid'
-            call_collaborative_prefillers(method, body)
+            try:
+                logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
+                method = 'svd'
+                call_collaborative_prefillers(method, body)
+                method = 'hybrid'
+                call_collaborative_prefillers(method, body)
+            except Exception as e:
+                logging.warning(str(e))
+                send_error_email(str(e))
             """
             Classifier was commented out for now to make SVD and hybrid faster.
             Classifier of both thumbs and ratings should be updated in thumbs_rating_queue.
@@ -88,11 +93,15 @@ def user_rated_by_thumb_callback(ch, method, properties, body):
     if body.decode():
         if not is_init_or_test(body.decode()):
             logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
-            # User classifier update
-            method = 'classifier'
-            call_collaborative_prefillers(method, body, retrain_classifier=True)
-            method = 'hybrid'
-            call_collaborative_prefillers(method, body)
+            try:
+                # User classifier update
+                method = 'classifier'
+                call_collaborative_prefillers(method, body, retrain_classifier=True)
+                method = 'hybrid'
+                call_collaborative_prefillers(method, body)
+            except Exception as e:
+                logging.warning(str(e))
+                send_error_email(str(e))
 
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
@@ -103,11 +112,15 @@ def user_added_keywords(ch, method, properties, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
     if body.decode():
         if not is_init_or_test(body.decode()):
-            logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
-            method = 'user_keywords'
-            call_collaborative_prefillers(method, body)
-            method = 'hybrid'
-            call_collaborative_prefillers(method, body)
+            try:
+                logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
+                method = 'user_keywords'
+                call_collaborative_prefillers(method, body)
+                method = 'hybrid'
+                call_collaborative_prefillers(method, body)
+            except Exception as e:
+                logging.warning(str(e))
+                send_error_email(str(e))
 
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
@@ -118,11 +131,15 @@ def user_added_categories(ch, method, properties, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
     if body.decode():
         if not is_init_or_test(body.decode()):
-            logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
-            method = 'best_rated_by_others_in_user_categories'
-            call_collaborative_prefillers(method, body)
-            method = 'hybrid'
-            call_collaborative_prefillers(method, body)
+            try:
+                logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
+                method = 'best_rated_by_others_in_user_categories'
+                call_collaborative_prefillers(method, body)
+                method = 'hybrid'
+                call_collaborative_prefillers(method, body)
+            except Exception as e:
+                logging.warning(str(e))
+                send_error_email(str(e))
 
 
 def insert_testing_json(received_user_id, method, heroku_testing_db=False):
