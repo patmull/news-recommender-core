@@ -47,11 +47,13 @@ class DatabaseMethods(object):
                 self.DB_PASSWORD = os.environ['DB_RECOMMENDER_PASSWORD']
                 self.DB_HOST = os.environ['DB_RECOMMENDER_HOST']
                 self.DB_NAME = os.environ['DB_RECOMMENDER_NAME']
+                # TODO: Leave this back on production test
                 """
                 self.DB_USER = os.environ['DB_MC_PRODUCTION_COPY_USER']
                 self.DB_PASSWORD = os.environ['DB_MC_PRODUCTION_COPY_PASSWORD']
                 self.DB_HOST = os.environ['DB_MC_PRODUCTION_COPY_HOST']
                 self.DB_NAME = os.environ['DB_MC_PRODUCTION_COPY_NAME']
+
                 # Debugging prefillers on local production DB copy
 
 
