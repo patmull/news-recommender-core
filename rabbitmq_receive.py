@@ -58,7 +58,7 @@ def new_post_scrapped_callback(ch, method, properties, body):
             except Exception as e:
                 logging.warning("Exception occurred" + str(e))
                 traceback.print_exception(None, e, e.__traceback__)
-                send_error_email(str(e))
+                send_error_email(traceback.format_exc())
 
 
 def user_rated_by_stars_callback(ch, method, properties, body):
@@ -76,7 +76,7 @@ def user_rated_by_stars_callback(ch, method, properties, body):
                 call_collaborative_prefillers(method, body)
             except Exception as e:
                 logging.warning(str(e))
-                send_error_email(str(e))
+                send_error_email(traceback.format_exc())
             """
             Classifier was commented out for now to make SVD and hybrid faster.
             Classifier of both thumbs and ratings should be updated in thumbs_rating_queue.
@@ -101,7 +101,7 @@ def user_rated_by_thumb_callback(ch, method, properties, body):
                 call_collaborative_prefillers(method, body)
             except Exception as e:
                 logging.warning(str(e))
-                send_error_email(str(e))
+                send_error_email(traceback.format_exc())
 
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
@@ -120,7 +120,7 @@ def user_added_keywords(ch, method, properties, body):
                 call_collaborative_prefillers(method, body)
             except Exception as e:
                 logging.warning(str(e))
-                send_error_email(str(e))
+                send_error_email(traceback.format_exc())
 
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
@@ -139,7 +139,7 @@ def user_added_categories(ch, method, properties, body):
                 call_collaborative_prefillers(method, body)
             except Exception as e:
                 logging.warning(str(e))
-                send_error_email(str(e))
+                send_error_email(traceback.format_exc())
 
 
 def insert_testing_json(received_user_id, method, heroku_testing_db=False):
@@ -264,6 +264,6 @@ def init_consuming(queue_name):
         logging.warning(ie)
         publish_rabbitmq_channel(queue_name)
         channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
-        send_error_email(str(ie))
+        send_error_email(traceback.format_exc())
 
     channel.start_consuming()
