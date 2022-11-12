@@ -359,7 +359,7 @@ class Classifier:
         return clf_svc, clf_random_forest
 
     def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
-                                   experiment_mode=False, only_with_prefilled_bert_vectors=True, bert_model=None,
+                                   experiment_mode=False, only_with_prefilled_bert_vectors=False, bert_model=None,
                                    latest_posts=True, save_df_posts_users_categories_relevance=False):
         if only_with_prefilled_bert_vectors is False:
             if bert_model is None:
