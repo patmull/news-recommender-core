@@ -210,12 +210,20 @@ class TfIdf:
     def save_sparse_matrix(self, for_hybrid=False):
         logging.info("Loading sparse matrix.")
 
-        if for_hybrid is False:
-            path = Path("models/tfidf_all_features_preprocessed.npz")
-        else:
+        if for_hybrid is True:
             path = Path("models/for_hybrid/tfidf_all_features_preprocessed.npz")
+        else:
+            path = Path("models/tfidf_all_features_preprocessed.npz")
 
+        if len(self.df.index) == 0:
+            logging.debug("Dataframe is Empty. Getting posts from DB.")
+            recommender_methods = RecommenderMethods()
+            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
+        logging.debug("self.df 1")
+        logging.debug(self.df)
         tfidf_data_handlers = TfIdfDataHandlers(self.df)
+        logging.debug("self.df 2")
+        logging.debug(tfidf_data_handlers.df)
         fit_by_all_features_matrix = tfidf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
         logging.info("Saving sparse matrix into file...")
         save_sparse_csr(filename=path, array=fit_by_all_features_matrix)
@@ -274,7 +282,11 @@ class TfIdf:
 
     # @profile
     # TODO: Merge ful text and short text method into one method. Distinguish only with parameter.
-    def recommend_posts_by_all_features_preprocessed_with_full_text(self, searched_slug, posts_from_cache=True):
+    def recommend_posts_by_all_features_preprocessed_with_full_text(self, searched_slug, posts_from_cache=True,
+                                                                    tf_idf_data_handlers=None,
+                                                                    fit_by_all_features_matrix=None,
+                                                                    fit_by_title=None,
+                                                                    fit_by_full_text=None):
 
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a input_string.")
@@ -306,11 +318,14 @@ class TfIdf:
         # replacing None values with empty strings
         recommender_methods.df['full_text'] = recommender_methods.df['full_text'].replace([None], '')
 
-        tf_idf_data_handlers = TfIdfDataHandlers(self.df)
-
-        fit_by_all_features_matrix = tf_idf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
-        fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
-        fit_by_full_text = tf_idf_data_handlers.get_fit_by_feature_('full_text')
+        if tf_idf_data_handlers is None:
+            tf_idf_data_handlers = TfIdfDataHandlers(self.df)
+        if fit_by_all_features_matrix is None:
+            fit_by_all_features_matrix = tf_idf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
+        if fit_by_title is None:
+            fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
+        if fit_by_full_text is None:
+            fit_by_full_text = tf_idf_data_handlers.get_fit_by_feature_('full_text')
 
         # join feature tuples into one matrix
         tuple_of_fitted_matrices = (fit_by_title, fit_by_all_features_matrix, fit_by_full_text)
@@ -319,7 +334,6 @@ class TfIdf:
         del fit_by_full_text
         gc.collect()
 
-        tf_idf_data_handlers = TfIdfDataHandlers(self.df)
         recommended_post_recommendations = tf_idf_data_handlers \
             .recommend_by_more_features(searched_slug, tuple_of_fitted_matrices)
         del recommender_methods
@@ -343,6 +357,7 @@ class TfIdf:
         del recommender_methods
         return recommended_posts
 
+    @PendingDeprecationWarning
     def update_saved_matrix(self):
         tf_idf_data_handlers = TfIdfDataHandlers(self.df)
         fit_by_all_features_matrix = tf_idf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
@@ -480,7 +495,7 @@ class TfIdf:
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_categories_dataframe()
 
-    def get_similarity_matrix(self, list_of_slugs, save_to_csv=False):
+    def get_similarity_matrix(self, list_of_slugs, save_to_csv=False, for_hybrid=False):
 
         recommender_methods = RecommenderMethods()
         list_of_posts_series = []
@@ -517,8 +532,11 @@ class TfIdf:
         except ValueError as e:
             print("Value error occurred:")
             print(e)
-            my_file = Path("models/for_hybrid/tfidf_category_title_from_n_posts.npz")
-            fit_by_all_features_matrix = self.save_sparse_matrix(for_hybrid=True)
+            if for_hybrid:
+                my_file = Path("models/for_hybrid/tfidf_category_title_from_n_posts.npz")
+            else:
+                my_file = Path("models/tfidf_category_title_from_n_posts.npz")
+            fit_by_all_features_matrix = self.save_sparse_matrix(for_hybrid)
             tfidf_data_handlers = TfIdfDataHandlers(self.df)
             fit_by_title = tfidf_data_handlers.get_fit_by_feature_('category_title')
             save_sparse_csr(filename=my_file, array=fit_by_title)
@@ -534,8 +552,11 @@ class TfIdf:
 
         return sim_matrix
 
-    def get_fit_by_title(self):
-        my_file = Path("models/for_hybrid/tfidf_category_title.npz")
+    def get_fit_by_title(self, for_hybrid=False):
+        if for_hybrid:
+            my_file = Path("models/for_hybrid/tfidf_category_title.npz")
+        else:
+            my_file = Path("models/tfidf_category_title.npz")
         if my_file.exists() is False:
             # category_title = category
             tf_idf_data_handlers = TfIdfDataHandlers(self.df)

@@ -8,7 +8,7 @@ def prefill_tfidf_full():
         try:
             prefilling_job_content_based("tfidf", full_text=True)
         except Exception as e:
-            print("Exception occurred:")
+            print("Exception occurred: ")
             traceback.print_exception(None, e, e.__traceback__)
 
 
