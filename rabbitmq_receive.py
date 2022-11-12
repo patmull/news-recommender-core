@@ -266,3 +266,9 @@ def init_consuming(queue_name):
         send_error_email(traceback.format_exc())
 
     channel.start_consuming()
+
+
+def restart_channel(queue_name):
+    publish_rabbitmq_channel(queue_name)
+    channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
+    channel.start_consuming()
