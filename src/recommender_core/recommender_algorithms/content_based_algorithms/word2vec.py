@@ -239,22 +239,6 @@ def create_dictionary_from_dataframe(force_update=False):
         print("Dictionary and train_corpus already exists")
 
 
-def create_corpus_from_mongo_idnes(dictionary, force_update=False):
-    path_part_1 = "precalc_vectors"
-    path_part_2 = "word2vec/corpus_idnes.mm"
-    path_to_corpus = path_part_1 + path_part_2
-
-    if os.path.isfile(path_to_corpus) is False or force_update is True:
-        corpus = MyCorpus(dictionary)
-        gc.collect()
-        print("Saving preprocessed train_corpus...")
-        corpora.MmCorpus.serialize(path_to_corpus, corpus)
-    else:
-        print("Corpus already exists. Loading...")
-        corpus = corpora.MmCorpus(path_to_corpus)
-    return corpus
-
-
 def get_preprocessed_dictionary(filter_extremes, path_to_dict):
     return get_preprocessed_dict_idnes(filter_extremes=filter_extremes,
                                        path_to_dict=path_to_dict)
@@ -308,11 +292,6 @@ class Word2VecClass:
         logging.debug(self.posts_df)
 
         if searched_slug not in self.df['slug'].to_list():
-            """
-            print('Slug does not appear in dataframe.')
-            recommender_methods.get_posts_dataframe(force_update=True)
-            self.df = recommender_methods.get_posts_categories_dataframe(from_cache=True)
-            """
             # TODO: Prirority: MEDIUM. Deal with this by counting the number of trials in config file with special
             # variable for this purpose. If num_of_trials > 1, then throw ValueError (Same as in Doc2vec)
             raise ValueError("Slug does not appear in dataframe.")
@@ -342,11 +321,6 @@ class Word2VecClass:
         del self.categories_df
 
         documents_df = pd.DataFrame()
-        """
-        documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] + ' ' + self.df[
-            "all_features_preprocessed"] + " " + self.df["body_preprocessed"]
-        """
-        # documents_df["features_to_use"] = self.df["trigrams_full_text"]
         documents_df["features_to_use"] = self.df["category_title"] + " " + self.df["keywords"] \
                                           + ' ' + self.df["all_features_preprocessed"] \
                                           + " " + self.df["body_preprocessed"]
@@ -382,8 +356,7 @@ class Word2VecClass:
                 print("Similarities on Wikipedia.cz model:")
                 ds = DocSim(w2v_model)
                 ds.calculate_similarity_wiki_model_gensim(found_post,
-                                                          list_of_document_features)[
-                :21]
+                                                          list_of_document_features)[:21]
             elif model_name.startswith("idnes"):
                 source = "idnes"
                 if model_name.startswith("idnes_1"):

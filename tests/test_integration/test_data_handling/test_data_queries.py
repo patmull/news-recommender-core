@@ -5,7 +5,7 @@ import pandas.core.indexes.base
 import pytest
 
 # python -m pytest .\tests\test_data_handling\test_data_queries.py
-from src.recommender_core.data_handling.data_manipulation import get_redis_connection
+from src.recommender_core.data_handling.data_manipulation import get_redis_connection, DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
@@ -137,3 +137,16 @@ def test_get_user_read_history_with_posts():
     assert isinstance(user_posts_history, pandas.DataFrame)
     assert type(len(user_posts_history)) is int
 
+
+def test_get_posts_with_not_prefilled_ngrams_text():
+    recommender_methods = RecommenderMethods()
+    database_methods = DatabaseMethods()
+    database_methods.null_prefilled_record(db_columns=['trigrams_full_text'])
+    assert type(recommender_methods.get_posts_with_not_prefilled_ngrams_text()) is list
+
+
+def test_get_posts_categories_dataframe():
+    recommender_methods = RecommenderMethods()
+    posts_categories_df = recommender_methods.get_posts_categories_dataframe()
+    posts = recommender_methods.get_posts_dataframe()
+    assert len(posts_categories_df) == len(posts)

@@ -8,7 +8,7 @@ def prefill_doc2vec_full():
         try:
             prefilling_job_content_based("doc2vec", full_text=True)
         except Exception as e:
-            print("Exception occurred" + str(e))
+            print("Exception occurred: " + str(e))
             traceback.print_exception(None, e, e.__traceback__)
 
 
