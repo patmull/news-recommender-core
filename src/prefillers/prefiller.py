@@ -149,6 +149,7 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 # TODO: Test this method alone, i.e. removing prefilled record, check logging for positive addition
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
+    global fit_by_full_text, fit_by_title, fit_by_all_features_matrix, tf_idf_data_handlers
     docsim_index, dictionary = None, None
     database_methods = DatabaseMethods()
     if skip_already_filled is False:

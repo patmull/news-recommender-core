@@ -118,8 +118,9 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
 
     # Get the user's data and merge in the post information.
     user_data = original_ratings_df[original_ratings_df.user_id == user_id]
-    user_full = (user_data.merge(posts_df, how='left', left_on='post_id', right_on='post_id').
-                 sort_values(['ratings_values'], ascending=False)
+    user_full = (
+        user_data.merge(posts_df, how='left', left_on='post_id', right_on='post_id').
+            sort_values(['ratings_values'], ascending=False)
                  )
     print("user_full")
     print(user_full)

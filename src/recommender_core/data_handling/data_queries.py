@@ -291,65 +291,6 @@ class RecommenderMethods:
              'created_at']]
         return results_df_
 
-    # noinspection DuplicatedCode
-    def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
-
-        self.posts_df = self.get_posts_dataframe()
-        print("4.1")
-        self.get_categories_dataframe()
-        print("4.2")
-        print(self.posts_df.columns)
-        self.posts_df = self.posts_df.rename(columns={'title': 'post_title', 'slug': 'post_slug'})
-        self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
-
-        if include_prefilled is False:
-            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-            # clean up from unnecessary columns
-        else:
-            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-            # clean up from unnecessary columns
-            try:
-                self.df = self.df[
-                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
-                     'description',
-                     'all_features_preprocessed', 'body_preprocessed',
-                     'recommended_tfidf_full_text', 'trigrams_full_text']]
-            except KeyError:
-                self.df = self.database.insert_posts_dataframe_to_cache()
-                self.posts_df = self.posts_df.drop_duplicates(subset=['title'])
-                print(self.df.columns.values)
-                self.df = self.df[
-                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
-                     'description', 'all_features_preprocessed', 'body_preprocessed',
-                     'recommended_tfidf_full_text', 'trigrams_full_text']]
-        print("4.3")
-        print(self.df.columns)
-
-        if full_text is True:
-            try:
-                self.df = self.df[
-                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
-                     'description',
-                     'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text',
-                     'trigrams_full_text']]
-            except KeyError as key_error:
-                self.df = self.get_df_from_sql_meanwhile_insert_to_cache()
-                print(key_error)
-                print("Columns of self.df:")
-                print(self.df.columns)
-                self.df = self.df.rename(columns={'slug_x': 'post_slug'})
-                self.df = self.df[
-                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
-                     'description',
-                     'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text',
-                     'trigrams_full_text']]
-        else:
-            self.df = self.df[
-                ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
-                 'description',
-                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'trigrams_full_text']]
-        return self.df
-
     def find_post_by_slug(self, searched_slug, from_cache=True):
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a input_string.")
