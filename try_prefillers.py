@@ -1,6 +1,5 @@
 from src.prefillers.prefilling_all import run_prefilling
 
-
 """
 classifier = Classifier()
 try:
@@ -45,4 +44,4 @@ assert mockconnect.call_args_list[0] == call(user=DB_USER, password=DB_PASSWORD,
 """
 
 # run_prefilling_collaborative(test_run=True)
-run_prefilling(skip_cache_refresh=True)
+run_prefilling(skip_cache_refresh=True, methods_short_text=[], methods_full_text=['word2vec_eval_idnes_3'])

@@ -135,7 +135,7 @@ def drop_columns_from_similarity_matrix(similarity_matrix, posts_to_compare, lis
     return similarity_matrix
 
 
-def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs):
+def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, for_hybrid=True):
     w2v_model, d2v_model = None, None
 
     logging.debug("Calculating sim matrix for %d posts:" % (len(list_of_slugs)))
@@ -144,7 +144,7 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs):
         logging.debug('Calculating sim matrix for TF-IDF')
         tfidf = TfIdf()
 
-        similarity_matrix = tfidf.get_similarity_matrix(list_of_slugs)
+        similarity_matrix = tfidf.get_similarity_matrix(list_of_slugs, for_hybrid=True)
 
         logging.debug("Similarity matrix:")
         logging.debug(similarity_matrix)
@@ -227,7 +227,6 @@ def prepare_sim_matrix_path(method):
     return file_path
 
 
-# TODO: Add to prefillers.
 def precalculate_and_save_sim_matrix_for_all_posts(methods=None):
     if methods is None:
         methods = LIST_OF_SUPPORTED_METHODS

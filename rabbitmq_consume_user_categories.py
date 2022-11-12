@@ -1,6 +1,8 @@
 import logging
 import os
+import traceback
 
+from mail_sender import send_error_email
 from src.messaging.consume_queue import consume_queue
 
 for handler in logging.root.handlers[:]:
@@ -12,4 +14,8 @@ logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from " + os.path.basename(__file__))
 
 if __name__ == '__main__':
-    consume_queue('user-categories-updated-queue')
+    try:
+        consume_queue('user-categories-updated-queue')
+    except Exception as e:
+        logging.warning(e)
+        send_error_email(traceback.format_exc())

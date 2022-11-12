@@ -381,7 +381,11 @@ class RecommenderMethods:
         logging.debug("categories_df")
         logging.debug(categories_df)
         logging.debug(categories_df.columns)
-        self.df = pd.merge(posts_df, categories_df, left_on='category_id', right_on='id')
+
+        # To make sure. If database contains by a mistake duplicated rows, this will cause a doubling of a final df rows
+        categories_df = categories_df.drop_duplicates()
+
+        self.df = posts_df.merge(categories_df, how='left', left_on='category_id', right_on='id')
         if 'id_x' in self.df.columns:
             self.df = self.df.rename(columns={'id_x': 'post_id'})
         return self.df
@@ -559,6 +563,55 @@ class RecommenderMethods:
         self.database.null_test_user_prefilled_records(user_id, db_columns=db_columns)
         self.database.disconnect()
 
+    def get_posts_with_not_prefilled_ngrams_text(self, full_text=True):
+        self.database = DatabaseMethods()
+        self.database.connect()
+        posts = self.database.get_posts_with_not_prefilled_ngrams_text(full_text)
+        self.database.disconnect()
+        return posts
+
+    def get_not_preprocessed_posts_all_features_column_and_body_preprocessed(self):
+        self.database = DatabaseMethods()
+        self.database.connect()
+        posts_without_all_features_preprocessed = self.database.get_posts_with_no_features_preprocessed(method='all_features_preprocessed')
+        posts_without_body_preprocessed = self.database.get_posts_with_no_features_preprocessed(method='body_preprocessed')
+        self.database.disconnect()
+        posts = list(set(posts_without_all_features_preprocessed + posts_without_body_preprocessed))
+        return posts
+
+    def insert_preprocessed_body(self, preprocessed_body, article_id):
+        self.database = DatabaseMethods()
+        self.database.connect()
+        self.database.insert_preprocessed_body(preprocessed_body, article_id)
+        self.database.disconnect()
+
+    def get_posts_with_no_features_preprocessed(self, method):
+        self.database = DatabaseMethods()
+        self.database.connect()
+        posts = self.database.get_posts_with_no_features_preprocessed(method=method)
+        self.database.disconnect()
+        return posts
+
+    def insert_keywords(self, keyword_all_types_splitted, article_id):
+        self.database = DatabaseMethods()
+        self.database.connect()
+        self.database.insert_keywords(keyword_all_types_splitted=keyword_all_types_splitted,
+                                      article_id=article_id)
+        self.database.disconnect()
+
+    def insert_all_features_preprocessed_combined(self, preprocessed_text, post_id):
+        self.database = DatabaseMethods()
+        self.database.connect()
+        self.database.insert_all_features_preprocessed(preprocessed_all_features=preprocessed_text,
+                                                       post_id=post_id)
+        self.database.disconnect()
+
+    def insert_phrases_text(self, bigram_text, article_id, full_text):
+        self.database = DatabaseMethods()
+        self.database.connect()
+        self.database.insert_phrases_text(bigram_text, article_id, full_text)
+        self.database.disconnect()
+
 
 def get_cleaned_text(row):
     return row
@@ -638,7 +691,20 @@ class TfIdfDataHandlers:
             logging.debug(self.df)
             self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[fit_by])
         else:
-            self.df[fit_by] = self.df[fit_by_2] + " " + self.df[fit_by]
+            if self.df[fit_by] is None and self.df[fit_by_2] is None:
+                raise ValueError("Both columns %s and %s cannot be None." % (fit_by, fit_by_2))
+
+            if self.df[fit_by] is None and self.df[fit_by_2] is not None:
+                logging.warning("Dataframe has missing data in column %s. Consider to run prefilling of this column "
+                                "first." % fit_by)
+                self.df[fit_by] = self.df[fit_by_2]
+            elif self.df[fit_by] is not None and self.df[fit_by_2] is None:
+                logging.warning("Dataframe has missing data in column %s. Consider to run prefilling of this column "
+                                "first." % fit_by)
+                self.df[fit_by] = self.df[fit_by]
+            else:
+                # Standard way of gettign both columns
+                self.df[fit_by] = self.df[fit_by_2] + " " + self.df[fit_by]
             self.tfidf_tuples = self.tfidf_vectorizer.fit_transform(self.df[fit_by])
 
         return self.tfidf_tuples  # tuples of (document_id, token_id) and tf-idf score for it

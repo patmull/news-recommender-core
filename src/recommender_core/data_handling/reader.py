@@ -110,19 +110,20 @@ def create_dictionary_from_mongo_idnes(sentences=None, force_update=False, filte
 
 class MongoReader(Reader):
 
-    def __init__(self, db_name=None, col_name=None, mongo_uri="mongodb://localhost:27017", limit=None):
+    def __init__(self, db_name=None, coll_name=None,
+                 mongo_uri="mongodb://localhost:27017", limit=None):
         """ init
             :param mongo_uri: mongoDB URI. default: localhost:27017
             :param db_name: MongoDB database name.
-            :param col_name: MongoDB Collection name.
+            :param coll_name: MongoDB Collection name.
             :param limit: query limit
         """
+
         Reader.__init__(self)
-        super().__init__()
         self.conn = None
         self.mongoURI = mongo_uri
         self.dbName = db_name
-        self.collName = col_name
+        self.collName = coll_name
         self.limit = limit
         self.fields = ['text']
         self.key_field = 'text'
@@ -147,7 +148,7 @@ class MongoReader(Reader):
                 content += " %s" % (get_value(doc.get(f)))
             texts = prepare_words(content)
             # tags = doc.get(self.key_field).split(',')
-            # tags = [multi_dimensional_list.strip() for multi_dimensional_list in tags]
+            # tags = [t.strip() for t in tags]
             doc = {"text": texts}
             yield doc
 

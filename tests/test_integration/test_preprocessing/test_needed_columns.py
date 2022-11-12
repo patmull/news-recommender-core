@@ -4,11 +4,12 @@ from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 
 # pytest.mark.integration
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
+
+
 def test_all_features_preprocessed_column():
-    database = DatabaseMethods()
-    database.connect()
-    posts = database.get_posts_with_no_all_features_preprocessed()
-    database.disconnect()
+    recommender_methods = RecommenderMethods()
+    posts = recommender_methods.get_posts_with_no_features_preprocessed(method='all_features_preprocessed')
     return len(posts)
 
 
@@ -23,10 +24,8 @@ def test_body_preprocessed_column():
 
 # pytest.mark.integration
 def test_keywords_column():
-    database = DatabaseMethods()
-    database.connect()
-    posts = database.get_posts_with_no_keywords()
-    database.disconnect()
+    recommender_methods = RecommenderMethods()
+    posts = recommender_methods.get_posts_with_no_features_preprocessed(method='keywords')
     return len(posts)
 
 
