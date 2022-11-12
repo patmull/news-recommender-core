@@ -100,9 +100,8 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     y_pred_unseen = X_unseen_df \
         .apply(lambda x: clf
                .predict(pickle
-                        .loads(x['bert_vector_representation']))[0]
-    if pd.notnull(x['bert_vector_representation'])
-    else clf.predict(bert_model(' '.join(str(x[col_to_combine]))).vector.reshape(1, -1))[0], axis=1)
+                        .loads(x['bert_vector_representation']))[0] if pd.notnull(x['bert_vector_representation']) else
+    clf.predict(bert_model(' '.join(str(x[col_to_combine]))).vector.reshape(1, -1))[0], axis=1)
 
     y_pred_unseen = y_pred_unseen.rename('prediction')
 
@@ -322,6 +321,18 @@ class Classifier:
                 logging.warning(ve)
                 raise ve
             clf_svc = joblib.load(path_to_load_svc)
+        except KeyError as ke:
+            logging.warning(ke)
+            logging.warning("Model file was not found in the location, training from the start...")
+            try:
+                self.train_classifiers(df=df, columns_to_combine=input_variables,
+                                       target_variable_name=predicted_variable, user_id=user_id)
+            except ValueError as ve:
+                logging.warning(ve)
+                raise ve
+            clf_svc = joblib.load(path_to_load_svc)
+        except Exception as e:
+            raise e
 
         try:
             logging.warning("Loading Random Forest...")
