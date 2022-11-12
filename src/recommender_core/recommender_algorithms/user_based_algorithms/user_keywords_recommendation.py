@@ -33,7 +33,7 @@ def load_ratings():
     # EXTRACT RESULTS FROM CURSOR
     recommender_methods = RecommenderMethods()
     posts_users_categories_ratings_df = recommender_methods.get_posts_users_categories_ratings_df(
-        only_with_bert_vectors=True)
+        only_with_bert_vectors=False)
     return posts_users_categories_ratings_df
 
 

@@ -19,7 +19,7 @@ logging.debug("Testing logging from data?manipulation.")
 
 
 def print_exception_not_inserted(e):
-    print(e)
+    logging.debug(e)
 
 
 class DatabaseMethods(object):
@@ -191,8 +191,8 @@ class DatabaseMethods(object):
         :param column_name:
         :return:
         """
-        print("type(column_name)")
-        print(type(column_name))
+        logging.debug("type(column_name)")
+        logging.debug(type(column_name))
         if column_name is None:
             sql_query = """SELECT * FROM users ORDER BY id;"""
         else:
@@ -201,13 +201,13 @@ class DatabaseMethods(object):
             else:
                 # noinspection
                 sql_query = 'SELECT {} FROM users ORDER BY id;'.format("id, " + column_name)
-        print("sql_query:")
-        print(sql_query)
+        logging.debug("sql_query:")
+        logging.debug(sql_query)
         try:
             df = pd.read_sql_query(sql_query, self.get_cnx())
         except DatabaseError as e:
-            print(e)
-            print("Check if name of column in this table.")
+            logging.debug(e)
+            logging.debug("Check if name of column in this table.")
             raise e
         return df
 
@@ -301,9 +301,9 @@ class DatabaseMethods(object):
             df = pd.read_pickle(path_to_df)
             # read from current directory
         except Exception as e:
-            print("Exception occurred when reading cached file:")
-            print(e)
-            print("Getting posts from SQL.")
+            logging.debug("Exception occurred when reading cached file:")
+            logging.debug(e)
+            logging.debug("Getting posts from SQL.")
             df = self.get_posts_dataframe_from_sql()
         return df
 
@@ -376,8 +376,8 @@ class DatabaseMethods(object):
             df_user_categories = pd.read_sql_query(sql_user_categories, self.get_cnx(),
                                                    params=query_params)
 
-            print("df_user_categories:")
-            print(df_user_categories)
+            logging.debug("df_user_categories:")
+            logging.debug(df_user_categories)
             return df_user_categories
         return df_user_categories
 
@@ -393,10 +393,10 @@ class DatabaseMethods(object):
                 raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
         except psycopg2.OperationalError as e:
-            print("NOT INSERTED")
-            print("Error:", e)  # errno, sqlstate, msg values
+            logging.debug("NOT INSERTED")
+            logging.debug("Error:", e)  # errno, sqlstate, msg values
             s = str(e)
-            print("Error:", s)  # errno, sqlstate, msg values
+            logging.debug("Error:", s)  # errno, sqlstate, msg values
             if self.cnx is not None:
                 self.cnx.rollback()
 
@@ -413,9 +413,9 @@ class DatabaseMethods(object):
         LEFT JOIN user_categories uc ON uc.category_id = c.id;"""
 
         df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
-        print("Loaded ratings from DB.")
-        print(df_ratings)
-        print(df_ratings.columns)
+        logging.debug("Loaded ratings from DB.")
+        logging.debug(df_ratings)
+        logging.debug(df_ratings.columns)
 
         if 'slug_y' in df_ratings.columns:
             df_ratings = df_ratings.rename(columns={'slug': 'category_slug'})
@@ -427,8 +427,8 @@ class DatabaseMethods(object):
         ON tags.id = tu.tag_id WHERE tu.user_id = (%(user_id)s); """
         query_params = {'user_id': user_id}
         df_user_categories = pd.read_sql_query(sql_user_keywords, self.get_cnx(), params=query_params)
-        print("df_user_categories:")
-        print(df_user_categories)
+        logging.debug("df_user_categories:")
+        logging.debug(df_user_categories)
         return df_user_categories
 
     # TODO: Remove this.
@@ -451,12 +451,12 @@ class DatabaseMethods(object):
                     self.cnx.commit()
                 else:
                     raise ValueError("Cursor is set to None. Cannot continue with next operation.")
-                print("Inserted")
+                logging.debug("Inserted")
             except psycopg2.Error as e:
-                print("NOT INSERTED")
-                print(e.pgcode)
-                print(e.pgerror)
-                print("Full error: ", e)  # errno, sqlstate, msg values
+                logging.debug("NOT INSERTED")
+                logging.debug(e.pgcode)
+                logging.debug(e.pgerror)
+                logging.debug("Full error: ", e)  # errno, sqlstate, msg values
                 if self.cnx is not None:
                     self.cnx.rollback()
                 pass
@@ -510,13 +510,13 @@ class DatabaseMethods(object):
                     self.cnx.commit()
                 else:
                     raise ValueError("Cursor is set to None. Cannot continue with next operation.")
-                print("Inserted")
+                logging.debug("Inserted")
             except psycopg2.Error as e:
-                print("NOT INSERTED")
-                print(e.pgcode)
-                print(e.pgerror)
+                logging.debug("NOT INSERTED")
+                logging.debug(e.pgcode)
+                logging.debug(e.pgerror)
                 s = str(e)
-                print("Full Error: ", s)  # errno, sqlstate, msg values
+                logging.debug("Full Error: ", s)  # errno, sqlstate, msg values
                 if self.cnx is not None:
                     self.cnx.rollback()
                 pass
@@ -738,8 +738,8 @@ class DatabaseMethods(object):
             WHERE bert_vector_representation IS NOT NULL;"""
 
         df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
-        print("df_ratings")
-        print(df_ratings)
+        logging.debug("df_ratings")
+        logging.debug(df_ratings)
 
         # ### Keep only newest records of same post_id + user_id combination
         # Order by date of creation
@@ -749,8 +749,8 @@ class DatabaseMethods(object):
         if user_id is not None:
             df_ratings = df_ratings.loc[df_ratings['user_id'] == user_id]
 
-        print("df_ratings after drop_duplicates")
-        print(df_ratings)
+        logging.debug("df_ratings after drop_duplicates")
+        logging.debug(df_ratings)
 
         return df_ratings
 
@@ -786,9 +786,9 @@ class DatabaseMethods(object):
 
         df_thumbs = pd.read_sql_query(sql_thumbs, self.get_cnx())
 
-        print("df_thumbs")
-        print(df_thumbs)
-        print(df_thumbs.columns)
+        logging.debug("df_thumbs")
+        logging.debug(df_thumbs)
+        logging.debug(df_thumbs.columns)
 
         # ### Keep only newest records of same post_id + user_id combination
         # Order by date of creation
@@ -798,11 +798,11 @@ class DatabaseMethods(object):
         if user_id is not None:
             df_thumbs = df_thumbs.loc[df_thumbs['user_id'] == user_id]
 
-        print("df_thumbs after dropping duplicates")
-        print(df_thumbs)
+        logging.debug("df_thumbs after dropping duplicates")
+        logging.debug(df_thumbs)
 
         if df_thumbs.empty:
-            print("Dataframe empty. Current user has no thumbs clicks in DB.")
+            logging.debug("Dataframe empty. Current user has no thumbs clicks in DB.")
             raise ValueError("There are no thumbs for a given user.")
 
         return df_thumbs
@@ -851,8 +851,8 @@ class DatabaseMethods(object):
             try:
                 column_name = "recommended_by_" + method
                 query = """UPDATE users SET {} = %s WHERE id = %s;""".format(column_name)
-                print("query used:")
-                print(query)
+                logging.debug("query used:")
+                logging.debug(query)
                 inserted_values = (recommended_json, user_id)
                 if self.cursor is not None and self.cnx is not None:
                     self.cursor.execute(query, inserted_values)
@@ -875,8 +875,8 @@ class DatabaseMethods(object):
             try:
                 query = """UPDATE users SET {} = NULL WHERE id = %(id)s;""".format(method)
                 queried_values = {'id': user_id}
-                print("Query used in null_test_user_prefilled_records:")
-                print(query)
+                logging.debug("Query used in null_test_user_prefilled_records:")
+                logging.debug(query)
                 if self.cursor is not None and self.cnx is not None:
                     self.cursor.execute(query, queried_values)
                     self.cnx.commit()
@@ -907,8 +907,8 @@ class DatabaseMethods(object):
             try:
                 query = """UPDATE posts SET {} = NULL WHERE id = %(id)s;""".format(method)
                 queried_values = {'id': random_post_id}
-                print("Query used in null_test_user_prefilled_records:")
-                print(query)
+                logging.debug("Query used in null_test_user_prefilled_records:")
+                logging.debug(query)
                 if self.cursor is not None and self.cnx is not None:
                     self.cursor.execute(query, queried_values)
                     self.cnx.commit()
