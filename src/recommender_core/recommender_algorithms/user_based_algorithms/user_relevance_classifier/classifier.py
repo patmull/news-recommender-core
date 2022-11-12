@@ -199,7 +199,14 @@ class Classifier:
         logging.debug("df.columns:")
         print(df.columns)
 
-        df['combined'] = df[columns_to_combine].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+        try:
+            df['combined'] = df[columns_to_combine].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+        except IndexError as ie:
+            logging.warning("Index error had occurred.")
+            logging.warning("This is probably caused by empty 'combined' column in dataframe.")
+            logging.warning("In this stage of project deployment, exception will be raised. Please try to fix this issue.")
+            raise ie
+
         logging.debug("df['combined']")
         logging.debug(df['combined'].iloc[0])
         # noinspection PyPep8Naming
