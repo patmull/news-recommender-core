@@ -9,6 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
 from src.constants.naming import Naming
+from src.presentation.data_logging import log_dataframe_info
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
@@ -194,21 +195,34 @@ class Classifier:
         # https://metatext.io/models/distilbert-base-multilingual-cased
         df_predicted = get_df_predicted(df, target_variable_name)
 
+        # TODO: Replace NaN columns with title, then replace with emppty string as a last resort. PRIORITY: MEDIUM-LOW
         df = df.fillna('')
-
-        logging.debug("df.columns:")
-        print(df.columns)
 
         try:
             df['combined'] = df[columns_to_combine].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
         except IndexError as ie:
+            logging.debug(df.columns)
             logging.warning("Index error had occurred.")
-            logging.warning("This is probably caused by empty 'combined' column in dataframe.")
-            logging.warning("In this stage of project deployment, exception will be raised. Please try to fix this issue.")
-            raise ie
+            logging.warning("In this stage of project deployment, exception will be raised. "
+                            "Please try to fix this issue.")
+            log_dataframe_info(df)
 
-        logging.debug("df['combined']")
-        logging.debug(df['combined'].iloc[0])
+            raise ie
+        # Preventing IndexError error
+        logging.debug('df.columns:')
+        logging.debug(df.columns)
+
+        try:
+            logging.debug("df['combined']")
+            logging.debug(df['combined'].iloc[0])
+        except IndexError as ie:
+            logging.warning("Index error had occurred (even after replacing empty columns with post title).")
+            logging.warning("This is probably caused by empty dataframe.")
+            logging.warning("In this stage of project deployment, exception will be raised. "
+                            "Please try to fix this issue.")
+            log_dataframe_info(df)
+
+            raise ie
         # noinspection PyPep8Naming
         X_train, X_validation, y_train, y_validation = train_test_split(df['combined'].tolist(),
                                                                         df_predicted[target_variable_name]
@@ -354,6 +368,14 @@ class Classifier:
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_thumbs_df(user_id=user_id,
                                                       only_with_bert_vectors=only_with_prefilled_bert_vectors)
+
+            if len(df_posts_users_categories_relevance.index) == 0:
+                logging.warning("Length of df_posts_users_categories_relevance is 0.")
+                logging.warning("This is probably cause by user not participating in any thumbs rating yet.")
+                logging.warning("Skipping this user.")
+                raise ValueError("df_posts_users_categories_relevance length is 0. User probbaly has not "
+                                 "participated in thumbs rating.")
+
             logging.debug("df_posts_users_categories_relevance:")
             logging.debug(df_posts_users_categories_relevance)
 
@@ -367,6 +389,13 @@ class Classifier:
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_ratings_df(user_id=user_id,
                                                        only_with_bert_vectors=only_with_prefilled_bert_vectors)
+
+            if len(df_posts_users_categories_relevance.index) == 0:
+                logging.warning("Length of df_posts_users_categories_relevance is 0.")
+                logging.warning("This is probably cause by user not participating in any stars rating yet.")
+                logging.warning("Skipping this user.")
+                raise ValueError("df_posts_users_categories_relevance length is 0. User probably has not "
+                                 "participated in stars rating.")
             logging.debug("df_posts_users_categories_relevance:")
             logging.debug(df_posts_users_categories_relevance)
 
