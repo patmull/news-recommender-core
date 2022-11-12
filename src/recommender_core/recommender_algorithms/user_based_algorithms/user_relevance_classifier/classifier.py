@@ -343,6 +343,18 @@ class Classifier:
             self.train_classifiers(df=df, columns_to_combine=input_variables,
                                    target_variable_name=predicted_variable, user_id=user_id)
             clf_random_forest = joblib.load(path_to_load_random_forest)
+        except KeyError as ke:
+            logging.warning(ke)
+            logging.warning("Model file was not found in the location, training from the start...")
+            try:
+                self.train_classifiers(df=df, columns_to_combine=input_variables,
+                                       target_variable_name=predicted_variable, user_id=user_id)
+            except ValueError as ve:
+                logging.warning(ve)
+                raise ve
+            clf_svc = joblib.load(path_to_load_svc)
+        except Exception as e:
+            raise e
 
         return clf_svc, clf_random_forest
 
