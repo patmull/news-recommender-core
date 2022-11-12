@@ -88,8 +88,8 @@ class CosineTransformer:
     # #Step 7: Get a list of similar articles in descending order of similarity score
     def get_list_of_similar_articles(self) -> object:
         try:
+            # type: ignore
             self.sorted_similar_articles = sorted(self.similar_articles, key=lambda x: x[1], reverse=True)
-                                                  # type: ignore
             # type: ignore
             # TODO: error: Argument 1 to "sorted" has incompatible type "Optional[Any]"; Priority: LOW
             # expected "Iterable[Any]".
