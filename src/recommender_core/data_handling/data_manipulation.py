@@ -431,15 +431,6 @@ class DatabaseMethods(object):
         logging.debug(df_user_categories)
         return df_user_categories
 
-    # TODO: Remove this.
-    """
-    def get_user_hybrid(self, user_id):
-
-        sql_user_hybrid = "SELECT id, recommend_by_hybrid FROM users"
-        df_user_hybrid = pd.read_sql_query(sql_user_hybrid, self.get_cnx())
-        return df_user_hybrid
-    """
-
     @DeprecationWarning
     def insert_recommended_tfidf_json(self, articles_recommended_json, article_id, db):
         if db == "pgsql":
@@ -861,6 +852,22 @@ class DatabaseMethods(object):
                     raise ValueError("Cursor is set to None. Cannot continue with next operation.")
             except psycopg2.Error as e:
                 print_exception_not_inserted(e)
+        elif db == "redis":
+            if method == "hybrid":
+                r = get_redis_connection()
+                r.set(('user:%s:user-hybrid-recommendation' % str(user_id)), recommended_json)
+            elif method == 'svd':
+                r = get_redis_connection()
+                r.set(('user:%s:user-svd-recommendation' % str(user_id)), recommended_json)
+            elif method == 'user_keywords':
+                r = get_redis_connection()
+                r.set(('user:%s:user-keywords-recommendation' % str(user_id)), recommended_json)
+            elif method == 'best_rated_by_others_in_user_categories':
+                r = get_redis_connection()
+                r.set(('user:%s:user-preferences-recommendation' % str(user_id)), recommended_json)
+            else:
+                raise NotImplementedError("Given method for prefilling not implemnted. "
+                                          "Cannot insert a recommended JSON.")
         else:
             raise NotImplementedError("Other database source than PostgreSQL not implemented yet.")
 
