@@ -131,6 +131,9 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                     user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
                                                                     user_id=current_user_id, db="pgsql",
                                                                     method=method)
+                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
+                                                                    user_id=current_user_id, db="redis",
+                                                                    method=method)
                 except Exception as e:
                     print("Error in DB insert. Skipping.")
                     print(e)
@@ -139,6 +142,9 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
             try:
                 user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
                                                                 user_id=current_user_id, db="pgsql",
+                                                                method=method)
+                user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
+                                                                user_id=current_user_id, db="redis",
                                                                 method=method)
             except Exception as e:
                 print("Error in DB insert. Skipping.")

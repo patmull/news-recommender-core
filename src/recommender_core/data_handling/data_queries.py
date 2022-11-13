@@ -498,6 +498,12 @@ class RecommenderMethods:
                                                                        user_id=user_id, db=db, method=method)
             database_heroku_testing.disconnect()
 
+        elif db == "redis":
+            self.database.insert_recommended_json_user_based(recommended_json=recommended_json,
+                                                             user_id=user_id, db=db, method=method)
+        else:
+            NotImplementedError("Given method not implemented for storing user methods.")
+
     def remove_test_user_prefilled_records(self, user_id, db_columns):
         self.database = DatabaseMethods()
         self.database.connect()
