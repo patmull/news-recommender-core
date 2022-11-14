@@ -13,8 +13,7 @@ from src.recommender_core.data_handling.data_connection import init_rabbitmq
 
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
-for handler in logging.root.handlers[:]:
-   logging.root.removeHandler(handler)
+for handler in logging.root.handlers[:]:logging.root.removeHandler(handler)
 
 # NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
@@ -194,7 +193,7 @@ def call_collaborative_prefillers(method, msg_body, retrain_classifier=False):
                 test_user_name = user['name'].values[0].startswith('test-user-dusk')
         except IndexError as ie:
             logging.warning("Index error occurred while trying to fetch information about the user. "
-                  "User is probably not longer in database.")
+                            "User is probably not longer in database.")
             logging.warning("SEE FULL EXCEPTION MESSAGE:")
             raise ie
 
@@ -266,4 +265,10 @@ def init_consuming(queue_name):
         channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
         send_error_email(traceback.format_exc())
 
+    channel.start_consuming()
+
+
+def restart_channel(queue_name):
+    publish_rabbitmq_channel(queue_name)
+    channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
     channel.start_consuming()

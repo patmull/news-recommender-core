@@ -64,9 +64,11 @@ class UserBasedMethods:
         self.database = DatabaseMethods()
 
         # noinspection PyPep8
-        df_posts_users_of_categories = load_ratings()[load_ratings()
-            .category_slug
-            .isin(load_user_categories(user_id)['category_slug'].tolist())]
+        df_posts_users_of_categories = load_ratings()[
+            load_ratings()
+                .category_slug
+                .isin(load_user_categories(user_id)['category_slug'].tolist())
+        ]
         df_filter_current_user = df_posts_users_of_categories[
             df_posts_users_of_categories.rating_id != self.get_user_id()]
         df_sorted_results = df_filter_current_user[['post_id', 'post_slug', 'ratings_values', 'post_created_at']] \

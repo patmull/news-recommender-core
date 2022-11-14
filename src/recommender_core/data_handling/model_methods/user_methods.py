@@ -1,5 +1,6 @@
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
+
 class UserMethods(RecommenderMethods):
 
     def __init__(self):

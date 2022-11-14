@@ -131,6 +131,9 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                     user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
                                                                     user_id=current_user_id, db="pgsql",
                                                                     method=method)
+                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
+                                                                    user_id=current_user_id, db="redis",
+                                                                    method=method)
                 except Exception as e:
                     print("Error in DB insert. Skipping.")
                     print(e)
@@ -139,6 +142,9 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
             try:
                 user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
                                                                 user_id=current_user_id, db="pgsql",
+                                                                method=method)
+                user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
+                                                                user_id=current_user_id, db="redis",
                                                                 method=method)
             except Exception as e:
                 print("Error in DB insert. Skipping.")
@@ -149,6 +155,7 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 # TODO: Test this method alone, i.e. removing prefilled record, check logging for positive addition
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
+    global fit_by_full_text, fit_by_title, fit_by_all_features_matrix, tf_idf_data_handlers
     docsim_index, dictionary = None, None
     database_methods = DatabaseMethods()
     if skip_already_filled is False:

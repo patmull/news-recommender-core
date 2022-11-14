@@ -61,16 +61,10 @@ class Svd:
 
     def run_svd(self, user_id, num_of_recommendations=10):
         U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
-        # print("U:")
-        # print(U)
-        # print("----------")
-        # print("Sigma:")
-        # print(sigma)
-        # print("-----------")
-        # print("Vt:")
-        # print(Vt)
+
         sigma = np.diag(sigma)
         all_user_predicted_ratings = np.dot(np.dot(U, sigma), Vt) + self.user_ratings_mean.reshape(-1, 1)
+        # type: ignore
 
         print("all_user_predicted_ratings")
         print(all_user_predicted_ratings)
@@ -110,19 +104,19 @@ class Svd:
 
         # Get the user's data and merge in the post information.
         user_data = original_ratings_df[original_ratings_df.user_id == user_id]
-        user_full = (user_data.merge(posts_df, how='left', left_on='post_id', right_on='post_id').
-                     sort_values(['ratings_values'], ascending=False)
-                     )
+        user_full = (
+            user_data.merge(posts_df, how='left', left_on='post_id', right_on='post_id').sort_values(['ratings_values'],
+                                                                                                     ascending=False))
 
         # Recommend the highest predicted rating posts that the user hasn't seen yet.
         recommendations = (posts_df[~posts_df['post_id'].isin(user_full['post_id'])]
-                           .merge(pd.DataFrame(sorted_user_predictions).reset_index(),
-                                  how='left',
-                                  left_on='post_id',
-                                  right_on='post_id')
-                           .rename(columns={user_row_number: 'Predictions'})
-                           .sort_values('Predictions', ascending=False)
-                           .iloc[:num_recommendations, :-1])
+                               .merge(pd.DataFrame(sorted_user_predictions).reset_index(),
+                                      how='left',
+                                      left_on='post_id',
+                                      right_on='post_id')
+                               .rename(columns={user_row_number: 'Predictions'})
+                               .sort_values('Predictions', ascending=False)
+                               .iloc[:num_recommendations, :-1])
 
         return user_full, recommendations
 

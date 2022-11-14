@@ -21,4 +21,4 @@ if __name__ == '__main__':
                                          bert_model=bert))
     """
     # predict_ratings_for_user_store_to_redis(3118)
-    call_collaborative_prefillers(method='classifier', msg_body='{"user_id":"3118"}', retrain_classifier=True)
+    call_collaborative_prefillers(method='classifier', msg_body='{"user_id":"3121"}', retrain_classifier=True)

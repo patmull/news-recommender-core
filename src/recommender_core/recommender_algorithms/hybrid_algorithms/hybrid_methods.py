@@ -330,8 +330,10 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     @param svd_posts_to_compare:
     @param user_id:
     @param list_of_methods:
-    @param save_result: saves the results (i.e. for debugging, this can be loaded with load_saved_result method below). Added to help with debugging of final boosting
-    @param load_saved_result: if True, skips the recommending calculation and jumps to final calculations. Added to help with debugging of final boosting
+    @param save_result: saves the results (i.e. for debugging, this can be loaded with load_saved_result method below).
+    Added to help with debugging of final boosting
+    @param load_saved_result: if True, skips the recommending calculation and jumps to final calculations.
+    Added to help with debugging of final boosting
     """
     path_to_save_results = Path('research/hybrid/results_df.pkl')  # Primarily for debugging purposes
 
