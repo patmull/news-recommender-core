@@ -462,8 +462,11 @@ class RecommenderMethods:
         return df_users
 
     def get_user_read_history(self, user_id):
+        N = 3
+
         self.database.connect()
         df_user_read_history = self.database.get_user_history(user_id=user_id)
+        df_user_read_history = df_user_read_history.head(N)
         self.database.disconnect()
         return df_user_read_history
 
