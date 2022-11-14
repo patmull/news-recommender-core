@@ -1,6 +1,8 @@
 import gensim
 from pathlib import Path
 
+from typing import List
+
 from src.recommender_core.data_handling.data_handlers import flatten
 
 
@@ -31,7 +33,7 @@ def load_general_stopwords():
         return flatten(general_stopwords)
 
 
-def remove_stopwords(texts, cz_punct=False) -> list:
+def remove_stopwords(texts, cz_punct=False) -> List[str]:
     """
 
     @rtype: object
