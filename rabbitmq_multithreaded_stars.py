@@ -30,7 +30,7 @@ def ack_message(channel, delivery_tag):
         pass
 
 
-def do_work_thumbs(connection, channel, delivery_tag, body):
+def do_work_stars(connection, channel, delivery_tag, body):
     thread_id = threading.get_ident()
     fmt1 = 'Thread id: {} Delivery tag: {} Message body: {}'
     LOGGER.info(fmt1.format(thread_id, delivery_tag, body))
@@ -38,8 +38,9 @@ def do_work_thumbs(connection, channel, delivery_tag, body):
 
     try:
         # User classifier update
-        method = 'classifier'
-        call_collaborative_prefillers(method, body, retrain_classifier=True)
+        logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
+        method = 'svd'
+        call_collaborative_prefillers(method, body)
         method = 'hybrid'
         call_collaborative_prefillers(method, body)
     except Exception as e:
@@ -49,7 +50,6 @@ def do_work_thumbs(connection, channel, delivery_tag, body):
 
     cb = functools.partial(ack_message, channel, delivery_tag)
     connection.add_callback_threadsafe(cb)
-
 
 def on_message(channel, method_frame, header_frame, body, args):
     logging.info("[x] Received %r" % body.decode())
@@ -62,7 +62,7 @@ def on_message(channel, method_frame, header_frame, body, args):
 
             (connection, threads) = args
             delivery_tag = method_frame.delivery_tag
-            t = threading.Thread(target=do_work_thumbs, args=(connection, channel, delivery_tag, body))
+            t = threading.Thread(target=do_work_stars, args=(connection, channel, delivery_tag, body))
             t.start()
             threads.append(t)
 
@@ -89,8 +89,8 @@ connection_params = pika.ConnectionParameters(
 
 connection = pika.BlockingConnection(connection_params)
 
-queue_name = 'user-post-thumb_rating-updated-queue'
-routing_key = 'user.post.thumb_rating.event.updated'
+queue_name = 'user-post-star_rating-updated-queue'
+routing_key = 'user.post.star_rating.event.updated'
 
 channel = connection.channel()
 channel.exchange_declare(exchange='user', exchange_type="direct", passive=False, durable=True, auto_delete=False)
@@ -104,7 +104,7 @@ channel.basic_qos(prefetch_count=1)
 
 threads = []
 on_message_callback = functools.partial(on_message, args=(connection, threads))
-channel.basic_consume(on_message_callback=on_message_callback, queue='user-post-thumb_rating-updated-queue')  # type: ignore
+channel.basic_consume(on_message_callback=on_message_callback, queue=queue_name)  # type: ignore
 
 try:
     channel.start_consuming()
