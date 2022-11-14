@@ -224,17 +224,16 @@ class RecommenderMethods:
 
         return self.posts_df
 
+    # noinspection PyShadowingNames
+    def update_cache(self):
+        logging.debug("Inserting file to cache in the background...")
+        self.database.insert_posts_dataframe_to_cache()
+
     def get_df_from_sql_meanwhile_insert_to_cache(self):
-
-        # noinspection PyShadowingNames
-        def update_cache(self):
-            logging.debug("Inserting file to cache in the background...")
-            self.database.insert_posts_dataframe_to_cache()
-
         logging.debug("Posts not found on cache. Will use PgSQL command.")
         posts_df = self.database.get_posts_dataframe_from_sql()
-        thread = Thread(target=update_cache, kwargs={'self': self})
-        thread.start()
+        # ** HERE WAS A THREADING OF INSERTING SQL TO DB. ABANDONED DUE TO POSSIBLE DB CONNECTION LEAK *
+        self.update_cache()
         return posts_df
 
     def get_ratings_dataframe(self):
@@ -520,8 +519,10 @@ class RecommenderMethods:
     def get_not_preprocessed_posts_all_features_column_and_body_preprocessed(self):
         self.database = DatabaseMethods()
         self.database.connect()
-        posts_without_all_features_preprocessed = self.database.get_posts_with_no_features_preprocessed(method='all_features_preprocessed')
-        posts_without_body_preprocessed = self.database.get_posts_with_no_features_preprocessed(method='body_preprocessed')
+        posts_without_all_features_preprocessed = self.database.get_posts_with_no_features_preprocessed(
+            method='all_features_preprocessed')
+        posts_without_body_preprocessed = self.database.get_posts_with_no_features_preprocessed(
+            method='body_preprocessed')
         self.database.disconnect()
         posts = list(set(posts_without_all_features_preprocessed + posts_without_body_preprocessed))
         return posts
