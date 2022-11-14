@@ -105,7 +105,7 @@ channel.basic_qos(prefetch_count=1)
 
 threads = []
 on_message_callback = functools.partial(on_message, args=(connection, threads))
-channel.basic_consume(on_message_callback=on_message_callback, queue='user-post-thumb_rating-updated-queue')  # type: ignore
+channel.basic_consume(on_message_callback=on_message_callback, queue=queue_name)  # type: ignore
 
 try:
     channel.start_consuming()
