@@ -924,8 +924,8 @@ class DatabaseMethods(object):
                 logging.debug("psycopg2.Error occurred while trying to update posts:")
                 logging.debug(str(e))
                 raise e
-
-        self.disconnect()
+            finally:
+                self.disconnect()
 
 
     def null_post_test_prefilled_record(self):
