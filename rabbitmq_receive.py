@@ -68,6 +68,7 @@ def user_rated_by_stars_callback(ch, method, properties, body):
     if body.decode():
         if not is_init_or_test(body.decode()):
             try:
+
                 logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
                 method = 'svd'
                 call_collaborative_prefillers(method, body)
