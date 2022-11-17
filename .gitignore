@@ -186,3 +186,4 @@ database/db_backups/local_dumps/db_preliminary.sql
 /database/db_backups/production_dumps/
 
 models/for_hybrid/
+/research/user_based/output_files/
