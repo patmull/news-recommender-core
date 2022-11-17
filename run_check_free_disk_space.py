@@ -52,7 +52,7 @@ def check_free_space_job():
 def main():
     check_free_space_job()  # for testing purposes (immidiately triggers the method)
 
-    schedule.every(5).minutes.do(check_free_space_job)
+    schedule.every(30).minutes.do(check_free_space_job)
 
     while 1:
         schedule.run_pending()
