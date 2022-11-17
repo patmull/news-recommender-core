@@ -201,6 +201,7 @@ class TfIdf:
         cosine_sim_df = pd.DataFrame(cosine_sim, index=self.df['slug_x'], columns=self.df['slug_x'])
         self.cosine_sim_df = cosine_sim_df
 
+    @PendingDeprecationWarning
     def prepare_dataframes(self):
         recommender_methods = RecommenderMethods()
         recommender_methods.get_posts_categories_dataframe()

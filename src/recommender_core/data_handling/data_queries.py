@@ -224,17 +224,16 @@ class RecommenderMethods:
 
         return self.posts_df
 
+    # noinspection PyShadowingNames
+    def update_cache(self):
+        logging.debug("Inserting file to cache in the background...")
+        self.database.insert_posts_dataframe_to_cache()
+
     def get_df_from_sql_meanwhile_insert_to_cache(self):
-
-        # noinspection PyShadowingNames
-        def update_cache(self):
-            logging.debug("Inserting file to cache in the background...")
-            self.database.insert_posts_dataframe_to_cache()
-
         logging.debug("Posts not found on cache. Will use PgSQL command.")
         posts_df = self.database.get_posts_dataframe_from_sql()
-        thread = Thread(target=update_cache, kwargs={'self': self})
-        thread.start()
+        # ** HERE WAS A THREADING OF INSERTING SQL TO DB. ABANDONED DUE TO POSSIBLE DB CONNECTION LEAK *
+        self.update_cache()
         return posts_df
 
     def get_ratings_dataframe(self):
@@ -290,65 +289,6 @@ class RecommenderMethods:
             ['id', 'value', 'user_id', 'post_id',
              'created_at']]
         return results_df_
-
-    # noinspection DuplicatedCode
-    def join_posts_ratings_categories(self, full_text=True, include_prefilled=False):
-
-        self.posts_df = self.get_posts_dataframe()
-        print("4.1")
-        self.get_categories_dataframe()
-        print("4.2")
-        print(self.posts_df.columns)
-        self.posts_df = self.posts_df.rename(columns={'title': 'post_title', 'slug': 'post_slug'})
-        self.categories_df = self.categories_df.rename(columns={'title': 'category_title'})
-
-        if include_prefilled is False:
-            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-            # clean up from unnecessary columns
-        else:
-            self.df = self.posts_df.merge(self.categories_df, left_on='category_id', right_on='id')
-            # clean up from unnecessary columns
-            try:
-                self.df = self.df[
-                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
-                     'description',
-                     'all_features_preprocessed', 'body_preprocessed',
-                     'recommended_tfidf_full_text', 'trigrams_full_text']]
-            except KeyError:
-                self.df = self.database.insert_posts_dataframe_to_cache()
-                self.posts_df = self.posts_df.drop_duplicates(subset=['title'])
-                print(self.df.columns.values)
-                self.df = self.df[
-                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
-                     'description', 'all_features_preprocessed', 'body_preprocessed',
-                     'recommended_tfidf_full_text', 'trigrams_full_text']]
-        print("4.3")
-        print(self.df.columns)
-
-        if full_text is True:
-            try:
-                self.df = self.df[
-                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
-                     'description',
-                     'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text',
-                     'trigrams_full_text']]
-            except KeyError as key_error:
-                self.df = self.get_df_from_sql_meanwhile_insert_to_cache()
-                print(key_error)
-                print("Columns of self.df:")
-                print(self.df.columns)
-                self.df = self.df.rename(columns={'slug_x': 'post_slug'})
-                self.df = self.df[
-                    ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
-                     'description',
-                     'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'full_text',
-                     'trigrams_full_text']]
-        else:
-            self.df = self.df[
-                ['post_id', 'post_title', 'post_slug', 'excerpt', 'body', 'views', 'keywords', 'category_title',
-                 'description',
-                 'all_features_preprocessed', 'body_preprocessed', 'doc2vec_representation', 'trigrams_full_text']]
-        return self.df
 
     def find_post_by_slug(self, searched_slug, from_cache=True):
         if type(searched_slug) is not str:
@@ -522,8 +462,11 @@ class RecommenderMethods:
         return df_users
 
     def get_user_read_history(self, user_id):
+        N = 3
+
         self.database.connect()
         df_user_read_history = self.database.get_user_history(user_id=user_id)
+        df_user_read_history = df_user_read_history.head(N)
         self.database.disconnect()
         return df_user_read_history
 
@@ -557,6 +500,12 @@ class RecommenderMethods:
                                                                        user_id=user_id, db=db, method=method)
             database_heroku_testing.disconnect()
 
+        elif db == "redis":
+            self.database.insert_recommended_json_user_based(recommended_json=recommended_json,
+                                                             user_id=user_id, db=db, method=method)
+        else:
+            NotImplementedError("Given method not implemented for storing user methods.")
+
     def remove_test_user_prefilled_records(self, user_id, db_columns):
         self.database = DatabaseMethods()
         self.database.connect()
@@ -573,8 +522,10 @@ class RecommenderMethods:
     def get_not_preprocessed_posts_all_features_column_and_body_preprocessed(self):
         self.database = DatabaseMethods()
         self.database.connect()
-        posts_without_all_features_preprocessed = self.database.get_posts_with_no_features_preprocessed(method='all_features_preprocessed')
-        posts_without_body_preprocessed = self.database.get_posts_with_no_features_preprocessed(method='body_preprocessed')
+        posts_without_all_features_preprocessed = self.database.get_posts_with_no_features_preprocessed(
+            method='all_features_preprocessed')
+        posts_without_body_preprocessed = self.database.get_posts_with_no_features_preprocessed(
+            method='body_preprocessed')
         self.database.disconnect()
         posts = list(set(posts_without_all_features_preprocessed + posts_without_body_preprocessed))
         return posts

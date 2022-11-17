@@ -1,5 +1,6 @@
 import logging
 import os
+import traceback
 
 from mail_sender import send_error_email
 from src.messaging.consume_queue import consume_queue
@@ -17,4 +18,4 @@ if __name__ == '__main__':
         consume_queue('user-categories-updated-queue')
     except Exception as e:
         logging.warning(e)
-        send_error_email(str(e))
+        send_error_email(traceback.format_exc())
