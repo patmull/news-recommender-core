@@ -18,7 +18,7 @@ def run_prefilling_collaborative(methods=None, user_id=None, test_run=False):
     # while True: # this can force of run no matter what
     try:
         for method in methods:
-            print("Calling prefilling job user based...")
+            print("Calling prefilling check_free_space_job user based...")
             user_based = UserBased()
             user_based.prefilling_job_user_based(method=method, db="pgsql", user_id=user_id, test_run=test_run,
                                                  skip_already_filled=False)

@@ -1,3 +1,4 @@
+import os
 import pickle
 from pathlib import Path
 import joblib
@@ -6,7 +7,7 @@ from sklearn.model_selection import train_test_split
 import spacy_sentence_bert
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, precision_score, balanced_accuracy_score, confusion_matrix
 
 from src.constants.naming import Naming
 from src.presentation.data_logging import log_dataframe_info
@@ -50,9 +51,11 @@ def show_true_vs_predicted(features_list, contexts_list, clf, bert_model):
 
 
 def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, user_id,
-                         save_testing_csv=False, bert_model=None, col_to_combine=None, testing_mode=False):
+                         save_testing_csv=False, bert_model=None, col_to_combine=None, testing_mode=False,
+                         store_to_redis=True):
     """
 
+    @param store_to_redis:
     @param X_unseen_df:
     @param clf:
     @param predicted_var_for_redis_key_name:
@@ -121,33 +124,35 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
         # noinspection PyTypeChecker
         df_results.head(20).to_csv('research/user_based/testing_hybrid_classifier_df_results.csv')
 
-    if user_id is not None:
-        r = get_redis_connection()
-        user_redis_key = 'user' + Naming.REDIS_DELIMITER + str(user_id) + Naming.REDIS_DELIMITER \
-                         + 'post-classifier-by-' + predicted_var_for_redis_key_name
-        # remove old records
-        r.delete(user_redis_key)
-        logging.debug("iteration through records:")
-        i = 0
-        # fetch Redis set with a new set of recommended posts
-        for row in zip(*df_results.to_dict("list").values()):
-            slug = "" + row[3] + ""
-            logging.info("-------------------")
-            logging.info("Predicted rating for slug | " + slug + ":")
+    if store_to_redis:
 
-            logging.debug("row[5]:")
-            logging.info(row[5])
-            if row[5] is not None:
-                # If predicted rating is == 1 (= relevant)
-                if int(row[5]) >= threshold:
-                    # Saving individually to set
-                    logging.info("Adding REDIS KEY")
-                    r.sadd(user_redis_key, slug)
-                    logging.info("Inserted record num. " + str(i))
-                    i = i + 1
-            else:
-                logging.warning("No predicted values found. Skipping this record.")
-                pass
+        if user_id is not None:
+            r = get_redis_connection()
+            user_redis_key = 'user' + Naming.REDIS_DELIMITER + str(user_id) + Naming.REDIS_DELIMITER \
+                             + 'post-classifier-by-' + predicted_var_for_redis_key_name
+            # remove old records
+            r.delete(user_redis_key)
+            logging.debug("iteration through records:")
+            i = 0
+            # fetch Redis set with a new set of recommended posts
+            for row in zip(*df_results.to_dict("list").values()):
+                slug = "" + row[3] + ""
+                logging.info("-------------------")
+                logging.info("Predicted rating for slug | " + slug + ":")
+
+                logging.debug("row[5]:")
+                logging.info(row[5])
+                if row[5] is not None:
+                    # If predicted rating is == 1 (= relevant)
+                    if int(row[5]) >= threshold:
+                        # Saving individually to set
+                        logging.info("Adding REDIS KEY")
+                        r.sadd(user_redis_key, slug)
+                        logging.info("Inserted record num. " + str(i))
+                        i = i + 1
+                else:
+                    logging.warning("No predicted values found. Skipping this record.")
+                    pass
 
 
 # noinspection PyPep8Naming
@@ -243,7 +248,21 @@ class Classifier:
             logging.warning(e)
             raise e
         logging.info("SVC results accuracy score:")
-        print(accuracy_score(y_test, y_pred))
+
+        logging.info(accuracy_score(y_test, y_pred))
+        logging.info("PRECISION SCORE:")
+        logging.info(precision_score(y_test, y_pred, average='weighted'))
+        logging.info("BALANCED_ACCURACY:")
+        logging.info(balanced_accuracy_score(y_test, y_pred))
+        logging.info("CONFUSION MATRIX:")
+        logging.info(confusion_matrix(y_test, y_pred))
+        logging.info("PRECISION SCORE:")
+        logging.info(precision_score(y_test, y_pred, average=None))
+
+        path_to_eval_results_file = Path("research/hybrid/classifier_eval_results.txt")
+
+        self.save_eval_results(path_to_eval_results_file, user_id=user_id, method="SVC", y_test=y_test,
+                               y_pred=y_pred)
 
         logging.info("Training using RandomForest method...")
         clf_random_forest = RandomForestClassifier(max_depth=9, random_state=0)
@@ -251,6 +270,9 @@ class Classifier:
         y_pred = clf_random_forest.predict(X_test)
         logging.info("Random Forest Classifier accuracy score:")
         logging.info(accuracy_score(y_test, y_pred))
+
+        self.save_eval_results(path_to_eval_results_file, user_id=user_id, method="Random Forrest", y_test=y_test,
+                               y_pred=y_pred)
 
         logging.info("Saving the SVC model...")
         if user_id is not None:
@@ -360,7 +382,8 @@ class Classifier:
 
     def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
                                    experiment_mode=False, only_with_prefilled_bert_vectors=False, bert_model=None,
-                                   latest_posts=True, save_df_posts_users_categories_relevance=False):
+                                   latest_posts=True, save_df_posts_users_categories_relevance=False,
+                                   store_to_redis=True):
         if only_with_prefilled_bert_vectors is False:
             if bert_model is None:
                 raise ValueError("Loaded BERT model needs to be supplied if only_with_prefilled_bert_vectors parameter"
@@ -502,7 +525,7 @@ class Classifier:
             predict_from_vectors(X_unseen_df=X_unseen, clf=clf_svc, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,
-                                 save_testing_csv=True)
+                                 save_testing_csv=True, store_to_redis=store_to_redis)
 
             logging.debug("=========================")
             logging.debug("Inserting by Random Forest:")
@@ -510,4 +533,62 @@ class Classifier:
             predict_from_vectors(X_unseen_df=X_unseen, clf=clf_random_forest, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,
-                                 save_testing_csv=True)
+                                 save_testing_csv=True, store_to_redis=store_to_redis)
+
+
+    def save_eval_results(self, file, user_id, method, y_test, y_pred, to_txt=True, to_csv=True):
+
+        if to_txt:
+            with open(file, 'a') as f:
+                f.write("==========================\n")
+                f.write("MODEL %s.\n" % method)
+                f.write("===========================\n")
+                f.write("===========================\n")
+                f.write("==============\n")
+                f.write("USER ID:\n")
+                f.write(str(user_id))
+                f.write("==================\n")
+                f.write("ACCURACY SCORE:\n")
+                f.write(str(accuracy_score(y_test, y_pred)))
+                f.write("PRECISION SCORE:\n")
+                f.write(str(precision_score(y_test, y_pred, average='weighted')))
+                f.write("BALANCED_ACCURACY:\n")
+                f.write(str(balanced_accuracy_score(y_test, y_pred)))
+                f.write("CONFUSION MATRIX:\n")
+                f.write(str(confusion_matrix(y_test, y_pred)))
+                f.write("PRECISION SCORE:\n")
+                f.write(str(precision_score(y_test, y_pred, average=None)))
+
+        if to_csv:
+            user_id_list = []
+            accuracy_score_list = []
+            precision_score_weighted = []
+            balanced_accuracy_score_list = []
+            precision_score_list = []
+            method_list = []
+            y_test_list = []
+            y_pred_list = []
+
+            user_id_list.append(user_id)
+            accuracy_score_list.append(accuracy_score(y_test, y_pred))
+            precision_score_weighted.append(precision_score(y_test, y_pred, average='weighted'))
+            balanced_accuracy_score_list.append(balanced_accuracy_score(y_test, y_pred))
+            precision_score_list.append(precision_score(y_test, y_pred, average=None))
+            y_test_list.append(len(y_test))
+            y_pred_list.append(len(y_pred))
+
+            method_list.append(method)
+
+            df = pd.DataFrame({
+                'user_id': user_id_list,
+                'accuracy_score': accuracy_score_list,
+                'precision_score_weighted': precision_score_weighted,
+                'balanced_accuracy_score': balanced_accuracy_score_list,
+                'precision_score': precision_score_list,
+                'y_test': len(y_test_list),
+                'y_pred': len(y_pred_list),
+                'method': method_list
+            })
+
+            output_file = Path("research/hybrid/classifier_eval_results.csv")
+            df.to_csv(output_file.as_posix(), mode='a', header=not os.path.exists(output_file))
