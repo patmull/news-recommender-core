@@ -1,4 +1,6 @@
+import logging
 import math
+import os
 import re
 import shutil
 import time
@@ -7,6 +9,14 @@ import schedule
 import mail_sender
 
 ALERT_LIMIT_MB = 200
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from " + os.path.basename(__file__))
 
 
 def convert_size(size_bytes):
@@ -20,13 +30,11 @@ def convert_size(size_bytes):
 
 
 def disk_space_is_over_limit(free):
-    print(free)
     free_space = convert_size(free)
-    print(free_space)
     if 'MB' in free_space:
         size = re.sub('[^\d|\.]', '', free_space)
-        print("After conversion:")
-        print(size)
+        logging.warning("Free disk space exceeded.")
+        logging.warning(free_space)
         if ALERT_LIMIT_MB < float(size):
             return False
         else:
@@ -36,6 +44,7 @@ def disk_space_is_over_limit(free):
 def check_free_space_job():
     total, used, free = shutil.disk_usage("/")
     if disk_space_is_over_limit(free):
+        logging.info("Sending e-mail.")
         mail_sender.send_error_email("FREE DISK SPACE ON EXCEEDED %s. Please react immediately and free disk space,"
                                      "some functions of the system may not continue otherwise." % ALERT_LIMIT_MB)
 
