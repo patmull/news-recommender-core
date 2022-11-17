@@ -1,5 +1,5 @@
 from unittest.mock import patch
-from check_free_disk_space import disk_space_is_over_limit
+from run_check_free_disk_space import disk_space_is_over_limit
 
 
 def test_disk_space_is_over_limit_ok():
