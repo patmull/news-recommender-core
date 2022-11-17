@@ -9,6 +9,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
 from src.constants.naming import Naming
+from src.presentation.data_logging import log_dataframe_info
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
@@ -99,9 +100,8 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     y_pred_unseen = X_unseen_df \
         .apply(lambda x: clf
                .predict(pickle
-                        .loads(x['bert_vector_representation']))[0]
-    if pd.notnull(x['bert_vector_representation'])
-    else clf.predict(bert_model(' '.join(str(x[col_to_combine]))).vector.reshape(1, -1))[0], axis=1)
+                        .loads(x['bert_vector_representation']))[0] if pd.notnull(x['bert_vector_representation']) else
+    clf.predict(bert_model(' '.join(str(x[col_to_combine]))).vector.reshape(1, -1))[0], axis=1)
 
     y_pred_unseen = y_pred_unseen.rename('prediction')
 
@@ -194,14 +194,34 @@ class Classifier:
         # https://metatext.io/models/distilbert-base-multilingual-cased
         df_predicted = get_df_predicted(df, target_variable_name)
 
+        # TODO: Replace NaN columns with title, then replace with emppty string as a last resort. PRIORITY: MEDIUM-LOW
         df = df.fillna('')
 
-        logging.debug("df.columns:")
-        print(df.columns)
+        try:
+            df['combined'] = df[columns_to_combine].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+        except IndexError as ie:
+            logging.debug(df.columns)
+            logging.warning("Index error had occurred.")
+            logging.warning("In this stage of project deployment, exception will be raised. "
+                            "Please try to fix this issue.")
+            log_dataframe_info(df)
 
-        df['combined'] = df[columns_to_combine].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
-        logging.debug("df['combined']")
-        logging.debug(df['combined'].iloc[0])
+            raise ie
+        # Preventing IndexError error
+        logging.debug('df.columns:')
+        logging.debug(df.columns)
+
+        try:
+            logging.debug("df['combined']")
+            logging.debug(df['combined'].iloc[0])
+        except IndexError as ie:
+            logging.warning("Index error had occurred (even after replacing empty columns with post title).")
+            logging.warning("This is probably caused by empty dataframe.")
+            logging.warning("In this stage of project deployment, exception will be raised. "
+                            "Please try to fix this issue.")
+            log_dataframe_info(df)
+
+            raise ie
         # noinspection PyPep8Naming
         X_train, X_validation, y_train, y_validation = train_test_split(df['combined'].tolist(),
                                                                         df_predicted[target_variable_name]
@@ -301,6 +321,18 @@ class Classifier:
                 logging.warning(ve)
                 raise ve
             clf_svc = joblib.load(path_to_load_svc)
+        except KeyError as ke:
+            logging.warning(ke)
+            logging.warning("Model file was not found in the location, training from the start...")
+            try:
+                self.train_classifiers(df=df, columns_to_combine=input_variables,
+                                       target_variable_name=predicted_variable, user_id=user_id)
+            except ValueError as ve:
+                logging.warning(ve)
+                raise ve
+            clf_svc = joblib.load(path_to_load_svc)
+        except Exception as e:
+            raise e
 
         try:
             logging.warning("Loading Random Forest...")
@@ -311,11 +343,23 @@ class Classifier:
             self.train_classifiers(df=df, columns_to_combine=input_variables,
                                    target_variable_name=predicted_variable, user_id=user_id)
             clf_random_forest = joblib.load(path_to_load_random_forest)
+        except KeyError as ke:
+            logging.warning(ke)
+            logging.warning("Model file was not found in the location, training from the start...")
+            try:
+                self.train_classifiers(df=df, columns_to_combine=input_variables,
+                                       target_variable_name=predicted_variable, user_id=user_id)
+            except ValueError as ve:
+                logging.warning(ve)
+                raise ve
+            clf_svc = joblib.load(path_to_load_svc)
+        except Exception as e:
+            raise e
 
         return clf_svc, clf_random_forest
 
     def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
-                                   experiment_mode=False, only_with_prefilled_bert_vectors=True, bert_model=None,
+                                   experiment_mode=False, only_with_prefilled_bert_vectors=False, bert_model=None,
                                    latest_posts=True, save_df_posts_users_categories_relevance=False):
         if only_with_prefilled_bert_vectors is False:
             if bert_model is None:
@@ -347,6 +391,14 @@ class Classifier:
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_thumbs_df(user_id=user_id,
                                                       only_with_bert_vectors=only_with_prefilled_bert_vectors)
+
+            if len(df_posts_users_categories_relevance.index) == 0:
+                logging.warning("Length of df_posts_users_categories_relevance is 0.")
+                logging.warning("This is probably cause by user not participating in any thumbs rating yet.")
+                logging.warning("Skipping this user.")
+                raise ValueError("df_posts_users_categories_relevance length is 0. User probbaly has not "
+                                 "participated in thumbs rating.")
+
             logging.debug("df_posts_users_categories_relevance:")
             logging.debug(df_posts_users_categories_relevance)
 
@@ -360,6 +412,13 @@ class Classifier:
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_ratings_df(user_id=user_id,
                                                        only_with_bert_vectors=only_with_prefilled_bert_vectors)
+
+            if len(df_posts_users_categories_relevance.index) == 0:
+                logging.warning("Length of df_posts_users_categories_relevance is 0.")
+                logging.warning("This is probably cause by user not participating in any stars rating yet.")
+                logging.warning("Skipping this user.")
+                raise ValueError("df_posts_users_categories_relevance length is 0. User probably has not "
+                                 "participated in stars rating.")
             logging.debug("df_posts_users_categories_relevance:")
             logging.debug(df_posts_users_categories_relevance)
 

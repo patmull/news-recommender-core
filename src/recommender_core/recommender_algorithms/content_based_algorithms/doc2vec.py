@@ -743,10 +743,6 @@ class Doc2VecClass:
         vec2 = d2v_model.infer_vector(second_text.split())
 
         cos_distance = spatial.distance.cosine(vec1, vec2)
-        logging.debug("post_1:")
-        logging.debug(post_1)
-        logging.debug("post_2:")
-        logging.debug(post_2)
         logging.debug("cos_distance:")
         logging.debug(cos_distance)
 

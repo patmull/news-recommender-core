@@ -6,7 +6,6 @@ from tests.testing_methods.random_posts_generator import get_random_post_id
 
 def null_column(column_name, random_post_id):
     database_methods = DatabaseMethods()
-    database_methods.connect()
     database_methods.null_prefilled_record([column_name], random_post_id)
 
 
@@ -58,19 +57,3 @@ def test_fill_keywords():
 
     assert len(not_preprocessed_posts_after) == 0
 
-
-def test_fill_ngrams_for_all_posts():
-    recommender_methods = RecommenderMethods()
-
-    random_post_id = get_random_post_id()
-    not_preprocessed_posts_before = recommender_methods.get_posts_with_no_features_preprocessed('trigrams_full_text')
-    null_column('trigrams_full_text', random_post_id)
-    not_preprocessed_posts_after_nulling = recommender_methods.get_posts_with_no_features_preprocessed('trigrams_full_text')
-    # Because of the 2 random on call on different posts
-    assert len(not_preprocessed_posts_after_nulling) > 0
-
-    prefiller_additional.fill_ngrams_for_all_posts(True, False, True)
-
-    not_preprocessed_posts_after = recommender_methods.get_posts_with_no_features_preprocessed('trigrams_full_text')
-
-    assert len(not_preprocessed_posts_after) == 0
