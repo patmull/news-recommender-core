@@ -286,7 +286,8 @@ class RecommenderMethods:
         print("self.results_df:")
         print(results_df)
         results_df_ = results_df[
-            ['id', 'value', 'user_id', 'post_id',
+            ['id', 'value', 'user_id',
+             'post_id', 'method_section',
              'created_at']]
         return results_df_
 
