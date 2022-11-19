@@ -189,7 +189,6 @@ models/for_hybrid/
 /research/user_based/output_files/
 
 nohup.out
-tests/logs/
 thumbs.out
 stars.out
 categories.out
