@@ -349,8 +349,9 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             svd = SvdClass()
             recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=5)
             svd_posts_to_compare = recommended_by_svd['slug'].to_list()
-
+        
         list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, svd_posts_to_compare)
+
 
         list_of_similarity_results = []
         r = get_redis_connection()
