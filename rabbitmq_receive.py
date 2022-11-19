@@ -103,6 +103,16 @@ def user_rated_by_thumb_callback(ch, method, properties, body):
                 logging.warning(str(e))
                 send_error_email(traceback.format_exc())
 
+def test_callback(ch, method, properties, body):
+    logging.info("[x] Received %r" % body.decode())
+    logging.info("Properties:")
+    logging.info(properties)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+    if body.decode():
+        if not is_init_or_test(body.decode()):
+            logging.debug("Received message from testing queue.")
+            logging.debug("Not doing anything, just consuming this message.")
+
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
 def user_added_keywords(ch, method, properties, body):
@@ -255,6 +265,8 @@ def init_consuming(queue_name):
         called_function = new_post_scrapped_callback
     elif queue_name == 'user-post-thumb_rating-updated-queue':
         called_function = user_rated_by_thumb_callback
+    elif queue_name == 'test-queue':
+        called_function = test_callback
     else:
         raise ValueError('Bad queue_name supplied.')
 

@@ -20,7 +20,7 @@ def main():
     # body_message = f"{user_id: 3118}"
     recommender_methods = RecommenderMethods()
     # recommender_methods.update_cache_of_posts_df()
-    print(run_prefilling_collaborative(methods=["hybrid"], user_id=3134))
+    print(run_prefilling_collaborative(methods=["hybrid"], user_id=3144))
 
 
 if __name__ == "__main__": main()
