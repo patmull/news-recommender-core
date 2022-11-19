@@ -51,6 +51,7 @@ future~=0.18.2
 zipp>=0.5
 joblib
 pandas
+python3-distutils
 spacy-sentence-bert~=0.1.2
 sklearn
 psycopg2-binary==2.9.2
