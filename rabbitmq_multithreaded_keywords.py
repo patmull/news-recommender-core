@@ -41,8 +41,9 @@ def do_work_keywords(connection, channel, delivery_tag, body):
         logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
         method = 'user_keywords'
         call_collaborative_prefillers(method, body)
-        method = 'hybrid'
-        call_collaborative_prefillers(method, body)
+        # Removed to ease up the memory
+        # method = 'hybrid'
+        # call_collaborative_prefillers(method, body)
     except Exception as e:
         logging.warning(str(e))
         raise e
