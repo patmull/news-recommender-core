@@ -171,7 +171,7 @@ class PreFillerAdditional:
             article_title = post[2]
             article_excerpt = post[4]
             article_full_text = post[20]
-            features = article_title + ' ' + article_excerpt + ' ' + article_full_text
+            features = str(article_title or '') + ' ' + str(article_excerpt or '') + ' ' + str(article_full_text or '')
 
             logging.debug("Prefilling body preprocessd in article: " + slug)
 

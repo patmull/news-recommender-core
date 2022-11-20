@@ -17,11 +17,13 @@ jobs:
       DB_RECOMMENDER_TESTING_HOST: ${{secrets.DB_RECOMMENDER_TESTING_HOST}}
       DB_RECOMMENDER_TESTING_NAME: ${{secrets.DB_RECOMMENDER_TESTING_NAME}}
       DB_RECOMMENDER_TESTING_PASSWORD: ${{secrets.DB_RECOMMENDER_TESTING_PASSWORD}}
+      MC_EMAIL_ADDRESS: ${{secrets.MC_EMAIL_ADDRESS}}
+      MC_GMAIL_ACCESS_TOKEN: ${{secrets.MC_GMAIL_ACCESS_TOKEN}}
 
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ['3.8', '3.9', '3.10']
+        python-version: ['3.8', '3.9']
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}

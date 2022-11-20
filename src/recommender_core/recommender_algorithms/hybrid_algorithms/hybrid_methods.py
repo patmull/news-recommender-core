@@ -17,7 +17,7 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf 
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation \
     import SvdClass
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.data_queries import RecommenderMethods, unique_list
 
 LIST_OF_SUPPORTED_METHODS = ['tfidf', 'doc2vec', 'word2vec']
 SIM_MATRIX_OF_ALL_POSTS_PATH = Path('precalc_matrices')
@@ -116,7 +116,8 @@ def select_list_of_posts_for_user(user_id, posts_to_compare):
     list_of_slugs_from_history = df_user_read_history_with_posts['slug'].to_list()
 
     list_of_slugs = posts_to_compare + list_of_slugs_from_history
-    return list_of_slugs, list_of_slugs_from_history
+    list_of_slugs_unique = unique_list(list_of_slugs)
+    return list_of_slugs_unique, list_of_slugs_from_history
 
 
 def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
@@ -349,7 +350,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             svd = SvdClass()
             recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=5)
             svd_posts_to_compare = recommended_by_svd['slug'].to_list()
-
+        
         list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, svd_posts_to_compare)
 
         list_of_similarity_results = []
@@ -357,11 +358,29 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
         for method in list_of_methods:
             if method == "tfidf":
-                constant = r.get('settings:content-based:tfidf:coeff')
+                try:
+                    constant = r.get('settings:content-based:tfidf:coeff')
+                except ConnectionError as ce:
+                    logging.warning(ce)
+                    logging.warning("Getting field number of posts. "
+                                    "This is not getting values from Moje články settings!")
+                    constant = 7.75
             elif method == "doc2vec":
-                constant = r.get('settings:content-based:doc2vec:coeff')
+                try:
+                    constant = r.get('settings:content-based:doc2vec:coeff')
+                except ConnectionError as ce:
+                    logging.warning(ce)
+                    logging.warning("Getting field number of posts. "
+                                    "This is not getting values from Moje články settings!")
+                    constant = 6.75
             elif method == "word2vec":
-                constant = r.get('settings:content-based:word2vec:coeff')
+                try:
+                    constant = r.get('settings:content-based:word2vec:coeff')
+                except ConnectionError as ce:
+                    logging.warning(ce)
+                    logging.warning("Getting field number of posts. "
+                                    "This is not getting values from Moje články settings!")
+                    constant = 8.75
             else:
                 raise ValueError("No from selected options available.")
 

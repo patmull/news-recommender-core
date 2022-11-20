@@ -224,17 +224,16 @@ class RecommenderMethods:
 
         return self.posts_df
 
+    # noinspection PyShadowingNames
+    def update_cache(self):
+        logging.debug("Inserting file to cache in the background...")
+        self.database.insert_posts_dataframe_to_cache()
+
     def get_df_from_sql_meanwhile_insert_to_cache(self):
-
-        # noinspection PyShadowingNames
-        def update_cache(self):
-            logging.debug("Inserting file to cache in the background...")
-            self.database.insert_posts_dataframe_to_cache()
-
         logging.debug("Posts not found on cache. Will use PgSQL command.")
         posts_df = self.database.get_posts_dataframe_from_sql()
-        thread = Thread(target=update_cache, kwargs={'self': self})
-        thread.start()
+        # ** HERE WAS A THREADING OF INSERTING SQL TO DB. ABANDONED DUE TO POSSIBLE DB CONNECTION LEAK *
+        self.update_cache()
         return posts_df
 
     def get_ratings_dataframe(self):
@@ -287,7 +286,8 @@ class RecommenderMethods:
         print("self.results_df:")
         print(results_df)
         results_df_ = results_df[
-            ['id', 'value', 'user_id', 'post_id',
+            ['id', 'value', 'user_id',
+             'post_id', 'method_section',
              'created_at']]
         return results_df_
 
@@ -463,8 +463,11 @@ class RecommenderMethods:
         return df_users
 
     def get_user_read_history(self, user_id):
+        N = 3
+
         self.database.connect()
         df_user_read_history = self.database.get_user_history(user_id=user_id)
+        df_user_read_history = df_user_read_history.head(N)
         self.database.disconnect()
         return df_user_read_history
 
@@ -520,8 +523,10 @@ class RecommenderMethods:
     def get_not_preprocessed_posts_all_features_column_and_body_preprocessed(self):
         self.database = DatabaseMethods()
         self.database.connect()
-        posts_without_all_features_preprocessed = self.database.get_posts_with_no_features_preprocessed(method='all_features_preprocessed')
-        posts_without_body_preprocessed = self.database.get_posts_with_no_features_preprocessed(method='body_preprocessed')
+        posts_without_all_features_preprocessed = self.database.get_posts_with_no_features_preprocessed(
+            method='all_features_preprocessed')
+        posts_without_body_preprocessed = self.database.get_posts_with_no_features_preprocessed(
+            method='body_preprocessed')
         self.database.disconnect()
         posts = list(set(posts_without_all_features_preprocessed + posts_without_body_preprocessed))
         return posts
@@ -740,6 +745,22 @@ class TfIdfDataHandlers:
         # join feature tuples into one matrix
         tuple_of_fitted_matrices = (fit_by_post_title_matrix, fit_by_excerpt_matrix, fit_by_keywords_matrix)
         return tuple_of_fitted_matrices
+
+
+def unique_list(items):
+    """
+    Getting unique values from list supplied. This is one of the fastest implementation,
+    see: https://stackoverflow.com/a/90225/4183655
+    @return:
+    """
+    seen = set()
+    for i in range(len(items) - 1, -1, -1):
+        it = items[i]
+        if it in seen:
+            del items[i]
+        else:
+            seen.add(it)
+    return list(seen)
 
 
 if __name__ == '__main__':
