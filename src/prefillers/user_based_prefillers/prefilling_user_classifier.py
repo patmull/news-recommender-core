@@ -69,6 +69,33 @@ def predict_ratings_for_all_users_store_to_redis():
             pass
 
 
+def retrain_models_for_all_users():
+    user_methods = UserMethods()
+    all_users_df = user_methods.get_users_dataframe()
+    classifier = Classifier()
+    print("Loading BERT multilingual model...")
+    bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
+    for user_row in zip(*all_users_df.to_dict("list").values()):
+        print("user_id:")
+        print(user_row[0])
+        try:
+            classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='thumbs', bert_model=bert,
+                                                  store_to_redis=False, force_retraining=True)
+        except ValueError as ve:
+            print("Value error occurred when trying to get relevant thumbs for user. Skipping "
+                  "this user.")
+            logging.warning(ve)
+            pass
+        try:
+            classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='stars', bert_model=bert,
+                                                  store_to_redis=False, force_retraining=True)
+        except ValueError as ve:
+            print("Value error occurred when trying to get relevant thumbs for user. Skipping "
+                  "this user.")
+            logging.warning(ve)
+            pass
+
+
 def fill_bert_vector_representation(skip_already_filled=True, reversed_order=False, random_order=False, db="pgsql"):
     print("Loading sentence bert multilingual model...")
     bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
@@ -102,7 +129,6 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed_order=Fal
         article_title = post[2]
         article_full_text = post[20]
         current_bert_vector_representation = post[41]
-        # TODO: Category should be there too
 
         print("Prefilling BERT vector reprenentation in article: " + slug)
 
@@ -116,8 +142,7 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed_order=Fal
                     else:
                         raise ValueError("Post has not full text or even title text. Probably defected post."
                                          "Remove from DB.")
-                    bert_vector_representation_of_current_post = pickle\
-                        .dumps(bert_vector_representation_of_current_post)
+                    bert_vector_representation_of_current_post = pickle.dumps(bert_vector_representation_of_current_post)
                     database.connect()
                     database.insert_bert_vector_representation(
                         bert_vector_representation=bert_vector_representation_of_current_post,

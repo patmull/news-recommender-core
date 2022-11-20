@@ -68,6 +68,7 @@ def user_rated_by_stars_callback(ch, method, properties, body):
     if body.decode():
         if not is_init_or_test(body.decode()):
             try:
+
                 logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
                 method = 'svd'
                 call_collaborative_prefillers(method, body)
@@ -101,6 +102,16 @@ def user_rated_by_thumb_callback(ch, method, properties, body):
             except Exception as e:
                 logging.warning(str(e))
                 send_error_email(traceback.format_exc())
+
+def test_callback(ch, method, properties, body):
+    logging.info("[x] Received %r" % body.decode())
+    logging.info("Properties:")
+    logging.info(properties)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+    if body.decode():
+        if not is_init_or_test(body.decode()):
+            logging.debug("Received message from testing queue.")
+            logging.debug("Not doing anything, just consuming this message.")
 
 
 # NOTICE: properties needs to stay here even if PyCharm says it's not used!
@@ -254,6 +265,8 @@ def init_consuming(queue_name):
         called_function = new_post_scrapped_callback
     elif queue_name == 'user-post-thumb_rating-updated-queue':
         called_function = user_rated_by_thumb_callback
+    elif queue_name == 'test-queue':
+        called_function = test_callback
     else:
         raise ValueError('Bad queue_name supplied.')
 

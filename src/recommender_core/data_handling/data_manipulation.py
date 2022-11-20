@@ -336,7 +336,7 @@ class DatabaseMethods(object):
         return df
 
     def get_user_history(self, user_id):
-        sql = """SELECT * FROM user_histories WHERE user_id = %(user_id)s"""
+        sql = """SELECT * FROM user_histories WHERE user_id = %(user_id)s ORDER BY created_at DESC;"""
         df = pd.read_sql_query(sql, self.get_cnx(), params={'user_id': user_id})
         return df
 
@@ -924,8 +924,8 @@ class DatabaseMethods(object):
                 logging.debug("psycopg2.Error occurred while trying to update posts:")
                 logging.debug(str(e))
                 raise e
-
-        self.disconnect()
+            finally:
+                self.disconnect()
 
 
     def null_post_test_prefilled_record(self):

@@ -6,7 +6,6 @@ from tests.testing_methods.random_posts_generator import get_random_post_id
 
 def null_column(column_name, random_post_id):
     database_methods = DatabaseMethods()
-    database_methods.connect()
     database_methods.null_prefilled_record([column_name], random_post_id)
 
 
