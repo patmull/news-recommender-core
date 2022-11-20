@@ -760,7 +760,7 @@ def unique_list(items):
             del items[i]
         else:
             seen.add(it)
-    return seen
+    return list(seen)
 
 
 if __name__ == '__main__':
