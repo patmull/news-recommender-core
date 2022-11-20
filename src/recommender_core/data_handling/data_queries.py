@@ -747,5 +747,21 @@ class TfIdfDataHandlers:
         return tuple_of_fitted_matrices
 
 
+def unique_list(items):
+    """
+    Getting unique values from list supplied. This is one of the fastest implementation,
+    see: https://stackoverflow.com/a/90225/4183655
+    @return:
+    """
+    seen = set()
+    for i in range(len(items) - 1, -1, -1):
+        it = items[i]
+        if it in seen:
+            del items[i]
+        else:
+            seen.add(it)
+    return seen
+
+
 if __name__ == '__main__':
     logging.debug("Testing logging from data_queries module.")
