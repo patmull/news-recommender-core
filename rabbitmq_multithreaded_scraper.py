@@ -10,6 +10,7 @@ import time
 from mail_sender import send_error_email
 from rabbitmq_receive import is_init_or_test, call_collaborative_prefillers
 from src.messaging.init_channels import ChannelConstants
+from src.prefillers.prefilling_all import run_prefilling
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -30,7 +31,7 @@ def ack_message(channel, delivery_tag):
         pass
 
 
-def do_work_categories(connection, channel, delivery_tag, body):
+def do_work_scraped(connection, channel, delivery_tag, body):
     thread_id = threading.get_ident()
     fmt1 = 'Thread id: {} Delivery tag: {} Message body: {}'
     LOGGER.info(fmt1.format(thread_id, delivery_tag, body))
@@ -39,11 +40,7 @@ def do_work_categories(connection, channel, delivery_tag, body):
     try:
         # User classifier update
         logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
-        method = 'best_rated_by_others_in_user_categories'
-        call_collaborative_prefillers(method, body)
-        # Removed to ease up the memory
-        # method = 'hybrid'
-        # call_collaborative_prefillers(method, body)
+        run_prefilling(skip_cache_refresh=False)
     except Exception as e:
         logging.warning(str(e))
         raise e
@@ -51,7 +48,6 @@ def do_work_categories(connection, channel, delivery_tag, body):
 
     cb = functools.partial(ack_message, channel, delivery_tag)
     connection.add_callback_threadsafe(cb)
-
 
 def on_message(channel, method_frame, header_frame, body, args):
     logging.info("[x] Received %r" % body.decode())
@@ -64,7 +60,7 @@ def on_message(channel, method_frame, header_frame, body, args):
 
             (connection, threads) = args
             delivery_tag = method_frame.delivery_tag
-            t = threading.Thread(target=do_work_categories, args=(connection, channel, delivery_tag, body))
+            t = threading.Thread(target=do_work_scraped, args=(connection, channel, delivery_tag, body))
             t.start()
             threads.append(t)
 
@@ -91,14 +87,15 @@ connection_params = pika.ConnectionParameters(
 
 connection = pika.BlockingConnection(connection_params)
 
-queue_name = 'user-categories-updated-queue'
-routing_key = 'user.categories.event.updated'
+queue_name = 'post-features-updated-queue'
+routing_key = 'post.features.event.updated'
 
 channel = connection.channel()
-channel.exchange_declare(exchange='user', exchange_type="direct", passive=False, durable=True, auto_delete=False)
+channel.exchange_declare(exchange='posts', exchange_type="direct", passive=False, durable=True, auto_delete=False)
 channel.queue_declare(queue=queue_name, auto_delete=False, durable=True)
-channel.queue_bind(queue=queue_name, exchange='user',
+channel.queue_bind(queue=queue_name, exchange='posts',
                    routing_key=routing_key)
+
 # Note: prefetch is set to 1 here as an example only and to keep the number of threads created
 # to a reasonable amount. In production you will want to test with different prefetch values
 # to find which one provides the best performance and usability for your solution
