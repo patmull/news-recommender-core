@@ -155,8 +155,9 @@ def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
 
 
 def drop_columns_from_similarity_matrix(similarity_matrix, posts_to_compare, list_of_slugs_from_history):
-    similarity_matrix = similarity_matrix.drop(columns=posts_to_compare)
-    similarity_matrix = similarity_matrix.drop(list_of_slugs_from_history)
+    # NOTICE: Ignore needs to be here, since new elimination of computing already seen articles
+    similarity_matrix = similarity_matrix.drop(columns=posts_to_compare, errors='ignore')
+    similarity_matrix = similarity_matrix.drop(list_of_slugs_from_history, errors='ignore')
     return similarity_matrix
 
 
