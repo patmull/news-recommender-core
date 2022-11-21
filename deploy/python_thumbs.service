@@ -1,6 +1,5 @@
 [Unit]
 Description=Python Thumbs Service
-After=network.target
 
 [Service]
 EnvironmentFile=/home/muller/Dokumenty/Codes/moje-clanky-api/.env
