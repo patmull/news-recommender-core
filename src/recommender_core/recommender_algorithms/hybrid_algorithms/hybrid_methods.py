@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from gensim.models import KeyedVectors
 
+from src.presentation.data_logging import log_dataframe_info
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection, RedisConstants
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -107,6 +108,8 @@ def select_list_of_posts_for_user(user_id, posts_to_compare):
     list
         a list of slugs from user reading history
     """
+    N_SVD = 5
+
     if type(posts_to_compare) is not list:
         raise ValueError("'svd_posts_to_compare' parameter must be a list!")
 
@@ -115,9 +118,30 @@ def select_list_of_posts_for_user(user_id, posts_to_compare):
 
     list_of_slugs_from_history = df_user_read_history_with_posts['slug'].to_list()
 
+    # TODO: Filter-out the thumbs-down rated articles and (already seen articles ???)
+    posts_to_compare = filter_thumbs_down_articles(posts_to_compare, list_of_slugs_from_history, user_id)
+
     list_of_slugs = posts_to_compare + list_of_slugs_from_history
     list_of_slugs_unique = unique_list(list_of_slugs)
+
+    # Getting 5 posts from SVD
+    list_of_slugs_unique = list_of_slugs_unique[:N_SVD]
+
     return list_of_slugs_unique, list_of_slugs_from_history
+
+
+def filter_thumbs_down_articles(posts_to_compare, posts_from_history, user_id):
+    recommender_methods = RecommenderMethods()
+    thumbs_df = recommender_methods.get_posts_users_categories_thumbs_df(only_with_bert_vectors=False)
+    thumbs_df = thumbs_df.loc[thumbs_df['user_id'] == user_id]
+    svd_thumbs_df = thumbs_df.loc[thumbs_df['post_slug'].isin(posts_to_compare)]
+    svd_thumbs_down_df = svd_thumbs_df.loc[svd_thumbs_df.thumbs_values == False]
+    svd_thumbs_down_list = svd_thumbs_down_df['post_slug'].tolist()
+
+    list_of_posts_to_filter_out = svd_thumbs_down_list + posts_from_history
+    list_of_svd_filtered_slugs = set(posts_to_compare) - set(list_of_posts_to_filter_out)
+
+    return list(list_of_svd_filtered_slugs)
 
 
 def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
@@ -131,8 +155,9 @@ def convert_similarity_matrix_to_results_dataframe(similarity_matrix):
 
 
 def drop_columns_from_similarity_matrix(similarity_matrix, posts_to_compare, list_of_slugs_from_history):
-    similarity_matrix = similarity_matrix.drop(columns=posts_to_compare)
-    similarity_matrix = similarity_matrix.drop(list_of_slugs_from_history)
+    # NOTICE: Ignore needs to be here, since new elimination of computing already seen articles
+    similarity_matrix = similarity_matrix.drop(columns=posts_to_compare, errors='ignore')
+    similarity_matrix = similarity_matrix.drop(list_of_slugs_from_history, errors='ignore')
     return similarity_matrix
 
 
@@ -348,7 +373,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             raise NotImplementedError("Inserted methods must correspond to DB columns.")
         if svd_posts_to_compare is None:
             svd = SvdClass()
-            recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=5)
+            recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=20)
             svd_posts_to_compare = recommended_by_svd['slug'].to_list()
         
         list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, svd_posts_to_compare)
