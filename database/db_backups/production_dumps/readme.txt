@@ -1,1 +1,0 @@
-Folder for DB dumps of production DB.

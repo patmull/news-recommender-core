@@ -55,7 +55,7 @@ def on_message(channel, method_frame, header_frame, body, args):
     logging.info("[x] Received %r" % body.decode())
     logging.info("Properties:")
     logging.info(header_frame)
-    # NOTICE: Channel ack cannot be here anymore. Already handled in ack_message
+    # NOTICE: Basic ack should not be here. It is already acknowledged in do_work_ function
     if body.decode():
         if not is_init_or_test(body.decode()):
             logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
