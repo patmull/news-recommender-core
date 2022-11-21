@@ -68,6 +68,10 @@ def on_message(channel, method_frame, header_frame, body, args):
             t.start()
             threads.append(t)
 
+        else:
+            logging.debug("ACK for test message")
+            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+
 
 rabbitmq_user = os.environ.get('RABBITMQ_USER')
 rabbitmq_password = os.environ.get('RABBITMQ_PASSWORD')
