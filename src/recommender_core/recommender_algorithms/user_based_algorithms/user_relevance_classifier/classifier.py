@@ -3,7 +3,7 @@ import pickle
 from pathlib import Path
 import joblib
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 import spacy_sentence_bert
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
@@ -180,7 +180,7 @@ class Classifier:
 
     # TODO: Prepare for test_integration to API
     # TODO: Finish Python <--> PHP communication
-    # TODO: Hyperparameter tuning
+    # TODO: Hyper parameter tuning
 
     def __init__(self):
         self.path_to_models_global_folder = "full_models/hybrid/classifiers/global_models"
@@ -240,13 +240,33 @@ class Classifier:
                                                             .tolist(), test_size=test_size)
 
         logging.info("Training using SVC method...")
-        clf_svc = SVC(gamma='auto')
+
+        # defining parameter range
+        param_grid = {
+            'C': [0.1, 1, 10, 100, 1000],
+            'gamma': [1, 0.1, 0.01, 0.001, 0.0001],
+            'kernel': ['rbf']
+        }
+
+        grid = GridSearchCV(SVC(gamma='auto'), param_grid, refit=True, verbose=3)
+
         try:
-            clf_svc.fit(X_train, y_train)
-            y_pred = clf_svc.predict(X_test)
+            grid.fit(X_train, y_train)
+            y_pred = grid.predict(X_test)
         except Exception as e:
             logging.warning(e)
             raise e
+
+        logging.info("================================")
+        logging.info("Hyper parameter tuning results:")
+        logging.info("================================")
+        logging.info("best parameters after tuning:")
+        logging.info(grid.best_params_)
+        logging.info("model after hyper-parameter tuning:")
+        logging.info(grid.best_estimator_)
+
+        clf_svc = grid
+
         logging.info("SVC results accuracy score:")
 
         logging.info(accuracy_score(y_test, y_pred))
@@ -264,11 +284,36 @@ class Classifier:
         self.save_eval_results(path_to_eval_results_file, user_id=user_id, method="SVC", y_test=y_test,
                                y_pred=y_pred)
 
+        param_grid = {
+            "max_depth": [3, None],
+            "max_features": [1, 3, 10],
+            "min_samples_split": [1, 3, 10],
+            "min_samples_leaf": [1, 3, 10],
+            "bootstrap": [True, False],
+            "criterion": ["gini", "entropy"]
+        }
+
         logging.info("Training using RandomForest method...")
-        clf_random_forest = RandomForestClassifier(max_depth=9, random_state=0)
-        clf_random_forest.fit(X_train, y_train)
+        grid = GridSearchCV(RandomForestClassifier(), param_grid, refit=True, verbose=3)
+
+        grid.fit(X_train, y_train)
+        logging.info("best parameters after tuning:")
+        print(grid.best_params_)
+        logging.info("model after hyper-parameter tuning:")
+        print(grid.best_estimator_)
+
+        clf_random_forest = grid
+
         y_pred = clf_random_forest.predict(X_test)
-        logging.info("Random Forest Classifier accuracy score:")
+
+        logging.info("================================")
+        logging.info("Hyper parameter tuning results:")
+        logging.info("================================")
+        logging.info("best parameters after tuning:")
+        logging.info(grid.best_params_)
+        logging.info("model after hyper-parameter tuning:")
+        logging.info(grid.best_estimator_)
+        logging.info("Random Forest classifier accuracy score:")
         logging.info(accuracy_score(y_test, y_pred))
 
         self.save_eval_results(path_to_eval_results_file, user_id=user_id, method="Random Forrest", y_test=y_test,
@@ -292,7 +337,6 @@ class Classifier:
             logging.info("Folder: " + self.path_to_models_global_folder)
             Path(self.path_to_models_global_folder).mkdir(parents=True, exist_ok=True)
             model_file_name = 'svc_classifier_' + target_variable_name + '.pkl'
-            logging.debug("")
             logging.debug(self.path_to_models_global_folder)
             logging.debug(model_file_name)
             path_to_models_pathlib = Path(self.path_to_models_global_folder)
