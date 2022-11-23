@@ -3,13 +3,17 @@ import logging
 import os
 import traceback
 
+import pandas as pd
 import pika
 import threading
 import time
 
 from mail_sender import send_error_email
-from rabbitmq_receive import is_init_or_test, call_collaborative_prefillers
+from rabbitmq_receive import is_init_or_test, call_collaborative_prefillers, decode_msg_body_to_user_id
+from src.constants.naming import Naming
 from src.messaging.init_channels import ChannelConstants
+from src.recommender_core.data_handling.data_manipulation import get_redis_connection
+from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
               '-35s %(lineno) -5d: %(message)s')
@@ -35,12 +39,36 @@ def do_work_thumbs(connection, channel, delivery_tag, body):
     fmt1 = 'Thread id: {} Delivery tag: {} Message body: {}'
     LOGGER.info(fmt1.format(thread_id, delivery_tag, body))
 
+    logging.debug("Getting user info...")
+    received_user_id = decode_msg_body_to_user_id(body)
+    user_methods = UserMethods()
+    user = user_methods.get_user_dataframe(received_user_id)
+
     try:
+        # TODO: If one already prefilled and the other is not, then compute rather the not computed at all rather than updating the existing.
         # User classifier update
-        method = 'classifier'
-        call_collaborative_prefillers(method, body, retrain_classifier=True)
-        method = 'hybrid'
-        call_collaborative_prefillers(method, body)
+
+
+        predicted_var_for_redis_key_name = 'thumbs-rating'
+
+        user_redis_key = 'user' + Naming.REDIS_DELIMITER + str(received_user_id) + Naming.REDIS_DELIMITER \
+                         + 'post-classifier-by-' + predicted_var_for_redis_key_name
+        r = get_redis_connection()
+        if not pd.isnull(user['recommended_by_hybrid'].iloc[0]) and not r.exists(user_redis_key):
+            # recommended_by_hybrid is prefilled and redis key does NOT exists. Compute rather only classifier.
+            method = 'classifier'
+            call_collaborative_prefillers(method, body, retrain_classifier=True)
+
+        elif pd.isnull(user['recommended_by_hybrid'].iloc[0]) and r.exists(user_redis_key):
+            # recommended_by_hybrid is NOT prefilled and redis key does EXISTS. Compute rather only hybrid.
+            method = 'hybrid'
+            call_collaborative_prefillers(method, body)
+        else:
+            # Does not matter. Either does not exists or both exists => then it does not matter which goes first,
+            method = 'classifier'
+            call_collaborative_prefillers(method, body, retrain_classifier=True)
+            method = 'hybrid'
+            call_collaborative_prefillers(method, body)
     except Exception as e:
         logging.warning(str(e))
         raise e
