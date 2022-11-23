@@ -313,7 +313,11 @@ class DatabaseMethods(object):
                     path_to_df = Path("tests/db_cache/cached_posts_dataframe.pkl")
                 else:
                     path_to_df = Path('db_cache/cached_posts_dataframe.pkl')
-                os.remove(path_to_df)
+
+                try:
+                    os.remove(path_to_df)
+                except OSError:
+                    pass
 
             logging.info("Getting posts from SQL.")
             df = self.get_posts_dataframe_from_sql()
