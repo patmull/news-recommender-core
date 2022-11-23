@@ -1,6 +1,7 @@
 # import psycopg2.connector
 import logging
 import os
+import traceback
 from pathlib import Path
 
 import psycopg2
@@ -269,8 +270,7 @@ class DatabaseMethods(object):
                 logging.debug("Cached file path is None. Using default model_save_location.")
                 cached_file_path = "db_cache/cached_posts_dataframe.pkl"
 
-        # Connection needs to stay here, otherwise does not make any sense due to threading of
-        # cache insert
+        logging.debug("Loading posts from SQL for cached file load...")
         self.connect()
         sql = """SELECT * FROM posts ORDER BY id;"""
         # LOAD INTO A DATAFRAME
@@ -287,7 +287,7 @@ class DatabaseMethods(object):
 
         path = Path(cached_file_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-
+        logging.info("Saving DB cache to pickle file...")
         df_for_save.to_pickle(path.as_posix())  # dataframe of posts will be stored in selected directory
         return df
 
@@ -301,9 +301,23 @@ class DatabaseMethods(object):
             df = pd.read_pickle(path_to_df)
             # read from current directory
         except Exception as e:
-            logging.debug("Exception occurred when reading cached file:")
-            logging.debug(e)
-            logging.debug("Getting posts from SQL.")
+            logging.warning("Exception occurred when reading cached file:")
+            logging.warning(e)
+            logging.warning("Full error:")
+            logging.warning((traceback.format_exc()))
+
+            if str(e) == "pickle data was truncated":
+                logging.warning("Catched the truncated pickle error, dealing with this by removing the current"
+                                "cached file...")
+
+                if "PYTEST_CURRENT_TEST" in os.environ:
+                    path_to_df = Path("tests/db_cache/cached_posts_dataframe.pkl")
+                else:
+                    path_to_df = Path('db_cache/cached_posts_dataframe.pkl')
+
+                os.remove(path_to_df)
+
+            logging.info("Getting posts from SQL.")
             df = self.get_posts_dataframe_from_sql()
         return df
 
@@ -927,7 +941,6 @@ class DatabaseMethods(object):
             finally:
                 self.disconnect()
 
-
     def null_post_test_prefilled_record(self):
         posts = self.get_posts_dataframe(from_cache=False)
         random_post = posts.sample()
@@ -998,7 +1011,7 @@ def get_redis_connection():
     if 'REDIS_PASSWORD' in os.environ:
         redis_password = os.environ['REDIS_PASSWORD']
     else:
-        raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
+        raise EnvironmentError("No 'REDIS_PASSWORD' set in environmental variables."
                                "Not possible to connect to Redis.")
 
     return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',

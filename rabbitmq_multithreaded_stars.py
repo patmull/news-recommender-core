@@ -56,7 +56,7 @@ def on_message(channel, method_frame, header_frame, body, args):
     logging.info("[x] Received %r" % body.decode())
     logging.info("Properties:")
     logging.info(header_frame)
-    channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+    # NOTICE: Basic ack should not be here. It is already acknowledged in do_work_ function
     if body.decode():
         if not is_init_or_test(body.decode()):
             logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
@@ -66,6 +66,9 @@ def on_message(channel, method_frame, header_frame, body, args):
             t = threading.Thread(target=do_work_stars, args=(connection, channel, delivery_tag, body))
             t.start()
             threads.append(t)
+        else:
+            logging.debug("ACK for test message")
+            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
 
 rabbitmq_user = os.environ.get('RABBITMQ_USER')
