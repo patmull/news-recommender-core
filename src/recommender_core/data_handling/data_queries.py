@@ -317,10 +317,8 @@ class RecommenderMethods:
         elif 'slug' in categories_df.columns:
             categories_df = categories_df.rename(columns={'slug': 'category_slug'})
         logging.debug("posts_df")
-        logging.debug(posts_df)
         logging.debug(posts_df.columns)
         logging.debug("categories_df")
-        logging.debug(categories_df)
         logging.debug(categories_df.columns)
 
         # To make sure. If database contains by a mistake duplicated rows, this will cause a doubling of a final df rows

@@ -465,6 +465,10 @@ class Classifier:
                 logging.warning("Skipping this user.")
                 raise ValueError("df_posts_users_categories_relevance length is 0. User probbaly has not "
                                  "participated in thumbs rating.")
+            elif len(df_posts_users_categories_relevance.index) < 0:
+                logging.warning("Non sufficient number of examples for calculating the classifier.")
+                logging.warning("Skipping this user.")
+                raise ValueError("User needs to provide at least 10 ratings.")
 
             logging.debug("df_posts_users_categories_relevance:")
             logging.debug(df_posts_users_categories_relevance)
