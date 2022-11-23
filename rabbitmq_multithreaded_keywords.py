@@ -41,8 +41,9 @@ def do_work_keywords(connection, channel, delivery_tag, body):
         logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
         method = 'user_keywords'
         call_collaborative_prefillers(method, body)
-        method = 'hybrid'
-        call_collaborative_prefillers(method, body)
+        # Removed to ease up the memory
+        # method = 'hybrid'
+        # call_collaborative_prefillers(method, body)
     except Exception as e:
         logging.warning(str(e))
         raise e
@@ -56,7 +57,7 @@ def on_message(channel, method_frame, header_frame, body, args):
     logging.info("[x] Received %r" % body.decode())
     logging.info("Properties:")
     logging.info(header_frame)
-    channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+    # NOTICE: Basic ack should not be here. It is already acknowledged in do_work_ function
     if body.decode():
         if not is_init_or_test(body.decode()):
             logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
@@ -66,6 +67,9 @@ def on_message(channel, method_frame, header_frame, body, args):
             t = threading.Thread(target=do_work_keywords, args=(connection, channel, delivery_tag, body))
             t.start()
             threads.append(t)
+        else:
+            logging.debug("ACK for test message")
+            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
 
 rabbitmq_user = os.environ.get('RABBITMQ_USER')
