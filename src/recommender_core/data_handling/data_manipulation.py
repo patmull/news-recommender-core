@@ -1010,7 +1010,7 @@ def get_redis_connection():
     if 'REDIS_PASSWORD' in os.environ:
         redis_password = os.environ['REDIS_PASSWORD']
     else:
-        raise EnvironmentError("No 'REDIS_PASSWORD' set in enviromanetal variables."
+        raise EnvironmentError("No 'REDIS_PASSWORD' set in environmental variables."
                                "Not possible to connect to Redis.")
 
     return redis.StrictRedis(host='redis-13695.c1.eu-west-1-3.ec2.cloud.redislabs.com',
