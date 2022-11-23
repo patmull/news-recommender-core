@@ -804,7 +804,7 @@ class DatabaseMethods(object):
             df_thumbs = df_thumbs.loc[df_thumbs['user_id'] == user_id]
 
         logging.debug("df_thumbs after dropping duplicates")
-        logging.debug(df_thumbs)
+        logging.debug(len(df_thumbs.index))
 
         if df_thumbs.empty:
             logging.debug("Dataframe empty. Current user has no thumbs clicks in DB.")
