@@ -10,7 +10,7 @@ import pandas as pd
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
-TEST_CACHED_PICKLE_PATH = 'tests/testing_files/cached_posts_dataframe_test.pkl'
+TEST_CACHED_PICKLE_PATH = 'tests/db_cache/cached_posts_dataframe.pkl'
 
 
 # pytest.mark.integration
@@ -26,8 +26,12 @@ def test_insert_posts_dataframe_to_cache():
     """
 
 
-@mock.patch('src.recommender_core.data_handling.data_manipulation.pd.read_pickle', side_effect=Exception("pickle data was truncated"))
+@mock.patch('src.recommender_core.data_handling.data_manipulation.pd.read_pickle',
+            side_effect=Exception("pickle data was truncated"))
 def test_get_posts_dataframe_from_cache_unpickling_error(capsys):
+    recommender_methods = RecommenderMethods()
+    recommender_methods.database.insert_posts_dataframe_to_cache(TEST_CACHED_PICKLE_PATH)
+
     database_methods = DatabaseMethods()
     df = database_methods.get_posts_dataframe_from_cache()
     assert isinstance(df, pd.DataFrame)
