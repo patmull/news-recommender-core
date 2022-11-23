@@ -149,7 +149,6 @@ db_cache/cached_posts_dataframe_1.pkl
 models/w2v_model_limited.vectors.npy
 models/w2v_model_limited
 
-/db_cache
 /precalc_vectors
 precalc_vectors
 
@@ -193,3 +192,4 @@ thumbs.out
 stars.out
 categories.out
 keywords.out
+/tests/testing_files/

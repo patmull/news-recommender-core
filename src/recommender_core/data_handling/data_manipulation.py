@@ -309,15 +309,13 @@ class DatabaseMethods(object):
             if str(e) == "pickle data was truncated":
                 logging.warning("Catched the truncated pickle error, dealing with this by removing the current"
                                 "cached file...")
+
                 if "PYTEST_CURRENT_TEST" in os.environ:
                     path_to_df = Path("tests/db_cache/cached_posts_dataframe.pkl")
                 else:
                     path_to_df = Path('db_cache/cached_posts_dataframe.pkl')
 
-                try:
-                    os.remove(path_to_df)
-                except OSError:
-                    pass
+                os.remove(path_to_df)
 
             logging.info("Getting posts from SQL.")
             df = self.get_posts_dataframe_from_sql()
