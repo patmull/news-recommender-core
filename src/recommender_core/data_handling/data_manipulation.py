@@ -939,7 +939,6 @@ class DatabaseMethods(object):
             finally:
                 self.disconnect()
 
-
     def null_post_test_prefilled_record(self):
         posts = self.get_posts_dataframe(from_cache=False)
         random_post = posts.sample()
