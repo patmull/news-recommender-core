@@ -2,6 +2,12 @@ from deep_translator import GoogleTranslator
 
 
 def translate_question_words():
+    """
+    Function used for translating the experimental Questions-Words dataset used in Word2Vec (pre-)evaluation.
+
+    @return:
+    """
+
     texts = []
     already_processed_texts = []
     with open('../word2vec/analogies/questions-words.txt', 'r', encoding="utf-8") as file:

@@ -12,6 +12,13 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.user_rele
 
 
 def user_relevance_asessment():
+    """
+    Statistics coming from relevance votes (thumbs) of users.
+
+    RUN WITH: run_user_eval.py
+    @return:
+    """
+
     user_methods = UserMethods()
     user_id_list = user_methods.get_all_users()['id'].tolist()
     precision_score_weighted_list = []
