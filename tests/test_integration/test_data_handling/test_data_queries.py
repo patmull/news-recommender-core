@@ -8,6 +8,7 @@ import pytest
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection, DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
+from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import HybridMethods
 
 TEST_CACHED_PICKLE_PATH = 'db_cache/cached_posts_dataframe_test.pkl'
 CRITICAL_COLUMNS_POSTS = ['slug', 'all_features_preprocessed', 'body_preprocessed', 'trigrams_full_text']
@@ -132,8 +133,8 @@ def test_get_sql_rows():
 
 def test_get_user_read_history_with_posts():
     test_user_id = 431
-    recommender_methods = RecommenderMethods()
-    user_posts_history = recommender_methods.get_user_read_history_with_posts(test_user_id)
+    hybrid_methods = HybridMethods()
+    user_posts_history = hybrid_methods.get_user_read_history_with_posts(test_user_id)
     assert isinstance(user_posts_history, pandas.DataFrame)
     assert type(len(user_posts_history)) is int
 
