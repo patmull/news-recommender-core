@@ -62,11 +62,11 @@ def do_work_thumbs(connection, channel, delivery_tag, body):
 
         elif pd.isnull(user['recommended_by_hybrid'].iloc[0]) and r.exists(user_redis_key):
             logging.debug("recommended_by_hybrid is NOT prefilled and redis key does EXISTS."
-                          " Compute rather only hybrid.")
+                          "Compute rather only hybrid.")
             method = 'hybrid'
             call_collaborative_prefillers(method, body)
         else:
-            # Does not matter. Either does not exists or both exists => then it does not matter which goes first,
+            # Does not matter. Either does not exists, or both exists => then it does not matter which goes first,
             method = 'classifier'
             call_collaborative_prefillers(method, body, retrain_classifier=True)
             method = 'hybrid'
