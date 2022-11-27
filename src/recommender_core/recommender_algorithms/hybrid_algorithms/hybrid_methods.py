@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 from gensim.models import KeyedVectors
 
-from src.presentation.data_logging import log_dataframe_info
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection, RedisConstants
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -113,8 +112,8 @@ def select_list_of_posts_for_user(user_id, posts_to_compare):
     if type(posts_to_compare) is not list:
         raise ValueError("'svd_posts_to_compare' parameter must be a list!")
 
-    recommender_methods = RecommenderMethods()
-    df_user_read_history_with_posts = recommender_methods.get_user_read_history_with_posts(user_id)
+    hybrid_methods = HybridMethods()
+    df_user_read_history_with_posts = hybrid_methods.get_user_read_history_with_posts(user_id)
 
     list_of_slugs_from_history = df_user_read_history_with_posts['slug'].to_list()
 
@@ -540,3 +539,25 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     logging.debug(hybrid_recommended_json)
 
     return hybrid_recommended_json
+
+
+class HybridMethods:
+
+    def get_user_read_history_with_posts(self, user_id):
+        recommender_methods = RecommenderMethods()
+        user_methods = UserMethods()
+
+        df_user_history = user_methods.get_user_read_history(user_id=user_id, N=3)
+        df_articles = recommender_methods.get_posts_categories_dataframe()
+
+        print("df_user_history")
+        print(df_user_history)
+        print(df_user_history.columns)
+
+        print("df_articles")
+        print(df_articles)
+        print(df_articles.columns)
+
+        df_history_articles = df_user_history.merge(df_articles, on='post_id')
+        print(df_history_articles.columns)
+        return df_history_articles
