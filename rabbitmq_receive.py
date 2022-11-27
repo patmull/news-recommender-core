@@ -184,12 +184,17 @@ def insert_testing_json(received_user_id, method, heroku_testing_db=False):
                                                     method=method)
 
 
+def decode_msg_body_to_user_id(msg_body):
+    received_data = json.loads(msg_body)
+    received_user_id = int(received_data['user_id'])
+    return received_user_id
+
+
 def call_collaborative_prefillers(method, msg_body, retrain_classifier=False):
     logging.debug("I'm calling method for updating of " + method + " prefilled recommendation...")
     try:
         logging.debug("Received JSON")
-        received_data = json.loads(msg_body)
-        received_user_id = int(received_data['user_id'])
+        received_user_id = decode_msg_body_to_user_id(msg_body)
 
         logging.info("Checking whether user is not test user...")
         user_methods = UserMethods()
