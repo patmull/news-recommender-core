@@ -12,4 +12,10 @@ W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES = {
 
 
 def get_cached_posts_file_path():
+    """
+    Global solution for the cached file path and Word2Vec model results in order to avoid refactoring problems and
+    non-modular solutions.
+
+    :return:
+    """
     return Path(CACHED_POSTS_FILE_PATH)

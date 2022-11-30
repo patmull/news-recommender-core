@@ -9,7 +9,7 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, balanced_accuracy_score, confusion_matrix
 
-from src.constants.naming import Naming
+from src.constants.redisnaming import RedisNaming
 from src.presentation.data_logging import log_dataframe_info
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
@@ -71,12 +71,12 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
 
     If this method takes a lot of time, prefill BERT vectors with prefilling function fill_bert_vector_representation().
     """
-    if predicted_var_for_redis_key_name == Naming.PREDICTED_BY_THUMBS_REDIS_KEY_NAME:
+    if predicted_var_for_redis_key_name == RedisNaming.PREDICTED_BY_THUMBS_REDIS_KEY_NAME:
         if testing_mode is False:
             threshold = 1  # binary relevance rating
         else:
             threshold = 0
-    elif predicted_var_for_redis_key_name == Naming.PREDICTED_BY_STARS_REDIS_KEY_NAME:
+    elif predicted_var_for_redis_key_name == RedisNaming.PREDICTED_BY_STARS_REDIS_KEY_NAME:
         if testing_mode is False:
             threshold = 3  # the Likert scale
         else:
@@ -128,7 +128,7 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
 
         if user_id is not None:
             r = get_redis_connection()
-            user_redis_key = 'user' + Naming.REDIS_DELIMITER + str(user_id) + Naming.REDIS_DELIMITER \
+            user_redis_key = 'user' + RedisNaming.REDIS_DELIMITER + str(user_id) + RedisNaming.REDIS_DELIMITER \
                              + 'post-classifier-by-' + predicted_var_for_redis_key_name
             # remove old records
             r.delete(user_redis_key)
@@ -430,7 +430,7 @@ class Classifier:
                     Path('tests/testing_datasets/true_posts_categories_thumbs_data_for_df.csv'))
 
             target_variable_name = 'thumbs_values'
-            predicted_var_for_redis_key_name = Naming.PREDICTED_BY_THUMBS_REDIS_KEY_NAME
+            predicted_var_for_redis_key_name = RedisNaming.PREDICTED_BY_THUMBS_REDIS_KEY_NAME
         elif relevance_by == 'stars':
             df_posts_users_categories_relevance = recommender_methods \
                 .get_posts_users_categories_ratings_df(user_id=user_id,
@@ -450,7 +450,7 @@ class Classifier:
                     Path('tests/testing_datasets/true_posts_categories_stars_data_for_df.csv'))
 
             target_variable_name = 'ratings_values'
-            predicted_var_for_redis_key_name = Naming.PREDICTED_BY_STARS_REDIS_KEY_NAME
+            predicted_var_for_redis_key_name = RedisNaming.PREDICTED_BY_STARS_REDIS_KEY_NAME
         else:
             raise ValueError("No options from allowed relevance options selected.")
 

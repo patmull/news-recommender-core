@@ -7,6 +7,15 @@ from src.recommender_core.data_handling.data_connection import init_rabbitmq
 
 
 def publish_channel(queue, message, routing_key, exchange=''):
+    """
+    Publishing RabbitMQ channels defined in the consume_queue.py module. Use this only when using new RabbitMQ provider.
+
+    :param queue: nomen omen
+    :param message: nomen omen
+    :param routing_key: nomen omen
+    :param exchange: nomen omen
+    :return:
+    """
     rabbit_connection = init_rabbitmq()
     channel = rabbit_connection.channel()
 

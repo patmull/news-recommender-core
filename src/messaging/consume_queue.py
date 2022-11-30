@@ -7,6 +7,12 @@ from rabbitmq_receive import init_consuming, restart_channel
 
 
 def consume_queue(queue_name):
+    """
+    Global RabbitMQ init consuming class which purpose is to not crash the program on Exception.
+
+    :param queue_name:
+    :return:
+    """
     while True:
         try:
             init_consuming(queue_name)

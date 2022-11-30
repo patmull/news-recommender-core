@@ -12,6 +12,15 @@ general_stopwords = load_general_stopwords()
 
 
 def cz_lemma(input_string, json=False):
+    """
+    Czech lemmatization of the words. Uses the Majka morphological dictionary to create the accurate unified
+    representation of the similar Czech words in different inflections and grammatical forms.
+
+    :param input_string: string to lemmatize
+    :param json: specify whether should return JSON or nor since some of the methods may need it. Defaults to False
+
+    :return: list of lemmatized words or JSON of lemmatozed words
+    """
     morph = majka.Majka('morphological_database/majka.w-lt')
 
     morph.flags |= majka.ADD_DIACRITICS  # find word forms with diacritics
@@ -45,8 +54,31 @@ def cz_lemma(input_string, json=False):
 
 
 def preprocess(sentence):
+    """
+    Global way of text preprocessing used for content-based or hybrid methods.
+    All the operations it does currently:
+
+    1. Convert sentence input to string (for making sure it is really string before it starts to use methods
+    that needs strings).
+    2. Convert the input to lower case.
+    3. Replace 'new line' characters and 'return' characters.
+    4. Replace HTML markup.
+    5. Remove leftover punctuation
+    6. Removing references tags, http(s) links.
+    7. Removing numbers (since they usually don't add any value to content-based methods).
+    8. Removing single characters
+    9. Removing any leftovers digits or unwanted characters.
+    10. CZ lemmatization according to Majka morphological dictionary
+    11. Removing the empty string characters that can occur after lemmatization, i.e. if word is not found in dictionary.
+    12. Removing the Czech stopwords
+    13. Remving the general stopwords
+    14. Joining the final text to string
+
+    :param sentence: input string for preprocessing
+
+    :return: preprocessed string
+    """
     # print(sentence)
-    sentence = sentence
     sentence = str(sentence)
     sentence = sentence.lower()
     sentence = sentence.replace('\r\n', ' ')
@@ -89,17 +121,23 @@ def preprocess(sentence):
     return " ".join(edited_words)
 
 
+@PendingDeprecationWarning
 def preprocess_feature(feature_text):
+
     post_excerpt_preprocessed = preprocess(feature_text)
     return post_excerpt_preprocessed
 
 
 class CzPreprocess:
+    # TODO: This can be released as the standalone module.
+    """
+    Czech Preprocessing. This can be used as a standalone module.
+
+    """
 
     def __init__(self):
         self.df = None
         self.categories_df = None
 
-    # pre-worked
-
-    # TODO: Will stemming be supported?
+if __name__ == '__main__':
+    print("CZECH PREPROCESSING MODULE.")

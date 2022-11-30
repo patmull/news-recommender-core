@@ -8,14 +8,20 @@ from sklearn.metrics import average_precision_score, precision_score, balanced_a
     dcg_score, f1_score, jaccard_score, ndcg_score, precision_recall_curve, top_k_accuracy_score
 import seaborn as sns
 
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier import user_evaluation_results
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.user_evaluation_results import \
+    get_admin_evaluation_results_dataframe
 
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 
 def try_statistics():
+    """
+    Experimenting with statistics. This is only playground for trying how statistics methods from Numpy works.
+
+    :return:
+    """
     y_true = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1])
     y_scores = np.array([0.50562590360641, 0.49579480290413, 0.494285851717, 0.48409512639046, 0.48319244384766, 0.47853890061378, 0.47748681902885, 0.47595044970512, 0.47588595747948, 0.47272825241089, 0.46808642148972, 0.46751618385315, 0.46486243605614, 0.46478125452995, 0.46305647492409, 0.46148332953453, 0.45954248309135, 0.45872023701668, 0.45820289850235, 0.45669832825661])
     print("AVERAGE PRECISION:")
@@ -62,7 +68,13 @@ def try_statistics():
 
 
 def model_ap(investigate_by='model_name'):
-    evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
+    """
+    Computing average precision of the given content-based model.
+
+    :param investigate_by:
+    :return:
+    """
+    evaluation_results_df = get_admin_evaluation_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
     list_of_models = []
@@ -88,7 +100,14 @@ def model_ap(investigate_by='model_name'):
 
 
 def model_variant_ap(variant=None):
-    evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
+    """
+    Calculating the model variant's average precision.
+
+    :param variant:
+    :return:
+    """
+
+    evaluation_results_df = get_admin_evaluation_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
 
     if variant is not None:
@@ -120,7 +139,7 @@ def model_variant_ap(variant=None):
 
 def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=False, crop_by_date=False, last_n_by_date=None):
     global list_of_slugs, list_of_created_at
-    evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
+    evaluation_results_df = get_admin_evaluation_results_dataframe()
 
     if crop_by_date:
         if last_n_by_date is not None:
@@ -324,8 +343,12 @@ def plot_confusion_matrix(cm, title):
 
 
 def show_confusion_matrix():
-    print("Please be awware that confusion matrix is only ")
-    evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
+    """
+    Printing confusion matrix of evaluation results
+
+    :return:
+    """
+    evaluation_results_df = get_admin_evaluation_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
     dict_of_model_stats = {}
     list_of_models = []
@@ -377,7 +400,16 @@ def print_model_variant_relevances():
 
 
 def save_model_variant_relevances(crop_by_date=False, last_n_by_date=None):
-    stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=False, crop_by_date=crop_by_date, last_n_by_date=last_n_by_date)
+    """
+    Saves the model variant to unique file with hash added on the suffix.
+
+    :param crop_by_date: Crop the results by date.
+    :param last_n_by_date: Select only the last N rows.
+
+    :return:
+    """
+    stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=False,
+                                       crop_by_date=crop_by_date, last_n_by_date=last_n_by_date)
     print("Means of model's metrics:")
     print(stats.to_string())
     print("Saving CSV with user evaluation results...")
@@ -389,6 +421,13 @@ def save_model_variant_relevances(crop_by_date=False, last_n_by_date=None):
 
 
 def print_model_variant_relevances_for_each_article(save_to_csv=False, crop_by_date=False):
+    """
+    Printing model variants for each article to console.
+
+    :param save_to_csv:
+    :param crop_by_date:
+    :return:
+    """
     stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=True, crop_by_date=crop_by_date)
     print("Means of model's metrics:")
     print(stats.to_string())
@@ -400,10 +439,20 @@ def print_model_variant_relevances_for_each_article(save_to_csv=False, crop_by_d
 
 
 def print_overall_model_relevances():
+    """
+    Method for running the model statistics.
+
+    :return:
+    """
     stats = models_complete_statistics(investigate_by='model_name', save_results_for_every_item=True)
     print("Means of model's metrics:")
     print(stats.to_string())
 
 
 def print_confusion_matrix():
+    """
+    Printing the confusion matrix to console.
+
+    :return:
+    """
     print(show_confusion_matrix())

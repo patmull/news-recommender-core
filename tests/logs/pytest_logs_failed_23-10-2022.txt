@@ -3512,7 +3512,7 @@ Name                                                                            
 src\__init__.py                                                                                                              0      0   100%
 src\constants\__init__.py                                                                                                    0      0   100%
 src\constants\file_paths.py                                                                                                  5      1    80%
-src\constants\naming.py                                                                                                      4      0   100%
+src\constants\redisnaming.py                                                                                                      4      0   100%
 src\custom_exceptions\__init__.py                                                                                            0      0   100%
 src\custom_exceptions\exceptions.py                                                                                          2      0   100%
 src\main.py                                                                                                                  3      3     0%

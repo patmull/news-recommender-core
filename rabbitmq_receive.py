@@ -5,7 +5,7 @@ import traceback
 import pika.exceptions
 
 from mail_sender import send_error_email
-from src.messaging.init_channels import publish_rabbitmq_channel, ChannelConstants
+from src.messaging.init_channels import prepare_publishing_of_rabbitmq_channels, ChannelConstants
 from src.prefillers.prefilling_all import run_prefilling
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.prefillers.user_based_prefillers.prefilling_user_classifier import predict_ratings_for_user_store_to_redis
@@ -274,7 +274,7 @@ def init_consuming(queue_name):
         channel.basic_consume(queue=queue_name, on_message_callback=called_function)
     except pika.exceptions.ChannelClosedByBroker as ie:
         logging.warning(ie)
-        publish_rabbitmq_channel(queue_name)
+        prepare_publishing_of_rabbitmq_channels(queue_name)
         channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
         send_error_email(traceback.format_exc())
 
@@ -282,6 +282,6 @@ def init_consuming(queue_name):
 
 
 def restart_channel(queue_name):
-    publish_rabbitmq_channel(queue_name)
+    prepare_publishing_of_rabbitmq_channels(queue_name)
     channel.basic_consume(queue=queue_name, on_message_callback=user_rated_by_stars_callback)
     channel.start_consuming()

@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 
 class RandomForestRegression:
     """
-    Supporting statistics methods for experimental use.
+    Supporting statistics methods for experimental use. Never used in actual recommender system.
     """
 
     def run(self):

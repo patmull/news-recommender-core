@@ -7,7 +7,10 @@ from sklearn.model_selection import train_test_split, GridSearchCV
 
 
 # TODO: Not finished yet. Not clear how can be useful!
-class RandomForestRegression():
+class RandomForestRegression:
+    """
+    Experimental use of random forest regression for finding optimal hyperparameters.
+    """
 
     def run(self):
 
@@ -71,7 +74,10 @@ class RandomForestRegression():
         print(CV_rfc.best_params_)
 
 
-class Anova():
+class Anova:
+    """
+    Experimental use of random forest regression for finding optimal hyperparameters.
+    """
 
     def __init__(self, dataset):
         if dataset == "brute-force-word2vec":

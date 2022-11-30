@@ -4,6 +4,11 @@ from src.prefillers.prefiller import prefilling_job_content_based
 
 
 def prefill_doc2vec():
+    """
+    Invoking the Doc2Vec prefilling.
+
+    :return:
+    """
     while True:
         try:
             prefilling_job_content_based("doc2vec", full_text=False)

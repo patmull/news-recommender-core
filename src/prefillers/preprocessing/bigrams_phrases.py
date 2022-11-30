@@ -26,8 +26,12 @@ PATH_TO_FROZEN_BIGRAM_MODEL = "full_models/idnes/ngrams/bigrams_phrase_model_fro
 PATH_TO_FROZEN_TRIGRAM_MODEL = "full_models/idnes/ngrams/trigrams_phrase_model_frozen.pkl"
 
 
-def train_phrases_from_mongo_idnes():
+def train_phrases_from_mongo_idnes() -> object:
+    """
+    Training and generating the phrases model file based on corpus textual records stored in MongoDB.
 
+    :rtype: object
+    """
     logging.debug("Building bigrams...")
     # mongo_collection_bigrams.delete_many({})
     logging.debug("Loading stopwords free documents...")
@@ -62,6 +66,13 @@ def train_phrases_from_mongo_idnes():
 
 
 def freeze_existing_phrase_model(path_to_existing_phrases_model=None, path_to_frozen=None):
+    """
+    Converting the existing bigram file to (smaller) freezed variant of the file for better space efficiency.
+
+    :param path_to_existing_phrases_model: defaults to None, if not set, it uses the default bigrams model location
+    :param path_to_frozen:  defaults to None, if not set, it uses the default frozen model location
+    :return:
+    """
     if path_to_existing_phrases_model is None:
         folder = "full_models/idnes/"
         filename = "bigrams.phrases"
@@ -82,6 +93,10 @@ def freeze_existing_phrase_model(path_to_existing_phrases_model=None, path_to_fr
 
 
 class PhrasesCreator:
+    """
+    Class for handling the creation of the phrases n-grams models from the corpus.
+
+    """
 
     def __init__(self):
         logging.debug("Loading phrases doc2vec_model...")
@@ -89,14 +104,26 @@ class PhrasesCreator:
         self.trigram_phrases_model = gensim.models.Phrases.load(PATH_TO_FROZEN_TRIGRAM_MODEL)
 
     def create_bigrams(self, splitted_tokens):
+        """
+        Method for bigrams processing and creation.
+
+        :param splitted_tokens: from provided list of strings, create bigrams
+        :return: splitted text of bigrams
+        """
         bigrams = self.bigram_phrases_model[splitted_tokens]
         bigram_text = ' '.join(bigrams)
         return bigram_text
 
     def create_trigrams(self, splitted_tokens):
+        """
+        Method for processing and creation of trigrams.
+
+        :param splitted_tokens: provided list of strings for the creation of bigrams and trigrams
+        :return: splitted text of trigrams
+        """
 
         # bigram_text = self.bigram_phrases_model[splitted_tokens]
         # bigrams_ = [b for b in self.bigram_phrases_model[splitted_tokens] if b.count(' ') == 1]
         trigrams = self.trigram_phrases_model[self.bigram_phrases_model[splitted_tokens]]
-        bigram_text = ' '.join(trigrams)
-        return bigram_text
+        trigram_text = ' '.join(trigrams)
+        return trigram_text
