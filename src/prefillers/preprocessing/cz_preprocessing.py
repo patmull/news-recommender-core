@@ -139,5 +139,6 @@ class CzPreprocess:
         self.df = None
         self.categories_df = None
 
+
 if __name__ == '__main__':
     print("CZECH PREPROCESSING MODULE.")

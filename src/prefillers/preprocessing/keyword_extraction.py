@@ -24,6 +24,10 @@ def get_cleaned_text(list_text_clean):
 
 
 class SingleDocKeywordExtractor:
+    """
+    Keyword extraction class for content-based methods.
+
+    """
 
     def __init__(self, num_of_keywords=5):
         self.list_text_clean = None
@@ -33,13 +37,30 @@ class SingleDocKeywordExtractor:
         self.num_of_keywords = num_of_keywords
 
     def set_text(self, text_raw):
+        """
+        Setter method for the desired text.
+
+        :param text_raw: string of text to extract keywords from.
+        :return:
+        """
         self.text_raw = text_raw
 
     def clean_text(self):
+        """
+        Handles the transformation of the raw text and performance of the text cleaning operations.
+
+        :return:
+        """
         self.list_text_clean = self.get_cleaned_list_text(self.text_raw)
         self.text_clean = get_cleaned_text(self.list_text_clean)
 
     def get_cleaned_list_text(self, raw_text):
+        """
+        Raw string representation of text preprocessing and conversion to list
+
+        :param raw_text: string representation of desired text to extract keywords from
+        :return: preprocessed list of words
+        """
         self.text_raw = raw_text
         logging.debug("self.text_raw")
         logging.debug(self.text_raw)
@@ -80,14 +101,26 @@ class SingleDocKeywordExtractor:
         logging.debug("Stopwords removal...")
         return list_text_clean
 
-    def get_keywords_multi_rake(self, string_for_extraction):
+    def get_keywords_multi_rake(self, text_for_extraction):
+        """
+        Multi-Rake keywords extractor
+
+        :param text_for_extraction: string for keyword extraction
+        :return: list of extracted keywords
+        """
         rake = Rake(language_code='cs')
 
-        keywords_rake = rake.apply(string_for_extraction)
+        keywords_rake = rake.apply(text_for_extraction)
 
         return keywords_rake[:self.num_of_keywords]
 
     def get_keywords_summa(self, text_for_extraction):
+        """
+        Summa keywords extractor
+
+        :param text_for_extraction: string for keyword extraction
+        :return: list of extracted keywords
+        """
 
         if self.text_clean is not None:
             try:
@@ -100,6 +133,12 @@ class SingleDocKeywordExtractor:
             logging.debug("Variable keywords_extracted empty!")
 
     def get_keywords_yake(self, string_for_extraction):
+        """
+        Yake keywords extractor
+
+        :param text_for_extraction: string for keyword extraction
+        :return: list of extracted keywords
+        """
         keywords_extracted = []
         kw_extractor = KeywordExtractor(lan="cs", n=1, top=self.num_of_keywords)
         if string_for_extraction:
