@@ -1,0 +1,2 @@
+,precision_score,balanced_accuracy_score,dcg_score,dcg_score_at_k,f1_score,jaccard_score,ndcg_score,ndcg_at_k_score,precision_score_weighted,sections_list,N
+0,[0.  0.7],0.5,4.928187867346457,2.063921383215574,0.5764705882352941,0.7,0.8782538293990753,0.6999999999999998,0.48999999999999994,test,20
