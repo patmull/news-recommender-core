@@ -1,15 +1,73 @@
+import datetime
+import logging
+import os
 import traceback
-from user_based_recommendation import UserBasedRecommendation
-from flask import Flask, request
-from flask_restful import Api, Resource
-from content_based_recommendation import TfIdf, Doc2VecClass, Lda, word2vec_embedding, load_models, load_stopwords
-from collaboration_based_recommendation import Svd
 
+from src.constants.file_paths import get_cached_posts_file_path
+from src.prefillers.preprocessing.cz_preprocessing import cz_lemma
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
+from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from src.recommender_core.recommender_algorithms.user_based_algorithms\
+    .collaboration_based_recommendation import SvdClass
+from src.recommender_core.data_handling.data_queries import RecommenderMethods, preprocess_single_post_find_by_slug
+from src.recommender_core.recommender_algorithms\
+    .user_based_algorithms.user_keywords_recommendation import UserBasedMethods
+from flask import Flask, request
+from flask_restful import Resource, Api
+
+
+for handler in logging.root.handlers[:]:
+   logging.root.removeHandler(handler)
+
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging.")
+
+
+
+# TODO: Replace prints with debug logging
+def check_if_cache_exists_and_fresh():
+    if os.path.exists(get_cached_posts_file_path()):
+        today = datetime.datetime.today()
+        modified_date = datetime.datetime.fromtimestamp(os.path.getmtime(get_cached_posts_file_path()))
+        duration = today - modified_date
+        # if file older than 1 day
+        if duration.total_seconds()/(24*60*60) > 1:
+            return False
+        else:
+            recommender_methods = RecommenderMethods()
+            cached_df = recommender_methods.get_posts_dataframe(force_update=False, from_cache=True)
+            sql_columns = recommender_methods.get_sql_columns().tolist()  # tolist() for converting Pandas index to list
+            print("sql_columns:")
+            print(sql_columns)
+            sql_columns.remove('bert_vector_representation')
+            if len(cached_df.columns) == len(sql_columns):
+                # -1 because bert_vector_representation needs to be excluded from cache
+                if set(cached_df.columns) == set(sql_columns):
+                    return True
+            else:
+                return False
+    else:
+        return False
 
 
 def create_app():
-    app = Flask(__name__)
-    return app
+    # initializing files needed for the start of application
+    # checking needed parts...
+
+    if not check_if_cache_exists_and_fresh():
+        print("Posts cache file does not exists, older than 1 day or columns do not match PostgreSQL columns.")
+        print("Creating posts cache file...")
+        recommender_methods = RecommenderMethods()
+        recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
+    print("Crating flask app...")
+    flask_app = Flask(__name__)
+    print("FLASK APP READY TO START!")
+    return flask_app
+
 
 app = create_app()
 api = Api(app)
@@ -19,12 +77,23 @@ api = Api(app)
 def home():
     return '''<h1>Moje články</h1><p>API pro doporučovací algoritmy.</p>'''
 
+# Here was GetPostByLearnToRiank using XGBoost
 
 class GetPostsByOtherPostTfIdf(Resource):
 
     def get(self, param):
         tfidf = TfIdf()
         return tfidf.recommend_posts_by_all_features_preprocessed(param)
+
+    def post(self):
+        return {"data": "Posted"}
+
+
+class GetPostsByOtherPostWord2Vec(Resource):
+
+    def get(self, param):
+        word2vec_class = Word2VecClass()
+        return word2vec_class.get_similar_word2vec(param)
 
     def post(self):
         return {"data": "Posted"}
@@ -55,6 +124,16 @@ class GetPostsByOtherPostTfIdfFullText(Resource):
     def get(self, param):
         tfidf = TfIdf()
         return tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(param)
+
+    def post(self):
+        return {"data": "Posted"}
+
+
+class GetPostsByOtherPostWord2VecFullText(Resource):
+
+    def get(self, param):
+        word2vec_class = Word2VecClass()
+        return word2vec_class.get_similar_word2vec_full_text(param)
 
     def post(self):
         return {"data": "Posted"}
@@ -94,7 +173,7 @@ class GetPostsByKeywords(Resource):
 class GetPostsByOtherUsers(Resource):
 
     def get(self, param1, param2):
-        svd = Svd()
+        svd = SvdClass()
         return svd.run_svd(param1, param2)
 
     def post(self):
@@ -104,8 +183,17 @@ class GetPostsByOtherUsers(Resource):
 class GetPostsByUserPreferences(Resource):
 
     def get(self, param1, param2):
-        user_based_recommendation = UserBasedRecommendation()
-        return user_based_recommendation.load_recommended_posts_for_user(param1, param2)
+        user_based_recommendation = UserBasedMethods()
+        return user_based_recommendation.load_best_rated_by_others_in_user_categories(param1, param2)
+
+    def post(self):
+        return {"data": "Posted"}
+
+
+class GetPostsByLearnToRank(Resource):
+
+    def get(self, param1, param2):
+        return linear_regression(param1, param2)
 
     def post(self):
         return {"data": "Posted"}
@@ -114,18 +202,7 @@ class GetPostsByUserPreferences(Resource):
 class GetWordLemma(Resource):
 
     def get(self, word):
-        tfIdf = TfIdf()
-        return tfIdf.cz_lemma(word,json=True)
-
-    def post(self):
-        return {"data": "Posted"}
-
-
-class GetWordStem(Resource):
-
-    def get(self, word, aggressive):
-        tfIdf = TfIdf()
-        return tfIdf.cz_stem(word, aggressive,json=True)
+        return cz_lemma(word, json=True)
 
     def post(self):
         return {"data": "Posted"}
@@ -134,29 +211,18 @@ class GetWordStem(Resource):
 class Preprocess(Resource):
 
     def get(self, slug):
-        tfIdf = TfIdf()
-        return tfIdf.preprocess_single_post(slug, json=True)
+        return preprocess_single_post_find_by_slug(slug, supplied_json=True)
 
     def post(self):
         return {"data": "Posted"}
 
 
-class PreprocessStemming(Resource):
-
-    def get(self, slug):
-        tfIdf = TfIdf()
-        return tfIdf.preprocess_single_post(slug, json=True, stemming=True)
-
-    def post(self):
-        return {"data": "Posted"}
-
-
-def set_global_exception_handler(app):
+def set_global_exception_handler(flask_app):
     @app.errorhandler(Exception)
-    def unhandled_exception(e):
+    def unhandled_exception():
         response = dict()
         error_message = traceback.format_exc()
-        app.logger.error("Caught Exception: {}".format(error_message)) # or whatever logger you use
+        flask_app.logger.error("Caught Exception: {}".format(error_message))  # or whatever logger you use
         response["errorMessage"] = error_message
         return response, 500
 
@@ -164,16 +230,19 @@ def set_global_exception_handler(app):
 api.add_resource(GetPostsByOtherUsers, "/api/user/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByUserPreferences, "/api/user-preferences/<int:param1>/<int:param2>")
 api.add_resource(GetPostsByKeywords, "/api/user-keywords")
+
+api.add_resource(GetPostsByLearnToRank, "/api/learn-to-rank/<int:param1>/<string:param2>")
+
 api.add_resource(GetWordLemma, "/api/lemma/<string:word>")
-api.add_resource(GetWordStem, "/api/stem/<string:word>/<string:aggressive>")
 api.add_resource(Preprocess, "/api/preprocess/<string:slug>")
-api.add_resource(PreprocessStemming, "/api/preprocess-stemming/<string:slug>")
 
 api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-tfidf/<string:param>")
+api.add_resource(GetPostsByOtherPostWord2Vec, "/api/post-word2vec/<string:param>")
 api.add_resource(GetPostsByOtherPostDoc2Vec, "/api/post-doc2vec/<string:param>")
 api.add_resource(GetPostsByOtherPostLda, "/api/post-lda/<string:param>")
 
 api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<string:param>")
+api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<string:param>")
 
