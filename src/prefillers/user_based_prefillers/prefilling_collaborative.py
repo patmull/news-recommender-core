@@ -7,8 +7,16 @@ default_methods = ['svd', 'user_keywords', 'best_rated_by_others_in_user_categor
 
 
 def run_prefilling_collaborative(methods=None, user_id=None, test_run=False):
-    # db_columns = ['svd, 'user_keywords'] # NOTICE: Needs to correspond with DB column names
-    # db_columns = ['user_keywords']
+    """
+    The main runner for prefilling user recommender articles
+
+    @param methods: list of methods to use, needs to be from the domain of supported methods
+    @param user_id: integer of user ID
+    @param test_run: Set to true if this is test_run so it prevents the actual prefilling of value to database.
+    This is an workaround and also for making sure that the value does not leak into a database.
+    @return:
+    """
+    # ** HERE was a definition of columns. Abandoned for no longer used. **
     if methods is None:
         methods = default_methods
     else:

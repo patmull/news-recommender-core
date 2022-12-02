@@ -54,6 +54,17 @@ def prefill_to_redis_based_on_user_ratings():
 
 
 def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_full_text=None):
+    """
+    Init method of the general prefilling round for the crucial files that needs to be updated before prefilling starts
+    after scrapping the new posts from news site.
+
+    @param skip_cache_refresh: nomen omen
+    @param methods_short_text: list of methods to use for the short text recommendations. If None,
+    "tfidf" and "doc2vec" is used.
+    @param methods_full_text: list of methods to use for the short text recommendations. If None,
+    "tfidf", "word2vec_eval_idnes_3" and "lda" is used.
+    @return:
+    """
     if skip_cache_refresh is False:
         # Cache update
         logging.debug("Refreshing post cache. Inserting recommender posts to cache...")

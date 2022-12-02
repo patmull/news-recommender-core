@@ -56,7 +56,7 @@ class SingleDocKeywordExtractor:
 
     def get_cleaned_list_text(self, raw_text):
         """
-        Raw string representation of text preprocessing and conversion to list
+        Raw string representation of text preprocessing and conversion to list.
 
         :param raw_text: string representation of desired text to extract keywords from
         :return: preprocessed list of words
@@ -103,7 +103,7 @@ class SingleDocKeywordExtractor:
 
     def get_keywords_multi_rake(self, text_for_extraction):
         """
-        Multi-Rake keywords extractor
+        Multi-Rake keywords extractor.
 
         :param text_for_extraction: string for keyword extraction
         :return: list of extracted keywords
@@ -116,7 +116,7 @@ class SingleDocKeywordExtractor:
 
     def get_keywords_summa(self, text_for_extraction):
         """
-        Summa keywords extractor
+        Summa keywords extractor.
 
         :param text_for_extraction: string for keyword extraction
         :return: list of extracted keywords
@@ -134,7 +134,7 @@ class SingleDocKeywordExtractor:
 
     def get_keywords_yake(self, string_for_extraction):
         """
-        Yake keywords extractor
+        Yake keywords extractor.
 
         :param text_for_extraction: string for keyword extraction
         :return: list of extracted keywords
@@ -148,6 +148,13 @@ class SingleDocKeywordExtractor:
         return keywords_extracted
 
     def get_keywords_combine_all_methods(self, string_for_extraction):
+        """
+        Applying all available methods to a given string of text.
+
+        @param string_for_extraction: string to extract keywords from
+        @return: list of keywords combined from supported keyword extractors
+        """
+
         keywords_multi_rake = self.get_keywords_multi_rake(string_for_extraction)
         keywords_summa = self.get_keywords_summa(string_for_extraction)
         keywords_yake = self.get_keywords_yake(string_for_extraction)

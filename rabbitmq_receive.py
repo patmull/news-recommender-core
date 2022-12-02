@@ -45,6 +45,15 @@ def is_init_or_test(decoded_body):
 
 
 def new_post_scrapped_callback(ch, method, properties, body):
+    """
+    Callback fro execution of the methods after the post scrapping is completed.
+
+    @param ch: channel name
+    @param method: used method name
+    @param properties: RabbitMQ properties
+    @param body: AMQP message body. Contains currently either info about testing/init run.
+    @return:
+    """
     logging.info("[x] Received %r" % body.decode())
     ch.basic_ack(delivery_tag=method.delivery_tag)
     if body.decode() == "new_articles_scrapped":

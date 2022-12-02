@@ -20,6 +20,14 @@ logging.debug("Testing logging from data?manipulation.")
 
 
 def predict_ratings_for_user_store_to_redis(user_id, force_retrain=False):
+    """
+    Predictign relevant articles from user base on classifier model (SVC / Random Forrest methods) using BERT
+    multi-lingual model.
+
+    @param user_id:
+    @param force_retrain:
+    @return:
+    """
     classifier = Classifier()
     print("Loading BERT multilingual model...")
     bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')

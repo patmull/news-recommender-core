@@ -45,6 +45,7 @@ logging.debug("Testing logging in prefiller.")
 
 def fill_recommended_collab_based(method, skip_already_filled, user_id=None, test_run=False):
     """
+    The main method for handling prefilling of the user based methods.
 
     @param method: i.e. "svd", "user_keywords" etc.
     @param skip_already_filled:
@@ -155,6 +156,16 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 # TODO: Test this method alone, i.e. removing prefilled record, check logging for positive addition
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
+    """
+    The main method that handles the databse prefilling of the content-based methods.
+
+    @param method: selected string name of methods from the allowed domain of methods
+    @param skip_already_filled: nomen omen
+    @param full_text: boolean of whether to use the full_text variant of the model
+    @param random_order: nomen omen
+    @param reversed_order: nomen omen
+    @return:
+    """
     global fit_by_full_text, fit_by_title, fit_by_all_features_matrix, tf_idf_data_handlers
     docsim_index, dictionary = None, None
     database_methods = DatabaseMethods()
@@ -435,6 +446,17 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
 
 def prefilling_job_content_based(method: str, full_text: bool, random_order=False, reversed_order=True,
                                  test_call=False):
+    """
+    Exception handler class for the content-based methods.
+
+    @param method: see fill_recommended_content_based()
+    @param full_text: nomen omen
+    @param random_order: nomen omen
+    @param reversed_order: nomen omen
+    @param test_call: boolean used in tests in order to test, handles also the potential OperationalError in the tests
+
+    @return:
+    """
 
     while True:
         try:
@@ -452,8 +474,22 @@ def prefilling_job_content_based(method: str, full_text: bool, random_order=Fals
 
 
 class UserBased:
+    """
+    Methods exception handlers of the user based methods.
+
+    """
 
     def prefilling_job_user_based(self, method, db, user_id=None, test_run=False, skip_already_filled=False):
+        """
+        Handles the exception of the user based methods.
+
+        @param method: string name of the method from a given domain
+        @param db: string name of used database
+        @param user_id: integer of user ID, defaults to None
+        @param test_run: boolean of whether is this test_run. This handles the leakage of the value to DB.
+        @param skip_already_filled: nomen omen
+        @return:
+        """
         while True:
             if db == "pgsql":
                 try:
