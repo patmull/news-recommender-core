@@ -119,13 +119,12 @@ def select_list_of_posts_for_user(user_id, posts_to_compare):
 
     list_of_slugs_from_history = df_user_read_history_with_posts['slug'].to_list()
 
-    # TODO: Filter-out the thumbs-down rated articles and (already seen articles ???)
     posts_to_compare = filter_thumbs_down_articles(posts_to_compare, list_of_slugs_from_history, user_id)
 
     list_of_slugs = posts_to_compare + list_of_slugs_from_history
     list_of_slugs_unique = unique_list(list_of_slugs)
 
-    # Getting 5 posts from SVD
+    # Getting N posts from SVD
     list_of_slugs_unique = list_of_slugs_unique[:N_SVD]
 
     return list_of_slugs_unique, list_of_slugs_from_history
@@ -342,6 +341,13 @@ def boost_by_article_freshness(results_df):
 
 
 def boost_by_fuzzy(results_df):
+
+    def get_hours_from_timedelta(created_at):
+        now = pd.to_datetime('now')
+        time_delta = pd.Timedelta(now - created_at)
+        hours = time_delta / np.timedelta64(1, 'h')
+        return hours
+
     def fuzzy_boost_coefficient(coeff_value, boost):
         logging.debug("coeff_value")
         logging.debug(coeff_value)
@@ -353,11 +359,10 @@ def boost_by_fuzzy(results_df):
         return d
 
     # See: hybrid_settings table where it was laid out
-    now = pd.to_datetime('now')
     results_df['coefficient'] = results_df.apply(lambda x:
                                                  fuzzy_boost_coefficient(x['coefficient'],
                                                  inference_simple_mamdani_boosting_coeff(x['coefficient'],
-                                                                                         pd.Timedelta(now - x['post_created_at'], 'h'))), axis=1)
+                                                                                         get_hours_from_timedelta(x['post_created_at']))), axis=1)
     return results_df
 
 
@@ -366,7 +371,10 @@ def mix_methods_by_fuzzy(results_df, method):
     def get_created_at_for_this_post(slug):
         recommender_methods = RecommenderMethods()
         post_found = recommender_methods.find_post_by_slug(slug)
-        return pd.Timedelta(now - post_found['post_created_at'], 'h')
+        now = pd.to_datetime('now')
+        time_delta = pd.Timedelta(now - post_found.iloc[0]['created_at'])
+        hours = time_delta / np.timedelta64(1, 'h')
+        return hours
 
     def fuzzy_boost_coefficient(coeff_value, boost):
         logging.debug("coeff_value")
@@ -378,12 +386,14 @@ def mix_methods_by_fuzzy(results_df, method):
             d = d + boost
         return d
 
+    logging.debug("Method:")
+    logging.debug(method)
     # See: hybrid_settings table where it was laid out
-    now = pd.to_datetime('now')
     coeff_column_name = 'coefficient'
     results_df[coeff_column_name] = results_df.apply(lambda x:
                                                  fuzzy_boost_coefficient(x[coeff_column_name],
-                                                                         inference_simple_mamdani_ensembling_ratio(x[coeff_column_name], get_created_at_for_this_post(x['slug']),
+                                                                         inference_simple_mamdani_ensembling_ratio(x[coeff_column_name],
+                                                                                                                   get_created_at_for_this_post(x['slug']),
                                                                                                                    method)), axis=1)
     return results_df
 
@@ -411,8 +421,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     global hybrid_recommended_json_fuzzy, results_fuzzy
     path_to_save_results = Path('research/hybrid/results_df.pkl')  # Primarily for debugging purposes
 
-
-
     if load_saved_result is False or not os.path.exists(path_to_save_results):
         if type(user_id) is not int:
             raise TypeError("User id muse be an int")
@@ -425,9 +433,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             svd = SvdClass()
             recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=20)
             svd_posts_to_compare = recommended_by_svd['slug'].to_list()
-
-        recommender_methods = RecommenderMethods()
-        posts_df = recommender_methods.get_posts_dataframe()
 
         list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, svd_posts_to_compare)
 
@@ -530,7 +535,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                     # Fuzzy is still waiting for the boosting
 
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
-                    results_fuzzy = mix_methods_by_fuzzy(results_fuzzy, method, posts_df)
+                    results_fuzzy = mix_methods_by_fuzzy(results_fuzzy, method)
             else:
                 raise NotImplementedError("Supplied method not implemented")
 
