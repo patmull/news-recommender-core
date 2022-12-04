@@ -2,7 +2,7 @@ import simpful as sf
 from simpful import FuzzySystem, FuzzySet, Triangular_MF, LinguisticVariable, Trapezoidal_MF
 
 
-def inference_simple_mamdani_boosting_coeff():
+def inference_simple_mamdani_boosting_coeff(similarity, freshness):
     # A simple fuzzy inference system for the Boostingping problem
     # Create a fuzzy system object
     FS = FuzzySystem()
@@ -35,12 +35,14 @@ def inference_simple_mamdani_boosting_coeff():
     FS.add_rules([R1, R2, R3])
 
     # Set antecedents values
-    FS.set_variable("Similarity", 0.6)
-    FS.set_variable("Freshness", 50)
+    FS.set_variable("Similarity", similarity)
+    FS.set_variable("Freshness", freshness)
 
     # Perform Mamdani inference and print output
-    # TODO: This will got to Hybrid algorithm
-    print(FS.Mamdani_inference(["Boosting"]))
+    mamdani_inference = FS.Mamdani_inference(["Boosting"])
+    print(mamdani_inference)
+
+    return mamdani_inference
 
 
 def fuzzy_weights_coeff():
@@ -78,9 +80,19 @@ def fuzzy_weights_coeff():
     FS.set_variable("Freshness", 50)
 
     # Perform Sugeno inference and print output
-    print(FS.Sugeno_inference(["Boosting"]))
+    sugeno_inference = FS.Sugeno_inference(["Boosting"])
+    print(sugeno_inference)
+    return sugeno_inference
 
-def inference_simple_mamdani_ensembling_ratio():
+
+def inference_simple_mamdani_ensembling_ratio(similarity, freshness, returned_method):
+
+    allowed_methods = ['tfidf', 'word2vec', 'doc2vec']
+
+    if returned_method in allowed_methods:
+        raise ValueError("Neither from passed returned method is in allowed methods")
+
+
     # A simple fuzzy inference system for the EnsembleRatio problem
     # Create a fuzzy system object
     FS = FuzzySystem()
@@ -94,28 +106,61 @@ def inference_simple_mamdani_ensembling_ratio():
 
     F_1 = FuzzySet(function=Triangular_MF(a=0, b=0, c=10), term="fresh")
     F_2 = FuzzySet(function=Triangular_MF(a=0, b=10, c=10), term="old")
-    FS.add_linguistic_variable("Precision",
-                               LinguisticVariable([F_1, F_2], concept="Precision of Algorithm", universe_of_discourse=[0, 10]))
+    FS.add_linguistic_variable("Freshness",
+                               LinguisticVariable([F_1, F_2], concept="Freshness of Algorithm", universe_of_discourse=[0, 10]))
 
     # Define output fuzzy sets and linguistic variable
     T_1 = FuzzySet(function=Triangular_MF(a=0, b=0, c=10), term="small")
     T_2 = FuzzySet(function=Triangular_MF(a=0, b=5, c=7), term="average")
     T_3 = FuzzySet(function=Trapezoidal_MF(a=7, b=9, c=10, d=10), term="great")
-    FS.add_linguistic_variable("EnsembleRatio", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
+    FS.add_linguistic_variable("EnsembleRatioTfIdf", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
+
+    # Define output fuzzy sets and linguistic variable
+    T_1 = FuzzySet(function=Triangular_MF(a=0, b=0, c=10), term="small")
+    T_2 = FuzzySet(function=Triangular_MF(a=0, b=5, c=7), term="average")
+    T_3 = FuzzySet(function=Trapezoidal_MF(a=7, b=9, c=10, d=10), term="great")
+    FS.add_linguistic_variable("EnsembleRatioWord2Vec", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
+
+    # Define output fuzzy sets and linguistic variable
+    T_1 = FuzzySet(function=Triangular_MF(a=0, b=0, c=10), term="small")
+    T_2 = FuzzySet(function=Triangular_MF(a=0, b=5, c=7), term="average")
+    T_3 = FuzzySet(function=Trapezoidal_MF(a=7, b=9, c=10, d=10), term="great")
+    FS.add_linguistic_variable("EnsembleRatioDoc2Vec", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
 
     # Define fuzzy rules
-    # TODO: This will be loaded from Redis
-    R1 = "IF (Similarity IS poor) OR (Precision IS fresh) THEN (EnsembleRatio IS small)"
-    # TODO: This will be loaded from Redis
-    R2 = "IF (Similarity IS good) THEN (EnsembleRatio IS average)"
-    # TODO: This will be loaded from Redis
-    R3 = "IF (Similarity IS excellent) OR (Precision IS old) THEN (EnsembleRatio IS great)"
+    R1 = "IF (Similarity IS poor) OR (Freshness IS fresh) THEN (EnsembleRatioTfIdf IS small)"
+    R2 = "IF (Similarity IS good) THEN (EnsembleRatioTfIdf IS average)"
+    R3 = "IF (Similarity IS excellent) OR (Freshness IS old) THEN (EnsembleRatioTfIdf IS great)"
     FS.add_rules([R1, R2, R3])
 
-    # Set antecedents values
-    FS.set_variable("Similarity", 0.4)
-    FS.set_variable("Precision", 4)
+    # Define fuzzy rules
+    R4 = "IF (Similarity IS poor) OR (Freshness IS fresh) THEN (EnsembleRatioWord2Vec IS small)"
+    R5 = "IF (Similarity IS good) THEN (EnsembleRatioWord2Vec IS average)"
+    R6 = "IF (Similarity IS excellent) OR (Freshness IS old) THEN (EnsembleRatioWord2Vec IS great)"
+    FS.add_rules([R4, R5, R6])
 
+    # Define fuzzy rules
+    R4 = "IF (Similarity IS poor) OR (Freshness IS fresh) THEN (EnsembleRatioDoc2Vec IS small)"
+    R5 = "IF (Similarity IS good) THEN (EnsembleRatioDoc2Vec IS average)"
+    R6 = "IF (Similarity IS excellent) OR (Freshness IS old) THEN (EnsembleRatioDoc2Vec IS great)"
+    FS.add_rules([R4, R5, R6])
+
+    # Set antecedents values
+    FS.set_variable("Similarity", similarity)
+    FS.set_variable("Freshness", freshness)
+
+    mamdani_inference_tfidf = FS.Mamdani_inference(["EnsembleRatioTfIdf"])
+    mamdani_inference_word2vec = FS.Mamdani_inference(["EnsembleRatioWord2Vec"])
+    mamdani_inference_doc2vec = FS.Mamdani_inference(["EnsembleRatioDoc2Vec"])
     # Perform Mamdani inference and print output
     # TODO: This will go to hybrid algorithm
-    print(FS.Mamdani_inference(["EnsembleRatio"]))
+    print(mamdani_inference_word2vec)
+
+    if returned_method is 'tfidf':
+        return mamdani_inference_tfidf
+
+    if returned_method is 'word2vec':
+        return mamdani_inference_word2vec
+
+    if returned_method is 'doc2vec':
+        return mamdani_inference_doc2vec

@@ -134,6 +134,7 @@ def example_fuzzy_sets():
     Ss_2 = sf.SingletonsSet(pairs=[[3.0, 0.3], [5.0, 0.9], [6.0, 0.1]], term="high")
     sf.LinguisticVariable([Ss_1, Ss_2], universe_of_discourse=[0, 10]).plot()
 
+
 def example_output_space():
     import matplotlib.pylab as plt
     from numpy import linspace, array
