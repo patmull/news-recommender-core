@@ -1,5 +1,15 @@
+import logging
+
 import simpful as sf
 from simpful import FuzzySystem, FuzzySet, Triangular_MF, LinguisticVariable, Trapezoidal_MF
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
+logging.debug("Testing logging from hybrid_methods.")
 
 
 def inference_simple_mamdani_boosting_coeff(similarity, freshness):
@@ -40,9 +50,8 @@ def inference_simple_mamdani_boosting_coeff(similarity, freshness):
 
     # Perform Mamdani inference and print output
     mamdani_inference = FS.Mamdani_inference(["Boosting"])
-    print(mamdani_inference)
 
-    return mamdani_inference
+    return mamdani_inference['Boosting']
 
 
 def fuzzy_weights_coeff():
@@ -89,7 +98,18 @@ def inference_simple_mamdani_ensembling_ratio(similarity, freshness, returned_me
 
     allowed_methods = ['tfidf', 'word2vec', 'doc2vec']
 
-    if returned_method in allowed_methods:
+    logging.debug("=================")
+    logging.debug("FUZZY MODULE")
+    logging.debug("=======================")
+    logging.debug("Provided arguments:")
+    logging.debug("------------------------")
+    logging.debug("Similarity:")
+    logging.debug(similarity)
+    logging.debug("Freshness:")
+    logging.debug(freshness)
+
+
+    if returned_method not in allowed_methods:
         raise ValueError("Neither from passed returned method is in allowed methods")
 
 
@@ -156,11 +176,11 @@ def inference_simple_mamdani_ensembling_ratio(similarity, freshness, returned_me
     # TODO: This will go to hybrid algorithm
     print(mamdani_inference_word2vec)
 
-    if returned_method is 'tfidf':
-        return mamdani_inference_tfidf
+    if returned_method == 'tfidf':
+        return mamdani_inference_tfidf['EnsembleRatioTfIdf']
 
-    if returned_method is 'word2vec':
-        return mamdani_inference_word2vec
+    if returned_method == 'word2vec':
+        return mamdani_inference_word2vec['EnsembleRatioWord2Vec']
 
-    if returned_method is 'doc2vec':
-        return mamdani_inference_doc2vec
+    if returned_method == 'doc2vec':
+        return mamdani_inference_doc2vec['EnsembleRatioDoc2Vec']

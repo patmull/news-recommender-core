@@ -15,10 +15,7 @@ logging.debug("Testing logging from try_hybrid_methods.")
 
 
 def main():
-    hybrid_results, fuzzy_hybrid_results = get_most_similar_by_hybrid(431, load_from_precalc_sim_matrix=False,
-                                                                      use_fuzzy=True)
-    print(hybrid_results)
-    print(fuzzy_hybrid_results)
+    print(run_prefilling_collaborative(methods=["hybrid"], user_id=3146))
 
 
 if __name__ == "__main__": main()

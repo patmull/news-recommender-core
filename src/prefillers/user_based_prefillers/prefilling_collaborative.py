@@ -3,7 +3,7 @@ import traceback
 from src.custom_exceptions.exceptions import TestRunException
 from src.prefillers.prefiller import UserBased
 
-default_methods = ['svd', 'user_keywords', 'best_rated_by_others_in_user_categories', 'hybrid', 'hybrid_fuzzy']
+default_methods = ['svd', 'user_keywords', 'best_rated_by_others_in_user_categories', 'hybrid']
 
 
 def run_prefilling_collaborative(methods=None, user_id=None, test_run=False):
