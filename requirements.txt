@@ -133,7 +133,6 @@ spacy-legacy==3.0.10
 spacy-loggers==1.0.3
 spacy-sentence-bert==0.1.2
 spacy==3.4.2
-simpful~=2.9.0
 srsly==2.4.5
 stevedore==4.1.0
 stone==3.3.1

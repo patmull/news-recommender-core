@@ -870,9 +870,6 @@ class DatabaseMethods(object):
             if method == "hybrid":
                 r = get_redis_connection()
                 r.set(('user:%s:user-hybrid-recommendation' % str(user_id)), recommended_json)
-            elif method == "hybrid_fuzzy":
-                r = get_redis_connection()
-                r.set(('user:%s:user-hybrid-fuzzy-recommendation' % str(user_id)), recommended_json)
             elif method == 'svd':
                 r = get_redis_connection()
                 r.set(('user:%s:user-svd-recommendation' % str(user_id)), recommended_json)
