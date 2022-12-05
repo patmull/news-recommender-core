@@ -54,24 +54,24 @@ AntVariable1
 End_AntVariable1
 
 AntVariable2
- name=tfidf_coefficient
+ name=freshness_tfidf
  settings=new
- context=<0,5,10>
+ context=<0,2,5>
  discretization=301
  UserTerm
-  name=med
+  name=current
   type=trapezoid
-  parameters= 2 4 6 8
+  parameters= 1 2 3 4
  End_UserTerm
  UserTerm
-  name=sml
+  name=fresh
   type=trapezoid
-  parameters= 0 0 2 4
+  parameters= 0 0 1 2
  End_UserTerm
  UserTerm
-  name=hig
+  name=old
   type=trapezoid
-  parameters= 6 8 10 10
+  parameters= 3 4 5 5
  End_UserTerm
 End_AntVariable2
 
@@ -98,13 +98,13 @@ SucVariable1
 End_SucVariable1
 
 RULES
- "sml" "sml" | "sml"
- "sml" "med" | "sml"
- "sml" "hig" | "med"
- "med" "sml" | "med"
- "med" "med" | "med"
- "med" "hig" | "hig"
- "hig" "sml" | "med"
- "hig" "med" | "hig"
- "hig" "hig" | "hig"
+ "sml" "fresh" | "sml"
+ "sml" "current" | "sml"
+ "sml" "old" | "med"
+ "med" "fresh" | "med"
+ "med" "current" | "med"
+ "med" "old" | "hig"
+ "hig" "fresh" | "med"
+ "hig" "current" | "hig"
+ "hig" "old" | "hig"
 END_RULES

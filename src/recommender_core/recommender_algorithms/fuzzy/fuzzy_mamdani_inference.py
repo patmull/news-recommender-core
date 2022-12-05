@@ -11,7 +11,7 @@ def inference_mamdani_boosting_coeff(similarity, freshness):
     # Define fuzzy sets and linguistic variables
     S_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0.0, c=0.2, d=0.4), term="very_low")
     S_2 = FuzzySet(function=Trapezoidal_MF(a=0.2, b=0.3, c=0.4, d=0.45), term="low")
-    S_3 = FuzzySet(function=Trapezoidal_MF(a=0.4, b.45, c=0.55, d=0.6), term="med")
+    S_3 = FuzzySet(function=Trapezoidal_MF(a=0.4, b=0.45, c=0.55, d=0.6), term="med")
     S_4 = FuzzySet(function=Trapezoidal_MF(a=0.7, b=0.75, c=0.8, d=0.9), term="high")
     S_5 = FuzzySet(function=Trapezoidal_MF(a=0.8, b=0.9, c=1, d=1), term="very_high")
     S_6 = FuzzySet(function=Trapezoidal_MF(a=0.55, b=0.6, c=0.7, d=0.75), term="medium_high")
@@ -63,7 +63,12 @@ def inference_mamdani_boosting_coeff(similarity, freshness):
     FS.set_variable("similarity", similarity)
     FS.set_variable("freshness", freshness)
 
-def inference_simple_mamdani_mixi(similarity, freshness, returned_method):
+    mamdani_inference = FS.Mamdani_inference(["boosting"])
+
+    return mamdani_inference['boosting']
+
+
+def inference_simple_mamdani_cb_mixing(similarity, freshness, returned_method):
     allowed_methods = ['tfidf', 'word2vec', 'doc2vec']
 
     logging.debug("=================")
@@ -84,55 +89,77 @@ def inference_simple_mamdani_mixi(similarity, freshness, returned_method):
     FS = FuzzySystem()
 
     # Define fuzzy sets and linguistic variables
-    S_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=0.2, d=0.4), term="high")
+    S_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=0.2, d=0.4), term="small")
     S_2 = FuzzySet(function=Trapezoidal_MF(a=0, b=0.5, c=1.0), term="medium")
-    S_3 = FuzzySet(function=Trapezoidal_MF(a=0.5, b=1.0, c=1.0), term="excellent")
+    S_3 = FuzzySet(function=Trapezoidal_MF(a=0.5, b=1.0, c=1.0), term="high")
     FS.add_linguistic_variable("Similarity", LinguisticVariable([S_1, S_2, S_3], concept="Similarity Measure",
                                                                 universe_of_discourse=[0, 10]))
 
-    F_1 = FuzzySet(function=Triangular_MF(a=0, b=0, c=10), term="fresh"
-    F_2 = FuzzySet(function=Triangular_MF(a=0, b=10, c=10), term="old")
-    FS.add_linguistic_variable("Freshness",ng
-                               LinguisticVariable([F_1, F_2], concept="Freshness of Algorithm",
-                                                  universe_of_discourse=[0, 10]))
+    F_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=1, d=2), term="fresh")
+    F_2 = FuzzySet(function=Trapezoidal_MF(a=1, b=2, c=3, d=4), term="current")
+    F_3 = FuzzySet(function=Trapezoidal_MF(a=3, b=4, c=5, d=5), term="old")
+    FS.add_linguistic_variable("Freshness",
+                               LinguisticVariable([F_1, F_2, F_3], concept="Freshness of Algorithm",
+                                                  universe_of_discourse=[0, 1000000]))
 
     # Define output fuzzy sets and linguistic variable
-    T_1 = FuzzySet(function=Triangular_MF(a=0, b=0, c=10), term="small")
-    T_2 = FuzzySet(function=Triangular_MF(a=0, b=5, c=7), term="average")
-    T_3 = FuzzySet(function=Trapezoidal_MF(a=7, b=9, c=10, d=10), term="great")
+    T_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=2, d=4), term="small")
+    T_2 = FuzzySet(function=Trapezoidal_MF(a=2, b=4, c=6, d=8), term="medium")
+    T_3 = FuzzySet(function=Trapezoidal_MF(a=6, b=8, c=10, d=10), term="high")
     FS.add_linguistic_variable("EnsembleRatioTfIdf", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
 
     # Define output fuzzy sets and linguistic variable
-    T_1 = FuzzySet(function=Triangular_MF(a=0, b=0, c=10), term="small")
-    T_2 = FuzzySet(function=Triangular_MF(a=0, b=5, c=7), term="average")
-    T_3 = FuzzySet(function=Trapezoidal_MF(a=7, b=9, c=10, d=10), term="great")
-    FS.add_linguistic_variable("EnsembleRatioWord2Vec",
-                               LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
+    T_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=2, d=4), term="small")
+    T_2 = FuzzySet(function=Trapezoidal_MF(a=2, b=4, c=6, d=8), term="medium")
+    T_3 = FuzzySet(function=Trapezoidal_MF(a=6, b=8, c=10, d=10), term="high")
+    FS.add_linguistic_variable("EnsembleRatioWord2Vec", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
 
     # Define output fuzzy sets and linguistic variable
-    T_1 = FuzzySet(function=Triangular_MF(a=0, b=0, c=10), term="small")
-    T_2 = FuzzySet(function=Triangular_MF(a=0, b=5, c=7), term="average")
-    T_3 = FuzzySet(function=Trapezoidal_MF(a=7, b=9, c=10, d=10), term="great")
-    FS.add_linguistic_variable("EnsembleRatioDoc2Vec",
-                               LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
+    T_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=2, d=4), term="small")
+    T_2 = FuzzySet(function=Trapezoidal_MF(a=2, b=4, c=6, d=8), term="medium")
+    T_3 = FuzzySet(function=Trapezoidal_MF(a=6, b=8, c=10, d=10), term="high")
+    FS.add_linguistic_variable("EnsembleRatioDoc2Vec", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
 
     # Define fuzzy rules
-    R1 = "IF (Similarity IS poor) OR (Freshness IS fresh) THEN (EnsembleRatioTfIdf IS small)"
-    R2 = "IF (Similarity IS good) THEN (EnsembleRatioTfIdf IS average)"
-    R3 = "IF (Similarity IS excellent) OR (Freshness IS old) THEN (EnsembleRatioTfIdf IS great)"
-    FS.add_rules([R1, R2, R3])
 
-    # Define fuzzy rules
-    R4 = "IF (Similarity IS poor) OR (Freshness IS fresh) THEN (EnsembleRatioWord2Vec IS small)"
-    R5 = "IF (Similarity IS good) THEN (EnsembleRatioWord2Vec IS average)"
-    R6 = "IF (Similarity IS excellent) OR (Freshness IS old) THEN (EnsembleRatioWord2Vec IS great)"
-    FS.add_rules([R4, R5, R6])
+    # TF-IDF
+    R1 = "IF (Similarity IS small) OR (Freshness IS fresh) THEN (EnsembleRatioTfIdf IS small)"
+    R2 = "IF (Similarity IS small) OR (Freshness IS current) THEN (EnsembleRatioTfIdf IS small)"
+    R3 = "IF (Similarity IS small) OR (Freshness IS old) THEN (EnsembleRatioTfIdf IS small)"
+    R4 = "IF (Similarity IS medium) OR (Freshness IS fresh) THEN (EnsembleRatioTfIdf IS medium)"
+    R5 = "IF (Similarity IS medium) OR (Freshness IS current) THEN (EnsembleRatioTfIdf IS medium)"
+    R6 = "IF (Similarity IS medium) OR (Freshness IS old) THEN (EnsembleRatioTfIdf IS small)"
+    R7 = "IF (Similarity IS high) OR (Freshness IS fresh) THEN (EnsembleRatioTfIdf IS high)"
+    R8 = "IF (Similarity IS high) OR (Freshness IS current) THEN (EnsembleRatioTfIdf IS high)"
+    R9 = "IF (Similarity IS high) OR (Freshness IS old) THEN (EnsembleRatioTfIdf IS medium)"
 
-    # Define fuzzy rules
-    R4 = "IF (Similarity IS poor) OR (Freshness IS fresh) THEN (EnsembleRatioDoc2Vec IS small)"
-    R5 = "IF (Similarity IS good) THEN (EnsembleRatioDoc2Vec IS average)"
-    R6 = "IF (Similarity IS excellent) OR (Freshness IS old) THEN (EnsembleRatioDoc2Vec IS great)"
-    FS.add_rules([R4, R5, R6])
+    FS.add_rules([R1, R2, R3, R4, R5, R6, R7, R8, R9])
+
+    # Word2Vec
+    R1 = "IF (Similarity IS small) OR (Freshness IS fresh) THEN (EnsembleRatioWord2Vec IS small)"
+    R2 = "IF (Similarity IS small) OR (Freshness IS current) THEN (EnsembleRatioWord2Vec IS small)"
+    R3 = "IF (Similarity IS small) OR (Freshness IS old) THEN (EnsembleRatioWord2Vec IS small)"
+    R4 = "IF (Similarity IS medium) OR (Freshness IS fresh) THEN (EnsembleRatioWord2Vec IS medium)"
+    R5 = "IF (Similarity IS medium) OR (Freshness IS current) THEN (EnsembleRatioWord2Vec IS medium)"
+    R6 = "IF (Similarity IS medium) OR (Freshness IS old) THEN (EnsembleRatioWord2Vec IS medium)"
+    R7 = "IF (Similarity IS high) OR (Freshness IS fresh) THEN (EnsembleRatioWord2Vec IS high)"
+    R8 = "IF (Similarity IS high) OR (Freshness IS current) THEN (EnsembleRatioWord2Vec IS high)"
+    R9 = "IF (Similarity IS high) OR (Freshness IS old) THEN (EnsembleRatioWord2Vec IS high)"
+
+    FS.add_rules([R1, R2, R3, R4, R5, R6, R7, R8, R9])
+
+    # Doc2Vec
+    R1 = "IF (Similarity IS small) OR (Freshness IS fresh) THEN (EnsembleRatioDoc2Vec IS medium)"
+    R2 = "IF (Similarity IS small) OR (Freshness IS current) THEN (EnsembleRatioDoc2Vec IS small)"
+    R3 = "IF (Similarity IS small) OR (Freshness IS old) THEN (EnsembleRatioDoc2Vec IS small)"
+    R4 = "IF (Similarity IS medium) OR (Freshness IS fresh) THEN (EnsembleRatioDoc2Vec IS medium)"
+    R5 = "IF (Similarity IS medium) OR (Freshness IS current) THEN (EnsembleRatioDoc2Vec IS medium)"
+    R6 = "IF (Similarity IS medium) OR (Freshness IS old) THEN (EnsembleRatioDoc2Vec IS small)"
+    R7 = "IF (Similarity IS high) OR (Freshness IS fresh) THEN (EnsembleRatioDoc2Vec IS high)"
+    R8 = "IF (Similarity IS high) OR (Freshness IS current) THEN (EnsembleRatioDoc2Vec IS medium)"
+    R9 = "IF (Similarity IS high) OR (Freshness IS old) THEN (EnsembleRatioDoc2Vec IS small)"
+
+    FS.add_rules([R1, R2, R3, R4, R5, R6, R7, R8, R9])
 
     # Set antecedents values
     FS.set_variable("Similarity", similarity)
@@ -143,7 +170,6 @@ def inference_simple_mamdani_mixi(similarity, freshness, returned_method):
     mamdani_inference_doc2vec = FS.Mamdani_inference(["EnsembleRatioDoc2Vec"])
     # Perform Mamdani inference and print output
     # TODO: This will go to hybrid algorithm
-    print(mamdani_inference_word2vec)
 
     if returned_method == 'tfidf':
         return mamdani_inference_tfidf['EnsembleRatioTfIdf']

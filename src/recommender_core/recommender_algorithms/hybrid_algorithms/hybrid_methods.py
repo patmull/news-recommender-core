@@ -15,7 +15,8 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.models
     load_doc2vec_model
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from src.recommender_core.recommender_algorithms.fuzzy.fuzzy_mamdani_inference import inference_mamdani_boosting_coeff
+from src.recommender_core.recommender_algorithms.fuzzy.fuzzy_mamdani_inference import inference_mamdani_boosting_coeff, \
+    inference_simple_mamdani_cb_mixing
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation \
     import SvdClass
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, unique_list
@@ -392,7 +393,7 @@ def mix_methods_by_fuzzy(results_df, method):
     coeff_column_name = 'coefficient'
     results_df[coeff_column_name] = results_df.apply(lambda x:
                                                  fuzzy_boost_coefficient(x[coeff_column_name],
-                                                                         inference_simple_mamdani_ensembling_ratio(x[coeff_column_name],
+                                                                         inference_simple_mamdani_cb_mixing(x[coeff_column_name],
                                                                                                                    get_created_at_for_this_post(x['slug']),
                                                                                                                    method)), axis=1)
     return results_df
