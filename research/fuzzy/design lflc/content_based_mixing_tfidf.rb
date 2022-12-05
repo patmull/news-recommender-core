@@ -1,13 +1,13 @@
 !COMMENT!
 Problem solved: This fuzzy approach should add the uncertaity element to coefficient settings of the boosting of various content-based method based on experiences gained from the testing of the system and experimental results.
 
-In short: We want to model our confidence in the given content-based method.
+Besides the adding of the uncertainity element, we also want to model our confidence in the given content-based method itself. For example, in the case of the Word2Vec method we believe in the cosine similarity of the article itself more, however in the case of the Doc2Vec, we believe more in the human manually set coefficient value. We suppose that for some reason, administrator would like to take the advantage of the propertirs of the Doc2Vec results. In that way, it also serves the purpose of some kind of security barrier against the wrong choice of the human-expert.
 
-This variant is dealing with the Word2Vec Idnes 3 model method which results were the 1st most reliable of the content-based methods.
+This variant is dealing with the TF-IDF method which results were the 2nd most reliable of the content-based methods.
 
 Similarity: U = [0;1]; similarity of pairs of articles based on content-based algorithms; Cosine-Similarity or Jensen-Shannon; (0 = pairs of articles are not similar at all; 1 = pairs of articles identical)
 
-Precision settings: V = [0; 10]; multiplying coefficient of the content-based methods set by administrator of the recommender system.
+Precision settings: V = [0; 10]; multiplying coefficient of the content-based methods set by the administrator of the recommender system.
 
 -----------------
 
@@ -54,7 +54,7 @@ AntVariable1
 End_AntVariable1
 
 AntVariable2
- name=word2vec_coefficient
+ name=tfidf_coefficient
  settings=new
  context=<0,5,10>
  discretization=301
@@ -100,7 +100,7 @@ End_SucVariable1
 RULES
  "sml" "sml" | "sml"
  "sml" "med" | "sml"
- "sml" "hig" | "sml"
+ "sml" "hig" | "med"
  "med" "sml" | "med"
  "med" "med" | "med"
  "med" "hig" | "hig"

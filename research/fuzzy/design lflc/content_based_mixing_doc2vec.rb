@@ -3,7 +3,7 @@ Problem solved: This fuzzy approach should add the uncertaity element to coeffic
 
 In short: We want to model our confidence in the given content-based method.
 
-This variant is dealing with the Word2Vec Idnes 3 model method which results were the 1st most reliable of the content-based methods.
+This variant is dealing with the Doc2Vec Idnes 3 model method which results were the 1st most reliable of the content-based methods.
 
 Similarity: U = [0;1]; similarity of pairs of articles based on content-based algorithms; Cosine-Similarity or Jensen-Shannon; (0 = pairs of articles are not similar at all; 1 = pairs of articles identical)
 
@@ -54,7 +54,7 @@ AntVariable1
 End_AntVariable1
 
 AntVariable2
- name=word2vec_coefficient
+ name=doc2vec_coefficient
  settings=new
  context=<0,5,10>
  discretization=301
@@ -99,12 +99,12 @@ End_SucVariable1
 
 RULES
  "sml" "sml" | "sml"
- "sml" "med" | "sml"
- "sml" "hig" | "sml"
- "med" "sml" | "med"
+ "sml" "med" | "med"
+ "sml" "hig" | "hig"
+ "med" "sml" | "sml"
  "med" "med" | "med"
  "med" "hig" | "hig"
- "hig" "sml" | "med"
- "hig" "med" | "hig"
+ "hig" "sml" | "sml"
+ "hig" "med" | "med"
  "hig" "hig" | "hig"
 END_RULES
