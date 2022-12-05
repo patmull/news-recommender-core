@@ -8,8 +8,6 @@ import numpy as np
 import pandas as pd
 from gensim.models import KeyedVectors
 
-from research.fuzzy.fuzzy_experiments_proof_of_concepts import inference_simple_mamdani_boosting_coeff, \
-    inference_simple_mamdani_ensembling_ratio
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection, RedisConstants
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -17,6 +15,7 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.models
     load_doc2vec_model
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from src.recommender_core.recommender_algorithms.fuzzy.fuzzy_mamdani_inference import inference_mamdani_boosting_coeff
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation \
     import SvdClass
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, unique_list
@@ -361,7 +360,7 @@ def boost_by_fuzzy(results_df):
     # See: hybrid_settings table where it was laid out
     results_df['coefficient'] = results_df.apply(lambda x:
                                                  fuzzy_boost_coefficient(x['coefficient'],
-                                                 inference_simple_mamdani_boosting_coeff(x['coefficient'],
+                                                 inference_mamdani_boosting_coeff(x['coefficient'],
                                                                                          get_hours_from_timedelta(x['post_created_at']))), axis=1)
     return results_df
 
@@ -374,7 +373,8 @@ def mix_methods_by_fuzzy(results_df, method):
         now = pd.to_datetime('now')
         time_delta = pd.Timedelta(now - post_found.iloc[0]['created_at'])
         hours = time_delta / np.timedelta64(1, 'h')
-        return hours
+        days = hours / 24
+        return days
 
     def fuzzy_boost_coefficient(coeff_value, boost):
         logging.debug("coeff_value")
@@ -533,7 +533,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
                 if use_fuzzy is True:
                     # Fuzzy is still waiting for the boosting
-
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
                     results_fuzzy = mix_methods_by_fuzzy(results_fuzzy, method)
             else:
