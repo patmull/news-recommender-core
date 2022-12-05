@@ -1,8 +1,8 @@
-from research.fuzzy.fuzzy_experiments_proof_of_concepts import inference_simple_mamdani_boosting_coeff
-
+from src.recommender_core.recommender_algorithms.fuzzy.fuzzy_mamdani_inference import \
+    inference_mamdani_boosting_coeff
 if __name__ == '__main__':
-    similarity = 0.5
+    similarity = 0.85
     freshness = 3
-    inference_simple_mamdani_boosting_coeff(similarity, freshness)
+    print(inference_mamdani_boosting_coeff(similarity, freshness))
     # example_fuzzy_sets()
     # example_output_space()
