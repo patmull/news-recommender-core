@@ -26,7 +26,7 @@ def inference_mamdani_boosting_coeff(similarity, freshness):
     F_5 = FuzzySet(function=Trapezoidal_MF(a=168, b=192, c=336, d=336), term="very_fresh")
     FS.add_linguistic_variable("freshness",
                                LinguisticVariable([F_1, F_2, F_3, F_4, F_5], concept="freshness Measure",
-                                                  universe_of_discourse=[0, 336]))
+                                                  universe_of_discourse=[0, 1000000]))
 
     # Define output fuzzy sets and linguistic variable
     T_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=0.2, d=0.3), term="very_low")
@@ -93,7 +93,7 @@ def inference_simple_mamdani_cb_mixing(similarity, freshness, returned_method):
     S_2 = FuzzySet(function=Trapezoidal_MF(a=0, b=0.5, c=1.0), term="medium")
     S_3 = FuzzySet(function=Trapezoidal_MF(a=0.5, b=1.0, c=1.0), term="high")
     FS.add_linguistic_variable("Similarity", LinguisticVariable([S_1, S_2, S_3], concept="Similarity Measure",
-                                                                universe_of_discourse=[0, 10]))
+                                                                universe_of_discourse=[0.0, 1.0]))
 
     F_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=1, d=2), term="fresh")
     F_2 = FuzzySet(function=Trapezoidal_MF(a=1, b=2, c=3, d=4), term="current")
@@ -103,22 +103,22 @@ def inference_simple_mamdani_cb_mixing(similarity, freshness, returned_method):
                                                   universe_of_discourse=[0, 1000000]))
 
     # Define output fuzzy sets and linguistic variable
-    T_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=2, d=4), term="small")
-    T_2 = FuzzySet(function=Trapezoidal_MF(a=2, b=4, c=6, d=8), term="medium")
-    T_3 = FuzzySet(function=Trapezoidal_MF(a=6, b=8, c=10, d=10), term="high")
-    FS.add_linguistic_variable("EnsembleRatioTfIdf", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
+    T_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=0.2, d=0.4), term="small")
+    T_2 = FuzzySet(function=Trapezoidal_MF(a=0.2, b=0.4, c=0.6, d=0.8), term="medium")
+    T_3 = FuzzySet(function=Trapezoidal_MF(a=0.6, b=0.8, c=1.0, d=1.0), term="high")
+    FS.add_linguistic_variable("EnsembleRatioTfIdf", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0.0, 1.0]))
 
     # Define output fuzzy sets and linguistic variable
-    T_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=2, d=4), term="small")
-    T_2 = FuzzySet(function=Trapezoidal_MF(a=2, b=4, c=6, d=8), term="medium")
-    T_3 = FuzzySet(function=Trapezoidal_MF(a=6, b=8, c=10, d=10), term="high")
-    FS.add_linguistic_variable("EnsembleRatioWord2Vec", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
+    T_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=0.2, d=0.4), term="small")
+    T_2 = FuzzySet(function=Trapezoidal_MF(a=0.2, b=0.4, c=0.6, d=0.8), term="medium")
+    T_3 = FuzzySet(function=Trapezoidal_MF(a=0.6, b=0.8, c=1.0, d=1.0), term="high")
+    FS.add_linguistic_variable("EnsembleRatioWord2Vec", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0.0, 1.0]))
 
     # Define output fuzzy sets and linguistic variable
-    T_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=2, d=4), term="small")
-    T_2 = FuzzySet(function=Trapezoidal_MF(a=2, b=4, c=6, d=8), term="medium")
-    T_3 = FuzzySet(function=Trapezoidal_MF(a=6, b=8, c=10, d=10), term="high")
-    FS.add_linguistic_variable("EnsembleRatioDoc2Vec", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0, 10]))
+    T_1 = FuzzySet(function=Trapezoidal_MF(a=0, b=0, c=0.2, d=0.4), term="small")
+    T_2 = FuzzySet(function=Trapezoidal_MF(a=0.2, b=0.4, c=0.6, d=0.8), term="medium")
+    T_3 = FuzzySet(function=Trapezoidal_MF(a=0.6, b=0.8, c=1.0, d=1.0), term="high")
+    FS.add_linguistic_variable("EnsembleRatioDoc2Vec", LinguisticVariable([T_1, T_2, T_3], universe_of_discourse=[0.0, 1.0]))
 
     # Define fuzzy rules
 
@@ -168,8 +168,6 @@ def inference_simple_mamdani_cb_mixing(similarity, freshness, returned_method):
     mamdani_inference_tfidf = FS.Mamdani_inference(["EnsembleRatioTfIdf"])
     mamdani_inference_word2vec = FS.Mamdani_inference(["EnsembleRatioWord2Vec"])
     mamdani_inference_doc2vec = FS.Mamdani_inference(["EnsembleRatioDoc2Vec"])
-    # Perform Mamdani inference and print output
-    # TODO: This will go to hybrid algorithm
 
     if returned_method == 'tfidf':
         return mamdani_inference_tfidf['EnsembleRatioTfIdf']
