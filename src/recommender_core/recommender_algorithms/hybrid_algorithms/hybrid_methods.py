@@ -8,8 +8,6 @@ import numpy as np
 import pandas as pd
 from gensim.models import KeyedVectors
 
-from research.fuzzy.fuzzy_experiments_proof_of_concepts import inference_simple_mamdani_boosting_coeff, \
-    inference_simple_mamdani_ensembling_ratio
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection, RedisConstants
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -17,6 +15,8 @@ from src.recommender_core.recommender_algorithms.content_based_algorithms.models
     load_doc2vec_model
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+from src.recommender_core.recommender_algorithms.fuzzy.fuzzy_mamdani_inference import inference_mamdani_boosting_coeff, \
+    inference_simple_mamdani_cb_mixing
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation \
     import SvdClass
 from src.recommender_core.data_handling.data_queries import RecommenderMethods, unique_list
@@ -361,7 +361,7 @@ def boost_by_fuzzy(results_df):
     # See: hybrid_settings table where it was laid out
     results_df['coefficient'] = results_df.apply(lambda x:
                                                  fuzzy_boost_coefficient(x['coefficient'],
-                                                 inference_simple_mamdani_boosting_coeff(x['coefficient'],
+                                                 inference_mamdani_boosting_coeff(x['coefficient'],
                                                                                          get_hours_from_timedelta(x['post_created_at']))), axis=1)
     return results_df
 
@@ -374,7 +374,8 @@ def mix_methods_by_fuzzy(results_df, method):
         now = pd.to_datetime('now')
         time_delta = pd.Timedelta(now - post_found.iloc[0]['created_at'])
         hours = time_delta / np.timedelta64(1, 'h')
-        return hours
+        days = hours / 24
+        return days
 
     def fuzzy_boost_coefficient(coeff_value, boost):
         logging.debug("coeff_value")
@@ -392,7 +393,7 @@ def mix_methods_by_fuzzy(results_df, method):
     coeff_column_name = 'coefficient'
     results_df[coeff_column_name] = results_df.apply(lambda x:
                                                  fuzzy_boost_coefficient(x[coeff_column_name],
-                                                                         inference_simple_mamdani_ensembling_ratio(x[coeff_column_name],
+                                                                         inference_simple_mamdani_cb_mixing(x[coeff_column_name],
                                                                                                                    get_created_at_for_this_post(x['slug']),
                                                                                                                    method)), axis=1)
     return results_df
@@ -492,14 +493,14 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                 else:
                     # Calculating new similarity matrix only based on posts we are interested
                     similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
+
                 similarity_matrix = personalize_similarity_matrix(similarity_matrix, svd_posts_to_compare,
                                                                   list_of_slugs_from_history)
-
 
                 similarity_matrix = similarity_matrix * constant
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
                 if use_fuzzy is True:
-                    similarity_matrix_not_boosted = similarity_matrix
+                    similarity_matrix_not_boosted = similarity_matrix.copy()
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
 
             elif method == "doc2vec" or "word2vec":
@@ -527,13 +528,12 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                                                                   list_of_slugs_from_history)
 
                 if use_fuzzy is True:
-                    similarity_matrix_not_boosted = similarity_matrix
+                    similarity_matrix_not_boosted = similarity_matrix.copy()
                 similarity_matrix = similarity_matrix * constant
 
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
                 if use_fuzzy is True:
                     # Fuzzy is still waiting for the boosting
-
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
                     results_fuzzy = mix_methods_by_fuzzy(results_fuzzy, method)
             else:
@@ -575,9 +575,9 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
         coefficient_columns = list_of_prefixed_methods
 
+        # Normalizing columns
         results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
                                           / results_df[coefficient_columns].std()
-
         if use_fuzzy is True:
             results_df_fuzzy[coefficient_columns] = (results_df_fuzzy[coefficient_columns] - results_df_fuzzy[coefficient_columns].mean()) \
                                               / results_df_fuzzy[coefficient_columns].std()
@@ -654,10 +654,9 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         logging.debug("Fuzzy results column:")
         logging.debug(results_df_fuzzy.columns)
 
-    if use_fuzzy is False:
-        results_df = boost_by_article_freshness(results_df)
-    else:
+    if use_fuzzy is True:
         results_df_fuzzy = boost_by_fuzzy(results_df_fuzzy)
+    results_df = boost_by_article_freshness(results_df)
 
     results_df = results_df.set_index('slug')
     results_df = results_df.sort_values(by='coefficient', ascending=False)

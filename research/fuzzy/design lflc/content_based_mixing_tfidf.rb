@@ -3,7 +3,7 @@ Problem solved: This fuzzy approach should add the uncertaity element to a boost
 
 We want to model our confidence in the given content-based method itself. For example, in the case of the Word2Vec method, we believe in the cosine similarity of the article itself more, however in the case of the Doc2Vec, from our experimental results we understand that the cosine similarity was not that precise in providing similar results to a given article, thus we want to rather take advantage of the freshness of the article since news portal but also blogs usually tend to push their latest articles higher than the old ones (see the percentage of hwo the iDNES articles on the front-page were old).
 
-This variant is dealing with the Word2Vec method (trained on iDNES with the whole body test) which results were the most reliable of the content-based methods.
+This variant is dealing with the TF-IDF method which results were the 2nd most reliable of the content-based methods.
 
 Similarity: U = [0;1]; similarity of pairs of articles based on content-based algorithms; Cosine-Similarity
 Freshness: V = [0; 5]; number of days of how the article is old
@@ -53,7 +53,7 @@ AntVariable1
 End_AntVariable1
 
 AntVariable2
- name=freshness
+ name=freshness_tfidf
  settings=new
  context=<0,2,5>
  discretization=301
@@ -102,8 +102,8 @@ RULES
  "sml" "old" | "sml"
  "med" "fresh" | "med"
  "med" "current" | "med"
- "med" "old" | "med"
- "hig" "fresh" | "med"
+ "med" "old" | "sml"
+ "hig" "fresh" | "hig"
  "hig" "current" | "hig"
- "hig" "old" | "hig"
+ "hig" "old" | "med"
 END_RULES
