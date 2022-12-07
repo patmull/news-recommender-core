@@ -15,7 +15,7 @@ logging.debug("Testing logging from try_hybrid_methods.")
 
 
 def main():
-    print(run_prefilling_collaborative(methods=["hybrid"], user_id=3146))
+    print(run_prefilling_collaborative(methods=["hybrid"], user_id=3124))
 
 
 if __name__ == "__main__": main()
