@@ -493,14 +493,14 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                 else:
                     # Calculating new similarity matrix only based on posts we are interested
                     similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
+
                 similarity_matrix = personalize_similarity_matrix(similarity_matrix, svd_posts_to_compare,
                                                                   list_of_slugs_from_history)
-
 
                 similarity_matrix = similarity_matrix * constant
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
                 if use_fuzzy is True:
-                    similarity_matrix_not_boosted = similarity_matrix
+                    similarity_matrix_not_boosted = similarity_matrix.copy()
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
 
             elif method == "doc2vec" or "word2vec":
@@ -528,7 +528,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                                                                   list_of_slugs_from_history)
 
                 if use_fuzzy is True:
-                    similarity_matrix_not_boosted = similarity_matrix
+                    similarity_matrix_not_boosted = similarity_matrix.copy()
                 similarity_matrix = similarity_matrix * constant
 
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
@@ -575,9 +575,9 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
         coefficient_columns = list_of_prefixed_methods
 
+        # Normalizing columns
         results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
                                           / results_df[coefficient_columns].std()
-
         if use_fuzzy is True:
             results_df_fuzzy[coefficient_columns] = (results_df_fuzzy[coefficient_columns] - results_df_fuzzy[coefficient_columns].mean()) \
                                               / results_df_fuzzy[coefficient_columns].std()
@@ -654,10 +654,9 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         logging.debug("Fuzzy results column:")
         logging.debug(results_df_fuzzy.columns)
 
-    if use_fuzzy is False:
-        results_df = boost_by_article_freshness(results_df)
-    else:
+    if use_fuzzy is True:
         results_df_fuzzy = boost_by_fuzzy(results_df_fuzzy)
+    results_df = boost_by_article_freshness(results_df)
 
     results_df = results_df.set_index('slug')
     results_df = results_df.sort_values(by='coefficient', ascending=False)

@@ -5,7 +5,7 @@ if __name__ == '__main__':
     similarity = 0.85
     freshness = 3
     print(inference_mamdani_boosting_coeff(similarity, freshness))
-    days = 2
+    days = 1000
     print(inference_simple_mamdani_cb_mixing(similarity, days, 'tfidf'))
     # example_fuzzy_sets()
     # example_output_space()
