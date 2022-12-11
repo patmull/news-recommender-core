@@ -2,6 +2,9 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 
 class UserMethods(RecommenderMethods):
+    """
+    Main class for the user methods.
+    """
 
     def __init__(self):
         super().__init__()

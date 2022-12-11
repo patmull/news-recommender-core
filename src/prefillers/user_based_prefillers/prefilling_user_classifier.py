@@ -20,6 +20,13 @@ logging.debug("Testing logging from data?manipulation.")
 
 
 def predict_ratings_for_user_store_to_redis(user_id, force_retrain=False):
+    """
+    Predictign relevant articles from user base on classifier model (SVC / Random Forrest methods) using BERT
+    multi-lingual model.
+    @param user_id:
+    @param force_retrain:
+    @return:
+    """
     classifier = Classifier()
     print("Loading BERT multilingual model...")
     bert = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
@@ -45,6 +52,11 @@ def predict_ratings_for_user_store_to_redis(user_id, force_retrain=False):
 
 
 def predict_ratings_for_all_users_store_to_redis():
+    """
+    This method handles the prediction and storing of the users to Redis
+
+    @return:
+    """
     user_methods = UserMethods()
     all_users_df = user_methods.get_users_dataframe()
     classifier = Classifier()
@@ -97,6 +109,15 @@ def retrain_models_for_all_users():
 
 
 def fill_bert_vector_representation(skip_already_filled=True, reversed_order=False, random_order=False, db="pgsql"):
+    """
+    This method is used for prefilling the BERT vector test doc representation to RDBS. Currently not used.
+
+    @param skip_already_filled:
+    @param reversed_order:
+    @param random_order:
+    @param db:
+    @return:
+    """
     print("Loading sentence bert multilingual model...")
     bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
 

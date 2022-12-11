@@ -24,6 +24,10 @@ def print_exception_not_inserted(e):
 
 
 class DatabaseMethods(object):
+    """
+    The main class of the database methods.
+
+    """
 
     def __init__(self, db="pgsql"):
         """
