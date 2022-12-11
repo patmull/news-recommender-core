@@ -20,6 +20,7 @@ pytz==2021.3
 regex>=2021.8.3
 scikit-learn~=1.0.1
 scipy~=1.9.1
+simpful~=2.9.0
 six==1.16.0
 smart-open==5.2.1
 threadpoolctl==3.0.0
@@ -52,7 +53,6 @@ zipp>=0.5
 joblib
 pandas
 spacy-sentence-bert~=0.1.2
-sklearn
 psycopg2-binary==2.9.2
 redis~=4.0.2
 types-redis==4.3.21.1

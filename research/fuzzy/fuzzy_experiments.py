@@ -44,6 +44,7 @@ def inference_simple_mamdani():
     # A simple fuzzy inference system for the tipping problem
     # Create a fuzzy system object
     """
+
     FS = FuzzySystem()
 
     # Define fuzzy sets and linguistic variables
