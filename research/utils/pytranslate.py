@@ -59,6 +59,14 @@ def google_translate(text_to_translate):
 
 
 def clean_console_output_to_file():
+    """
+    INPUT text:
+    Athens Greece Baghdad Iraq
+    translation:
+    Atény Řecko Bagdád Irák
+
+    @return:
+    """
 
     texts = []
     with open('../word2vec/translations/questions-words-cs-console-copy.txt', 'r', encoding="utf-8") as file:
@@ -70,12 +78,7 @@ def clean_console_output_to_file():
 
     for line in texts:
         # Translation occurs in every 3rd line in current output in the format:
-        """
-        INPUT text:
-        Athens Greece Baghdad Iraq
-        translation:
-        Atény Řecko Bagdád Irák
-        """
+
         if i == 4:
             print("Adding line:")
             print(line)

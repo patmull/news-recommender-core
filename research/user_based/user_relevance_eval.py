@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -10,13 +11,24 @@ from src.recommender_core.data_handling.model_methods.user_methods import UserMe
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.user_evaluation_results import \
     get_user_evaluation_results_dataframe
 
+log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
+logging.basicConfig(level=logging.DEBUG, format=log_format)
 
 def user_relevance_asessment():
     """
     Statistics coming from relevance votes (thumbs) of users.
-
     RUN WITH: run_user_eval.py
     @return:
+    """
+
+
+
+def create_relevance_stats_df(sections):
+    """
+    User evaluation based on the front-side thumbs ratings of the users.
+
+    @param sections:
+    @return: Pandas Dataframe with the used statistics on the user thumbs ratings.
     """
 
     user_methods = UserMethods()
