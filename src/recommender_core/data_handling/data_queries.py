@@ -317,10 +317,8 @@ class RecommenderMethods:
         elif 'slug' in categories_df.columns:
             categories_df = categories_df.rename(columns={'slug': 'category_slug'})
         logging.debug("posts_df")
-        logging.debug(posts_df)
         logging.debug(posts_df.columns)
         logging.debug("categories_df")
-        logging.debug(categories_df)
         logging.debug(categories_df.columns)
 
         # To make sure. If database contains by a mistake duplicated rows, this will cause a doubling of a final df rows
@@ -461,31 +459,6 @@ class RecommenderMethods:
         df_users = self.database.get_all_users(column_name=only_with_id_and_column_named)
         self.database.disconnect()
         return df_users
-
-    def get_user_read_history(self, user_id):
-        N = 3
-
-        self.database.connect()
-        df_user_read_history = self.database.get_user_history(user_id=user_id)
-        df_user_read_history = df_user_read_history.head(N)
-        self.database.disconnect()
-        return df_user_read_history
-
-    def get_user_read_history_with_posts(self, user_id):
-        df_user_history = self.get_user_read_history(user_id=user_id)
-        df_articles = self.get_posts_categories_dataframe()
-
-        print("df_user_history")
-        print(df_user_history)
-        print(df_user_history.columns)
-
-        print("df_articles")
-        print(df_articles)
-        print(df_articles.columns)
-
-        df_history_articles = df_user_history.merge(df_articles, on='post_id')
-        print(df_history_articles.columns)
-        return df_history_articles
 
     def insert_recommended_json_user_based(self, recommended_json, user_id, db, method, heroku_testing_db=False):
 

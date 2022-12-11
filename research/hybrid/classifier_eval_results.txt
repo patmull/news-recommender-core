@@ -991,4 +991,134 @@ ACCURACY SCORE:
 0.5CONFUSION MATRIX:
 [[0 1]
  [0 4]]PRECISION SCORE:
-[0.  0.8]
+[0.  0.8]==========================
+MODEL SVC.
+===========================
+===========================
+==============
+USER ID:
+3146==================
+ACCURACY SCORE:
+1.0PRECISION SCORE:
+1.0BALANCED_ACCURACY:
+1.0CONFUSION MATRIX:
+[[1 0]
+ [0 2]]PRECISION SCORE:
+[1. 1.]==========================
+MODEL SVC.
+===========================
+===========================
+==============
+USER ID:
+3146==================
+ACCURACY SCORE:
+1.0PRECISION SCORE:
+1.0BALANCED_ACCURACY:
+1.0CONFUSION MATRIX:
+[[1 0]
+ [0 2]]PRECISION SCORE:
+[1. 1.]==========================
+MODEL SVC.
+===========================
+===========================
+==============
+USER ID:
+3146==================
+ACCURACY SCORE:
+0.6666666666666666PRECISION SCORE:
+0.4444444444444444BALANCED_ACCURACY:
+0.5CONFUSION MATRIX:
+[[0 1]
+ [0 2]]PRECISION SCORE:
+[0.         0.66666667]==========================
+MODEL SVC.
+===========================
+===========================
+==============
+USER ID:
+3146==================
+ACCURACY SCORE:
+0.5PRECISION SCORE:
+0.25BALANCED_ACCURACY:
+0.3333333333333333CONFUSION MATRIX:
+[[0 1 0]
+ [0 2 0]
+ [0 1 0]]PRECISION SCORE:
+[0.  0.5 0. ]==========================
+MODEL SVC.
+===========================
+===========================
+==============
+USER ID:
+3146==================
+ACCURACY SCORE:
+1.0PRECISION SCORE:
+1.0BALANCED_ACCURACY:
+1.0CONFUSION MATRIX:
+[[3]]PRECISION SCORE:
+[1.]==========================
+MODEL SVC.
+===========================
+===========================
+==============
+USER ID:
+3146==================
+ACCURACY SCORE:
+0.75PRECISION SCORE:
+0.5625BALANCED_ACCURACY:
+0.5CONFUSION MATRIX:
+[[3 0]
+ [1 0]]PRECISION SCORE:
+[0.75 0.  ]==========================
+MODEL SVC.
+===========================
+===========================
+==============
+USER ID:
+3146==================
+ACCURACY SCORE:
+0.6666666666666666PRECISION SCORE:
+0.8333333333333334BALANCED_ACCURACY:
+0.75CONFUSION MATRIX:
+[[1 1]
+ [0 1]]PRECISION SCORE:
+[1.  0.5]==========================
+MODEL Random Forrest.
+===========================
+===========================
+==============
+USER ID:
+3146==================
+ACCURACY SCORE:
+0.6666666666666666PRECISION SCORE:
+0.8333333333333334BALANCED_ACCURACY:
+0.75CONFUSION MATRIX:
+[[1 1]
+ [0 1]]PRECISION SCORE:
+[1.  0.5]==========================
+MODEL SVC.
+===========================
+===========================
+==============
+USER ID:
+3150==================
+ACCURACY SCORE:
+0.8PRECISION SCORE:
+0.85BALANCED_ACCURACY:
+0.75CONFUSION MATRIX:
+[[1 1]
+ [0 3]]PRECISION SCORE:
+[1.   0.75]==========================
+MODEL Random Forrest.
+===========================
+===========================
+==============
+USER ID:
+3150==================
+ACCURACY SCORE:
+0.6PRECISION SCORE:
+0.36BALANCED_ACCURACY:
+0.5CONFUSION MATRIX:
+[[0 2]
+ [0 3]]PRECISION SCORE:
+[0.  0.6]

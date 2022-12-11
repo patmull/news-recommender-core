@@ -1,6 +1,7 @@
 import logging
 import traceback
 
+from research.user_based.user_relevance_eval import user_relevance_asessment
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.prefillers.user_based_prefillers.prefilling_user_classifier import fill_bert_vector_representation, \
     predict_ratings_for_all_users_store_to_redis
@@ -126,6 +127,9 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
     recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
 
     prefill_to_redis_based_on_user_ratings()
+
+    # Refresh user voted relevance for admin statistics
+    user_relevance_asessment(save_to_redis=True)
 
 
 def prepare_and_run(database, method, full_text, reverse, random):

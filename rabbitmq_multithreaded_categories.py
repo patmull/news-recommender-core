@@ -68,6 +68,10 @@ def on_message(channel, method_frame, header_frame, body, args):
             t.start()
             threads.append(t)
 
+        else:
+            logging.debug("ACK for test message")
+            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+
 
 rabbitmq_user = os.environ.get('RABBITMQ_USER')
 rabbitmq_password = os.environ.get('RABBITMQ_PASSWORD')
@@ -100,7 +104,7 @@ channel.queue_declare(queue=queue_name, auto_delete=False, durable=True)
 channel.queue_bind(queue=queue_name, exchange='user',
                    routing_key=routing_key)
 # Note: prefetch is set to 1 here as an example only and to keep the number of threads created
-# to a reasonable amount. In production you will want to test with different prefetch values
+# to a reasonable amount. In production, you will want to test with different prefetch values
 # to find which one provides the best performance and usability for your solution
 channel.basic_qos(prefetch_count=1)
 

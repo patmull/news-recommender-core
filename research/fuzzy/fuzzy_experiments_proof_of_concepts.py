@@ -17,6 +17,7 @@ def inference_simple_mamdani_boosting_coeff(similarity, freshness):
     # A simple fuzzy inference system for the Boostingping problem
     # Create a fuzzy system object
     """
+
     FS = FuzzySystem()
 
     # Define fuzzy sets and linguistic variables
