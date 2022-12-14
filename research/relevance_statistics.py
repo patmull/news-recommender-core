@@ -21,14 +21,12 @@ warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "mo
 
 
 def try_statistics():
-    y_true = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1])
+    y_true = np.array([1, 1, 0, 0])
     y_scores = np.array(
-        [0.50562590360641, 0.49579480290413, 0.494285851717, 0.48409512639046, 0.48319244384766, 0.47853890061378,
-         0.47748681902885, 0.47595044970512, 0.47588595747948, 0.47272825241089, 0.46808642148972, 0.46751618385315,
-         0.46486243605614, 0.46478125452995, 0.46305647492409, 0.46148332953453, 0.45954248309135, 0.45872023701668,
-         0.45820289850235, 0.45669832825661])
+        [0.5664147315, 0.4877725552, 0.4053835884, 0.4026770756]
+    )
     print("AVERAGE PRECISION:")
-    y_pred = np.full((1, 20), 1)[0]
+    y_pred = np.full((1, 4), 1)[0]
     print(average_precision_score(y_true, y_scores))
     print("PRECISION SCORE:")
     print(precision_score(y_true, y_pred, average='weighted'))
@@ -185,8 +183,8 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
     list_of_ps = []
     list_of_ps.append([precision_score(x['relevance'], np.full((1, len(x['relevance'])), 1)[0], average='macro')
                        for x in evaluation_results_df['results_part_2']
-                       if (len(x['relevance']) == len(x['coefficient'])
-                           and not (None in x['coefficient'] or None in x['relevance']))])
+                       if not None in x['relevance']]
+                      )
     print("WEIGHTED PRECISION SCORE:")
     print(list_of_ps)
 
@@ -195,7 +193,7 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
     list_of_balanced_accuracies.append([balanced_accuracy_score(x['relevance'],
                                                                 np.full((1, len(x['relevance'])), 1)[0])
                                         for x in evaluation_results_df['results_part_2']
-                                        if len(x['relevance']) == len(x['coefficient'])
+                                        if not None in x['relevance']
                                         ])
     print(list_of_balanced_accuracies)
     """
@@ -206,7 +204,7 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
     list_of_dcgs = []
     list_of_dcgs.append([dcg_score([x['relevance']], [np.full((1, len(x['relevance'])), 1)[0]])
                          for x in evaluation_results_df['results_part_2']
-                         if len(x['relevance']) == len(x['coefficient'])
+                         if not None in x['relevance']
                         ])
     print(list_of_dcgs)
 
@@ -214,7 +212,7 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
     list_of_dcg_at_k = []
     list_of_dcg_at_k.append([dcg_score([x['relevance']], [np.full((1, len(x['relevance'])), 1)[0]], k=k)
                              for x in evaluation_results_df['results_part_2']
-                             if len(x['relevance']) == len(x['coefficient'])
+                             if not None in x['relevance']
                              ])
     print(list_of_dcg_at_k)
 
@@ -222,7 +220,7 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
     list_of_f1_score = []
     list_of_f1_score.append([f1_score(x['relevance'], np.full((1, len(x['relevance'])), 1)[0], average='weighted')
                              for x in evaluation_results_df['results_part_2']
-                             if len(x['relevance']) == len(x['coefficient'])
+                             if not None in x['relevance']
                              ])
     print(list_of_f1_score)
 
@@ -230,7 +228,7 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
     list_of_ndcgs = []
     list_of_ndcgs.append([ndcg_score([x['relevance']], [np.full((1, len(x['relevance'])), 1)[0]])
                           for x in evaluation_results_df['results_part_2']
-                          if len(x['relevance']) == len(x['coefficient'])
+                          if not None in x['relevance']
                           ])
     print(list_of_ndcgs)
 
@@ -238,7 +236,7 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
     list_of_ndcgs_at_k = []
     list_of_ndcgs_at_k.append([ndcg_score([x['relevance']], [np.full((1, len(x['relevance'])), 1)[0]], k=k)
                                for x in evaluation_results_df['results_part_2']
-                               if len(x['relevance']) == len(x['coefficient'])
+                               if not None in x['relevance']
                                ])
     print(list_of_ndcgs_at_k)
 
@@ -261,8 +259,7 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
     print("PRECISION SCORE:")
     list_of_precisions.append([precision_score(x['relevance'], np.full((1, len(x['relevance'])), 1)[0], average='macro')
                                for x in evaluation_results_df['results_part_2']
-                               if (len(x['relevance']) == len(x['coefficient'])
-                                   and not (None in x['coefficient'] or None in x['relevance']))
+                               if not None in x['relevance']
                               ])
     print(list_of_precisions)
     """
