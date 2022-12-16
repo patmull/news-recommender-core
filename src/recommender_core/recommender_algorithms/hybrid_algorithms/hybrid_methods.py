@@ -98,7 +98,7 @@ def prepare_categories():
     return post_category_df
 
 
-def select_list_of_posts_for_user(user_id, posts_to_compare):
+def select_list_of_posts_for_user(user_id, posts_to_compare, N_SVD=20):
     """
     Appends posts from user history to posts from other algorithm, i.e. collab recommendation by SVD.
 
@@ -109,7 +109,6 @@ def select_list_of_posts_for_user(user_id, posts_to_compare):
     list
         a list of slugs from user reading history
     """
-    N_SVD = 5
 
     if type(posts_to_compare) is not list:
         raise ValueError("'svd_posts_to_compare' parameter must be a list!")
