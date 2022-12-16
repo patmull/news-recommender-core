@@ -6,6 +6,14 @@ from funcy.compat import basestring
 
 
 def accepts_first_argument(*types):
+    """
+    Decorator for checking the accept type of the first argument.
+    Sometimes behaved unpredictable when used on more than one argument,
+    so should be used carefully.
+
+    @param types:
+    @return:
+    """
     def check_accepts_first_argument(f):
         # This fails if other data types are not specified
 
@@ -60,6 +68,7 @@ def accepts_third_argument(*types):
     return NotImplementedError
 
 
+@PendingDeprecationWarning
 def accepts_types(*types):
     def check_accepts(f):
         # This fails if other data types are not specified
@@ -80,6 +89,12 @@ def accepts_types(*types):
 
 
 def check_empty_string(f):
+    """
+    Empty string parameter decorator
+
+    @param f:
+    @return:
+    """
     @functools.wraps(f)
     def wrapper(*a, **k):
         d = inspect.getcallargs(f, *a, **k)
@@ -89,15 +104,18 @@ def check_empty_string(f):
     return wrapper
 
 
+@PendingDeprecationWarning
 def checking_empty_string(d):
     for name, value in d.iteritems():
         check_attribute(name, value)
 
 
 def check_attribute(name, value):
+
     """
     Gives warnings on stderr if the value is an empty or whitespace input_string.
     All other values, including None, are OK and give no warning.
     """
+
     if isinstance(value, basestring) and (not value or value.isspace()):
         raise ValueError("Invalid value %r for argument %r" % (value, name))

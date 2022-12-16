@@ -23,6 +23,13 @@ logging.debug("Testing logging from %s." % os.path.basename(__file__))
 
 
 def shuffle_and_reverse(posts, random_order, reversed_order=True):
+    """
+    Sometimes may be beneficial to run prefilling in the random order. This is rather experimental method.
+    @param posts: list of post slugs
+    @param random_order: nomen omen
+    @param reversed_order: nomen omen
+    @return:
+    """
 
     if reversed_order is True:
         logging.debug("Reversing list of posts...")
@@ -37,6 +44,11 @@ def shuffle_and_reverse(posts, random_order, reversed_order=True):
 
 
 def get_post_columns(post):
+    """
+    Post columns extractor. Contains the column later used in preprocessing of the text.
+    @param post: string of the slug to use
+    @return: post_id, slug, article_title, article_excerpt, article_full_text, current_body_preprocess
+    """
     post_id = post[0]
     slug = post[3]
     article_title = post[2]
@@ -48,6 +60,11 @@ def get_post_columns(post):
 
 
 def extract_keywords(string_for_extraction):
+    """
+    Handles the call of the keyword extraction methods.
+    @param string_for_extraction:
+    @return:
+    """
 
     # ** HERE WAS ALSO LINK FOR PREPROCESSING API. Abandoned for not being used.
     # keywords extraction
@@ -60,6 +77,15 @@ def extract_keywords(string_for_extraction):
 
 
 def prepare_filling(skip_already_filled, random_order, method):
+    """
+    Handles the data loading and shuffling/reversing if chosen for the
+    prefilling methods.
+
+    @param skip_already_filled:
+    @param random_order:
+    @param method:
+    @return:
+    """
     recommender_methods = RecommenderMethods()
     if skip_already_filled is False:
         recommender_methods.database.connect()
@@ -146,6 +172,13 @@ class PreFillerAdditional:
                 self.start_preprocessed_columns_prefilling(article_full_text, post_id)
 
     def fill_keywords(self, skip_already_filled, random_order):
+        """
+        Hanldes the keywords extraction methods and calls the inserting methods.
+
+        @param skip_already_filled:
+        @param random_order:
+        @return:
+        """
         recommender_methods = RecommenderMethods()
         if skip_already_filled is False:
             posts = recommender_methods.get_all_posts()
@@ -200,6 +233,13 @@ class PreFillerAdditional:
                                        random_order=random_order)
 
     def fill_all_features_preprocessed(self, skip_already_filled, random_order):
+        """
+        Handles the data loaders and inserts fot the 'all_features_preprocessed' method.
+
+        @param skip_already_filled:
+        @param random_order:
+        @return:
+        """
         posts = prepare_filling(skip_already_filled=skip_already_filled, random_order=random_order,
                                 method='all_features_preprocessed')
 
@@ -232,6 +272,13 @@ class PreFillerAdditional:
                 self.start_preprocessed_columns_prefilling(article_full_text=article_full_text, post_id=post_id)
 
     def start_preprocessed_columns_prefilling(self, article_full_text, post_id):
+        """
+        Handles the 'body_preprocessed' data loading and actual pre-processing.
+
+        @param article_full_text:
+        @param post_id:
+        @return:
+        """
 
         preprocessed_text = preprocess(article_full_text)
         logging.debug("article_full_text")
@@ -246,6 +293,14 @@ class PreFillerAdditional:
         number_of_inserted_rows += 1
 
     def fill_ngrams_for_all_posts(self, skip_already_filled, random_order, full_text):
+        """
+        Bigrams and trigrams data loading, data handling, extracting methods call and inserts.
+
+        @param skip_already_filled:
+        @param random_order:
+        @param full_text:
+        @return:
+        """
         recommender_methods = RecommenderMethods()
         logging.debug("Beginning prefiling of bigrams, variant full_text=" + str(full_text))
         if skip_already_filled is False:

@@ -20,6 +20,11 @@ logging.basicConfig(level=logging.DEBUG, format=log_format)
 
 
 def create_relevance_stats_df(sections):
+    """
+    User evaluation based on the front-side thumbs ratings of the users.
+    @param sections:
+    @return: Pandas Dataframe with the used statistics on the user thumbs ratings.
+    """
 
     precision_score_weighted_list = []
     dcg_score_list = []
@@ -72,6 +77,11 @@ def create_relevance_stats_df(sections):
 
 
 def user_relevance_asessment(save_to_redis=True):
+    """
+    Statistics coming from relevance votes (thumbs) of users.
+    RUN WITH: run_user_eval.py
+    @return:
+    """
 
     sections = get_user_evaluation_results_dataframe()['method_section'].unique().tolist()
 
