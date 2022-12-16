@@ -98,7 +98,7 @@ def prepare_categories():
     return post_category_df
 
 
-def select_list_of_posts_for_user(user_id, posts_to_compare, N_SVD=20):
+def select_list_of_posts_for_user(user_id, posts_to_compare, N_SVD=30):
     """
     Appends posts from user history to posts from other algorithm, i.e. collab recommendation by SVD.
 
@@ -400,7 +400,7 @@ def mix_methods_by_fuzzy(results_df, method):
 
 def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, svd_posts_to_compare=None,
                                list_of_methods=None, save_result=False,
-                               load_saved_result=False, use_fuzzy=True):
+                               load_saved_result=False, use_fuzzy=True, num_of_svd=30):
     """
     Get most similar from content based matrix and delivered posts.
 
@@ -431,7 +431,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             raise NotImplementedError("Inserted methods must correspond to DB columns.")
         if svd_posts_to_compare is None:
             svd = SvdClass()
-            recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=20)
+            recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=num_of_svd)
             svd_posts_to_compare = recommended_by_svd['slug'].to_list()
 
         list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, svd_posts_to_compare)
