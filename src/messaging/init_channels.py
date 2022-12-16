@@ -13,6 +13,10 @@ class ChannelConstants:
 
 
 def init_df_of_channel_names():
+    """
+    Global RabbitMQ naming of channels, key, exchange keys. Also contain a dictionary of those values.
+    :return: Dataframe of channel attribute names.
+    """
     LIST_OF_QUEUES = ['user-post-star_rating-updated-queue',
                       'user-keywords-updated-queue',
                       'user-categories-updated-queue',
@@ -51,6 +55,10 @@ def init_df_of_channel_names():
 
 
 def publish_all_set_channels():
+    """
+    Publishing all channels by the naming set in init_df_of_channel_names() method
+    :return:
+    """
     df_of_channels = init_df_of_channel_names()
 
     for index, row in df_of_channels.iterrows():
@@ -58,6 +66,11 @@ def publish_all_set_channels():
 
 
 def publish_rabbitmq_channel(queue_name):
+    """
+    Preparing publishing of the RabbitMQ channels
+    :param queue_name:
+    :return:
+    """
     df_of_channels = init_df_of_channel_names()
     queue = queue_name
     message = df_of_channels.loc[df_of_channels['queue_name'] == queue_name, 'init_message'].iloc[0]

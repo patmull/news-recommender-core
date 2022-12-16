@@ -5,6 +5,9 @@ import pandas as pd
 
 
 class TfIdfVisualizer:
+    """
+    TF-IDF visualizing methods for better understanding of the data,
+    """
 
     def __init__(self):
         self.top_tfidf = None

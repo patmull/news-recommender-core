@@ -4,6 +4,10 @@ from src.prefillers.prefiller import prefilling_job_content_based
 
 
 def prefill_tfidf_full():
+    """
+    Invoking the TF-IDF full-text prefilling.
+    :rtype: object
+    """
     while True:
         try:
             prefilling_job_content_based("tfidf", full_text=True)

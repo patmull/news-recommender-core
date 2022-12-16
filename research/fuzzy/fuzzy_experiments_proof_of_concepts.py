@@ -13,8 +13,10 @@ logging.debug("Testing logging from hybrid_methods.")
 
 
 def inference_simple_mamdani_boosting_coeff(similarity, freshness):
+    """
     # A simple fuzzy inference system for the Boostingping problem
     # Create a fuzzy system object
+    """
     FS = FuzzySystem()
 
     # Define fuzzy sets and linguistic variables
@@ -55,6 +57,11 @@ def inference_simple_mamdani_boosting_coeff(similarity, freshness):
 
 
 def fuzzy_weights_coeff():
+    """
+    # Demo of the Takagi-Sugeno inference using the system's similarity, freshness and boosting measurement.
+    # Create a fuzzy system object
+    @return: double of the Takagi-Sugeno fuzzy inference
+    """
     import simpful as sf
 
     # A simple fuzzy inference system for the tipping problem
@@ -95,6 +102,12 @@ def fuzzy_weights_coeff():
 
 
 def inference_simple_mamdani_ensembling_ratio(similarity, freshness, returned_method):
+    """
+    Demo of the Mamdani inference using the system's similarity, freshness and boosting measurement.
+    Create a fuzzy system object
+    This method was later revisited and integrated into the Recommender Core module of the system.
+    @return: double of the Takagi-Sugeno fuzzy inference
+    """
 
     allowed_methods = ['tfidf', 'word2vec', 'doc2vec']
 

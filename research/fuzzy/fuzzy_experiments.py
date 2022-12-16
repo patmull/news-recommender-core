@@ -3,8 +3,10 @@ from simpful import FuzzySystem, FuzzySet, Triangular_MF, LinguisticVariable, Tr
 
 
 def weighted_rules_takagi_sugeno():
-    # A simple fuzzy inference system for the tipping problem
-    # Create a fuzzy system object
+    """
+    A simple fuzzy inference system for the tipping problem
+    Create a fuzzy system object
+    """
     FS = sf.FuzzySystem()
 
     # Define fuzzy sets and linguistic variables
@@ -38,8 +40,10 @@ def weighted_rules_takagi_sugeno():
 
 
 def inference_simple_mamdani():
+    """
     # A simple fuzzy inference system for the tipping problem
     # Create a fuzzy system object
+    """
     FS = FuzzySystem()
 
     # Define fuzzy sets and linguistic variables
@@ -76,6 +80,10 @@ def inference_simple_mamdani():
 
 # TODO: Plot functions to the text of the thesis
 def example_fuzzy_sets():
+    """
+    Example of user of the Fuzzy sets in Simpful package
+    @return:
+    """
     import simpful as sf
 
     # A showcase of available fuzzy sets.
@@ -136,6 +144,10 @@ def example_fuzzy_sets():
 
 
 def example_output_space():
+    """
+    Example of use of the plotting with the Simpful package.
+    @return:
+    """
     import matplotlib.pylab as plt
     from numpy import linspace, array
 
