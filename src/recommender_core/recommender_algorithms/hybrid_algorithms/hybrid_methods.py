@@ -400,7 +400,7 @@ def mix_methods_by_fuzzy(results_df, method):
 
 def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, svd_posts_to_compare=None,
                                list_of_methods=None, save_result=False,
-                               load_saved_result=False, use_fuzzy=True, num_of_svd=30):
+                               load_saved_result=False, use_fuzzy=True, num_of_svd=30, top_n=20):
     """
     Get most similar from content based matrix and delivered posts.
 
@@ -661,6 +661,8 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     results_df = results_df.sort_values(by='coefficient', ascending=False)
     results_df = results_df['coefficient']
     results_df = results_df.rename_axis('slug').reset_index()
+
+    results_df = results_df.head(top_n)
 
     if use_fuzzy is True:
         results_df_fuzzy = results_df_fuzzy.set_index('slug')
