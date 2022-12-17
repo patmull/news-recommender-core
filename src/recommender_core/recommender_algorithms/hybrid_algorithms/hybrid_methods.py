@@ -119,12 +119,13 @@ def select_list_of_posts_for_user(user_id, posts_to_compare):
 
     list_of_slugs_from_history = df_user_read_history_with_posts['slug'].to_list()
 
+    # TODO: Filter-out the thumbs-down rated articles and (already seen articles ???)
     posts_to_compare = filter_thumbs_down_articles(posts_to_compare, list_of_slugs_from_history, user_id)
 
     list_of_slugs = posts_to_compare + list_of_slugs_from_history
     list_of_slugs_unique = unique_list(list_of_slugs)
 
-    # Getting N posts from SVD
+    # Getting 5 posts from SVD
     list_of_slugs_unique = list_of_slugs_unique[:N_SVD]
 
     return list_of_slugs_unique, list_of_slugs_from_history
@@ -323,6 +324,7 @@ def boost_by_article_freshness(results_df):
             d = d + boost
         return d
 
+    # TODO: Get boost values from DB. Priority MEDIUM
     # See: hybrid_settings table where it was laid out
     now = pd.to_datetime('now')
     r = get_redis_connection()
@@ -340,6 +342,7 @@ def boost_by_article_freshness(results_df):
     return results_df
 
 
+<<<<<<< HEAD
 def boost_by_fuzzy(results_df):
 
     def get_hours_from_timedelta(created_at):
@@ -399,9 +402,11 @@ def mix_methods_by_fuzzy(results_df, method):
     return results_df
 
 
+=======
+>>>>>>> fuzzy_integration
 def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, svd_posts_to_compare=None,
                                list_of_methods=None, save_result=False,
-                               load_saved_result=False, use_fuzzy=True):
+                               load_saved_result=False):
     """
     Get most similar from content based matrix and delivered posts.
 
@@ -419,7 +424,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     @param load_saved_result: if True, skips the recommending calculation and jumps to final calculations.
     Added to help with debugging of final boosting
     """
-    global hybrid_recommended_json_fuzzy, results_fuzzy
     path_to_save_results = Path('research/hybrid/results_df.pkl')  # Primarily for debugging purposes
 
     if load_saved_result is False or not os.path.exists(path_to_save_results):
@@ -434,11 +438,10 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             svd = SvdClass()
             recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=20)
             svd_posts_to_compare = recommended_by_svd['slug'].to_list()
-
+        
         list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, svd_posts_to_compare)
 
         list_of_similarity_results = []
-        list_of_similarity_results_fuzzy = []
         r = get_redis_connection()
 
         for method in list_of_methods:
@@ -471,7 +474,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
             constant = np.float64(constant)
 
-            similarity_matrix_not_boosted = pd.DataFrame()
             if method == "tfidf":
                 file_path = prepare_sim_matrix_path(method)
                 # TODO: Derive from loaded feather of sim matrix instead
@@ -496,6 +498,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
                 similarity_matrix = personalize_similarity_matrix(similarity_matrix, svd_posts_to_compare,
                                                                   list_of_slugs_from_history)
+<<<<<<< HEAD
 
                 similarity_matrix = similarity_matrix * constant
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
@@ -503,6 +506,10 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                     similarity_matrix_not_boosted = similarity_matrix.copy()
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
 
+=======
+                similarity_matrix = similarity_matrix * constant
+                results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+>>>>>>> fuzzy_integration
             elif method == "doc2vec" or "word2vec":
                 file_path = prepare_sim_matrix_path(method)
                 if load_from_precalc_sim_matrix \
@@ -523,25 +530,26 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                 else:
                     # Calculating new similarity matrix only based on posts we are interested
                     similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
-
                 similarity_matrix = personalize_similarity_matrix(similarity_matrix, svd_posts_to_compare,
                                                                   list_of_slugs_from_history)
+<<<<<<< HEAD
 
                 if use_fuzzy is True:
                     similarity_matrix_not_boosted = similarity_matrix.copy()
+=======
+>>>>>>> fuzzy_integration
                 similarity_matrix = similarity_matrix * constant
-
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+<<<<<<< HEAD
                 if use_fuzzy is True:
                     # Fuzzy is still waiting for the boosting
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
                     results_fuzzy = mix_methods_by_fuzzy(results_fuzzy, method)
+=======
+>>>>>>> fuzzy_integration
             else:
                 raise NotImplementedError("Supplied method not implemented")
-
             list_of_similarity_results.append(results)
-            if use_fuzzy is True:
-                list_of_similarity_results_fuzzy.append(results_fuzzy)
             logging.debug("list_of_similarity_matrices:")
             logging.debug(list_of_similarity_results)
         logging.debug("list_of_similarity_matrices after finished for loop:")
@@ -553,44 +561,29 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         logging.debug(list_of_similarity_results[0])
 
         results_df = pd.concat([list_of_similarity_results[0]['slug']], axis=1)
-        if use_fuzzy is True:
-            results_df_fuzzy = pd.concat([list_of_similarity_results_fuzzy[0]['slug']], axis=1)
-
         for result in list_of_similarity_results:
             results_df = pd.concat([results_df, result['coefficient']], axis=1)
 
-        if use_fuzzy is True:
-            for result_fuzzy in list_of_similarity_results:
-                results_df_fuzzy = pd.concat([results_df_fuzzy, result_fuzzy['coefficient']], axis=1)
-
         results_df.columns = list_of_keys
-        if use_fuzzy is True:
-            results_df_fuzzy.columns = list_of_keys
 
         logging.debug("results_df")
         logging.debug(results_df)
-        if use_fuzzy is True:
-            logging.debug("results_df_fuzzy")
-            logging.debug(results_df_fuzzy)
 
         coefficient_columns = list_of_prefixed_methods
 
         # Normalizing columns
         results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
                                           / results_df[coefficient_columns].std()
+<<<<<<< HEAD
         if use_fuzzy is True:
             results_df_fuzzy[coefficient_columns] = (results_df_fuzzy[coefficient_columns] - results_df_fuzzy[coefficient_columns].mean()) \
                                               / results_df_fuzzy[coefficient_columns].std()
+=======
+>>>>>>> fuzzy_integration
         logging.debug("normalized_df:")
+
         logging.debug(results_df)
-
-        if use_fuzzy is True:
-            logging.debug("normalized_df_fuzzy:")
-            logging.debug(results_df_fuzzy)
-
         results_df['coefficient'] = results_df.sum(axis=1)
-        if use_fuzzy is True:
-            results_df_fuzzy['coefficient'] = results_df_fuzzy.sum(axis=1)
 
         recommender_methods = RecommenderMethods()
         df_posts_categories = recommender_methods.get_posts_categories_dataframe()
@@ -598,28 +591,16 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         logging.debug("results_df:")
         logging.debug(results_df)
         logging.debug(results_df.columns)
-        if use_fuzzy is True:
-            logging.debug("results_df_fuzzy:")
-            logging.debug(results_df_fuzzy)
-            logging.debug(results_df_fuzzy.columns)
 
         results_df = results_df.merge(df_posts_categories, left_on='slug', right_on='slug')
         logging.debug("results_df after merge")
         logging.debug(results_df)
         logging.debug(results_df.columns)
-        if use_fuzzy is True:
-            results_df_fuzzy = results_df_fuzzy.merge(df_posts_categories, left_on='slug', right_on='slug')
-            logging.debug("results_df after merge")
-            logging.debug(results_df_fuzzy)
-            logging.debug(results_df_fuzzy.columns)
 
-        # WARNING: Fuzzy not supported here!
         if save_result:
             path_to_save_results.parent.mkdir(parents=True, exist_ok=True)
             results_df.to_pickle(path_to_save_results.as_posix())
-
     else:
-        # WARNING: Fuzzy not supported here!
         results_df = pd.read_pickle(path_to_save_results.as_posix())
 
     user_methods = UserMethods()
@@ -636,18 +617,11 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         results_df.coefficient * 2.0,
         results_df.coefficient)
 
-    if use_fuzzy is True:
-
-        results_df_fuzzy.coefficient = np.where(
-            results_df_fuzzy["category_slug"].isin(user_categories_list),
-            results_df_fuzzy.coefficient * 2.0,
-            results_df_fuzzy.coefficient)
-
     results_df = results_df.rename(columns={'created_at_x': 'post_created_at'})
 
-    logging.debug("Results column:")
     logging.debug(results_df.columns)
 
+<<<<<<< HEAD
     if use_fuzzy is True:
         results_df_fuzzy = results_df.rename(columns={'created_at_x': 'post_created_at'})
 
@@ -656,6 +630,8 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
     if use_fuzzy is True:
         results_df_fuzzy = boost_by_fuzzy(results_df_fuzzy)
+=======
+>>>>>>> fuzzy_integration
     results_df = boost_by_article_freshness(results_df)
 
     results_df = results_df.set_index('slug')
@@ -663,29 +639,12 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     results_df = results_df['coefficient']
     results_df = results_df.rename_axis('slug').reset_index()
 
-    if use_fuzzy is True:
-        results_df_fuzzy = results_df_fuzzy.set_index('slug')
-        results_df_fuzzy = results_df_fuzzy.sort_values(by='coefficient', ascending=False)
-        results_df_fuzzy = results_df_fuzzy['coefficient']
-        results_df_fuzzy = results_df_fuzzy.rename_axis('slug').reset_index()
-
     hybrid_recommended_json = results_df.to_json(orient='records')
     parsed = json.loads(hybrid_recommended_json)
     hybrid_recommended_json = json.dumps(parsed)
-    logging.debug("Hybrid recommended JSON:")
     logging.debug(hybrid_recommended_json)
 
-    if use_fuzzy is True:
-        hybrid_recommended_json_fuzzy = results_df_fuzzy.to_json(orient='records')
-        parsed = json.loads(hybrid_recommended_json_fuzzy)
-        hybrid_recommended_json_fuzzy = json.dumps(parsed)
-        logging.debug("Fuzzy Hybrid recommended JSON:")
-        logging.debug(hybrid_recommended_json_fuzzy)
-
-    if use_fuzzy is False:
-        return hybrid_recommended_json
-    else:
-        return hybrid_recommended_json, hybrid_recommended_json_fuzzy
+    return hybrid_recommended_json
 
 
 class HybridMethods:

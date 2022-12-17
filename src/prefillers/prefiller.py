@@ -53,8 +53,6 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
     @param test_run: Using for tests ensuring that the method is called
     @return:
     """
-    global actual_json_fuzzy
-
     if test_run is True:
         print("Test run exception raised.")
         raise TestRunException("This is test run")
@@ -71,21 +69,15 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
         # For single user
         users = user_methods.get_user_dataframe(user_id)
 
-    current_recommended_fuzzy = None
     for user in users.to_dict("records"):
         print("user:")
         print(user)
         current_user_id = user['id']
         current_recommended = user[column_name]
-        if method == "hybrid":
-            current_recommended_fuzzy = user['recommended_by_hybrid_fuzzy']
-            print("current_recommended_fuzzy:")
-            print(current_recommended_fuzzy)
         print("current_user_id:")
         print(current_user_id)
         print("current_recommended:")
         print(current_recommended)
-
         if method == "svd":
             svd = SvdClass()
             try:
@@ -116,9 +108,7 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                 continue
         elif method == "hybrid":
             try:
-                actual_json, actual_json_fuzzy = get_most_similar_by_hybrid(user_id=current_user_id,
-                                                                            load_from_precalc_sim_matrix=False,
-                                                                            use_fuzzy=True)
+                actual_json = get_most_similar_by_hybrid(user_id=current_user_id, load_from_precalc_sim_matrix=False)
             except ValueError as e:
                 print("Value Error had occurred in computing " + method + ". Skipping record.")
                 print(e)
@@ -128,11 +118,11 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 
         # NOTICE: Hybrid is already doing this
         if not method == "hybrid":
-            # TODO: Shouldn't this be handled for other methods too inside the method and not here like in hybrid?
-            print("dict actual_json")
+            # TODO: Shouldn't this be handled for other methods too inside the mathod and not here like in hybrid?
+            print("dict actual_svd_json")
             print(actual_json)
             actual_json = json.dumps(actual_json)
-            print("dumped actual_json")
+            print("dumped actual_svd_json")
             print(actual_json)
 
         if skip_already_filled is True:
@@ -144,17 +134,6 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                     user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
                                                                     user_id=current_user_id, db="redis",
                                                                     method=method)
-
-                    if method == "hybrid":
-                        # With hybrid, automatically also hybrid_fuzzy gets prefilled
-                        if current_recommended_fuzzy is None:
-                            method = 'hybrid_fuzzy'
-                            user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
-                                                                            user_id=current_user_id, db="pgsql",
-                                                                            method=method)
-                            user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
-                                                                            user_id=current_user_id, db="redis",
-                                                                            method=method)
                 except Exception as e:
                     print("Error in DB insert. Skipping.")
                     print(e)
@@ -167,17 +146,6 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                 user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
                                                                 user_id=current_user_id, db="redis",
                                                                 method=method)
-
-                if method == "hybrid":
-                    # With hybrid, automatically also hybrid_fuzzy gets prefilled
-                    method = 'hybrid_fuzzy'
-                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
-                                                                    user_id=current_user_id, db="pgsql",
-                                                                    method=method)
-                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
-                                                                    user_id=current_user_id, db="redis",
-                                                                    method=method)
-
             except Exception as e:
                 print("Error in DB insert. Skipping.")
                 print(e)

@@ -60,7 +60,7 @@ class UserBasedMethods:
         return self.database
 
     # loads posts for user based on his favourite categories
-    def load_best_rated_by_others_in_user_categories(self, user_id, num_of_recommendations=5):
+    def load_best_rated_by_others_in_user_categories(self, user_id, num_of_recommendations=20):
         self.database = DatabaseMethods()
 
         # noinspection PyPep8
