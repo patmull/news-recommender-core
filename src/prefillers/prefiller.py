@@ -45,6 +45,7 @@ logging.debug("Testing logging in prefiller.")
 
 def fill_recommended_collab_based(method, skip_already_filled, user_id=None, test_run=False):
     """
+    Handler method for collab based prefilling.
 
     @param method: i.e. "svd", "user_keywords" etc.
     @param skip_already_filled:
@@ -53,6 +54,8 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
     @param test_run: Using for tests ensuring that the method is called
     @return:
     """
+    global actual_json_fuzzy
+
     if test_run is True:
         print("Test run exception raised.")
         raise TestRunException("This is test run")
@@ -69,15 +72,21 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
         # For single user
         users = user_methods.get_user_dataframe(user_id)
 
+    current_recommended_fuzzy = None
     for user in users.to_dict("records"):
         print("user:")
         print(user)
         current_user_id = user['id']
         current_recommended = user[column_name]
+        if method == "hybrid":
+            current_recommended_fuzzy = user['recommended_by_hybrid_fuzzy']
+            print("current_recommended_fuzzy:")
+            print(current_recommended_fuzzy)
         print("current_user_id:")
         print(current_user_id)
         print("current_recommended:")
         print(current_recommended)
+
         if method == "svd":
             svd = SvdClass()
             try:
@@ -108,7 +117,9 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                 continue
         elif method == "hybrid":
             try:
-                actual_json = get_most_similar_by_hybrid(user_id=current_user_id, load_from_precalc_sim_matrix=False)
+                actual_json, actual_json_fuzzy = get_most_similar_by_hybrid(user_id=current_user_id,
+                                                                            load_from_precalc_sim_matrix=False,
+                                                                            use_fuzzy=True)
             except ValueError as e:
                 print("Value Error had occurred in computing " + method + ". Skipping record.")
                 print(e)
@@ -118,11 +129,11 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 
         # NOTICE: Hybrid is already doing this
         if not method == "hybrid":
-            # TODO: Shouldn't this be handled for other methods too inside the mathod and not here like in hybrid?
-            print("dict actual_svd_json")
+            # TODO: Shouldn't this be handled for other methods too inside the method and not here like in hybrid?
+            print("dict actual_json")
             print(actual_json)
             actual_json = json.dumps(actual_json)
-            print("dumped actual_svd_json")
+            print("dumped actual_json")
             print(actual_json)
 
         if skip_already_filled is True:
@@ -134,6 +145,17 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                     user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
                                                                     user_id=current_user_id, db="redis",
                                                                     method=method)
+
+                    if method == "hybrid":
+                        # With hybrid, automatically also hybrid_fuzzy gets prefilled
+                        if current_recommended_fuzzy is None:
+                            method = 'hybrid_fuzzy'
+                            user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
+                                                                            user_id=current_user_id, db="pgsql",
+                                                                            method=method)
+                            user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
+                                                                            user_id=current_user_id, db="redis",
+                                                                            method=method)
                 except Exception as e:
                     print("Error in DB insert. Skipping.")
                     print(e)
@@ -146,15 +168,38 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                 user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
                                                                 user_id=current_user_id, db="redis",
                                                                 method=method)
+
+                if method == "hybrid":
+                    # With hybrid, automatically also hybrid_fuzzy gets prefilled
+                    method = 'hybrid_fuzzy'
+                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
+                                                                    user_id=current_user_id, db="pgsql",
+                                                                    method=method)
+                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
+                                                                    user_id=current_user_id, db="redis",
+                                                                    method=method)
+
             except Exception as e:
                 print("Error in DB insert. Skipping.")
                 print(e)
                 pass
 
 
-# TODO: Test this method alone, i.e. removing prefilled record, check logging for positive addition
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
+    """
+    Method handling the I/O and recommending method call for the content-based prefilling.
+    It loads the ML models or pre-calculated files, calls the recommending methods, then saves the recommendations
+    into the databse. It also handles the order of the checking, skipping of prefilled files etc...
+
+    @param method: i.e. "svd", "user_keywords" etc.
+    @param skip_already_filled:
+    @param full_text:
+    @param random_order:
+    @param reversed_order:
+    @return:
+    """
+
     global fit_by_full_text, fit_by_title, fit_by_all_features_matrix, tf_idf_data_handlers
     docsim_index, dictionary = None, None
     database_methods = DatabaseMethods()
@@ -435,6 +480,16 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
 
 def prefilling_job_content_based(method: str, full_text: bool, random_order=False, reversed_order=True,
                                  test_call=False):
+    """
+    Exception handler for the content-based methods.
+
+    @param method:
+    @param full_text:
+    @param random_order:
+    @param reversed_order:
+    @param test_call:
+    @return:
+    """
 
     while True:
         try:
@@ -454,6 +509,16 @@ def prefilling_job_content_based(method: str, full_text: bool, random_order=Fals
 class UserBased:
 
     def prefilling_job_user_based(self, method, db, user_id=None, test_run=False, skip_already_filled=False):
+        """
+        Exception handler for the user based methods.
+
+        @param method:
+        @param db:
+        @param user_id:
+        @param test_run:
+        @param skip_already_filled:
+        @return:
+        """
         while True:
             if db == "pgsql":
                 try:

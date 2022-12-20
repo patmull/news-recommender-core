@@ -4,4 +4,4 @@ if __name__ == '__main__':
     """
     Runner for relevace asesment of users.
     """
-    user_relevance_asessment()
+    user_relevance_asessment(save_to_redis=True)

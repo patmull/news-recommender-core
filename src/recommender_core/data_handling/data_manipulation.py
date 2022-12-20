@@ -24,6 +24,10 @@ def print_exception_not_inserted(e):
 
 
 class DatabaseMethods(object):
+    """
+    The main class of the database methods.
+
+    """
 
     def __init__(self, db="pgsql"):
         """
@@ -870,6 +874,9 @@ class DatabaseMethods(object):
             if method == "hybrid":
                 r = get_redis_connection()
                 r.set(('user:%s:user-hybrid-recommendation' % str(user_id)), recommended_json)
+            elif method == "hybrid_fuzzy":
+                r = get_redis_connection()
+                r.set(('user:%s:user-hybrid-fuzzy-recommendation' % str(user_id)), recommended_json)
             elif method == 'svd':
                 r = get_redis_connection()
                 r.set(('user:%s:user-svd-recommendation' % str(user_id)), recommended_json)

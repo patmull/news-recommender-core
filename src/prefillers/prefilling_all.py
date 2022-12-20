@@ -1,6 +1,7 @@
 import logging
 import traceback
 
+from research.user_based.user_relevance_eval import user_relevance_asessment
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.prefillers.user_based_prefillers.prefilling_user_classifier import fill_bert_vector_representation, \
     predict_ratings_for_all_users_store_to_redis
@@ -54,6 +55,16 @@ def prefill_to_redis_based_on_user_ratings():
 
 
 def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_full_text=None):
+    """
+    Init method of the general prefilling round for the crucial files that needs to be updated before prefilling starts
+    after scrapping the new posts from news site.
+    @param skip_cache_refresh: nomen omen
+    @param methods_short_text: list of methods to use for the short text recommendations. If None,
+    "tfidf" and "doc2vec" is used.
+    @param methods_full_text: list of methods to use for the short text recommendations. If None,
+    "tfidf", "word2vec_eval_idnes_3" and "lda" is used.
+    @return:
+    """
     if skip_cache_refresh is False:
         # Cache update
         logging.debug("Refreshing post cache. Inserting recommender posts to cache...")
@@ -116,6 +127,9 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
 
     prefill_to_redis_based_on_user_ratings()
 
+    # Refresh user voted relevance for admin statistics
+    user_relevance_asessment(save_to_redis=True)
+
 
 def prepare_and_run(database, method, full_text, reverse, random):
     database.connect()
@@ -137,9 +151,11 @@ def prepare_and_run(database, method, full_text, reverse, random):
 
 def check_needed_columns():
     # TODO: Check needed columns
+    """
     # 'all_features_preprocessed' (probably every method relies on this)
     # 'keywords' (LDA but probably also other methods relies on this)
     # 'body_preprocessed' (LDA relies on this)
+    """
     needed_checks = []
     recommender_methods = RecommenderMethods()
     number_of_nans_in_all_features_preprocessed \

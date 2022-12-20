@@ -11,6 +11,12 @@ import sys
 
 
 def cz_stem(word, aggressive_stemming=False):
+    """
+    Czech stemmer
+    Copyright © 2010 Luís Gomes <luismsgomes@gmail.com>.
+    Transformed from the Java implementation available at:
+    members.unine.ch/jacques.savoy/clef/index.html
+    """
     if not re.match("^\\w+$", word):
         return word
     if not word.islower() and not word.istitle() and not word.isupper():
