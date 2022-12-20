@@ -4,6 +4,10 @@ from src.prefillers.prefiller import prefilling_job_content_based
 
 
 def prefill_lda_full():
+    """
+    Invoking the LDA full-text variant prefilling.
+    :rtype: object
+    """
     while True:
         try:
             prefilling_job_content_based("lda", full_text=True)
