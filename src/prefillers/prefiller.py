@@ -45,6 +45,7 @@ logging.debug("Testing logging in prefiller.")
 
 def fill_recommended_collab_based(method, skip_already_filled, user_id=None, test_run=False):
     """
+    Handler method for collab based prefilling.
 
     @param method: i.e. "svd", "user_keywords" etc.
     @param skip_already_filled:
@@ -184,9 +185,21 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
                 pass
 
 
-# TODO: Test this method alone, i.e. removing prefilled record, check logging for positive addition
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
+    """
+    Method handling the I/O and recommending method call for the content-based prefilling.
+    It loads the ML models or pre-calculated files, calls the recommending methods, then saves the recommendations
+    into the databse. It also handles the order of the checking, skipping of prefilled files etc...
+
+    @param method: i.e. "svd", "user_keywords" etc.
+    @param skip_already_filled:
+    @param full_text:
+    @param random_order:
+    @param reversed_order:
+    @return:
+    """
+
     global fit_by_full_text, fit_by_title, fit_by_all_features_matrix, tf_idf_data_handlers
     docsim_index, dictionary = None, None
     database_methods = DatabaseMethods()
@@ -467,6 +480,16 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
 
 def prefilling_job_content_based(method: str, full_text: bool, random_order=False, reversed_order=True,
                                  test_call=False):
+    """
+    Exception handler for the content-based methods.
+
+    @param method:
+    @param full_text:
+    @param random_order:
+    @param reversed_order:
+    @param test_call:
+    @return:
+    """
 
     while True:
         try:
@@ -486,6 +509,16 @@ def prefilling_job_content_based(method: str, full_text: bool, random_order=Fals
 class UserBased:
 
     def prefilling_job_user_based(self, method, db, user_id=None, test_run=False, skip_already_filled=False):
+        """
+        Exception handler for the user based methods.
+
+        @param method:
+        @param db:
+        @param user_id:
+        @param test_run:
+        @param skip_already_filled:
+        @return:
+        """
         while True:
             if db == "pgsql":
                 try:

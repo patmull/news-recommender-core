@@ -7,16 +7,31 @@ from src.recommender_core.data_handling.data_handlers import flatten
 
 
 def get_cz_stopwords_file_path():
+    """
+    Getter for the Czech stopwords file path.
+    @return: string path of the Czech stopwords file.
+    """
     cz_stopwords_file_name = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
     return cz_stopwords_file_name
 
 
 def get_general_stopwords_file_path():
+    """
+    Getter for the general stopwords file path.
+    @return: string path of the general stopwords file.
+    """
     general_stopwords_file_name = Path("src/prefillers/preprocessing/stopwords/general_stopwords.txt")
     return general_stopwords_file_name
 
 
 def load_cz_stopwords(remove_punct=True):
+    """
+    Method for loading the Czech stopwords.
+    @param remove_punct: boolean value for whether you want remove punctuation before entering the stopwords removal.
+    Depends on how you collect the stopwords. Preferred way for this project is to provide stopwords with removed
+    punctuation.
+    @return: list of Czech stopwords loaded from file
+    """
     with open(get_cz_stopwords_file_path().as_posix(), encoding="utf-8") as file:
         cz_stopwords = file.readlines()
         if remove_punct is False:
@@ -27,6 +42,10 @@ def load_cz_stopwords(remove_punct=True):
 
 
 def load_general_stopwords():
+    """
+    Method for loading the general stopwords.
+    @return: list of general stopwords loaded from file
+    """
     with open(get_general_stopwords_file_path().as_posix(), encoding="utf-8") as file:
         general_stopwords = file.readlines()
         general_stopwords = [line.rstrip() for line in general_stopwords]
@@ -35,8 +54,8 @@ def load_general_stopwords():
 
 def remove_stopwords(texts, cz_punct=False) -> List[str]:
     """
-
-    @rtype: object
+    The method that actually handles the stopwords removal.
+    @rtype: list of words without stopwords
     """
     if type(texts) is list:
         cleaned_text_list = []
