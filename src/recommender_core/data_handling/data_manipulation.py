@@ -1,6 +1,7 @@
 # import psycopg2.connector
 import logging
 import os
+import random
 import traceback
 from pathlib import Path
 
@@ -986,6 +987,48 @@ class DatabaseMethods(object):
         except psycopg2.Error as e:
             print_exception_not_inserted(e)
             logging.debug("psycopg2.Error occurred while trying to update user:")
+            logging.debug(str(e))
+            raise e
+        finally:
+            self.disconnect()
+
+    def insert_rating(self, post_id, rounded_rating_value):
+        self.connect()
+        post_id = post_id.item()
+        user_id = random.randint(100000, 999999)
+
+        user_name = "test-user-" + str(user_id)
+        user_email = "test" + str(user_id) + "@user.cz"
+        user_password = "test-user" + str(user_id)
+
+        try:
+            query = """INSERT INTO users (id, name, email, password) VALUES (%s, %s, %s, %s);"""
+            queried_values = (user_id, user_name, user_email, user_password)
+            logging.debug("Query used:")
+            logging.debug(query)
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, queried_values)
+                self.cnx.commit()
+        except psycopg2.Error as e:
+            print_exception_not_inserted(e)
+            logging.debug("psycopg2.Error occurred while trying to update users:")
+            logging.debug(str(e))
+            raise e
+        finally:
+            self.disconnect()
+
+        self.connect()
+        try:
+            query = """INSERT INTO ratings (value, user_id, post_id) VALUES (%s, %s, %s);"""
+            queried_values = (rounded_rating_value, user_id, post_id)
+            logging.debug("Query used:")
+            logging.debug(query)
+            if self.cursor is not None and self.cnx is not None:
+                self.cursor.execute(query, queried_values)
+                self.cnx.commit()
+        except psycopg2.Error as e:
+            print_exception_not_inserted(e)
+            logging.debug("psycopg2.Error occurred while trying to update ratings:")
             logging.debug(str(e))
             raise e
         finally:
