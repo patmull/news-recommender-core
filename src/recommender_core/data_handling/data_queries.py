@@ -226,7 +226,7 @@ class RecommenderMethods:
 
     # noinspection PyShadowingNames
     def update_cache(self):
-        logging.debug("Inserting file to cache in the background...")
+        logging.debug("Inserting file to cache...")
         self.database.insert_posts_dataframe_to_cache()
 
     def get_df_from_sql_meanwhile_insert_to_cache(self):
@@ -234,6 +234,11 @@ class RecommenderMethods:
         posts_df = self.database.get_posts_dataframe_from_sql()
         # ** HERE WAS A THREADING OF INSERTING SQL TO DB. ABANDONED DUE TO POSSIBLE DB CONNECTION LEAK *
         self.update_cache()
+        return posts_df
+
+    def get_df_from_sql(self):
+        logging.debug("It was chosen to use PgSQL command.")
+        posts_df = self.database.get_posts_dataframe_from_sql()
         return posts_df
 
     def get_ratings_dataframe(self):
