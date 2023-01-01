@@ -1,3 +1,3 @@
-from research.svd.rating_estimates.normalization import load_data
+from research.svd.rating_estimates.normalization import choose_value_for_random_post
 
-load_data()
+choose_value_for_random_post()
