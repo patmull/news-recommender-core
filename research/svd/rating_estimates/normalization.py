@@ -10,8 +10,9 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 
 def load_rating_estimation():
-    categories_views = pd.read_csv('research/svd/rating_estimates/news-readers-behaviour-mapped-to-idnes-categories.csv',
-                                   delimiter=';')
+    categories_views = pd.read_csv(
+        'research/svd/rating_estimates/news-readers-behaviour-mapped-to-idnes-categories.csv',
+        delimiter=';')
     print(categories_views.to_string())
     original_df = categories_views
     # categories_views = categories_views.fillna()
@@ -43,6 +44,7 @@ def show_categories_plots(df):
         plt.xticks(rotation=45)
         plt.show()
 
+
 # TODO:
 #   1. Random post
 #   2. Check if category is in rating_estimation_df columns
@@ -58,34 +60,54 @@ def choose_value_for_random_post():
         random_post = posts_categories_df.sample()
         # preprocessing categories names to macth the dataset
         random_post_slug = random_post['slug'].iloc[0]
-        random_post_category = random_post['category_title'].iloc[0]
-        random_post_category = gensim.utils.simple_preprocess(random_post_category)
+        random_post_category_title = random_post['category_title'].iloc[0]
+        random_post_category_title = gensim.utils.deaccent(random_post_category_title.lower())
 
-        print("random_post_category")
-        print(random_post_category)
+        print("random_post_category_title")
+        print(random_post_category_title)
 
         print("rating_estimation_df.index")
         print(rating_estimation_df.index)
 
-        if random_post_category[0] in rating_estimation_df.index.tolist():
+        if random_post_category_title in rating_estimation_df.index.tolist():
             break
 
     demographic_groups = rating_estimation_df.columns.to_list()
     random_demographic_group = random.choice(demographic_groups)
 
-    chosen_rating_for_post = rating_estimation_df[random_demographic_group][random_post_category]
+    chosen_rating_for_post = rating_estimation_df[random_demographic_group][random_post_category_title]
+
+    random_post_id = recommender_methods.find_post_by_slug(random_post_slug)['id'].iloc[0]
 
     print("Random post slug:")
     print(random_post_slug)
 
     print("Random post category:")
-    print(random_post_category)
+    print(random_post_category_title)
 
     print("random_demographic_group:")
     print(random_demographic_group)
 
     print("chosen_rating_for_post")
     print(chosen_rating_for_post)
+
+    categories_df = recommender_methods.get_categories_dataframe()
+    # changing categories titles to preprocessed variants to match the loaded results data
+    categories_df['title'] = categories_df.apply(lambda x: gensim.utils.deaccent(x['title'].lower()), axis=1)
+    print(categories_df)
+    selected_category = categories_df.loc[categories_df['title'] == random_post_category_title]['id'].iloc[0]
+
+    print("Random category ID:")
+    print(selected_category)
+
+    print("Random post ID:")
+    print(random_post_id)
+
+    rounded_rating_value = round(chosen_rating_for_post)
+    print("Rounded rating:")
+    print(rounded_rating_value)
+
+    recommender_methods.database.insert_rating(random_post_id, rounded_rating_value)
 
 
 class Normalizer:
