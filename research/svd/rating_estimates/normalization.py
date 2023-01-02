@@ -72,12 +72,17 @@ def choose_value_for_random_post():
         if random_post_category_title in rating_estimation_df.index.tolist():
             break
 
+    print("rating_estimation_df without random noise:")
+    print(rating_estimation_df)
+
+    rating_estimation_df = generate_random_noise_for_df(rating_estimation_df)
+
+    print("rating_estimation_df with random noise:")
+    print(rating_estimation_df)
+
     demographic_groups = rating_estimation_df.columns.to_list()
     random_demographic_group = random.choice(demographic_groups)
-
     chosen_rating_for_post = rating_estimation_df[random_demographic_group][random_post_category_title]
-
-    random_post_id = recommender_methods.find_post_by_slug(random_post_slug)['id'].iloc[0]
 
     print("Random post slug:")
     print(random_post_slug)
@@ -100,14 +105,29 @@ def choose_value_for_random_post():
     print("Random category ID:")
     print(selected_category)
 
+    random_post_id = recommender_methods.find_post_by_slug(random_post_slug)['id'].iloc[0]
+
     print("Random post ID:")
     print(random_post_id)
 
     rounded_rating_value = round(chosen_rating_for_post)
+    if rounded_rating_value > 5:
+        rounded_rating_value = 5
     print("Rounded rating:")
     print(rounded_rating_value)
 
-    recommender_methods.database.insert_rating(random_post_id, rounded_rating_value)
+    # recommender_methods.database.insert_rating(random_post_id, rounded_rating_value)
+
+
+def generate_random_noise_for_df(clean_df):
+
+    mu, sigma = 0, 0.1
+    # creating a noise with the same dimension as the dataset (2,2)
+    noise = np.random.normal(mu, sigma, clean_df.shape)
+
+    signal = clean_df + noise
+
+    return signal
 
 
 class Normalizer:
