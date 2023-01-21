@@ -400,7 +400,7 @@ def mix_methods_by_fuzzy(results_df, method):
 
 def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, svd_posts_to_compare=None,
                                list_of_methods=None, save_result=False,
-                               load_saved_result=False, use_fuzzy=True, num_of_svd=30, top_n=20):
+                               load_saved_result=False, use_fuzzy=True, do_not_boost=False, num_of_svd=30, top_n=20):
     """
     Get most similar from content based matrix and delivered posts.
 
@@ -408,6 +408,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     ----------
     posts_to_compare: i.e. svd_recommended_posts; if not supplied, it will calculate fresh SVD
     user_id: int by user id from DB
+    @param do_not_boost: Corresponds to the classic hybrid algorithm variant with no boosting
     @param load_from_precalc_sim_matrix: completely skips sim_matrix creation, instead load from pre-calculated
     sim. matrix and derives the needed dataframe of interested posts (recommended by SVD posts) from index and column
     @param svd_posts_to_compare:
