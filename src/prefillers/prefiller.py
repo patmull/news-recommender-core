@@ -90,7 +90,7 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
         if method == "svd":
             svd = SvdClass()
             try:
-                actual_json = svd.run_svd(user_id=current_user_id, num_of_recommendations=10)
+                actual_json = svd.run_svd(user_id=current_user_id, num_of_recommendations=20)
             except ValueError as e:
                 print("Value Error had occurred in computing " + method + ". Skipping record.")
                 print(e)

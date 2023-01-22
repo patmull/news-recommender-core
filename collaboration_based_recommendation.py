@@ -59,7 +59,7 @@ class Svd:
 
         return R_demeaned
 
-    def run_svd(self, user_id, num_of_recommendations=10):
+    def run_svd(self, user_id, num_of_recommendations=20):
         U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
 
         sigma = np.diag(sigma)
