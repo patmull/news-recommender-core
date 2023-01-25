@@ -432,7 +432,8 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             raise NotImplementedError("Inserted methods must correspond to DB columns.")
         if svd_posts_to_compare is None:
             svd = SvdClass()
-            recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=20)
+            # TODO: Change back to 20!!!!
+            recommended_by_svd = svd.run_svd(user_id=user_id, dict_results=False, num_of_recommendations=3)
             svd_posts_to_compare = recommended_by_svd['slug'].to_list()
 
         list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, svd_posts_to_compare)

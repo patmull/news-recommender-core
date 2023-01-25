@@ -12,12 +12,21 @@ from src.recommender_core.recommender_algorithms.user_based_algorithms.user_rele
     get_user_evaluation_results_dataframe
 
 
+<<<<<<< Updated upstream
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
+=======
+
+def user_relevance_asessment():
+    """
+    Statistics coming from relevance votes (thumbs) of users.
+    RUN WITH: run_user_eval.py
+    @return:
+    """
+>>>>>>> Stashed changes
 
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
-
 
 def create_relevance_stats_df(sections):
     """

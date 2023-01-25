@@ -15,7 +15,16 @@ logging.debug("Testing logging from try_hybrid_methods.")
 
 
 def main():
-    print(run_prefilling_collaborative(methods=["hybrid"], user_id=3124))
+    # print(run_prefilling_collaborative(methods=["hybrid"], user_id=3124))
+    actual_json, actual_json_fuzzy = get_most_similar_by_hybrid(user_id=3124,
+                                                                load_from_precalc_sim_matrix=False,
+                                                                use_fuzzy=True)
+    print("HYBRID")
+    print("actual_json:")
+    print(actual_json)
+    print("HYBRID FUZZY")
+    print("actual_json_fuzzy:")
+    print(actual_json_fuzzy)
 
 
 if __name__ == "__main__": main()
