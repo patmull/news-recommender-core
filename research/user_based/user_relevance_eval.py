@@ -11,22 +11,12 @@ from src.recommender_core.data_handling.data_manipulation import get_redis_conne
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.user_evaluation_results import \
     get_user_evaluation_results_dataframe
 
-
-<<<<<<< Updated upstream
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
-=======
-
-def user_relevance_asessment():
-    """
-    Statistics coming from relevance votes (thumbs) of users.
-    RUN WITH: run_user_eval.py
-    @return:
-    """
->>>>>>> Stashed changes
 
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
+
 
 def create_relevance_stats_df(sections):
     """
