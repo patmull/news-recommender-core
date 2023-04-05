@@ -406,7 +406,7 @@ def save_model_variant_relevances(crop_by_date=False, last_n_by_date=None):
     print("Saving CSV with user evaluation results...")
     stats = stats.round(2)
     hash = random.getrandbits(128)
-    path_for_saving = "research/word2vec/evaluation/word2vec_tuning_relevance_results" + str(hash) + ".csv"
+    path_for_saving = "research/relevance/playground_relevance/by_model/model_variant_relevances_" + str(hash) + ".csv"
     stats.to_csv(path_for_saving)
     print("Results saved.")
 
