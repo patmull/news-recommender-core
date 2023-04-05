@@ -55,7 +55,12 @@ def create_relevance_stats_df(sections):
             ndcg_score_list.append(ndcg_score([true_relevance], [pred]))
             ndcg_score_at_k_list.append(ndcg_score([true_relevance], [pred], k=5))
             balanced_accuracy_score_list.append(balanced_accuracy_score(true_relevance, pred))
-            precision_score_list.append(precision_score(true_relevance, pred, average=None))
+            precision_scores = precision_score(true_relevance, pred, average=None)
+
+            precision_score_list_cleaned = [ps for ps in precision_scores if ps != 0]
+            logging.debug("precision_score_list_cleaned:")
+            logging.debug(precision_score_list_cleaned)
+            precision_score_list.append(precision_score_list_cleaned[0])
             sections_list.append(section)
             N_list.append(len(true_relevance))
 
@@ -87,8 +92,9 @@ def user_relevance_asessment(save_to_redis=True):
 
     df = create_relevance_stats_df(sections)
 
-    output_file = Path("research/user_based/user_eval_results.csv")
+    output_file = Path("research/relevance/from_front_pages/user_eval_results.csv")
     df.to_csv(output_file.as_posix(), header=True)
+    logging.info("Saved user evaluation results to: %s" % output_file.as_posix())
 
     if save_to_redis:
         REDIS_TOP_FOLDER = 'statistics'
