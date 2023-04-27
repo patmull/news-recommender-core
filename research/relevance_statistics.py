@@ -91,7 +91,7 @@ def model_ap(investigate_by='model_name'):
     list_of_aps.append([print(x['relevance'])
                         for x in evaluation_results_df['results_part_2']])
     """
-    return model_ap_results[[investigate_by, 'ap']].groupby([investigate_by]).mean()
+    return model_ap_results[[investigate_by, 'ap']].groupby([investigate_by]).max()
 
 
 def model_variant_ap(variant=None):
@@ -333,7 +333,6 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
     print(dict_of_model_stats)
 
     model_results = pd.DataFrame.from_dict(dict_of_model_stats, orient='index').transpose()
-
     model_results = model_results.fillna(0)
 
     print("Model results:")
@@ -341,37 +340,45 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
 
     if save_results_for_every_item:
         hash = random.getrandbits(128)
-        path_for_saving = "research/relevance/playground_relevance/by_model/model_variant_relevances_every_item_" + str(
-            hash) + ".csv"
+        path_for_saving = "research/relevance/playground_relevance/by_model/model_variant_relevances_every_item_" + \
+                          str(hash) + ".csv"
         model_results.to_csv(path_for_saving)
         print("Results saved.")
 
+        model_results = model_results.groupby(['user_id']).mean()
+        path_for_saving = "research/relevance/playground_relevance/by_model/model_variant_relevances_group_by_user" + \
+                          str(hash) + ".csv"
+        model_results.to_csv(path_for_saving)
+        print("Results saved.")
 
-    # joining with rvaluated posts slugs
-    if save_results_for_model is True:
-        print("Saving also results for every item.")
-        path_to_resuts = 'save_relevance_results_by_queries.csv'
-        recommender_methods = RecommenderMethods()
-        posts_categories__ratings_df = recommender_methods.get_posts_categories_dataframe()
-        print("model_results.columns")
-        print(posts_categories__ratings_df.columns)
-        categories_df = posts_categories__ratings_df[['user_id', 'category_title', 'slug']]
-        model_results = pd.merge(model_results, categories_df, left_on='slug', right_on='slug', how='left')
-        # model_results_joined_with_category.to_csv(path_to_resuts, index=False)
-        print("model_results.columns")
-        print(model_results.columns)
-        print(model_results.to_string())
-        grouped_results = model_results.groupby(['AP', 'model_variant', 'slug', 'created_at',
-                                                 'category_title']).mean().reset_index()
-        # full_results = pd.merge(grouped_results, categories_df, left_on='slug', right_on='post_slug', how='left')
+        # joining with rvaluated posts slugs
+        if save_results_for_model is True:
+            print("Saving also results for every item.")
+            path_to_resuts = 'save_relevance_results_by_queries.csv'
+            recommender_methods = RecommenderMethods()
+            posts_categories__ratings_df = recommender_methods.get_posts_categories_dataframe()
+            print("model_results.columns")
+            print(posts_categories__ratings_df.columns)
+            categories_df = posts_categories__ratings_df[['user_id', 'category_title', 'slug']]
+            model_results = pd.merge(model_results, categories_df, left_on='slug', right_on='slug', how='left')
+            # model_results_joined_with_category.to_csv(path_to_resuts, index=False)
+            print("model_results.columns")
+            print(model_results.columns)
+            print(model_results.to_string())
+            grouped_results = model_results.groupby(['AP', 'model_variant', 'slug', 'created_at',
+                                                     'category_title']).mean().reset_index()
+            # full_results = pd.merge(grouped_results, categories_df, left_on='slug', right_on='post_slug', how='left')
 
-        print("full_results.columns")
-        print(grouped_results.columns)
-        grouped_results = grouped_results.sort_values(by=['created_at', 'category_title'])
-        transposed_results = grouped_results.pivot_table('AP', ['slug', 'category_title'], 'model_variant')
-        return transposed_results
-    else:
+            print("full_results.columns")
+            print(grouped_results.columns)
+            grouped_results = grouped_results.sort_values(by=['created_at', 'category_title'])
+            transposed_results = grouped_results.pivot_table('AP', ['slug', 'category_title'], 'model_variant')
+            return transposed_results
+
         return model_results.groupby([investigate_by]).mean().reset_index()
+    else:
+        return model_results.reset_index()
+
 
 
 def plot_confusion_matrix(cm, title):
