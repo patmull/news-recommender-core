@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from sklearn.metrics import average_precision_score, precision_score, balanced_accuracy_score, confusion_matrix, \
-    dcg_score, f1_score, jaccard_score, ndcg_score, precision_recall_curve, top_k_accuracy_score
+    dcg_score, f1_score, jaccard_score, ndcg_score, precision_recall_curve, top_k_accuracy_score, recall_score, \
+    PrecisionRecallDisplay
 import seaborn as sns
 
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier import \
@@ -67,7 +68,6 @@ def try_statistics():
     print("TOP k=5 ACCURACY:")
     print(top_k_accuracy_score(y_true, scores, k=2))
 
-
 def model_ap(investigate_by='model_name'):
     evaluation_results_df = evaluation_results.get_admin_evaluation_results_dataframe()
     print(evaluation_results_df.head(10).to_string())
@@ -124,9 +124,22 @@ def model_variant_ap(variant=None):
     """
     return model_ap_results[['model_variant', 'ap']].groupby(['model_variant']).mean()
 
+"""
+def save_precision_recall_curve(precision, recall):
+    # precision, recall, thresholds = precision_recall_curve(y_score, y_test)
+    # create precision recall curve
+
+    precision.sort()
+    recall.sort()
+
+    pr_display = PrecisionRecallDisplay(precision=precision, recall=recall)
+    pr_display.plot()
+    plt.show()
+"""
+
 
 def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=False, crop_by_date=False,
-                               last_n_by_date=None):
+                               last_n_by_date=None, save_results_for_model=False):
     global list_of_slugs, list_of_created_at
     evaluation_results_df = get_admin_evaluation_results_dataframe()
 
@@ -187,6 +200,14 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
                       )
     print("WEIGHTED PRECISION SCORE:")
     print(list_of_ps)
+
+    list_of_rs = []
+    list_of_rs.append([recall_score(x['relevance'], np.full((1, len(x['relevance'])), 1)[0], average='macro')
+                       for x in evaluation_results_df['results_part_2']
+                       if not None in x['relevance']]
+                      )
+    print("WEIGHTED RECALL SCORE:")
+    print(list_of_rs)
 
     print("BALANCED_ACCURACY:")
     list_of_balanced_accuracies = []
@@ -251,6 +272,11 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
               and not (None in x['coefficient'] or None in x['relevance']))
           )
     )
+
+    precision = list_of_precisions
+    recall = list_of_recalls
+    threshold = list_of_thresholds
+
     print(list_of_precisions)
     print(list_of_recalls)
     print(list_of_thresholds)
@@ -262,6 +288,15 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
                                if not None in x['relevance']
                               ])
     print(list_of_precisions)
+
+
+    list_of_recalls = []
+    print("RECALL SCORE:")
+    list_of_recalls.append([recall_score(x['relevance'], np.full((1, len(x['relevance'])), 1)[0], average='macro')
+                               for x in evaluation_results_df['results_part_2']
+                               if not None in x['relevance']
+                              ])
+    print(list_of_recalls)
     """
     list_of_top_k_accuracy = []
     print("TOP k=5 ACCURACY:")
@@ -277,20 +312,24 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
     # TODO: Add other columns
     if save_results_for_every_item is True:
         dict_of_model_stats = {'AP': list_of_aps, 'precision_score': list_of_ps[0],
+                               'recall_score': list_of_rs[0],
                                'balanced_accuracies': list_of_balanced_accuracies[0],
                                'DCG': list_of_dcgs[0], 'DCG_AT_' + str(k): list_of_dcg_at_k[0],
                                'F1-SCORE': list_of_f1_score[0], 'NDCG': list_of_ndcgs[0],
                                'NDCG_AT_' + str(k): list_of_ndcgs_at_k[0],
                                investigate_by: list_of_models[0], 'slug': list_of_slugs[0],
-                               'created_at': list_of_created_at[0]}
+                               'created_at': list_of_created_at[0],
+                               'user_id': evaluation_results_df['user_id']}
     else:
         dict_of_model_stats = {'AP': list_of_aps, 'precision_score': list_of_ps[0],
+                               'recall_score': list_of_rs[0],
                                'balanced_accuracies': list_of_balanced_accuracies[0],
                                'DCG': list_of_dcgs[0], 'DCG_AT_' + str(k): list_of_dcg_at_k[0],
                                'F1-SCORE': list_of_f1_score[0], 'NDCG': list_of_ndcgs[0],
                                'NDCG_AT_' + str(k): list_of_ndcgs_at_k[0],
                                investigate_by: list_of_models[0]}
 
+    print("dict_of_model_stats:")
     print(dict_of_model_stats)
 
     model_results = pd.DataFrame.from_dict(dict_of_model_stats, orient='index').transpose()
@@ -299,16 +338,25 @@ def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=
 
     print("Model results:")
     print(model_results.to_string())
+
+    if save_results_for_every_item:
+        hash = random.getrandbits(128)
+        path_for_saving = "research/relevance/playground_relevance/by_model/model_variant_relevances_every_item_" + str(
+            hash) + ".csv"
+        model_results.to_csv(path_for_saving)
+        print("Results saved.")
+
+
     # joining with rvaluated posts slugs
-    if save_results_for_every_item is True:
+    if save_results_for_model is True:
         print("Saving also results for every item.")
         path_to_resuts = 'save_relevance_results_by_queries.csv'
         recommender_methods = RecommenderMethods()
         posts_categories__ratings_df = recommender_methods.get_posts_categories_dataframe()
         print("model_results.columns")
         print(posts_categories__ratings_df.columns)
-        categories_df = posts_categories__ratings_df[['category_title', 'post_slug']]
-        model_results = pd.merge(model_results, categories_df, left_on='slug', right_on='post_slug', how='left')
+        categories_df = posts_categories__ratings_df[['user_id', 'category_title', 'slug']]
+        model_results = pd.merge(model_results, categories_df, left_on='slug', right_on='slug', how='left')
         # model_results_joined_with_category.to_csv(path_to_resuts, index=False)
         print("model_results.columns")
         print(model_results.columns)
@@ -399,7 +447,7 @@ def print_model_variant_relevances():
 
 
 def save_model_variant_relevances(crop_by_date=False, last_n_by_date=None):
-    stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=False,
+    stats = models_complete_statistics(investigate_by='model_variant', save_results_for_every_item=True,
                                        crop_by_date=crop_by_date, last_n_by_date=last_n_by_date)
     print("Means of model's metrics:")
     print(stats.to_string())
