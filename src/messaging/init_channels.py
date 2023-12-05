@@ -1,4 +1,3 @@
-import pandas as pd
 from rabbitmq_publisher import publish_channel
 
 
@@ -14,43 +13,35 @@ class ChannelConstants:
 def init_df_of_channel_names():
     """
     Global RabbitMQ naming of channels, key, exchange keys. Also contain a dictionary of those values.
-    :return: Dataframe of channel attribute names.
+    :return: dictionary of channel attribute names.
     """
-    list_of_queues = ['user-post-star_rating-updated-queue',
-                      'user-keywords-updated-queue',
-                      'user-categories-updated-queue',
-                      'post-features-updated-queue',
-                      'user-post-thumb_rating-updated-queue']
-    list_of_routing_keys = ['user.post.star_rating.event.updated',
-                            'user.keywords.event.updated',
-                            'user.categories.event.updated',
-                            'post.features.updated.queue',
-                            'user.post.thumb_rating.event.updated']
-    exchange = ['user', 'user', 'user', 'post', 'user']
+    queue_names = ['user-post-star_rating-updated-queue',
+                   'user-keywords-updated-queue',
+                   'user-categories-updated-queue',
+                   'post-features-updated-queue',
+                   'user-post-thumb_rating-updated-queue']
+    routing_keys = ['user.post.star_rating.event.updated',
+                    'user.keywords.event.updated',
+                    'user.categories.event.updated',
+                    'post.features.updated.queue',
+                    'user.post.thumb_rating.event.updated']
+    exchanges = ['user', 'user', 'user', 'post', 'user']
 
-    init_messages = []
+    init_messages = [ChannelConstants.MESSAGE] * len(queue_names)
 
-    if len(list_of_queues) == len(list_of_routing_keys):
-        for i in range(len(list_of_queues)):
-            init_messages.append(ChannelConstants.MESSAGE)
+    if len(queue_names) != len(routing_keys):
+        raise ValueError("Length of queue_names and routing_keys does not match.")
 
-    else:
-        raise ValueError("Length of list_of_queues and list_of_routing_keys does not macth.")
+    if len(queue_names) != len(routing_keys) != len(init_messages) != len(exchanges):
+        raise ValueError("Length of init lists does not match!")
 
-    if len(list_of_queues) != len(list_of_routing_keys) != len(init_messages) != len(exchange):
-        raise ValueError("Length of init lists does not macth!")
-
-    dict_of_channel_init_values = {'queue_name': list_of_queues,
+    dict_of_channel_init_values = {'queue_name': queue_names,
                                    'init_message': init_messages,
-                                   'routing_key': list_of_routing_keys,
-                                   'exchange': exchange
+                                   'routing_key': routing_keys,
+                                   'exchange': exchanges
                                    }
 
-    df_of_channels = pd.DataFrame.from_dict(dict_of_channel_init_values)
-    print("df_of_channels:")
-    print(df_of_channels)
-
-    return df_of_channels
+    return dict_of_channel_init_values
 
 
 def publish_all_set_channels():
@@ -70,10 +61,10 @@ def publish_rabbitmq_channel(queue_name):
     :param queue_name:
     :return:
     """
-    df_of_channels = init_df_of_channel_names()
-    queue = queue_name
-    message = df_of_channels.loc[df_of_channels['queue_name'] == queue_name, 'init_message'].iloc[0]
-    routing_key = df_of_channels.loc[df_of_channels['queue_name'] == queue_name, 'routing_key'].iloc[0]
-    exchange = df_of_channels.loc[df_of_channels['queue_name'] == queue_name, 'exchange'].iloc[0]
+    channels_df = init_df_of_channel_names()
+    channel = channels_df.loc[channels_df['queue_name'] == queue_name]
+    message = channel['init_message'].iloc[0]
+    routing_key = channel['routing_key'].iloc[0]
+    exchange = channel['exchange'].iloc[0]
 
-    publish_channel(queue, message, routing_key, exchange)
+    publish_channel(queue_name, message, routing_key, exchange)

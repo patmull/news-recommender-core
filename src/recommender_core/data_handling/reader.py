@@ -16,7 +16,8 @@ _logger = logging.getLogger(__name__)
 
 
 def prepare_words(text):
-    """ Prepare text
+    """
+    Prepare text
     """
     # lower cased all text
     texts = text.lower()

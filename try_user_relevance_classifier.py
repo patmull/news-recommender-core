@@ -1,8 +1,6 @@
 import logging
 
 from rabbitmq_receive import call_collaborative_prefillers
-from research.user_based.user_relevance_eval import user_relevance_asessment
-from src.prefillers.user_based_prefillers.prefilling_user_classifier import retrain_models_for_all_users
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)

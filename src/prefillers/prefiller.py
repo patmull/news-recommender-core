@@ -8,11 +8,11 @@ from pathlib import Path
 import gensim
 import psycopg2
 from gensim.models import KeyedVectors
-from pandas.io.sql import DatabaseError
 
 from src.constants.file_paths import W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES
 from src.custom_exceptions.exceptions import TestRunException
 from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
+from src.recommender_core.data_handling.model_methods import user_methods
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
@@ -42,10 +42,62 @@ logging.basicConfig(format='%(asctime)s %(message)s',
                     level=logging.DEBUG)
 logging.debug("Testing logging in prefiller.")
 
+DB_INSERTION_ERROR = "Error in DB insert. Skipping."
+
+
+def return_recommended(method, current_user_id):
+    actual_json_fuzzy = None
+    user_methods = UserMethods()
+    if method == "svd":
+        svd = SvdClass()
+        actual_json = svd.run_svd(user_id=current_user_id, num_of_recommendations=20)
+    elif method == "user_keywords":
+        tfidf = TfIdf()
+        input_keywords = ' '.join(user_methods.get_user_keywords(current_user_id)["keyword_name"])
+        actual_json = tfidf.keyword_based_comparison(input_keywords)
+    elif method == "best_rated_by_others_in_user_categories":
+        user_based_methods = UserBasedMethods()
+        actual_json = user_based_methods.load_best_rated_by_others_in_user_categories(current_user_id)
+    elif method == "hybrid":
+        actual_json, actual_json_fuzzy = get_most_similar_by_hybrid(user_id=current_user_id,
+                                                                    load_from_precalc_sim_matrix=False,
+                                                                    use_fuzzy=True)
+
+    if method != "hybrid":
+        actual_json = json.dumps(actual_json)
+    else:
+        raise ValueError("Method not implemented.")
+
+    return actual_json, actual_json_fuzzy
+
+
+def insert_recommended_json_colab(method, current_user_id, actual_json=None, actual_json_fuzzy=None):
+    user_methods = UserMethods()
+    if actual_json is None and actual_json_fuzzy is None:
+        raise ValueError("actual_json and actual_json_fuzzy cannot be None at the same time.")
+
+    try:
+        user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
+                                                        user_id=current_user_id, db="pgsql", method=method)
+        user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
+                                                        user_id=current_user_id, db="redis", method=method)
+
+        if method == "hybrid":
+            method = 'hybrid_fuzzy'
+            user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
+                                                            user_id=current_user_id, db="pgsql",
+                                                            method=method)
+            user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
+                                                            user_id=current_user_id, db="redis",
+                                                            method=method)
+    except Exception as e:
+        logging.error(DB_INSERTION_ERROR)
+        logging.warning(e)
+
 
 def fill_recommended_collab_based(method, skip_already_filled, user_id=None, test_run=False):
     """
-    Handler method for collab based prefilling.
+    Handler method for collab-based prefilling.
 
     @param method: i.e. "svd", "user_keywords" etc.
     @param skip_already_filled:
@@ -55,129 +107,324 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
     @return:
     """
     global actual_json_fuzzy
+    if test_run:
+        raise TestRunException("This is a test run")
 
-    if test_run is True:
-        print("Test run exception raised.")
-        raise TestRunException("This is test run")
-
-    user_methods = UserMethods()
+    _user_methods = UserMethods()
     column_name = "recommended_by_" + method
-    if user_id is None:
-        try:
-            users = user_methods.get_all_users(only_with_id_and_column_named=column_name)
-        except DatabaseError as e:
-            print("Database error occurred while executing pandas command. Check the column names.")
-            raise e
-    else:
-        # For single user
-        users = user_methods.get_user_dataframe(user_id)
+    users = user_methods.get_all_users(
+        only_with_id_and_column_named=column_name) if user_id is None else _user_methods.get_user_dataframe(user_id)
 
-    current_recommended_fuzzy = None
     for user in users.to_dict("records"):
-        print("user:")
-        print(user)
         current_user_id = user['id']
         current_recommended = user[column_name]
-        if method == "hybrid":
-            current_recommended_fuzzy = user['recommended_by_hybrid_fuzzy']
-            print("current_recommended_fuzzy:")
-            print(current_recommended_fuzzy)
-        print("current_user_id:")
-        print(current_user_id)
-        print("current_recommended:")
-        print(current_recommended)
 
-        if method == "svd":
-            svd = SvdClass()
-            try:
-                actual_json = svd.run_svd(user_id=current_user_id, num_of_recommendations=20)
-            except ValueError as e:
-                print("Value Error had occurred in computing " + method + ". Skipping record.")
-                print(e)
-                continue
-        elif method == "user_keywords":
-            try:
-                tfidf = TfIdf()
-                input_keywords = user_methods.get_user_keywords(current_user_id)
-                input_keywords = ' '.join(input_keywords["keyword_name"])
-                print("input_keywords:")
-                print(input_keywords)
-                actual_json = tfidf.keyword_based_comparison(input_keywords)
-            except ValueError as e:
-                print("Value Error had occurred in computing " + method + ". Skipping record.")
-                print(e)
-                continue
-        elif method == "best_rated_by_others_in_user_categories":
-            try:
-                user_based_methods = UserBasedMethods()
-                actual_json = user_based_methods.load_best_rated_by_others_in_user_categories(current_user_id)
-            except ValueError as e:
-                print("Value Error had occurred in computing " + method + ". Skipping record.")
-                print(e)
-                continue
-        elif method == "hybrid":
-            try:
-                actual_json, actual_json_fuzzy = get_most_similar_by_hybrid(user_id=current_user_id,
-                                                                            load_from_precalc_sim_matrix=False,
-                                                                            use_fuzzy=True)
-            except ValueError as e:
-                print("Value Error had occurred in computing " + method + ". Skipping record.")
-                print(e)
-                continue
-        else:
-            raise ValueError("Method not implemented.")
+        actual_json, actual_json_fuzzy = return_recommended(method=method, current_user_id=current_user_id)
 
-        # NOTICE: Hybrid is already doing this
-        if not method == "hybrid":
-            actual_json = json.dumps(actual_json)
-
-        if skip_already_filled is True:
+        if skip_already_filled:
             if current_recommended is None:
-                try:
-                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
-                                                                    user_id=current_user_id, db="pgsql",
-                                                                    method=method)
-                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
-                                                                    user_id=current_user_id, db="redis",
-                                                                    method=method)
-
-                    if method == "hybrid":
-                        # With hybrid, automatically also hybrid_fuzzy gets prefilled
-                        if current_recommended_fuzzy is None:
-                            method = 'hybrid_fuzzy'
-                            user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
-                                                                            user_id=current_user_id, db="pgsql",
-                                                                            method=method)
-                            user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
-                                                                            user_id=current_user_id, db="redis",
-                                                                            method=method)
-                except Exception as e:
-                    print("Error in DB insert. Skipping.")
-                    print(e)
-                    pass
+                insert_recommended_json_colab(method=method,
+                                              current_user_id=current_user_id,
+                                              actual_json=actual_json,
+                                              actual_json_fuzzy=actual_json_fuzzy)
         else:
             try:
-                user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
-                                                                user_id=current_user_id, db="pgsql",
-                                                                method=method)
-                user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
-                                                                user_id=current_user_id, db="redis",
-                                                                method=method)
-
-                if method == "hybrid":
-                    # With hybrid, automatically also hybrid_fuzzy gets prefilled
-                    method = 'hybrid_fuzzy'
-                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
-                                                                    user_id=current_user_id, db="pgsql",
-                                                                    method=method)
-                    user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
-                                                                    user_id=current_user_id, db="redis",
-                                                                    method=method)
-
+                _user_methods.insert_recommended_json_user_based(recommended_json=actual_json, user_id=current_user_id,
+                                                                 db="pgsql", method=method)
+                _user_methods.insert_recommended_json_user_based(recommended_json=actual_json, user_id=current_user_id,
+                                                                 db="redis", method=method)
             except Exception as e:
-                print("Error in DB insert. Skipping.")
-                print(e)
-                pass
+                logging.error(DB_INSERTION_ERROR)
+                logging.warning(e)
+
+
+def get_tfidf_full_text_fit():
+    recommender_methods = RecommenderMethods()
+    df = recommender_methods.get_posts_categories_dataframe(from_cache=False)
+
+    tf_idf_data_handlers = TfIdfDataHandlers(df)
+    fit_by_all_features_matrix = tf_idf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
+    fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
+    fit_by_full_text = tf_idf_data_handlers.get_fit_by_feature_('body_preprocessed')
+
+    return fit_by_full_text
+
+
+def get_word2vec_docsim_index_model(method):
+    if not method.startswith("word2vec_eval"):
+        raise ValueError("Wrong method called! Method param. does not start with 'word2vec_eval'")
+
+    if method in W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES:
+        selected_model_name = W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][1]
+        path_to_folder = W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][0]
+
+    else:
+        raise ValueError("Wrong word2vec model name chosen.")
+
+    if method.startswith("word2vec_eval_idnes_"):
+        file_name = "w2v_idnes.model"
+        path_to_model = path_to_folder + file_name
+        w2v_model = KeyedVectors.load(path_to_model)
+        source = "idnes"
+    elif method.startswith("word2vec_eval_cswiki_"):
+        file_name = "w2v_cswiki.model"
+        path_to_model = path_to_folder + file_name
+        w2v_model = KeyedVectors.load(path_to_model)
+        source = "cswiki"
+    else:
+        raise ValueError("Wrong doc2vec_model name chosen.")
+
+    ds = DocSim(w2v_model)
+    docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name, force_update=True)
+
+    return docsim_index, w2v_model
+
+
+def get_word2vec_docsim_dictionary():
+    logging.debug("Loading Word2ec limited model...")
+
+    selected_model_name = "idnes"
+    source = "idnes"
+    path_to_model = Path("models/w2v_model_limited")  # type: ignore
+    w2v_model = KeyedVectors.load(path_to_model.as_posix())
+    ds = DocSim(w2v_model)
+    docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name, force_update=True)
+    dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+    return dictionary, docsim_index
+
+
+def get_current_recommended_short_text(method, post):
+    match method:
+        case "tfidf":
+            current_recommended = post['recommended_tfidf']
+        case "word2vec":
+            current_recommended = post['recommended_tfidf_full_text']
+        case "doc2vec":
+            current_recommended = post['recommended_doc2vec']
+        case "lda":
+            current_recommended = post['recommended_doc2vec_full_text']
+        case _:
+            current_recommended = None
+
+    return current_recommended
+
+
+def get_current_recommended_full_text(method, post):
+    match method:
+        case "tfidf":
+            current_recommended = post['recommended_tfidf']
+        case "word2vec":
+            current_recommended = post['recommended_word2vec']
+        case "doc2vec":
+            current_recommended = post['recommended_doc2vec']
+        case "lda":
+            current_recommended = post['recommended_lda']
+        case "word2vec_eval_idnes_1":
+            current_recommended = post['recommended_word2vec_eval_1']
+        case "word2vec_eval_idnes_2":
+            current_recommended = post['recommended_word2vec_eval_2']
+        case "word2vec_eval_idnes_3":
+            current_recommended = post['recommended_word2vec_eval_3']
+        case "word2vec_eval_idnes_4":
+            current_recommended = post['recommended_word2vec_eval_4']
+        case "word2vec_limited_fasttext":
+            current_recommended = post['recommended_word2vec_limited_fasttext']
+        case "word2vec_limited_fasttext_full_text":
+            current_recommended = post['recommended_word2vec_limited_fasttest_full_text']
+        case "word2vec_eval_cswiki_1":
+            current_recommended = post['recommended_word2vec_eval_cswiki_1']
+        case "doc2vec_eval_cswiki_1":
+            current_recommended = post['recommended_doc2vec_eval_cswiki_1']
+        case _:
+            current_recommended = None
+
+    return current_recommended
+
+
+def load_recommended_tfidf(slug):
+    tfidf = TfIdf()
+    actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
+    return actual_recommended_json
+
+
+def load_recommended_short_text(method, slug, docsim_index=None, dictionary=None, w2v_model=None):
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        logging.debug('In testing environment, inserting testing actual_recommended_json.')
+        if method == "test_prefilled_all":
+            actual_recommended_json = "[{test: test-json}]"
+            return actual_recommended_json
+    else:
+        if method == "tfidf":
+            actual_recommended_json = load_recommended_tfidf(slug)
+            return actual_recommended_json
+        elif method == "word2vec":
+            if docsim_index is None or dictionary is None or w2v_model is None:
+                raise ValueError("docsim_index, dictionary or w2v_model not set.")
+            word2vec = Word2VecClass()
+            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+                                                                    model=w2v_model,
+                                                                    model_name='idnes',
+                                                                    docsim_index=docsim_index,
+                                                                    dictionary=dictionary)
+            return actual_recommended_json
+        elif method == "doc2vec":
+            doc2vec = Doc2VecClass()
+            actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug)
+            return actual_recommended_json
+        else:
+            raise ValueError("Method %s not implemented." % method)
+
+
+def handle_word2vec_variants(method, slug, w2v_model, docsim_index, dictionary):
+    global actual_recommended_json
+    word2vec = Word2VecClass()
+    if method == "word2vec_eval_idnes_1":
+        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+                                                                model=w2v_model,
+                                                                model_name='idnes_1',
+                                                                docsim_index=docsim_index,
+                                                                dictionary=dictionary)
+
+    elif method == "word2vec_eval_idnes_2":
+        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+                                                                model=w2v_model,
+                                                                model_name='idnes_2',
+                                                                docsim_index=docsim_index,
+                                                                dictionary=dictionary)
+    elif method == "word2vec_eval_idnes_3":
+        try:
+            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+                                                                    model=w2v_model,
+                                                                    model_name='idnes_3',
+                                                                    docsim_index=docsim_index,
+                                                                    dictionary=dictionary)
+        except ValueError as ve:
+            logging.warning(ve)
+            logging.warning("Skiping this record.")
+            logging.warning("!!! This will cause a missing Word2Vce prefilled record which can cause"
+                            "a problem later !!!")
+
+    elif method == "word2vec_eval_idnes_4":
+        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+                                                                model=w2v_model,
+                                                                model_name='idnes_4',
+                                                                docsim_index=docsim_index,
+                                                                dictionary=dictionary)
+    elif method == "word2vec_fasttext":
+        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+                                                                model=w2v_model,
+                                                                model_name=method,
+                                                                docsim_index=docsim_index,
+                                                                dictionary=dictionary)
+    elif method == "word2vec_fasttext_full_text":
+        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+                                                                model=w2v_model,
+                                                                model_name=method,
+                                                                docsim_index=docsim_index,
+                                                                dictionary=dictionary)
+    elif method == "word2vec_eval_cswiki_1":
+        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+                                                                model=w2v_model,
+                                                                model_name='cswiki',
+                                                                docsim_index=docsim_index,
+                                                                dictionary=dictionary)
+    else:
+        raise ValueError("No method option matches.")
+
+    return actual_recommended_json
+
+
+def load_current_recommended_full_text(method, slug, w2v_model=None, docsim_index=None, dictionary=None):
+    if method == "tfidf":
+        tfidf = TfIdf()
+        actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(
+            searched_slug=slug,
+            tf_idf_data_handlers=tf_idf_data_handlers,
+            fit_by_all_features_matrix=fit_by_all_features_matrix,
+            fit_by_title=fit_by_title,
+            fit_by_full_text=fit_by_full_text
+        )
+    elif method == "word2vec":
+        word2vec = Word2VecClass()
+        actual_recommended_json = word2vec.get_similar_word2vec_full_text(searched_slug=slug)
+    elif method == "doc2vec":
+        doc2vec = Doc2VecClass()
+        actual_recommended_json = doc2vec.get_similar_doc2vec_with_full_text(slug)
+    elif method == "lda":
+        lda = Lda()
+        actual_recommended_json = lda.get_similar_lda_full_text(slug)
+    elif method == "word2vec_eval_idnes_1":
+        if w2v_model is None and docsim_index is None and dictionary is None:
+            actual_recommended_json = handle_word2vec_variants(method, slug, w2v_model,
+                                                               docsim_index, dictionary)
+        else:
+            raise ValueError("w2v_model, docsim_index and dictionary must be None.")
+    elif method == "doc2vec_eval_cswiki_1":
+        doc2vec = Doc2VecClass()
+        actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug)
+    else:
+        raise ValueError("Method %s not implemented." % method)
+
+    return actual_recommended_json
+
+
+def insert_recommendation(post_id, full_text, method, actual_recommended_json):
+    if len(actual_recommended_json) == 0:
+        logging.info("No recommended post found. Skipping.")
+    else:
+        actual_recommended_json = json.dumps(actual_recommended_json)
+        try:
+            database_methods = DatabaseMethods()
+
+            database_methods.connect()
+            database_methods.insert_recommended_json_content_based(
+                articles_recommended_json=actual_recommended_json,
+                article_id=post_id, full_text=full_text, db="pgsql",
+                method=method)
+            database_methods.disconnect()
+        except Exception as e:
+            logging.error(DB_INSERTION_ERROR)
+            logging.warning(e)
+
+def iterate_posts(posts, method, full_text, skip_already_filled=True,
+                  tf_idf_data_handlers=None, fit_by_all_features_matrix=None,
+                  fit_by_title=None, docsim_index=None, dictionary=None, w2v_model=None):
+    for post in posts:
+        if len(posts) < 1:
+            break
+
+        post_id = post['post_id']
+        slug = post['slug']
+
+        if full_text is False:
+            current_recommended = get_current_recommended_short_text(method, post)
+        else:
+            current_recommended = get_current_recommended_full_text(method, post)
+
+        logging.info("Searching similar articles for article: ")
+        logging.info(slug)
+
+        if skip_already_filled is True and current_recommended is None:
+            logging.debug("Post:")
+            logging.debug(slug)
+            logging.debug("Has currently no recommended posts.")
+            logging.debug("Trying to find recommended...")
+            if full_text is False:
+                actual_recommended_json = load_recommended_short_text(method,
+                                                                      slug,
+                                                                      docsim_index,
+                                                                      dictionary,
+                                                                      w2v_model
+                                                                      )
+            else:
+                actual_recommended_json = load_current_recommended_full_text(method,
+                                                                              slug,
+                                                                              docsim_index,
+                                                                              dictionary,
+                                                                              w2v_model
+                                                                              )
+
+                insert_recommendation(post_id, full_text, method, actual_recommended_json)
 
 
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
@@ -195,9 +442,9 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
     @return:
     """
 
-    global fit_by_full_text, fit_by_title, fit_by_all_features_matrix, tf_idf_data_handlers, w2v_model, \
+    global fit_by_full_text, fit_by_title, fit_by_all_features_matrix, tf_idf_data_handlers, \
         actual_recommended_json
-    docsim_index, dictionary = None, None
+    docsim_index, dictionary, w2v_model = None, None, None
     database_methods = DatabaseMethods()
     if skip_already_filled is False:
         database_methods.connect()
@@ -208,63 +455,20 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
         posts = database_methods.get_not_prefilled_posts(full_text, method=method)
         database_methods.disconnect()
 
-    number_of_inserted_rows = 0
-
     if reversed_order is True:
-        print("Reversing list of posts...")
         posts.reverse()
 
     if random_order is True:
-        print("Starting random_order iteration...")
         t.sleep(5)
         random.shuffle(posts)
 
     if method.startswith("tfidf"):
-        recommender_methods = RecommenderMethods()
-        df = recommender_methods.get_posts_categories_dataframe(from_cache=False)
-
-        tf_idf_data_handlers = TfIdfDataHandlers(df)
-        fit_by_all_features_matrix = tf_idf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
-        fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
-        fit_by_full_text = tf_idf_data_handlers.get_fit_by_feature_('body_preprocessed')
-
+        fit_by_full_text = get_tfidf_full_text_fit()
         logging.info("Starting prefilling of the TF-IDF method.")
     elif method.startswith("word2vec_"):
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/word2vec/dictionary_idnes.gensim')
-
-        if method in W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES:
-            selected_model_name = W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][1]
-            path_to_folder = W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][0]
-
-        else:
-            raise ValueError("Wrong word2vec model name chosen.")
-
-        if method.startswith("word2vec_eval_idnes_"):
-            file_name = "w2v_idnes.model"
-            path_to_model = path_to_folder + file_name
-            w2v_model = KeyedVectors.load(path_to_model)
-            source = "idnes"
-        elif method.startswith("word2vec_eval_cswiki_"):
-            file_name = "w2v_cswiki.model"
-            path_to_model = path_to_folder + file_name
-            w2v_model = KeyedVectors.load(path_to_model)
-            source = "cswiki"
-        else:
-            raise ValueError("Wrong doc2vec_model name chosen.")
-        ds = DocSim(w2v_model)
-        docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name, force_update=True)
+        docsim_index, w2v_model = get_word2vec_docsim_index_model(method)
     elif method == 'word2vec':
-        selected_model_name = "idnes"
-        source = "idnes"
-        logging.debug("Loading Word2ec limited model...")
-        path_to_model = Path("models/w2v_model_limited")  # type: ignore
-        logging.debug("Loading keyed vectors...")
-        w2v_model = KeyedVectors.load(path_to_model.as_posix())
-        logging.debug("Loading DocSim index...")
-        ds = DocSim(w2v_model)
-        docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name, force_update=True)
-        logging.info("Loading dictionary for Word2Vec...")
-        dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
+        dictionary, docsim_index = get_word2vec_docsim_dictionary()
     elif method.startswith("doc2vec"):  # Here was 'doc2vec_' to distinguish full text variant
         if method == "doc2vec_eval_cswiki_1":
             # Notice: Doc2Vec model gets loaded inside the Doc2Vec's class method
@@ -278,200 +482,9 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
         raise ValueError("Non from selected method is supported. Check the 'method' parameter"
                          "value.")
 
-    for post in posts:
-        if len(posts) < 1:
-            break
-
-        post_id = post[0]
-        slug = post[3]
-
-        if full_text is False:
-            if method == "tfidf":
-                current_recommended = post['recommended_tfidf']
-            elif method == "word2vec":
-                current_recommended = post['recommended_tfidf_full_text']
-            elif method == "doc2vec":
-                current_recommended = post['recommended_doc2vec']
-            elif method == "lda":
-                current_recommended = post['recommended_doc2vec_full_text']
-            else:
-                current_recommended = None
-        else:
-            if method == "tfidf":
-                current_recommended = post['recommended_tfidf']
-            elif method == "word2vec":
-                current_recommended = post['recommended_word2vec']
-            elif method == "doc2vec":
-                current_recommended = post['recommended_doc2vec']
-            elif method == "lda":
-                current_recommended = post['recommended_lda']
-            elif method == "word2vec_eval_idnes_1":
-                current_recommended = post['recommended_word2vec_eval_1']
-            elif method == "word2vec_eval_idnes_2":
-                current_recommended = post['recommended_word2vec_eval_2']
-            elif method == "word2vec_eval_idnes_3":
-                current_recommended = post['recommended_word2vec_eval_3']
-            elif method == "word2vec_eval_idnes_4":
-                current_recommended = post['recommended_word2vec_eval_4']
-            elif method == "word2vec_limited_fasttext":
-                current_recommended = post['recommended_word2vec_limited_fasttext']
-            elif method == "word2vec_limited_fasttext_full_text":
-                current_recommended = post['recommended_word2vec_limited_fasttest_full_text']
-            elif method == "word2vec_eval_cswiki_1":
-                current_recommended = post['recommended_word2vec_eval_cswiki_1']
-            elif method == "doc2vec_eval_cswiki_1":
-                current_recommended = post['recommended_doc2vec_eval_cswiki_1']
-            else:
-                current_recommended = None
-
-        logging.info("Searching similar articles for article: ")
-        logging.info(slug)
-
-        if skip_already_filled is True:
-            if current_recommended is None:
-                logging.debug("Post:")
-                logging.debug(slug)
-                logging.debug("Has currently no recommended posts.")
-                logging.debug("Trying to find recommended...")
-                if full_text is False:
-                    if "PYTEST_CURRENT_TEST" in os.environ:
-                        logging.debug('In testing environment, inserting testing actual_recommended_json.')
-                        if method == "test_prefilled_all":
-                            actual_recommended_json = "[{test: test-json}]"
-                    else:
-                        if method == "tfidf":
-                            tfidf = TfIdf()
-                            actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
-                        elif method == "word2vec":
-                            # TODO: Fix error: ValueError: DocSim index is not set.
-                            if docsim_index is None:
-                                raise ValueError("DocSim index is not set.")
-                            if dictionary is None:
-                                raise ValueError("Dictionary is not set")
-                            word2vec = Word2VecClass()
-                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                    model=w2v_model,
-                                                                                    model_name='idnes',
-                                                                                    docsim_index=docsim_index,
-                                                                                    dictionary=dictionary)
-                        elif method == "doc2vec":
-                            doc2vec = Doc2VecClass()
-                            actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug)
-                        else:
-                            raise ValueError("Method %s not implemented." % method)
-                else:
-                    if method == "tfidf":
-                        tfidf = TfIdf()
-                        actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(
-                            searched_slug=slug,
-                            tf_idf_data_handlers=tf_idf_data_handlers,
-                            fit_by_all_features_matrix=fit_by_all_features_matrix,
-                            fit_by_title=fit_by_title,
-                            fit_by_full_text=fit_by_full_text
-                        )
-                    elif method == "word2vec":
-                        word2vec = Word2VecClass()
-                        actual_recommended_json = word2vec.get_similar_word2vec_full_text(searched_slug=slug)
-                    elif method == "doc2vec":
-                        doc2vec = Doc2VecClass()
-                        actual_recommended_json = doc2vec.get_similar_doc2vec_with_full_text(slug)
-                    elif method == "lda":
-                        lda = Lda()
-                        actual_recommended_json = lda.get_similar_lda_full_text(slug)
-                    elif method == "word2vec_eval_idnes_1":
-                        word2vec = Word2VecClass()
-                        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model=w2v_model,
-                                                                                model_name='idnes_1',
-                                                                                docsim_index=docsim_index,
-                                                                                dictionary=dictionary)
-                    elif method == "word2vec_eval_idnes_2":
-                        word2vec = Word2VecClass()
-                        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model=w2v_model,
-                                                                                model_name='idnes_2',
-                                                                                docsim_index=docsim_index,
-                                                                                dictionary=dictionary)
-                    elif method == "word2vec_eval_idnes_3":
-                        word2vec = Word2VecClass()
-                        try:
-                            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                    model=w2v_model,
-                                                                                    model_name='idnes_3',
-                                                                                    docsim_index=docsim_index,
-                                                                                    dictionary=dictionary)
-                        except ValueError as ve:
-                            logging.warning(ve)
-                            logging.warning("Skiping this record.")
-                            logging.warning("!!! This will cause a missing Word2Vce prefilled record which can cause"
-                                            "a problem later !!!")
-                    elif method == "word2vec_eval_idnes_4":
-                        word2vec = Word2VecClass()
-                        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model=w2v_model,
-                                                                                model_name='idnes_4',
-                                                                                docsim_index=docsim_index,
-                                                                                dictionary=dictionary)
-                    elif method == "word2vec_fasttext":
-                        word2vec = Word2VecClass()
-                        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model=w2v_model,
-                                                                                model_name=method,
-                                                                                docsim_index=docsim_index,
-                                                                                dictionary=dictionary)
-                    elif method == "word2vec_fasttext_full_text":
-                        word2vec = Word2VecClass()
-                        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model=w2v_model,
-                                                                                model_name=method,
-                                                                                docsim_index=docsim_index,
-                                                                                dictionary=dictionary)
-                    elif method == "word2vec_eval_cswiki_1":
-                        word2vec = Word2VecClass()
-                        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                                model=w2v_model,
-                                                                                model_name='cswiki',
-                                                                                docsim_index=docsim_index,
-                                                                                dictionary=dictionary)
-                    elif method == "doc2vec_eval_cswiki_1":
-                        doc2vec = Doc2VecClass()
-                        actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug)
-                    else:
-                        raise ValueError("Method %s not implemented." % method)
-                if len(actual_recommended_json) == 0:
-                    print("No recommended post found. Skipping.")
-                    continue
-                else:
-                    actual_recommended_json = json.dumps(actual_recommended_json)
-
-                if full_text is False:
-                    try:
-                        database_methods.connect()
-                        database_methods.insert_recommended_json_content_based(
-                            articles_recommended_json=actual_recommended_json,
-                            article_id=post_id, full_text=False, db="pgsql",
-                            method=method)
-                        database_methods.disconnect()
-                    except Exception as e:
-                        print("Error in DB insert. Skipping.")
-                        print(e)
-                        pass
-                else:
-                    try:
-                        database_methods.connect()
-                        database_methods.insert_recommended_json_content_based(
-                            articles_recommended_json=actual_recommended_json,
-                            article_id=post_id, full_text=True, db="pgsql",
-                            method=method)
-                        database_methods.disconnect()
-                        number_of_inserted_rows += 1
-                        print("Inserted rows in current prefilling round: " + str(number_of_inserted_rows))
-                    except Exception as e:
-                        print("Error in DB insert. Skipping.")
-                        print(e)
-                        pass
-            else:
-                print("Skipping.")
+    iterate_posts(posts, method, full_text, skip_already_filled,
+              tf_idf_data_handlers, fit_by_all_features_matrix, fit_by_title,
+              docsim_index, dictionary, w2v_model)
 
 
 def prefilling_job_content_based(method: str, full_text: bool, random_order=False, reversed_order=True,

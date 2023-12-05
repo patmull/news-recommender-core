@@ -1,5 +1,5 @@
-import re
 import string
+import re
 
 import majka
 from html2text import html2text
@@ -72,8 +72,7 @@ def preprocess(sentence):
         :param sentence: input string for preprocessing
         :return: preprocessed string
         """
-    sentence = sentence
-    sentence = str(sentence)
+
     sentence = sentence.lower()
     sentence = sentence.replace('\r\n', ' ')
     sentence = sentence.replace('{html}', "")

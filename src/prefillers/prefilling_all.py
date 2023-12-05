@@ -37,10 +37,6 @@ def prefill_ngrams():
                                                    full_text=True)
 
 
-def prefill_bert_vector_representation():
-    fill_bert_vector_representation(skip_already_filled=True, reversed_order=False, random_order=False)
-
-
 def prefill_tfidf_similarity_matrix():
     precalculate_and_save_sim_matrix_for_all_posts(methods=['tfidf'])
 

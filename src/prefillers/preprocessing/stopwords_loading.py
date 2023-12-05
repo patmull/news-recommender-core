@@ -1,9 +1,9 @@
 import gensim
 from pathlib import Path
 
-from typing import List
+from typing import List, Union
 
-from src.recommender_core.data_handling.data_handlers import flatten
+from src.recommender_core.data_handling.data_tools import flatten
 
 
 def get_cz_stopwords_file_path():
@@ -52,26 +52,23 @@ def load_general_stopwords():
         return flatten(general_stopwords)
 
 
-def remove_stopwords(texts, cz_punct=False) -> List[str]:
+def remove_stopwords(texts: Union[str, List[str]], cz_punct: bool = False) -> List[str]:
     """
     The method that actually handles the stopwords removal.
     @rtype: list of words without stopwords
     """
-    if type(texts) is list:
-        cleaned_text_list = []
-        stopwords_cz = load_cz_stopwords(cz_punct)
-        stopwords_general = load_general_stopwords()
-        stopwords = stopwords_cz + stopwords_general
-        stopwords = flatten(stopwords)
+    stopwords_cz = load_cz_stopwords(cz_punct)
+    stopwords_general = load_general_stopwords()
+    stopwords = stopwords_cz + stopwords_general
+    stopwords = flatten(stopwords)
+    cleaned_text_list = []
+
+    if isinstance(texts, list):
         for word in texts:
             if word not in stopwords:
                 cleaned_text_list.append(word)
 
-    elif type(texts) is str:
-        stopwords_cz = load_cz_stopwords()
-        stopwords_general = load_general_stopwords()
-        stopwords = stopwords_cz + stopwords_general
-        stopwords = flatten(stopwords)
+    elif isinstance(texts, str):
         joined_stopwords = ' '.join(str(x) for x in stopwords)
         stopwords = gensim.utils.deaccent(joined_stopwords)
         stopwords = stopwords.split(' ')

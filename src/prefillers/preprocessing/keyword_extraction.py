@@ -56,45 +56,33 @@ class SingleDocKeywordExtractor:
         :param raw_text: string representation of desired text to extract keywords from
         :return: preprocessed list of words
         """
-        self.text_raw = raw_text
-        logging.debug("self.text_raw")
-        logging.debug(self.text_raw)
+        cleaned_text = raw_text.replace("\n", " ")
+        cleaned_text = cleaned_text.replace("\'", "")
+        cleaned_text = cleaned_text.replace(".", "")
+        cleaned_text = cleaned_text.replace(":", "")
+        cleaned_text = cleaned_text.replace("(", "")
+        cleaned_text = cleaned_text.replace(")", "")
 
-        list_text = []
-        text_clean = raw_text.replace("\n", " ")
-        text_clean = text_clean.replace("\'", "")
-        text_clean = text_clean.replace(".", "")
-        text_clean = text_clean.replace(":", "")
-        text_clean = text_clean.replace("(", "")
-        text_clean = text_clean.replace(")", "")
+        sentence_split = cleaned_text.split(" ")
 
-        list_text.append(text_clean[0:5000])
-
-        logging.debug("list_text")
-        logging.debug(list_text)
-
-        self.sentence_split = raw_text.split(" ")
-        logging.debug("self.sentence_split")
-        logging.debug(self.sentence_split)
-        
-        # https://github.com/Alir3z4/stop-words
-        k = []
-        z = []
-        filename = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
-        with open(filename, 'r', encoding='utf-8') as f:
+        stopwords = []
+        stopwords_file = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
+        with open(stopwords_file, 'r', encoding='utf-8') as f:
             for word in f:
                 word_split = word.split('\n')
-                k.append(word_split[0])
+                stopwords.append(word_split[0])
 
-        for u in self.sentence_split:
-            z.append(u.lower())
+        lowercase_words = [word.lower() for word in sentence_split]
 
-        logging.debug("z:")
-        logging.debug(z)
+        list_text_clean = [word for word in lowercase_words if word not in stopwords]
 
-        list_text_clean = [t for t in z if t not in k]
-        logging.debug("Stopwords removal...")
         return list_text_clean
+
+    def load_stopwords(self):
+        filename = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
+        with open(filename, 'r', encoding='utf-8') as f:
+            stopwords = [word.strip() for word in f]
+        return stopwords
 
     def get_keywords_multi_rake(self, string_for_extraction):
         """
@@ -103,7 +91,6 @@ class SingleDocKeywordExtractor:
         :return: list of extracted keywords
         """
         rake = Rake(language_code='cs')
-
         keywords_rake = rake.apply(string_for_extraction)
 
         return keywords_rake[:self.num_of_keywords]
@@ -114,16 +101,13 @@ class SingleDocKeywordExtractor:
         :param text_for_extraction: string for keyword extraction
         :return: list of extracted keywords
         """
-
         if self.text_clean is not None:
             try:
-                summa_keywords_extraction = summa_keywords.keywords(text_for_extraction, words=self.num_of_keywords)\
-                    .split("\n")
-                return summa_keywords_extraction[:self.num_of_keywords]
+                keywords = summa_keywords.keywords(text_for_extraction,
+                                                   words=self.num_of_keywords).split("\n")
+                return keywords[:self.num_of_keywords]
             except IndexError:
-                return " "
-        else:
-            logging.debug("Variable keywords_extracted empty!")
+                return []
 
     def get_keywords_yake(self, string_for_extraction):
         """
@@ -131,13 +115,11 @@ class SingleDocKeywordExtractor:
         :param string_for_extraction: string for keyword extraction
         :return: list of extracted keywords
         """
-        keywords_extracted = []
-        kw_extractor = KeywordExtractor(lan="cs", n=1, top=self.num_of_keywords)
+        keywords = []
+        extractor = KeywordExtractor(lan="cs", n=1, top=self.num_of_keywords)
         if string_for_extraction:
-            keywords_extracted = kw_extractor.extract_keywords(string_for_extraction)[::-1]
-        else:
-            logging.debug("No string given for extraction!")
-        return keywords_extracted
+            keywords = extractor.extract_keywords(string_for_extraction)[::-1]
+        return keywords
 
     def get_keywords_combine_all_methods(self, string_for_extraction):
         """
@@ -145,32 +127,23 @@ class SingleDocKeywordExtractor:
         @param string_for_extraction: string to extract keywords from
         @return: list of keywords combined from supported keyword extractors
         """
-        keywords_multi_rake = self.get_keywords_multi_rake(string_for_extraction)
-        keywords_summa = self.get_keywords_summa(string_for_extraction)
-        keywords_yake = self.get_keywords_yake(string_for_extraction)
+        rake_keywords = self.get_keywords_multi_rake(string_for_extraction)
+        summa_keywords = self.get_keywords_summa(string_for_extraction)
+        yake_keywords = self.get_keywords_yake(string_for_extraction)
 
-        keywords_multi_rake_only_words = [x[0] for x in keywords_multi_rake]
-        keywords_yake_only_words = [y[0] for y in keywords_yake]
+        rake_only_words = [x[0] for x in rake_keywords]
+        yake_only_words = [y[0] for y in yake_keywords]
 
-        keyword_all_types = []
-        logging.debug(keywords_multi_rake_only_words)
-        logging.debug(keywords_summa)
-        keyword_all_types.append([keywords_multi_rake_only_words, keywords_yake_only_words, keywords_summa])
-        keyword_all_types = list(chain.from_iterable(keyword_all_types))
+        combined_keywords = rake_only_words + yake_only_words + summa_keywords
+        combined_keywords = combined_keywords[:5]
 
-        keyword_all_types = keyword_all_types[:5]
-        logging.debug("All algorithms of keyword extraction combined")
-        logging.debug(keyword_all_types)
-        keyword_all_types_combined = [item for sublist in zip_longest(*keyword_all_types) for item in sublist if
-                                      item is not None]
+        combined_keywords_flat = [item for sublist in zip_longest(*combined_keywords) for item in sublist if
+                                  item is not None]
 
-        logging.debug("keyword_all_types_combined")
-        logging.debug(keyword_all_types_combined)
-        keyword_all_types_split = ', '.join(keyword_all_types_combined)
-        keyword_all_types_split = smart_truncate(keyword_all_types_split)
-        logging.debug("keyword_all_types_splited")
-        logging.debug(keyword_all_types_split)
-        return str(keyword_all_types_split)
+        combined_keywords_str = ', '.join(combined_keywords_flat)
+        combined_keywords_str = smart_truncate(combined_keywords_str)
+
+        return combined_keywords_str
 
 
 if __name__ == "__main__":
