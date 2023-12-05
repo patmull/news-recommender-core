@@ -95,10 +95,11 @@ def main():
     print(doc2vec_class.get_similar_doc2vec(searched_slug, train_enabled=False))
     """
 
+
+    """
     searched_slug_1 = "zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy"
     searched_slug_2 = "salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem"
     searched_slug_3 = "sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik"
-    """
     doc2vec_class = Doc2VecClass()
     print(doc2vec_class.get_similarity_matrix(searched_slug_1, searched_slug_2))
     """

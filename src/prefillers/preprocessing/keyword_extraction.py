@@ -1,4 +1,3 @@
-# from src.multi_rake.model_variant import Rake
 import logging
 from pathlib import Path
 
@@ -32,7 +31,7 @@ class SingleDocKeywordExtractor:
         self.list_text_clean = None
         self.text_clean = None
         self.text_raw = None
-        self.sentence_splitted = None
+        self.sentence_split = None
         self.num_of_keywords = num_of_keywords
 
     def set_text(self, text_raw):
@@ -74,9 +73,9 @@ class SingleDocKeywordExtractor:
         logging.debug("list_text")
         logging.debug(list_text)
 
-        self.sentence_splitted = raw_text.split(" ")
-        logging.debug("self.sentence_splitted")
-        logging.debug(self.sentence_splitted)
+        self.sentence_split = raw_text.split(" ")
+        logging.debug("self.sentence_split")
+        logging.debug(self.sentence_split)
         
         # https://github.com/Alir3z4/stop-words
         k = []
@@ -84,10 +83,10 @@ class SingleDocKeywordExtractor:
         filename = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
         with open(filename, 'r', encoding='utf-8') as f:
             for word in f:
-                word_splitted = word.split('\n')
-                k.append(word_splitted[0])
+                word_split = word.split('\n')
+                k.append(word_split[0])
 
-        for u in self.sentence_splitted:
+        for u in self.sentence_split:
             z.append(u.lower())
 
         logging.debug("z:")
@@ -100,7 +99,7 @@ class SingleDocKeywordExtractor:
     def get_keywords_multi_rake(self, string_for_extraction):
         """
         Multi-Rake keywords extractor.
-        :param text_for_extraction: string for keyword extraction
+        :param string_for_extraction: string for keyword extraction
         :return: list of extracted keywords
         """
         rake = Rake(language_code='cs')
@@ -129,7 +128,7 @@ class SingleDocKeywordExtractor:
     def get_keywords_yake(self, string_for_extraction):
         """
         Yake keywords extractor.
-        :param text_for_extraction: string for keyword extraction
+        :param string_for_extraction: string for keyword extraction
         :return: list of extracted keywords
         """
         keywords_extracted = []
@@ -167,11 +166,11 @@ class SingleDocKeywordExtractor:
 
         logging.debug("keyword_all_types_combined")
         logging.debug(keyword_all_types_combined)
-        keyword_all_types_splitted = ', '.join(keyword_all_types_combined)
-        keyword_all_types_splitted = smart_truncate(keyword_all_types_splitted)
-        logging.debug("keyword_all_types_splitted")
-        logging.debug(keyword_all_types_splitted)
-        return str(keyword_all_types_splitted)
+        keyword_all_types_split = ', '.join(keyword_all_types_combined)
+        keyword_all_types_split = smart_truncate(keyword_all_types_split)
+        logging.debug("keyword_all_types_splited")
+        logging.debug(keyword_all_types_split)
+        return str(keyword_all_types_split)
 
 
 if __name__ == "__main__":

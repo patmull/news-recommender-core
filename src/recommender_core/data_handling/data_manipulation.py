@@ -1,4 +1,3 @@
-# import psycopg2.connector
 import logging
 import os
 import random
@@ -6,6 +5,7 @@ import traceback
 from pathlib import Path
 
 import psycopg2
+import psycopg2.extras
 import pandas as pd
 import redis
 from pandas.io.sql import DatabaseError
@@ -43,33 +43,29 @@ class DatabaseMethods(object):
 
         if db == "pgsql":
             if "PYTEST_CURRENT_TEST" in os.environ:
-                self.DB_USER = os.environ['DB_RECOMMENDER_TESTING_USER']
-                self.DB_PASSWORD = os.environ['DB_RECOMMENDER_TESTING_PASSWORD']
-                self.DB_HOST = os.environ['DB_RECOMMENDER_TESTING_HOST']
-                self.DB_NAME = os.environ['DB_RECOMMENDER_TESTING_NAME']
+                self.load_env_variables()
             else:
 
-                self.DB_USER = os.environ['DB_RECOMMENDER_USER']
-                self.DB_PASSWORD = os.environ['DB_RECOMMENDER_PASSWORD']
-                self.DB_HOST = os.environ['DB_RECOMMENDER_HOST']
-                self.DB_NAME = os.environ['DB_RECOMMENDER_NAME']
-                # TODO: Leave this back on production test
+                self.load_env_variables()
 
+                # Debugging prefillers on local production DB copy
                 """
                 self.DB_USER = os.environ['DB_MC_PRODUCTION_COPY_USER']
                 self.DB_PASSWORD = os.environ['DB_MC_PRODUCTION_COPY_PASSWORD']
                 self.DB_HOST = os.environ['DB_MC_PRODUCTION_COPY_HOST']
                 self.DB_NAME = os.environ['DB_MC_PRODUCTION_COPY_NAME']
                 """
-                # Debugging prefillers on local production DB copy
 
         elif db == "pgsql_heroku_testing":
-            self.DB_USER = os.environ['DB_RECOMMENDER_HEROKU_TESTING_USER']
-            self.DB_PASSWORD = os.environ['DB_RECOMMENDER_HEROKU_TESTING_PASSWORD']
-            self.DB_HOST = os.environ['DB_RECOMMENDER_HEROKU_TESTING_HOST']
-            self.DB_NAME = os.environ['DB_RECOMMENDER_HEROKU_TESTING_NAME']
+            self.load_env_variables()
         else:
             raise ValueError("No from selected databases are implemented.")
+
+    def load_env_variables(self):
+        self.DB_USER = os.environ['DB_RECOMMENDER_HEROKU_TESTING_USER']
+        self.DB_PASSWORD = os.environ['DB_RECOMMENDER_HEROKU_TESTING_PASSWORD']
+        self.DB_HOST = os.environ['DB_RECOMMENDER_HEROKU_TESTING_HOST']
+        self.DB_NAME = os.environ['DB_RECOMMENDER_HEROKU_TESTING_NAME']
 
     def connect(self):
         """
@@ -86,7 +82,7 @@ class DatabaseMethods(object):
                                     host=self.DB_HOST,
                                     dbname=self.DB_NAME, **keepalive_kwargs)
 
-        self.cursor = self.cnx.cursor()
+        self.cursor = self.cnx.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     def disconnect(self):
         """
@@ -115,11 +111,10 @@ class DatabaseMethods(object):
         else:
             raise ValueError("Cursor is set to None. Cannot continue with next operation.")
 
-    # NOTICE: This does not return DataFrame but list of columns!
     def get_all_posts(self):
         """
 
-        :return:
+        :return: dictionary of columns and data
         """
         sql = """SELECT * FROM posts ORDER BY id;"""
 
@@ -400,11 +395,11 @@ class DatabaseMethods(object):
             return df_user_categories
         return df_user_categories
 
-    def insert_keywords(self, keyword_all_types_splitted, article_id):
+    def insert_keywords(self, keyword_all_types_split, article_id):
         # PREPROCESSING
         try:
             query = """UPDATE posts SET keywords = %s WHERE id = %s;"""
-            inserted_values = (keyword_all_types_splitted, article_id)
+            inserted_values = (keyword_all_types_split, article_id)
             if self.cursor is not None and self.cnx is not None:
                 self.cursor.execute(query, inserted_values)
                 self.cnx.commit()

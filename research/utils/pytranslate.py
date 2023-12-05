@@ -1,3 +1,5 @@
+import logging
+
 from deep_translator import GoogleTranslator
 
 
@@ -12,7 +14,7 @@ def translate_question_words():
 
     num_of_already_processed = len(already_processed_texts)
 
-    print("TRANSLATING TEXTS...")
+    logging.info("TRANSLATING TEXTS...")
     translations = []
     BATCH_SIZE = 100
     batch_counter = 0
@@ -20,31 +22,22 @@ def translate_question_words():
     i = 0
     for text in texts:
         if i < num_of_already_processed:
-            print("Skipping already translated.")
+            logging.info("Skipping already translated.")
             pass
         else:
-            print("INPUT text:")
-            print(text)
             try:
                 translation = GoogleTranslator(source='en', target='cs').translate((text))
-                print("translation:")
-                print(translation)
                 translations.append(translation + "\n")
                 if batch_counter == BATCH_SIZE:
-                    print("Writing to file...")
                     with open('../word2vec/analogies/questions-words-cs.txt', 'a', encoding="utf-8") as file:
                         file.writelines(translations)
                         batch_counter = 0
                         translations = []
                 batch_counter = batch_counter + 1
-                print(batch_counter)
-            except:
-                translation = "TRANSLATION ERROR"
+            except Exception as e:
+                print("Translation error.")
 
         i = i + 1
-
-    print("translations:")
-    print(translations)
 
 
 def google_translate(text_to_translate):
@@ -81,8 +74,10 @@ def clean_console_output_to_file():
                   encoding="utf-8") as file:
             file.writelines(texts_cleaned)
 
+
 def run_clean_console_output_to_file():
     clean_console_output_to_file()
+
 
 def run_translation_of_question_words():
     translate_question_words()

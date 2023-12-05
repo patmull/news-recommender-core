@@ -1,5 +1,4 @@
 import pandas as pd
-
 from rabbitmq_publisher import publish_channel
 
 
@@ -17,34 +16,34 @@ def init_df_of_channel_names():
     Global RabbitMQ naming of channels, key, exchange keys. Also contain a dictionary of those values.
     :return: Dataframe of channel attribute names.
     """
-    LIST_OF_QUEUES = ['user-post-star_rating-updated-queue',
+    list_of_queues = ['user-post-star_rating-updated-queue',
                       'user-keywords-updated-queue',
                       'user-categories-updated-queue',
                       'post-features-updated-queue',
                       'user-post-thumb_rating-updated-queue']
-    LIST_OF_ROUTING_KEYS = ['user.post.star_rating.event.updated',
+    list_of_routing_keys = ['user.post.star_rating.event.updated',
                             'user.keywords.event.updated',
                             'user.categories.event.updated',
                             'post.features.updated.queue',
                             'user.post.thumb_rating.event.updated']
-    EXCHANGE = ['user', 'user', 'user', 'post', 'user']
+    exchange = ['user', 'user', 'user', 'post', 'user']
 
     init_messages = []
 
-    if len(LIST_OF_QUEUES) == len(LIST_OF_ROUTING_KEYS):
-        for i in range(len(LIST_OF_QUEUES)):
+    if len(list_of_queues) == len(list_of_routing_keys):
+        for i in range(len(list_of_queues)):
             init_messages.append(ChannelConstants.MESSAGE)
 
     else:
-        raise ValueError("Length of LIST_OF_QUEUES and LIST_OF_ROUTING_KEYS does not macth.")
+        raise ValueError("Length of list_of_queues and list_of_routing_keys does not macth.")
 
-    if len(LIST_OF_QUEUES) != len(LIST_OF_ROUTING_KEYS) != len(init_messages) != len(EXCHANGE):
+    if len(list_of_queues) != len(list_of_routing_keys) != len(init_messages) != len(exchange):
         raise ValueError("Length of init lists does not macth!")
 
-    dict_of_channel_init_values = {'queue_name': LIST_OF_QUEUES,
+    dict_of_channel_init_values = {'queue_name': list_of_queues,
                                    'init_message': init_messages,
-                                   'routing_key': LIST_OF_ROUTING_KEYS,
-                                   'exchange': EXCHANGE
+                                   'routing_key': list_of_routing_keys,
+                                   'exchange': exchange
                                    }
 
     df_of_channels = pd.DataFrame.from_dict(dict_of_channel_init_values)

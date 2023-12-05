@@ -26,8 +26,6 @@ def send_error_email(error_text):
         try:
             smtp_server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp_server.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, text)
-            print("Email sended.")
         except Exception as e:
-            print("CANNOT SEND E-MAIL! Exception: ")
-            print(str(e))
-            pass
+            # CANNOT SEND E-MAIL!
+            raise e

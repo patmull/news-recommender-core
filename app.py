@@ -4,28 +4,27 @@ import os
 import traceback
 
 from src.constants.file_paths import get_cached_posts_file_path
-from src.prefillers.preprocessing.cz_preprocessing import cz_lemma
+from src.prefillers.preprocessing.czech_preprocessing import cz_lemma
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from src.recommender_core.recommender_algorithms.user_based_algorithms\
+from src.recommender_core.recommender_algorithms.user_based_algorithms \
     .collaboration_based_recommendation import SvdClass
-from src.recommender_core.data_handling.data_queries import RecommenderMethods, preprocess_single_post_find_by_slug
-from src.recommender_core.recommender_algorithms\
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.dataframe_methods.preprocessing import preprocess_single_post_find_by_slug
+from src.recommender_core.recommender_algorithms \
     .user_based_algorithms.user_keywords_recommendation import UserBasedMethods
 from flask import Flask, request
 from flask_restful import Resource, Api
 
-
 for handler in logging.root.handlers[:]:
-   logging.root.removeHandler(handler)
+    logging.root.removeHandler(handler)
 
 # NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging.")
-
 
 
 # TODO: Replace prints with debug logging
@@ -35,7 +34,7 @@ def check_if_cache_exists_and_fresh():
         modified_date = datetime.datetime.fromtimestamp(os.path.getmtime(get_cached_posts_file_path()))
         duration = today - modified_date
         # if file older than 1 day
-        if duration.total_seconds()/(24*60*60) > 1:
+        if duration.total_seconds() / (24 * 60 * 60) > 1:
             return False
         else:
             recommender_methods = RecommenderMethods()
@@ -77,6 +76,7 @@ api = Api(app)
 def home():
     return '''<h1>Moje články</h1><p>API pro doporučovací algoritmy.</p>'''
 
+
 # Here was GetPostByLearnToRiank using XGBoost
 
 class GetPostsByOtherPostTfIdf(Resource):
@@ -93,7 +93,7 @@ class GetPostsByOtherPostWord2Vec(Resource):
 
     def get(self, param):
         word2vec_class = Word2VecClass()
-        return word2vec_class.get_similar_word2vec(param)
+        return word2vec_class.get_similar_word2vec(param, 'idnes_3')
 
     def post(self):
         return {"data": "Posted"}

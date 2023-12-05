@@ -123,6 +123,8 @@ def choose_value_for_random_post():
     except ValueError as e:
         print(e)
         print("Value is NaN. Skipping")
+
+
 def normalize(df):
     normalized_df = df.apply(lambda x: (x - x.min()) / (x.max() - x.min()))
     normalized_df = normalized_df * 5

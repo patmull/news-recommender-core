@@ -1,8 +1,5 @@
 import logging
 
-from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
-    precalculate_and_save_sim_matrix_for_all_posts, get_most_similar_by_hybrid
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 
 for handler in logging.root.handlers[:]:
@@ -15,7 +12,7 @@ logging.debug("Testing logging from try_hybrid_methods.")
 
 
 def main():
-    print(run_prefilling_collaborative(methods=["hybrid"], user_id=3124))
+    run_prefilling_collaborative(methods=["hybrid"], user_id=3124)
 
 
 if __name__ == "__main__": main()

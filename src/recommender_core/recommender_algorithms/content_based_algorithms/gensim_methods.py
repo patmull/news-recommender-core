@@ -1,50 +1,8 @@
-import re
-import string
 from collections import defaultdict
 
 import pandas as pd
-from nltk import RegexpTokenizer
-
-from src.recommender_core.data_handling.data_queries import RecommenderMethods, TfIdfDataHandlers
-from src.prefillers.preprocessing.cz_preprocessing import cz_lemma
-from src.prefillers.preprocessing.czech_stemmer import cz_stem
-
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-
-
-@DeprecationWarning
-def preprocess(sentence, stemming=False, lemma=True):
-    # print(sentence)
-    sentence = str(sentence)
-    sentence = sentence.lower()
-    sentence = sentence.replace('{html}', "")
-    cleanr = re.compile('<.*?>')
-    cleantext = re.sub(cleanr, '', sentence)
-    cleantext.translate(str.maketrans('', '', string.punctuation))  # removing punctuation
-    rem_url = re.sub(r'http\S+', '', cleantext)
-    rem_num = re.sub('[0-9]+', '', rem_url)
-    # print("rem_num")
-    # print(rem_num)
-    tokenizer = RegexpTokenizer(r'\w+')
-    tokens = tokenizer.tokenize(rem_num)
-    # print("tokens")
-    # print(tokens)
-    if stemming is True:
-        edited_words = [cz_stem(w, True) for w in tokens if len(w) > 1]  # aggresive
-        edited_words = list(filter(None, edited_words))  # empty strings removal
-        tokens = " ".join(edited_words)
-
-    elif lemma is True:
-        edited_words = [cz_lemma(w) for w in tokens if len(w) > 1]
-
-        #  (hint: "edited_words_list: List[<type>] = ...")  [var-annotated]
-        edited_words_list = list(filter(None, edited_words))  # empty strings removal
-        tokens = " ".join(edited_words_list)
-        # TODO: error: Need type annotation for "edited_words_list". Priority: LOW
-    else:
-        return tokens
-
-    return tokens
 
 
 class GensimMethods:
@@ -75,13 +33,6 @@ class GensimMethods:
         else:
             raise ValueError("Datafame is set to None. Cannot continue with next operation.")
 
-    def find_post_by_slug(self, slug):
-        post_dataframe = self.df.loc[self.df['post_slug'] == slug]
-        # noinspection PyPep8
-        doc = post_dataframe["category_title"] + " " + post_dataframe["keywords"] \
-              + " " + post_dataframe["post_title"] + " " + post_dataframe["excerpt"]
-        return str(doc.tolist())
-
     def get_categories_dataframe(self) -> object:
         """
 
@@ -89,12 +40,6 @@ class GensimMethods:
         """
         self.categories_df = self.database.get_categories_dataframe()
         return self.categories_df
-
-    @PendingDeprecationWarning
-    def get_fit_by_feature(self, feature_name, second_feature=None):
-        tf_idf_data_handlers = TfIdfDataHandlers()
-        fit_by_feature = tf_idf_data_handlers.get_tfidf_vectorizer(feature_name, second_feature)
-        return fit_by_feature
 
     def load_texts(self):
         recommender_methods = RecommenderMethods()
@@ -118,8 +63,6 @@ class GensimMethods:
             [word for word in document.lower().split() if word not in cz_stopwords and len(word) > 1]
             for document in self.documents
         ]
-
-        # print(texts)
 
         # remove words that appear only once
         frequency = defaultdict(int)  # type: defaultdict

@@ -6,6 +6,7 @@ import pandas as pd
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
+
 def random_row_remover(remove_n=234):
     doc2vec_file = "doc2vec/evaluation/idnes/doc2vec_tuning_results_random_search_full.csv"
     path_to_df = __location__ + doc2vec_file

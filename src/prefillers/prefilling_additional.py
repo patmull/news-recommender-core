@@ -6,7 +6,7 @@ import random
 import gensim
 
 from src.prefillers.preprocessing.bigrams_phrases import PhrasesCreator
-from src.prefillers.preprocessing.cz_preprocessing import preprocess
+from src.prefillers.preprocessing.czech_preprocessing import preprocess
 from src.prefillers.preprocessing.keyword_extraction import SingleDocKeywordExtractor
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
@@ -69,10 +69,10 @@ def extract_keywords(string_for_extraction):
     # ** HERE WAS ALSO LINK FOR PREPROCESSING API. Abandoned for not being used.
     # keywords extraction
     logging.debug("Extracting keywords...")
-    singleDocKeywordExtractor = SingleDocKeywordExtractor()
-    singleDocKeywordExtractor.set_text(string_for_extraction)
-    singleDocKeywordExtractor.clean_text()
-    return singleDocKeywordExtractor.get_keywords_combine_all_methods(string_for_extraction=singleDocKeywordExtractor
+    single_doc_keyword_extractor = SingleDocKeywordExtractor()
+    single_doc_keyword_extractor.set_text(string_for_extraction)
+    single_doc_keyword_extractor.clean_text()
+    return single_doc_keyword_extractor.get_keywords_combine_all_methods(string_for_extraction=single_doc_keyword_extractor
                                                                       .text_raw)
 
 
@@ -97,6 +97,28 @@ def prepare_filling(skip_already_filled, random_order, method):
     posts = shuffle_and_reverse(posts=posts, random_order=random_order)
 
     return posts
+
+
+def start_preprocessed_columns_prefilling(article_full_text, post_id):
+    """
+    Handles the 'body_preprocessed' data loading and actual pre-processing.
+
+    @param article_full_text:
+    @param post_id:
+    @return:
+    """
+
+    preprocessed_text = preprocess(article_full_text)
+    logging.debug("article_full_text")
+    logging.debug(article_full_text)
+    logging.debug("preprocessed_text:")
+    logging.debug(preprocessed_text)
+
+    recommender_methods = RecommenderMethods()
+    recommender_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text, article_id=post_id)
+    number_of_inserted_rows = 0
+
+    number_of_inserted_rows += 1
 
 
 class PreFillerAdditional:
@@ -135,12 +157,12 @@ class PreFillerAdditional:
                     logging.debug(preprocessed_text)
 
                     recommender_methods = RecommenderMethods()
-                    self.start_preprocessed_columns_prefilling(article_full_text=preprocessed_text,
+                    start_preprocessed_columns_prefilling(article_full_text=preprocessed_text,
                                                                post_id=post_id)
                 else:
                     logging.debug("Skipping.")
             else:
-                self.start_preprocessed_columns_prefilling(article_full_text, post_id)
+                start_preprocessed_columns_prefilling(article_full_text, post_id)
 
     def fill_body_preprocessed(self, skip_already_filled, random_order):
         posts = prepare_filling(skip_already_filled, random_order, method='body_preprocessed')
@@ -169,7 +191,7 @@ class PreFillerAdditional:
                 else:
                     logging.debug("Skipping.")
             else:
-                self.start_preprocessed_columns_prefilling(article_full_text, post_id)
+                start_preprocessed_columns_prefilling(article_full_text, post_id)
 
     def fill_keywords(self, skip_already_filled, random_order):
         """
@@ -216,7 +238,7 @@ class PreFillerAdditional:
                 logging.debug("preprocessed_keywords:")
                 logging.debug(preprocessed_keywords)
 
-                recommender_methods.insert_keywords(keyword_all_types_splitted=preprocessed_keywords, article_id=post_id)
+                recommender_methods.insert_keywords(keyword_all_types_split=preprocessed_keywords, article_id=post_id)
             else:
                 preprocessed_keywords = extract_keywords(string_for_extraction=features)
                 logging.debug("article_full_text")
@@ -224,7 +246,7 @@ class PreFillerAdditional:
                 logging.debug("preprocessed_keywords:")
                 logging.debug(preprocessed_keywords)
 
-                recommender_methods.insert_keywords(keyword_all_types_splitted=preprocessed_keywords, article_id=post_id)
+                recommender_methods.insert_keywords(keyword_all_types_split=preprocessed_keywords, article_id=post_id)
 
                 number_of_inserted_rows += 1
                 if number_of_inserted_rows > 20:
@@ -269,28 +291,7 @@ class PreFillerAdditional:
                 else:
                     logging.debug("Skipping.")
             else:
-                self.start_preprocessed_columns_prefilling(article_full_text=article_full_text, post_id=post_id)
-
-    def start_preprocessed_columns_prefilling(self, article_full_text, post_id):
-        """
-        Handles the 'body_preprocessed' data loading and actual pre-processing.
-
-        @param article_full_text:
-        @param post_id:
-        @return:
-        """
-
-        preprocessed_text = preprocess(article_full_text)
-        logging.debug("article_full_text")
-        logging.debug(article_full_text)
-        logging.debug("preprocessed_text:")
-        logging.debug(preprocessed_text)
-
-        recommender_methods = RecommenderMethods()
-        recommender_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text, article_id=post_id)
-        number_of_inserted_rows = 0
-
-        number_of_inserted_rows += 1
+                start_preprocessed_columns_prefilling(article_full_text=article_full_text, post_id=post_id)
 
     def fill_ngrams_for_all_posts(self, skip_already_filled, random_order, full_text):
         """
@@ -301,6 +302,7 @@ class PreFillerAdditional:
         @param full_text:
         @return:
         """
+        global input_text
         recommender_methods = RecommenderMethods()
         logging.debug("Beginning prefiling of bigrams, variant full_text=" + str(full_text))
         if skip_already_filled is False:
@@ -356,9 +358,9 @@ class PreFillerAdditional:
 
             if skip_already_filled is True:
                 if current_bigrams is None:
-                    input_text_splitted = input_text.split()
+                    input_text_split = input_text.split()
                     preprocessed_text = gensim.utils. \
-                        deaccent(preprocess(phrases_creator.create_trigrams(input_text_splitted)))
+                        deaccent(preprocess(phrases_creator.create_trigrams(input_text_split)))
                     logging.debug("input_text:")
                     logging.debug(input_text)
                     logging.debug("preprocessed_text double preprocessed:")
@@ -369,9 +371,9 @@ class PreFillerAdditional:
                 else:
                     logging.debug("Skipping.")
             else:
-                input_text_splitted = input_text.split()
+                input_text_split = input_text.split()
                 preprocessed_text = gensim.utils.deaccent(
-                    preprocess(phrases_creator.create_trigrams(input_text_splitted)))
+                    preprocess(phrases_creator.create_trigrams(input_text_split)))
                 logging.debug("input_text:")
                 logging.debug(input_text)
                 logging.debug("preprocessed_text:")

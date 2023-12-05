@@ -15,7 +15,6 @@ def profile(fnc):
         sortby = 'cumulative'
         ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
         ps.print_stats()
-        # print(s.getvalue())
         return retval
 
     return inner

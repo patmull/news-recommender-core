@@ -357,6 +357,7 @@ class Classifier:
     def load_classifiers(self, df, input_variables, predicted_variable, user_id=None):
         # https://metatext.io/models/distilbert-base-multilingual-cased
 
+        global clf_random_forest
         if predicted_variable == 'thumbs_values' or predicted_variable == 'ratings_values':
             if user_id is None:
                 model_file_name_svc = 'svc_classifier_' + predicted_variable + '.pkl'

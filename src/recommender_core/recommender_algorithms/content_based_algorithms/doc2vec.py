@@ -14,16 +14,20 @@ from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from scipy import spatial
 from sklearn.model_selection import train_test_split
 
+from src.recommender_core.data_handling.data_tools import flatten
+from src.recommender_core.recommender_algorithms.content_based_algorithms.gensim_methods import preprocess
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
     load_doc2vec_model
-from src.recommender_core.data_handling.data_handlers import flatten
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import verify_searched_slug_sanity, \
     preprocess_columns
 from src.recommender_core.checks.data_types import check_empty_string, accepts_first_argument
 from src.recommender_core.data_handling.reader import build_sentences
-from src.recommender_core.data_handling.data_queries import RecommenderMethods, save_wordsim, append_training_results, \
-    get_eval_results_header, prepare_hyperparameters_grid, random_hyperparameter_choice
-from src.prefillers.preprocessing.cz_preprocessing import preprocess
+from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.recommender_core.data_handling.evaluation.evaluation_data_handling import save_wordsim
+from src.recommender_core.data_handling.evaluation.evaluation_results import get_eval_results_header, \
+    append_training_results
+from src.recommender_core.data_handling.hyperparam_tuning import random_hyperparameter_choice, \
+    prepare_hyperparameters_grid
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 import project_config.trials_counter
@@ -43,11 +47,11 @@ def create_tagged_document(list_of_list_of_words):
         yield gensim.models.doc2vec.TaggedDocument(list_of_words, [i])
 
 
-def compute_eval_values(source, train_corpus=None, test_corpus=None, model_variant=None,
-                        negative_sampling_variant=None,
-                        vector_size=None, window=None, min_count=None,
-                        epochs=None, sample=None, force_update_model=True,
-                        default_parameters=False):
+def print_eval_values(source, train_corpus=None, test_corpus=None, model_variant=None,
+                      negative_sampling_variant=None,
+                      vector_size=None, window=None, min_count=None,
+                      epochs=None, sample=None, force_update_model=True,
+                      default_parameters=False):
     if source == "idnes":
         model_path = "models/d2v_idnes.model"
     elif source == "cswiki":
@@ -56,7 +60,7 @@ def compute_eval_values(source, train_corpus=None, test_corpus=None, model_varia
         raise ValueError("No source matches available options.")
 
     if os.path.isfile(model_path) is False or force_update_model is True:
-        print("Started training on iDNES.cz dataset...")
+        # Started training on iDNES.cz dataset...
 
         if default_parameters is True:
             # DEFAULT:
@@ -67,14 +71,13 @@ def compute_eval_values(source, train_corpus=None, test_corpus=None, model_varia
                                 vector_size=vector_size, window=window, min_count=min_count, epochs=epochs,
                                 sample=sample, workers=7)
 
-        print("Sample of train_enabled corpus:")
-        print(train_corpus[:2])
+        # Sample of train_enabled corpus:
         d2v_model.build_vocab(train_corpus)
         d2v_model.train(train_corpus, total_examples=d2v_model.corpus_count, epochs=d2v_model.epochs)
         d2v_model.save(model_path)
 
     else:
-        print("Loading Doc2Vec iDNES.cz doc2vec_model from saved doc2vec_model file")
+        # Loading Doc2Vec iDNES.cz doc2vec_model from saved doc2vec_model file
         d2v_model = Doc2Vec.load(model_path)
 
     path_to_cropped_wordsim_file = 'research/word2vec/similarities/WordSim353-cs-cropped.tsv'
@@ -86,8 +89,7 @@ def compute_eval_values(source, train_corpus=None, test_corpus=None, model_varia
         word_pairs_eval = d2v_model.wv.evaluate_word_pairs(path_to_cropped_wordsim_file)
 
     overall_score, _ = d2v_model.wv.evaluate_word_analogies('research/word2vec/analogies/questions-words-cs.txt')
-    print("Analogies evaluation of doc2vec_model:")
-    print(overall_score)
+    # Analogies evaluation of doc2vec_model:
 
     doc_id = random.randint(0, len(test_corpus) - 1)
     logging.debug("print(test_corpus[:2])")
@@ -97,8 +99,7 @@ def compute_eval_values(source, train_corpus=None, test_corpus=None, model_varia
     inferred_vector = d2v_model.infer_vector(test_corpus[doc_id])
     sims = d2v_model.dv.most_similar([inferred_vector], topn=len(d2v_model.dv))
     # Compare and print the most/median/least similar documents from the train_enabled train_corpus
-    print('Test Document ({}): «{}»\n'.format(doc_id, ' '.join(test_corpus[doc_id])))
-    print(u'SIMILAR/DISSIMILAR DOCS PER MODEL %s:\n' % d2v_model)
+    # 'SIMILAR/DISSIMILAR DOCS PER MODEL
     for label, index in [('MOST', 0), ('MEDIAN', len(sims) // 2), ('LEAST', len(sims) - 1)]:
         print(u'%s %s: «%s»\n' % (label, sims[index], ' '.join(train_corpus[sims[index][0]].words)))
 
@@ -113,18 +114,17 @@ def create_dictionary_from_mongo_idnes(sentences=None, force_update=False, filte
             sentences, db = build_sentences()
 
         sentences_train, sentences_test = train_test_split(sentences, train_size=0.2, shuffle=True)
-        print("Creating dictionary...")
+        # Creating dictionary...
         preprocessed_dictionary_train = gensim.corpora.Dictionary(line for line in sentences_train)
         del sentences
         gc.collect()
         if filter_extremes is True:
             preprocessed_dictionary_train.filter_extremes()
-        print("Saving dictionary...")
+        # Saving dictionary...
         preprocessed_dictionary_train.save(path_to_train_dict)
-        print("Dictionary saved to: " + path_to_train_dict)
+        # Dictionary save
         return preprocessed_dictionary_train
     else:
-        print("Dictionary already exists. Loading...")
         loaded_dict = corpora.Dictionary.load(path_to_train_dict)
         return loaded_dict
 
@@ -133,7 +133,6 @@ def init_and_start_training(model, tagged_data, max_epochs):
     model.build_vocab(tagged_data)
 
     for epoch in range(max_epochs):
-        print('iteration {0}'.format(epoch))
         model.train(tagged_data,
                     total_examples=model.corpus_count,
                     epochs=model.epochs)
@@ -170,25 +169,20 @@ def prepare_train_test_corpus():
 
     cursor = collection.find({})
     for document in cursor:
-        # joined_string = ' '.join(document['text'])
-        # sentences.append([joined_string])
         sentences.append(document['text'])
-    # TODO:
     train_corpus, test_corpus = train_test_split(sentences, test_size=0.2, shuffle=True)
     train_corpus = list(create_tagged_document(sentences))
 
-    print("print(train_corpus[:2])")
-    print(print(train_corpus[:2]))
-    print("print(test_corpus[:2])")
-    print(print(test_corpus[:2]))
     return train_corpus, test_corpus
 
 
 def train(tagged_data):
+    # E.g., hardcoded params.
     max_epochs = 20
     vec_size = 8
     alpha = 0.025
     """
+    E.g., Other possible params:
     minimum_alpha = 0.0025
     reduce_alpha = 0.0002
     """
@@ -208,209 +202,8 @@ def train(tagged_data):
         model.save("models/d2v_mini_vectors.model")
         print("Doc2Vec model Saved")
 
-
-def train_full_text(tagged_data, full_body, limited):
-    max_epochs = 20
-    vec_size = 150
-
-    if limited is True:
-        model = Doc2Vec(vector_size=vec_size,
-                        min_count=1,
-                        dm=0, max_vocab_size=87000)
-    else:
-        model = Doc2Vec(vector_size=vec_size,
-                        min_count=1,
-                        dm=0)
-
-    model = init_and_start_training(model, tagged_data, max_epochs)
-
-    if full_body is True:
-        if limited is True:
-            model.save("models/d2v_full_text_limited.model")
-        else:
-            model.save("models/d2v_full_text.model")
-    else:
-        if limited is True:
-            model.save("models/d2v_limited.model")
-        else:
-            model.save("models/d2v.model")
-    print("Doc2Vec model Saved")
-
-
-def find_best_doc2vec_model(source, number_of_trials=512, file_name='doc2vec_final_evaluation_results'):
-    print("Building sentences...")
-    # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
-
-    train_corpus, test_corpus = prepare_train_test_corpus()
-
-    model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
-    """
-    hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
-    """
-    # noinspection PyPep8
-    negative_sampling_variants, no_negative_sampling, vector_size_range, window_range, min_count_range, epochs_range, \
-    sample_range, corpus_title, model_results = prepare_hyperparameters_grid()
-
-    model_variant, vector_size, window, min_count, epochs, sample, negative_sampling_variant \
-        = random_hyperparameter_choice(model_variants=model_variants,
-                                       negative_sampling_variants=negative_sampling_variants,
-                                       vector_size_range=vector_size_range,
-                                       sample_range=sample_range,
-                                       epochs_range=epochs_range, window_range=window_range,
-                                       min_count_range=min_count_range)
-
-    pbar = tqdm.tqdm(total=540)
-
-    for i in range(0, number_of_trials):
-
-        hs_softmax = 1
-        # hs_softmax = random_order.choice(hs_softmax_variants)
-        # TODO: Get Back random_order choice!!!
-        # This is temporary due to adding softmax one values to results after fixed tab indent in else.
-
-        if hs_softmax == 1:
-            word_pairs_eval, analogies_eval = compute_eval_values(train_corpus=train_corpus,
-                                                                  test_corpus=test_corpus,
-                                                                  model_variant=model_variant,
-                                                                  negative_sampling_variant=no_negative_sampling,
-                                                                  vector_size=vector_size,
-                                                                  window=window,
-                                                                  min_count=min_count,
-                                                                  epochs=epochs,
-                                                                  sample=sample,
-                                                                  force_update_model=True, source=source)
-        else:
-            word_pairs_eval, analogies_eval = compute_eval_values(train_corpus=train_corpus,
-                                                                  test_corpus=test_corpus,
-                                                                  model_variant=model_variant,
-                                                                  negative_sampling_variant=no_negative_sampling,
-                                                                  vector_size=vector_size,
-                                                                  window=window,
-                                                                  min_count=min_count,
-                                                                  epochs=epochs,
-                                                                  sample=sample,
-                                                                  force_update_model=True,
-                                                                  source=source)
-
-        print(word_pairs_eval[0][0])
-        if source == "idnes":
-            model_results['Validation_Set'].append("iDnes.cz " + corpus_title[0])
-        elif source == "cswiki":
-            model_results['Validation_Set'].append("cs.Wikipedia.org " + corpus_title[0])
-        else:
-            ValueError("No source from available options selected")
-
-        # noinspection DuplicatedCode
-        append_training_results(source=source, corpus_title=corpus_title[0],
-                                model_variant=model_variant,
-                                negative_sampling_variant=negative_sampling_variant,
-                                vector_size=vector_size,
-                                window=window, min_count=min_count, epochs=epochs,
-                                sample=sample,
-                                hs_softmax=hs_softmax,
-                                pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
-                                pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
-                                spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
-                                spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
-                                out_of_vocab_ratio=word_pairs_eval[2],
-                                analogies_eval=analogies_eval,
-                                model_results=model_results)
-        pd.DataFrame(model_results).to_csv(file_name + source + '.csv', index=False,
-                                           mode="a")
-        pbar.update(1)
-
-        print("Saved training results...")
-
-
-def train_final_doc2vec_model(source):
-    print("Building sentences...")
-    # TODO: Replace with iterator when is fixed: sentences = MyCorpus(dictionary)
-    train_corpus, test_corpus = prepare_train_test_corpus()
-    # corpus = list(self.read_corpus(path_to_corpus))
-
-    model_variant = 1  # sg parameter: 0 = CBOW; 1 = Skip-Gram
-    """
-    hs_softmax_variants = [0, 1]  # 1 = Hierarchical SoftMax
-    """
-    # noinspection DuplicatedCode
-    negative_sampling_variant = 10  # 0 = no negative sampling
-    no_negative_sampling = 0  # use with hs_soft_max
-    vector_size = 200
-    window = 16
-    min_count = 3
-    epoch = 25
-    sample = 0.0
-    hs_softmax = 0
-
-    corpus_title, model_results = get_eval_results_header()
-    pbar = tqdm.tqdm(total=540)
-
-    # hs_softmax = random_order.choice(hs_softmax_variants)
-    # TODO: Get Back random_order choice!!!
-    # This is temporary due to adding softmax one values to results after fixed tab indent in else.
-    model_variant = model_variant
-    vector_size = vector_size
-    window = window
-    min_count = min_count
-    epochs = epoch
-    sample = sample
-    negative_sampling_variant = negative_sampling_variant
-
-    if hs_softmax == 1:
-        # TODO: Unit test computing of evaluations
-        word_pairs_eval, analogies_eval = compute_eval_values(train_corpus=train_corpus,
-                                                              test_corpus=test_corpus,
-                                                              model_variant=model_variant,
-                                                              negative_sampling_variant=no_negative_sampling,
-                                                              vector_size=vector_size,
-                                                              window=window,
-                                                              min_count=min_count,
-                                                              epochs=epochs,
-                                                              sample=sample,
-                                                              force_update_model=True,
-                                                              source=source)
-    else:
-        word_pairs_eval, analogies_eval = compute_eval_values(train_corpus=train_corpus,
-                                                              test_corpus=test_corpus,
-                                                              model_variant=model_variant,
-                                                              negative_sampling_variant=negative_sampling_variant,
-                                                              vector_size=vector_size,
-                                                              window=window,
-                                                              min_count=min_count,
-                                                              epochs=epochs,
-                                                              sample=sample,
-                                                              source=source)
-    # noinspection DuplicatedCode
-    append_training_results(source=source, corpus_title=corpus_title[0],
-                            model_variant=model_variant,
-                            negative_sampling_variant=negative_sampling_variant,
-                            vector_size=vector_size,
-                            window=window, min_count=min_count, epochs=epochs, sample=sample,
-                            hs_softmax=hs_softmax,
-                            pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
-                            pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
-                            spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
-                            spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
-                            out_of_vocab_ratio=word_pairs_eval[2],
-                            analogies_eval=analogies_eval,
-                            model_results=model_results)
-
-    pbar.update(1)
-    final_results_file_name = 'doc2vec_tuning_results_random_search_final_' + source + '.csv'
-    pd.DataFrame(model_results).to_csv(final_results_file_name, index=False,
-                                       mode="w")
-    print("Saved training results...")
-
-    if source == "idnes":
-        file_name_for_save = 'doc2vec_tuning_results_random_search_idnes.csv'
-    elif source == "cswiki":
-        file_name_for_save = 'doc2vec_tuning_results_random_search_cswiki.csv'
-    else:
-        raise ValueError("Source does not matech available options.")
-
-    # noinspection PyTypeChecker
-    pd.DataFrame(model_results).to_csv(file_name_for_save, index=False,
-                                       mode="w")
+# HERE WAS a full text training. ABANDONED DUE TO: no longer needed
+# HERE WAS a Doc2Vec tuning and final training. ABANDONED DUE TO: unknown bug in test calculations giving a null result
 
 
 def train_doc2vec(documents_all_features_preprocessed, create_csv=False):
@@ -427,9 +220,7 @@ def train_doc2vec(documents_all_features_preprocessed, create_csv=False):
                 if len(sublist) > 0:
                     selected_list.append(sublist)
 
-        print("Preprocessing doc. num. " + str(i))
-        print("Selected list:")
-        print(selected_list)
+        # Preprocessing doc.
         tagged_data.append(TaggedDocument(words=selected_list, tags=[str(i)]))
         if create_csv is True:
             # Will append to exising file! CSV needs to be removed first if needs to be up updated as a whole
@@ -437,14 +228,10 @@ def train_doc2vec(documents_all_features_preprocessed, create_csv=False):
                 wr = csv.writer(fp, dialect='excel')
                 wr.writerow(selected_list)
 
-    print("tagged_data:")
-    print(tagged_data)
-
     train(tagged_data)
 
 
 def get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_recommended_posts):
-    print('\n')
 
     post_recommendations = pd.DataFrame()
     list_of_article_slugs = []
@@ -458,18 +245,14 @@ def get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_rec
     logging.debug(len(most_similar_items))
     logging.debug("len(documents_slugs)")
     logging.debug(len(documents_slugs))
-    # for label, index in [('MOST', 0), ('SECOND-MOST', 1), ('THIRD-MOST', 2), ('FOURTH-MOST', 3),
-    # ('FIFTH-MOST', 4), ('MEDIAN', len(most_similar_items) // 2), ('LEAST', len(most_similar_items) - 1)]:
-    # TODO: Repair. Priority: VERTY HIGH
+
     for i in range(0, len(most_similar_items)):
         logging.debug("most_similar_items[index][1]]")
         logging.debug(most_similar_items[i][1])
         logging.debug("documents_slugs[int(most_similar_items[index][0])]")
         logging.debug(documents_slugs[int(most_similar_items[i][0])])
-        print(u'%s: %s\n' % (most_similar_items[i][1], documents_slugs[int(most_similar_items[i][0])]))
         list_of_article_slugs.append(documents_slugs[int(most_similar_items[i][0])])
         list_of_coefficients.append(most_similar_items[i][1])
-    print('=====================\n')
 
     post_recommendations['slug'] = list_of_article_slugs
     post_recommendations['coefficient'] = list_of_coefficients
@@ -477,10 +260,6 @@ def get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_rec
     posts_dict = post_recommendations.to_dict('records')
 
     list_of_articles = [posts_dict.copy()]
-    # print("------------------------------------")
-    # print("JSON:")
-    # print("------------------------------------")
-    # print(list_of_article_slugs[0])
     return flatten(list_of_articles)
 
 
@@ -495,7 +274,6 @@ class Doc2VecClass:
         self.doc2vec_model = None
 
     def prepare_posts_df(self):
-        # self.database.insert_post_dataframe_to_cache() # uncomment for UPDATE of DB records
         self.posts_df = self.database.get_posts_dataframe_from_cache()
         self.posts_df.drop_duplicates(subset=['title'], inplace=True)
         self.posts_df = self.posts_df.rename({'title': 'post_title'})
@@ -513,13 +291,9 @@ class Doc2VecClass:
         if type(searched_slug) is not str:
             raise ValueError("Bad searched_slug parameter inserted.")
 
-        # TODO: Replace other duplicated code like this:
         verify_searched_slug_sanity(searched_slug)
         recommender_methods = RecommenderMethods()
         self.df = recommender_methods.get_posts_categories_dataframe(from_cache=posts_from_cache)
-        print("self.df")
-        print(self.df.columns.values)
-
         if 'post_slug' in self.df.columns:
             self.df = self.df.rename(columns={'post_slug': 'slug'})
         if 'slug_x' in self.df.columns:
@@ -624,12 +398,10 @@ class Doc2VecClass:
         if 'slug_x' in self.df.columns:
             self.df = self.df.rename(columns={'slug_x': 'slug'})
 
-        # TODO: REPAIR
-        # ValueError: Slug does not appear in dataframe.
         if searched_slug not in self.df['slug'].to_list():
             # ** HERE WAS A HANDLING OF THIS ERROR BY UPDATING POSTS_CATEGORIES DF. ABANDONED DUE TO MASKING OF ERROR
             # FOR BAD INPUT **
-            # TODO: Prirority: MEDIUM. Deal with this by counting the number of trials in config file with special
+            # TODO: Handling of the errors by counter, e.g.,
             # variable for this purpose. If num_of_trials > 1, then throw ValueError
             raise ValueError("searched_slug not in dataframe")
 
@@ -637,9 +409,6 @@ class Doc2VecClass:
         documents_all_features_preprocessed = preprocess_columns(self.df, cols)
 
         gc.collect()
-
-        print("self.df.columns")
-        print(self.df.columns)
 
         documents_slugs = self.df['slug'].tolist()
 
@@ -657,7 +426,6 @@ class Doc2VecClass:
 
         # not necessary
         post_found = recommend_methods.find_post_by_slug(searched_slug)
-        # TODO: REPAIR
         # IndexError: single positional indexer is out-of-bounds
         keywords_preprocessed = post_found.iloc[0]['keywords'].split(", ")
         all_features_preprocessed = post_found.iloc[0]['all_features_preprocessed'].split(" ")
@@ -711,11 +479,6 @@ class Doc2VecClass:
     def create_or_update_corpus_and_dict_from_mongo_idnes(self):
         dict_idnes = create_dictionary_from_mongo_idnes(force_update=True)
         return dict_idnes
-
-    @staticmethod
-    def get_prefilled_full_text(slug, variant):
-        recommender_methods = RecommenderMethods()
-        return recommender_methods.get_prefilled_full_text(slug, variant)
 
     def get_pair_similarity_doc2vec(self, slug_1, slug_2, d2v_model=None):
 

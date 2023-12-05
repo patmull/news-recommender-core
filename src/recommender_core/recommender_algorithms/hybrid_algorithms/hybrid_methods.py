@@ -80,8 +80,8 @@ def model_selection(tfidf_rate, word2vec_rate, doc2vec_rate, lda_rate, number_of
     lda_additional_selection = lda_results.head(number_of_recommended_lda)
     # noinspection PyPep8
     return tf_idf_additional_selection, word2vec_additional_selection, doc2vec_additional_selection, \
-           lda_additional_selection, number_of_recommended_tfidf, number_of_recommended_word2vec, \
-           number_of_recommended_doc2vec, number_of_recommended_lda
+        lda_additional_selection, number_of_recommended_tfidf, number_of_recommended_word2vec, \
+        number_of_recommended_doc2vec, number_of_recommended_lda
 
 
 def prepare_categories():
@@ -134,7 +134,7 @@ def filter_thumbs_down_articles(posts_to_compare, posts_from_history, user_id):
     thumbs_df = recommender_methods.get_posts_users_categories_thumbs_df(only_with_bert_vectors=False)
     thumbs_df = thumbs_df.loc[thumbs_df['user_id'] == user_id]
     svd_thumbs_df = thumbs_df.loc[thumbs_df['post_slug'].isin(posts_to_compare)]
-    svd_thumbs_down_df = svd_thumbs_df.loc[svd_thumbs_df.thumbs_values == False]
+    svd_thumbs_down_df = svd_thumbs_df.loc[svd_thumbs_df.thumbs_values is False]
     svd_thumbs_down_list = svd_thumbs_down_df['post_slug'].tolist()
 
     list_of_posts_to_filter_out = svd_thumbs_down_list + posts_from_history
@@ -160,7 +160,7 @@ def drop_columns_from_similarity_matrix(similarity_matrix, posts_to_compare, lis
     return similarity_matrix
 
 
-def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, for_hybrid=True):
+def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs):
     w2v_model, d2v_model = None, None
 
     logging.debug("Calculating sim matrix for %d posts:" % (len(list_of_slugs)))
@@ -215,7 +215,7 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, for_hybri
         logging.debug(similarity_list)
 
         similarity_matrix = pd.DataFrame(similarity_list, columns=list_of_slugs, index=list_of_slugs)
-        # TODO: Everything above can be pre-computed and loaded. Priority: VERY HIGH
+        # TODO: The everything above can be pre-computed and loaded. Priority: VERY HIGH
 
         logging.debug("Similarity matrix:")
         logging.debug(similarity_matrix)
@@ -228,7 +228,8 @@ def get_similarity_matrix_from_pairs_similarity(method, list_of_slugs, for_hybri
 
 def personalize_similarity_matrix(similarity_matrix, posts_to_compare, list_of_slugs_from_history):
     """
-    Drops the articles from user read history from similarity matrix and drops articles from SVD (collab element) from axe.
+    Drops the articles from user read history from similarity matrix
+    and drops articles from SVD (collab element) from axe.
     @return:
     """
     similarity_matrix = drop_columns_from_similarity_matrix(similarity_matrix, posts_to_compare,
@@ -340,7 +341,6 @@ def boost_by_article_freshness(results_df):
 
 
 def boost_by_fuzzy(results_df):
-
     def get_hours_from_timedelta(created_at):
         now = pd.to_datetime('now')
         time_delta = pd.Timedelta(now - created_at)
@@ -360,13 +360,14 @@ def boost_by_fuzzy(results_df):
     # See: hybrid_settings table where it was laid out
     results_df['coefficient'] = results_df.apply(lambda x:
                                                  fuzzy_boost_coefficient(x['coefficient'],
-                                                 inference_mamdani_boosting_coeff(x['coefficient'],
-                                                                                         get_hours_from_timedelta(x['post_created_at']))), axis=1)
+                                                                         inference_mamdani_boosting_coeff(
+                                                                             x['coefficient'],
+                                                                             get_hours_from_timedelta(
+                                                                                 x['post_created_at']))), axis=1)
     return results_df
 
 
 def mix_methods_by_fuzzy(results_df, method):
-
     def get_created_at_for_this_post(slug):
         recommender_methods = RecommenderMethods()
         post_found = recommender_methods.find_post_by_slug(slug)
@@ -391,10 +392,12 @@ def mix_methods_by_fuzzy(results_df, method):
     # See: hybrid_settings table where it was laid out
     coeff_column_name = 'coefficient'
     results_df[coeff_column_name] = results_df.apply(lambda x:
-                                                 fuzzy_boost_coefficient(x[coeff_column_name],
-                                                                         inference_simple_mamdani_cb_mixing(x[coeff_column_name],
-                                                                                                                   get_created_at_for_this_post(x['slug']),
-                                                                                                                   method)), axis=1)
+                                                     fuzzy_boost_coefficient(x[coeff_column_name],
+                                                                             inference_simple_mamdani_cb_mixing(
+                                                                                 x[coeff_column_name],
+                                                                                 get_created_at_for_this_post(
+                                                                                     x['slug']),
+                                                                                 method)), axis=1)
     return results_df
 
 
@@ -419,7 +422,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     @param load_saved_result: if True, skips the recommending calculation and jumps to final calculations.
     Added to help with debugging of final boosting
     """
-    global hybrid_recommended_json_fuzzy, results_fuzzy
+    global hybrid_recommended_json_fuzzy, results_fuzzy, results_df_fuzzy
     path_to_save_results = Path('research/hybrid/results_df.pkl')  # Primarily for debugging purposes
 
     if load_saved_result is False or not os.path.exists(path_to_save_results):
@@ -474,7 +477,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             similarity_matrix_not_boosted = pd.DataFrame()
             if method == "tfidf":
                 file_path = prepare_sim_matrix_path(method)
-                # TODO: Derive from loaded feather of sim matrix instead
                 if load_from_precalc_sim_matrix \
                         and os.path \
                         .exists(file_path):
@@ -579,8 +581,9 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
                                           / results_df[coefficient_columns].std()
         if use_fuzzy is True:
-            results_df_fuzzy[coefficient_columns] = (results_df_fuzzy[coefficient_columns] - results_df_fuzzy[coefficient_columns].mean()) \
-                                              / results_df_fuzzy[coefficient_columns].std()
+            results_df_fuzzy[coefficient_columns] = (results_df_fuzzy[coefficient_columns] - results_df_fuzzy[
+                coefficient_columns].mean()) \
+                                                    / results_df_fuzzy[coefficient_columns].std()
         logging.debug("normalized_df:")
         logging.debug(results_df)
 
@@ -637,7 +640,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         results_df.coefficient)
 
     if use_fuzzy is True:
-
         results_df_fuzzy.coefficient = np.where(
             results_df_fuzzy["category_slug"].isin(user_categories_list),
             results_df_fuzzy.coefficient * 2.0,
@@ -696,17 +698,8 @@ class HybridMethods:
         recommender_methods = RecommenderMethods()
         user_methods = UserMethods()
 
-        df_user_history = user_methods.get_user_read_history(user_id=user_id, N=3)
+        df_user_history = user_methods.get_user_read_history(user_id=user_id, n=3)
         df_articles = recommender_methods.get_posts_categories_dataframe()
 
-        print("df_user_history")
-        print(df_user_history)
-        print(df_user_history.columns)
-
-        print("df_articles")
-        print(df_articles)
-        print(df_articles.columns)
-
         df_history_articles = df_user_history.merge(df_articles, on='post_id')
-        print(df_history_articles.columns)
         return df_history_articles

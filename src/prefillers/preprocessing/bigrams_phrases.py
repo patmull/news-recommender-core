@@ -115,9 +115,6 @@ class PhrasesCreator:
         :param splitted_tokens: provided list of strings for the creation of bigrams and trigrams
         :return: splitted text of trigrams
         """
-
-        # bigram_text = self.bigram_phrases_model[splitted_tokens]
-        # bigrams_ = [b for b in self.bigram_phrases_model[splitted_tokens] if b.count(' ') == 1]
         trigrams = self.trigram_phrases_model[self.bigram_phrases_model[splitted_tokens]]
         bigram_text = ' '.join(trigrams)
         return bigram_text

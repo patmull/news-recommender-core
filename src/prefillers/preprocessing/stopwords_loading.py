@@ -27,7 +27,7 @@ def get_general_stopwords_file_path():
 def load_cz_stopwords(remove_punct=True):
     """
     Method for loading the Czech stopwords.
-    @param remove_punct: boolean value for whether you want remove punctuation before entering the stopwords removal.
+    @param remove_punct: boolean value for whether you want to remove punctuation before entering the stopwords removal.
     Depends on how you collect the stopwords. Preferred way for this project is to provide stopwords with removed
     punctuation.
     @return: list of Czech stopwords loaded from file

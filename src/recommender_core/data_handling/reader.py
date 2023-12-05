@@ -7,7 +7,8 @@ import re
 
 from gensim import corpora
 from pymongo import MongoClient
-from src.prefillers.preprocessing.cz_preprocessing import CzPreprocess, preprocess
+
+from src.prefillers.preprocessing.czech_preprocessing import preprocess
 
 logging.basicConfig(format='%(levelname)s : %(message)s', level=logging.DEBUG)
 logging.root.level = logging.INFO
@@ -48,9 +49,7 @@ class Reader(object):
         """
         INIT
         """
-        # exclude_stops = set(('.', '(', ')'))
-        # self.stop = set(stopwords.words('english')) - exclude_stops
-        self.wn_lemmatizer = CzPreprocess()
+
 
     def iterate(self):
         """ virtual method """

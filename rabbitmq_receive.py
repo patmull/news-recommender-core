@@ -13,7 +13,7 @@ from src.recommender_core.data_handling.data_connection import init_rabbitmq
 
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
-for handler in logging.root.handlers[:]:logging.root.removeHandler(handler)
+for handler in logging.root.handlers[:]: logging.root.removeHandler(handler)
 
 # NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
@@ -44,7 +44,7 @@ def is_init_or_test(decoded_body):
     return is_init_or_test_value
 
 
-def new_post_scrapped_callback(ch, method, properties, body):
+def new_post_scrapped_callback(ch, method, body):
     logging.info("[x] Received %r" % body.decode())
     ch.basic_ack(delivery_tag=method.delivery_tag)
     if body.decode() == "new_articles_scrapped":
@@ -102,6 +102,7 @@ def user_rated_by_thumb_callback(ch, method, properties, body):
                 logging.warning(str(e))
                 send_error_email(traceback.format_exc())
 
+
 def test_callback(ch, method, properties, body):
     logging.info("[x] Received %r" % body.decode())
     logging.info("Properties:")
@@ -152,7 +153,6 @@ def user_added_categories(ch, method, properties, body):
 
 
 def insert_testing_json(received_user_id, method, heroku_testing_db=False):
-
     if method == "classifier":
         logging.warning("Storing classifier to DB is not implemented yet.")
 
@@ -250,7 +250,6 @@ def init_all_consuming_channels():
 
 
 class Callback:
-
     event = None
 
     def __init__(self, event):
@@ -258,7 +257,6 @@ class Callback:
 
 
 def init_consuming(queue_name):
-
     if queue_name == 'user-post-star_rating-updated-queue':
         called_function = user_rated_by_stars_callback
     elif queue_name == 'user-keywords-updated-queue':

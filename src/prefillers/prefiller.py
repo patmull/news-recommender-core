@@ -129,12 +129,7 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 
         # NOTICE: Hybrid is already doing this
         if not method == "hybrid":
-            # TODO: Shouldn't this be handled for other methods too inside the method and not here like in hybrid?
-            print("dict actual_json")
-            print(actual_json)
             actual_json = json.dumps(actual_json)
-            print("dumped actual_json")
-            print(actual_json)
 
         if skip_already_filled is True:
             if current_recommended is None:
@@ -200,7 +195,8 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
     @return:
     """
 
-    global fit_by_full_text, fit_by_title, fit_by_all_features_matrix, tf_idf_data_handlers
+    global fit_by_full_text, fit_by_title, fit_by_all_features_matrix, tf_idf_data_handlers, w2v_model, \
+        actual_recommended_json
     docsim_index, dictionary = None, None
     database_methods = DatabaseMethods()
     if skip_already_filled is False:
@@ -254,7 +250,7 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
             w2v_model = KeyedVectors.load(path_to_model)
             source = "cswiki"
         else:
-            ValueError("Wrong doc2vec_model name chosen.")
+            raise ValueError("Wrong doc2vec_model name chosen.")
         ds = DocSim(w2v_model)
         docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name, force_update=True)
     elif method == 'word2vec':
@@ -269,7 +265,7 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
         docsim_index = ds.load_docsim_index(source=source, model_name=selected_model_name, force_update=True)
         logging.info("Loading dictionary for Word2Vec...")
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/dictionary_idnes.gensim')
-    elif method.startswith("doc2vec"): # Here was 'doc2vec_' to distinguish full text variant
+    elif method.startswith("doc2vec"):  # Here was 'doc2vec_' to distinguish full text variant
         if method == "doc2vec_eval_cswiki_1":
             # Notice: Doc2Vec model gets loaded inside the Doc2Vec's class method
             logging.debug("Similarities on FastText doc2vec_model.")
@@ -291,40 +287,40 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
 
         if full_text is False:
             if method == "tfidf":
-                current_recommended = post[24]
+                current_recommended = post['recommended_tfidf']
             elif method == "word2vec":
-                current_recommended = post[22]
+                current_recommended = post['recommended_tfidf_full_text']
             elif method == "doc2vec":
-                current_recommended = post[26]
+                current_recommended = post['recommended_doc2vec']
             elif method == "lda":
-                current_recommended = post[28]
+                current_recommended = post['recommended_doc2vec_full_text']
             else:
                 current_recommended = None
         else:
             if method == "tfidf":
-                current_recommended = post[25]
+                current_recommended = post['recommended_tfidf']
             elif method == "word2vec":
-                current_recommended = post[23]
+                current_recommended = post['recommended_word2vec']
             elif method == "doc2vec":
-                current_recommended = post[27]
+                current_recommended = post['recommended_doc2vec']
             elif method == "lda":
-                current_recommended = post[29]
+                current_recommended = post['recommended_lda']
             elif method == "word2vec_eval_idnes_1":
-                current_recommended = post[33]
+                current_recommended = post['recommended_word2vec_eval_1']
             elif method == "word2vec_eval_idnes_2":
-                current_recommended = post[34]
+                current_recommended = post['recommended_word2vec_eval_2']
             elif method == "word2vec_eval_idnes_3":
-                current_recommended = post[35]
+                current_recommended = post['recommended_word2vec_eval_3']
             elif method == "word2vec_eval_idnes_4":
-                current_recommended = post[36]
+                current_recommended = post['recommended_word2vec_eval_4']
             elif method == "word2vec_limited_fasttext":
-                current_recommended = post[37]
+                current_recommended = post['recommended_word2vec_limited_fasttext']
             elif method == "word2vec_limited_fasttext_full_text":
-                current_recommended = post[38]
+                current_recommended = post['recommended_word2vec_limited_fasttest_full_text']
             elif method == "word2vec_eval_cswiki_1":
-                current_recommended = post[39]
+                current_recommended = post['recommended_word2vec_eval_cswiki_1']
             elif method == "doc2vec_eval_cswiki_1":
-                current_recommended = post[40]
+                current_recommended = post['recommended_doc2vec_eval_cswiki_1']
             else:
                 current_recommended = None
 

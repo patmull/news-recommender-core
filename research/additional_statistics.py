@@ -12,7 +12,6 @@ class RandomForestRegression:
     """
 
     def run(self):
-
         dataset = pd.read_csv('word2vec/evaluation/idnes/word2vec_modely_srovnani_filtered.csv', sep=";")
         print(dataset.head(10).to_string())
         dataset_x = dataset[['Negative', 'Vector_size', 'Window', 'Min_count', 'Epochs', 'Sample', 'Softmax']]
@@ -30,16 +29,15 @@ class RandomForestRegression:
 
         # print prediction results
         dataset_x_unique = dataset_x.rename(columns={'Negative': 'model__Negative', 'Vector_size': 'model__Vector_size',
-                                                            'Window': 'model__Window', 'Min_count': 'model__Min_count',
-                                                            'Epochs': 'model__Epochs', 'Sample': 'model__Sample', 'Softmax':
-                                                            'model__Softmax'})
+                                                     'Window': 'model__Window', 'Min_count': 'model__Min_count',
+                                                     'Epochs': 'model__Epochs', 'Sample': 'model__Sample', 'Softmax':
+                                                         'model__Softmax'})
         dataset_x_unique = dataset_x_unique.apply(lambda x: x.unique())
         print("dataset_x_unique:")
         print(dataset_x_unique.head(10).to_string())
 
         print("Available params:")
         print(model.get_params().keys())
-
 
         dataset_x_unique_dict = dataset_x_unique.to_dict()
 
@@ -50,14 +48,13 @@ class RandomForestRegression:
         # Number of features to consider at every split
         max_features = ['auto', 'sqrt']
         # Maximum number of levels in tree
-        max_depth = [10, 50, 110]
-        max_depth.append(None)
+        max_depth = [10, 50, 110, None]
         # Minimum number of samples required to split a node
         min_samples_split = [2, 5, 10]
         # Minimum number of samples required at each leaf node
         min_samples_leaf = [1, 2, 4]
         # Method of selecting samples for training each tree
-        bootstrap = [True, False]# Create the random_order grid
+        bootstrap = [True, False]  # Create the random_order grid
         random_grid = {'n_estimators': n_estimators,
                        'max_features': max_features,
                        'max_depth': max_depth,
@@ -68,9 +65,20 @@ class RandomForestRegression:
         CV_rfc = GridSearchCV(estimator=model, param_grid=random_grid, refit=True, verbose=3, n_jobs=-1)
         CV_rfc.fit(X_train, y_train)
 
-
         print("Best parameters according for Random Forrest Classifier:")
         print(CV_rfc.best_params_)
+
+
+def select_features(X_train, y_train, X_test):
+    # configure to select all features
+    fs = SelectKBest(score_func=f_classif, k='all')
+    # learn relationship from training data
+    fs.fit(X_train, y_train)
+    # transform train_enabled input data
+    X_train_fs = fs.transform(X_train)
+    # transform tests input data
+    X_test_fs = fs.transform(X_test)
+    return X_train_fs, X_test_fs, fs
 
 
 class Anova:
@@ -106,16 +114,6 @@ class Anova:
         return X, y
 
     # feature selection
-    def select_features(self, X_train, y_train, X_test):
-        # configure to select all features
-        fs = SelectKBest(score_func=f_classif, k='all')
-        # learn relationship from training data
-        fs.fit(X_train, y_train)
-        # transform train_enabled input data
-        X_train_fs = fs.transform(X_train)
-        # transform tests input data
-        X_test_fs = fs.transform(X_test)
-        return X_train_fs, X_test_fs, fs
 
     def run(self, run_on, col):
         # load the dataset
@@ -123,7 +121,7 @@ class Anova:
         # split into train_enabled and tests sets
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=1)
         # feature selection
-        X_train_fs, X_test_fs, fs = self.select_features(X_train, y_train, X_test)
+        X_train_fs, X_test_fs, fs = select_features(X_train, y_train, X_test)
         # what are scores for the features
         X_column_names = X.columns.values
         for i in range(len(fs.scores_)):
@@ -135,19 +133,11 @@ class Anova:
 
 
 def run_random_forrest_regressor():
-
     random_forrest_regressor = RandomForestRegression()
     random_forrest_regressor.run()
 
 
-def run_anova():
-    anova = Anova()
-    anova.run('Word_pairs_test_Spearman_coeff')
-    anova.run('Word_pairs_test_Pearson_coeff')
-
-
 def plot_anova():
-
     list_of_y_features = ['Analogies_test', 'Word_pairs_test_Out-of-vocab_ratio',
                           'Word_pairs_test_Spearman_coeff', 'Word_pairs_test_Pearson_coeff']
 

@@ -9,7 +9,7 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
 for handler in logging.root.handlers[:]:
-   logging.root.removeHandler(handler)
+    logging.root.removeHandler(handler)
 
 # NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
@@ -76,4 +76,5 @@ def main():
         time.sleep(1)
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()

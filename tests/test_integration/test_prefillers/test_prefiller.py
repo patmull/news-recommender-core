@@ -19,7 +19,7 @@ def test_start_preprocessed_body_prefilling():
     # Because of the 2 random on call on different posts
     assert len(not_preprocessed_posts_after_nulling) > 0
 
-    prefiller_additional.start_preprocessed_columns_prefilling("Test full text", random_post_id)
+    start_preprocessed_columns_prefilling("Test full text", random_post_id)
 
     not_preprocessed_posts_after = recommender_methods.get_posts_with_no_features_preprocessed('body_preprocessed')
 

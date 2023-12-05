@@ -25,12 +25,9 @@ def calculate_similarity(source_doc, target_docs=None, threshold=0.2):
         target_docs = [target_docs]
 
     vectorizer = HashingVectorizer(n_features=20)
-    # print("source_vec")
     source_vec = vectorizer.transform([source_doc])
-    # print(source_vec)
     results = []
-    # print("for doc")
-    print("Searching for similar articles...")
+    # Searching for similar articles...
     for doc in target_docs:
         doc_without_slug = doc.split(";", 1)  # removing searched_slug
         target_vec = vectorizer.transform([doc_without_slug[0]])
@@ -42,13 +39,9 @@ def calculate_similarity(source_doc, target_docs=None, threshold=0.2):
 def sort_results(sim_score, threshold, doc, results):
     if sim_score > threshold:
         slug = re.sub(r'^.*?;', ';', doc)  # keeping only searched_slug of the document
-        # print("searched_slug.replace")
         slug = slug.replace('; ', '')
-        # print("results.append")
         results.append({"slug": slug, "coefficient": sim_score})
     # Sort results by score in desc order
-    # print("results.sort")
-
     return results.sort(key=lambda k: k["coefficient"], reverse=True)
 
 
@@ -62,15 +55,11 @@ def _cosine_sim(vecA, vecB):
 
 
 def create_docsim_index(source_doc, docsim_index, dictionary):
-    print(source_doc)
     source_doc = source_doc.replace(",", "")
     source_doc = source_doc.replace("||", " ")
 
     source_text = source_doc.split()
     sims = docsim_index[dictionary.doc2bow(source_text)]
-
-    print("sims:")
-    print(sims)
 
     return sims
 
@@ -102,28 +91,6 @@ class DocSim:
         self.w2v_model = w2v_model
         self.stopwords = stopwords if stopwords is not None else []
 
-    def calculate_similarity_wiki_model(self, source_doc, target_docs=None, threshold=0.2):
-        """Calculates & returns similarity scores between given source document & all
-        the target documents."""
-        if not target_docs:
-            return []
-        if isinstance(target_docs, str):
-            target_docs = [target_docs]
-
-        # print("source_vec")
-        source_vec = self.vectorize(source_doc)
-        # print(source_vec)
-        results = []
-        # print("for doc")
-        print("Searching for similar articles...")
-        for doc in target_docs:
-            doc_without_slug = doc.split(";", 1)  # removing searched_slug
-            target_vec = self.vectorize(doc_without_slug[0])
-            sim_score = _cosine_sim(source_vec, target_vec)
-            results = sort_results(sim_score=sim_score, results=results, doc=doc, threshold=threshold)
-
-        return results
-
     def calculate_similarity_wiki_model_gensim(self, source_doc, target_docs=None):
         """Calculates & returns similarity scores between given source document & all
         the target documents."""
@@ -134,7 +101,7 @@ class DocSim:
         similarity_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary)  # construct similarity matrix
 
         docsim_index = SoftCosineSimilarity(bow_corpus, similarity_matrix, num_best=21)
-        print("source_doc:")
+        # source_doc:
         # noinspection PyTypeChecker
         sims = create_docsim_index(source_doc=source_doc, docsim_index=docsim_index, dictionary=dictionary)
 
@@ -146,8 +113,6 @@ class DocSim:
             sim_score = sim_tuple[1]
             results.append({"slug": slug, "coefficient": sim_score})
 
-        print("results:")
-        print(results)
         return results
 
     def load_docsim_index(self, source, model_name, force_update=True):
@@ -203,15 +168,15 @@ class DocSim:
             docsim_index_path = "full_models/idnes/docsim_index_idnes"
         elif source == "cswiki":
             if supplied_dictionary is None:
-                print("Dictionary not supplied. Must load. If this is repeated routine, try to supply dictionary"
-                      "to speed up the program.")
+                # Dictionary not supplied. Must load. If this is repeated routine,
+                # try to supply dictionary to speed up the program.
                 dictionary = gensim.corpora.Dictionary.load('precalc_vectors/word2vec/dictionary_cswiki.gensim')
             else:
                 dictionary = supplied_dictionary
             docsim_index_path = "full_models/cswiki/docsim_index_cswiki"
         else:
             raise ValueError("Bad source name selected")
-        print("Updating DocSim index...")
+        # Updating DocSim index...
         tfidf = TfidfModel(dictionary=dictionary)
         words = [word for word, count in dictionary.most_common()]
 
@@ -236,31 +201,8 @@ class DocSim:
                 [dictionary.doc2bow(document) for document in common_texts]]  # for docsim_index creation
         # index tfidf_corpus
         docsim_index = SoftCosineSimilarity(tfidf_corpus, similarity_matrix, num_best=21)
-        print("DocSim index saved.")
+        # DocSim index saved.
         docsim_index.save(docsim_index_path)
         return docsim_index
 
-    def vectorize(self, doc: str) -> np.ndarray:
-        """
-        Identify the vector values for each word in the given document
-        :param doc:
-        :return:
-        """
-        doc = doc.lower()
-        words = [w for w in doc.split(" ") if w not in self.stopwords]
-        word_vecs = []
-        # TODO: Save computed vectors for later use
-        for word in words:
-            try:
-                vec = self.w2v_model[word]
-                word_vecs.append(vec)
-            except KeyError:
-                # Ignore, if the word doesn'multi_dimensional_list exist in the vocabulary
-                pass
-
-        # Assuming that document vector is the mean of all the word vectors
-        # PS: There are other & better ways to do it.
-        # TODO: Change to better model_variant. This looks bad
-        # https://radimrehurek.com/gensim/similarities/docsim.html#gensim.similarities.docsim.SoftCosineSimilarity
-        vector = np.mean(word_vecs, axis=0)
-        return vector
+# *** HERE was also a simple vectorize() method with averaging the vector value

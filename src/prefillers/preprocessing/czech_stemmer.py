@@ -1,4 +1,3 @@
-#! /usr/bin/env python3.1
 """
 Czech stemmer
 Copyright © 2010 Luís Gomes <luismsgomes@gmail.com>.

@@ -49,6 +49,7 @@ def do_work_scraped(connection, channel, delivery_tag, body):
     cb = functools.partial(ack_message, channel, delivery_tag)
     connection.add_callback_threadsafe(cb)
 
+
 def on_message(channel, method_frame, header_frame, body, args):
     logging.info("[x] Received %r" % body.decode())
     logging.info("Properties:")

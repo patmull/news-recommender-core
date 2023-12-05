@@ -163,7 +163,8 @@ def fill_bert_vector_representation(skip_already_filled=True, reversed_order=Fal
                     else:
                         raise ValueError("Post has not full text or even title text. Probably defected post."
                                          "Remove from DB.")
-                    bert_vector_representation_of_current_post = pickle.dumps(bert_vector_representation_of_current_post)
+                    bert_vector_representation_of_current_post = (pickle
+                                                                  .dumps(bert_vector_representation_of_current_post))
                     database.connect()
                     database.insert_bert_vector_representation(
                         bert_vector_representation=bert_vector_representation_of_current_post,

@@ -30,7 +30,7 @@ def init_rabbitmq():
         port=port,
         credentials=credentials,
         virtual_host=rabbitmq_vhost,
-        heartbeat=600 # This was initially set to 600
+        heartbeat=600  # This was initially set to 600
         # ** Here was the blocked connection timeout. Removed due to possible cause of the channel close problem.
     )
 

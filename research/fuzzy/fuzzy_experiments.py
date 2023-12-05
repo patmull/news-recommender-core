@@ -15,7 +15,7 @@ def weighted_rules_takagi_sugeno():
     S_3 = sf.FuzzySet(points=[[5., 0.],  [10., 1.]], term="excellent")
     FS.add_linguistic_variable("Service", sf.LinguisticVariable([S_1, S_2, S_3], concept="Service quality"))
 
-    LV = sf.AutoTriangle(2, terms=["rancid", "delicious"], universe_of_discourse=[0,10], verbose=False)
+    LV = sf.AutoTriangle(2, terms=["rancid", "delicious"], universe_of_discourse=[0, 10], verbose=False)
     FS.add_linguistic_variable("Food", LV)
 
     # Define output crisp values
@@ -127,6 +127,7 @@ def example_fuzzy_sets():
 
     # Function-based fuzzy set
     import numpy as np
+
     def fun1(x):
         return 0.5 * np.cos(0.314 * x) + 0.5
 

@@ -30,7 +30,12 @@ spearman_corr = tuning_results_df_filtered.corr(method=spearmanr_pval)
 print(spearman_corr.to_string())
 spearman_corr = tuning_results_df_filtered.corr(method='spearman')
 
-spearman_corr = spearman_corr.rename(columns={'Word_pairs_test_Pearson_coeff': 'Pair_t_Pearson', 'Word_pairs_test_Pearson_p-val': 'Pair_p', 'Word_pairs_test_Spearman_coeff': 'Pair_Spearman', 'Word_pairs_test_Spearman_p-val': 'Pair_t_Spearman', 'Word_pairs_test_Out-of-vocab_ratio': 'Out_of_vocab'})
+spearman_corr = (spearman_corr
+                 .rename(columns={'Word_pairs_test_Pearson_coeff': 'Pair_t_Pearson',
+                                  'Word_pairs_test_Pearson_p-val': 'Pair_p',
+                                  'Word_pairs_test_Spearman_coeff': 'Pair_Spearman',
+                                  'Word_pairs_test_Spearman_p-val': 'Pair_t_Spearman',
+                                  'Word_pairs_test_Out-of-vocab_ratio': 'Out_of_vocab'}))
 
 # Correlated variables:
 # Min_count: Word_pairs_test_Out-of-vocab_ratio (this makes sense since it controls the dropout of words)

@@ -21,8 +21,7 @@ logging.debug("Testing logging in prefilling_all.")
 
 
 def prefill_all_features_preprocessed():
-    prefiller_additional.fill_all_features_preprocessed(skip_already_filled=True,
-                                                        random_order=False)
+    prefiller_additional.fill_all_features_preprocessed(skip_already_filled=True, random_order=False)
 
 
 def prefill_keywords():
@@ -86,7 +85,7 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
         if 'trigrams_full_text' in columns_needing_prefill:
             prefill_ngrams()
 
-    # Preparign for CB prefilling
+    # Preparing for CB prefilling
     recommender_methods = RecommenderMethods()
     recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
 
@@ -98,7 +97,7 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
 
     full_text = False
     if methods_short_text is None:
-        methods = ["tfidf", "doc2vec"] # Supported short text methods
+        methods = ["tfidf", "doc2vec"]  # Supported short text methods
     else:
         methods = methods_short_text
 
@@ -115,12 +114,6 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
         prepare_and_run(database, method, full_text, reverse, random)
 
     recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
-
-    # prefill_bert_vector_representation()
-    recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
-
-    # Takes too long. Abandoned for now.
-    # prefill_tfidf_similarity_matrix()
 
     prefill_user_based()
     recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
@@ -150,7 +143,6 @@ def prepare_and_run(database, method, full_text, reverse, random):
 
 
 def check_needed_columns():
-    # TODO: Check needed columns
     """
     # 'all_features_preprocessed' (probably every method relies on this)
     # 'keywords' (LDA but probably also other methods relies on this)

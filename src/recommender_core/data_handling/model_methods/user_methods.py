@@ -45,9 +45,9 @@ class UserMethods(RecommenderMethods):
         self.database.disconnect()
         return df_posts, df_users, df_ratings
 
-    def get_user_read_history(self, user_id, N=3):
+    def get_user_read_history(self, user_id, n=3):
         self.database.connect()
         user_history = self.database.get_user_history(user_id)
         self.database.disconnect()
 
-        return user_history.head(N)
+        return user_history.head(n)
