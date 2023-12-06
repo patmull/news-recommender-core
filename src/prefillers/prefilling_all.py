@@ -3,9 +3,8 @@ import traceback
 
 from research.user_based.user_relevance_eval import user_relevance_asessment
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
-from src.prefillers.user_based_prefillers.prefilling_user_classifier import fill_bert_vector_representation, \
-    predict_ratings_for_all_users_store_to_redis
 from src.prefillers.prefiller import prefilling_job_content_based
+from src.prefillers.user_based_prefillers.prefilling_user_classifier import predict_ratings_for_all_users_store_to_redis
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.prefillers.prefilling_additional import PreFillerAdditional
@@ -41,46 +40,7 @@ def prefill_tfidf_similarity_matrix():
     precalculate_and_save_sim_matrix_for_all_posts(methods=['tfidf'])
 
 
-def prefill_user_based():
-    run_prefilling_collaborative()
-
-
-def prefill_to_redis_based_on_user_ratings():
-    predict_ratings_for_all_users_store_to_redis()
-
-
-def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_full_text=None):
-    """
-    Init method of the general prefilling round for the crucial files that needs to be updated before prefilling starts
-    after scrapping the new posts from news site.
-    @param skip_cache_refresh: nomen omen
-    @param methods_short_text: list of methods to use for the short text recommendations. If None,
-    "tfidf" and "doc2vec" is used.
-    @param methods_full_text: list of methods to use for the short text recommendations. If None,
-    "tfidf", "word2vec_eval_idnes_3" and "lda" is used.
-    @return:
-    """
-    if skip_cache_refresh is False:
-        # Cache update
-        logging.debug("Refreshing post cache. Inserting recommender posts to cache...")
-        recommender_methods = RecommenderMethods()
-        recommender_methods.database.insert_posts_dataframe_to_cache()
-
-    logging.debug("Check needed columns posts...")
-
-    database = DatabaseMethods()
-    columns_needing_prefill = check_needed_columns()
-
-    if len(columns_needing_prefill) > 0:
-        if 'all_features_preprocessed' in columns_needing_prefill:
-            prefill_all_features_preprocessed()
-        if 'keywords' in columns_needing_prefill:
-            prefill_keywords()
-        if 'body_preprocessed' in columns_needing_prefill:
-            prefill_body_preprocessed()
-        if 'trigrams_full_text' in columns_needing_prefill:
-            prefill_ngrams()
-
+def prefill_content_based(methods_short_text, methods_full_text, database):
     # Preparing for CB prefilling
     recommender_methods = RecommenderMethods()
     recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
@@ -111,12 +71,45 @@ def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_fu
 
     recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
 
+
+def prefill_user_based():
+    run_prefilling_collaborative()
+
+
+def prefill_to_redis_based_on_user_ratings():
+    predict_ratings_for_all_users_store_to_redis()
+
+
+def prefill_columns(columns_needing_prefill):
+    if 'all_features_preprocessed' in columns_needing_prefill:
+        prefill_all_features_preprocessed()
+    if 'keywords' in columns_needing_prefill:
+        prefill_keywords()
+    if 'body_preprocessed' in columns_needing_prefill:
+        prefill_body_preprocessed()
+    if 'trigrams_full_text' in columns_needing_prefill:
+        prefill_ngrams()
+
+
+def cache_update():
+    # Cache update
+    logging.debug("Refreshing post cache. Inserting recommender posts to cache...")
+    recommender_methods = RecommenderMethods()
+    recommender_methods.database.insert_posts_dataframe_to_cache()
+
+
+def run_prefilling(skip_cache_refresh=False, methods_short_text=None, methods_full_text=None):
+    if skip_cache_refresh is False:
+        cache_update()
+
+    logging.debug("Check needed columns posts...")
+
+    database = DatabaseMethods()
+    columns_needing_prefill = check_needed_columns()
+    prefill_columns(columns_needing_prefill)
+    prefill_content_based(database, methods_short_text, methods_full_text)
     prefill_user_based()
-    recommender_methods.database.insert_posts_dataframe_to_cache(recommender_methods.cached_file_path)
-
     prefill_to_redis_based_on_user_ratings()
-
-    # Refresh user voted relevance for admin statistics
     user_relevance_asessment(save_to_redis=True)
 
 
@@ -131,7 +124,7 @@ def prepare_and_run(database, method, full_text, reverse, random):
             prefilling_job_content_based(method=method, full_text=full_text, reversed_order=reverse,
                                          random_order=random)
         except Exception as e:
-            print("Exception occurred " + str(e))
+            logging.error("Exception occurred " + str(e))
             traceback.print_exception(None, e, e.__traceback__)
     else:
         logging.info("No not prefilled posts found")

@@ -30,5 +30,3 @@ def convert_dataframe_posts_to_json(post_recommendations, slug, cosine_sim_df):
     posts_recommendations_dictionary = post_recommendations.to_dict('records')
     list_of_article_slugs.append(posts_recommendations_dictionary.copy())
     return list_of_article_slugs[0]
-
-

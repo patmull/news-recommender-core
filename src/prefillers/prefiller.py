@@ -12,7 +12,6 @@ from gensim.models import KeyedVectors
 from src.constants.file_paths import W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES
 from src.custom_exceptions.exceptions import TestRunException
 from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
-from src.recommender_core.data_handling.model_methods import user_methods
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
@@ -46,35 +45,36 @@ DB_INSERTION_ERROR = "Error in DB insert. Skipping."
 
 
 def return_recommended(method, current_user_id):
-    actual_json_fuzzy = None
+    global _actual_json
+    _actual_json_fuzzy = None
     user_methods = UserMethods()
     if method == "svd":
         svd = SvdClass()
-        actual_json = svd.run_svd(user_id=current_user_id, num_of_recommendations=20)
+        _actual_json = svd.run_svd(user_id=current_user_id, num_of_recommendations=20)
     elif method == "user_keywords":
         tfidf = TfIdf()
         input_keywords = ' '.join(user_methods.get_user_keywords(current_user_id)["keyword_name"])
-        actual_json = tfidf.keyword_based_comparison(input_keywords)
+        _actual_json = tfidf.keyword_based_comparison(input_keywords)
     elif method == "best_rated_by_others_in_user_categories":
         user_based_methods = UserBasedMethods()
-        actual_json = user_based_methods.load_best_rated_by_others_in_user_categories(current_user_id)
+        _actual_json = user_based_methods.load_best_rated_by_others_in_user_categories(current_user_id)
     elif method == "hybrid":
-        actual_json, actual_json_fuzzy = get_most_similar_by_hybrid(user_id=current_user_id,
-                                                                    load_from_precalc_sim_matrix=False,
-                                                                    use_fuzzy=True)
+        _actual_json, _actual_json_fuzzy = get_most_similar_by_hybrid(user_id=current_user_id,
+                                                                      load_from_precalc_sim_matrix=False,
+                                                                      use_fuzzy=True)
 
     if method != "hybrid":
-        actual_json = json.dumps(actual_json)
+        _actual_json = json.dumps(_actual_json)
     else:
         raise ValueError("Method not implemented.")
 
-    return actual_json, actual_json_fuzzy
+    return _actual_json, _actual_json_fuzzy
 
 
 def insert_recommended_json_colab(method, current_user_id, actual_json=None, actual_json_fuzzy=None):
     user_methods = UserMethods()
     if actual_json is None and actual_json_fuzzy is None:
-        raise ValueError("actual_json and actual_json_fuzzy cannot be None at the same time.")
+        raise ValueError("_actual_json and actual_json_fuzzy cannot be None at the same time.")
 
     try:
         user_methods.insert_recommended_json_user_based(recommended_json=actual_json,
@@ -112,7 +112,7 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 
     _user_methods = UserMethods()
     column_name = "recommended_by_" + method
-    users = user_methods.get_all_users(
+    users = _user_methods.get_all_users(
         only_with_id_and_column_named=column_name) if user_id is None else _user_methods.get_user_dataframe(user_id)
 
     for user in users.to_dict("records"):
@@ -143,8 +143,6 @@ def get_tfidf_full_text_fit():
     df = recommender_methods.get_posts_categories_dataframe(from_cache=False)
 
     tf_idf_data_handlers = TfIdfDataHandlers(df)
-    fit_by_all_features_matrix = tf_idf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
-    fit_by_title = tf_idf_data_handlers.get_fit_by_feature_('category_title')
     fit_by_full_text = tf_idf_data_handlers.get_fit_by_feature_('body_preprocessed')
 
     return fit_by_full_text
@@ -310,13 +308,7 @@ def handle_word2vec_variants(method, slug, w2v_model, docsim_index, dictionary):
                                                                 model_name='idnes_4',
                                                                 docsim_index=docsim_index,
                                                                 dictionary=dictionary)
-    elif method == "word2vec_fasttext":
-        actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
-                                                                model=w2v_model,
-                                                                model_name=method,
-                                                                docsim_index=docsim_index,
-                                                                dictionary=dictionary)
-    elif method == "word2vec_fasttext_full_text":
+    elif method == "word2vec_fasttext" or method == "word2vec_fasttext_full_text":
         actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
                                                                 model=w2v_model,
                                                                 model_name=method,
@@ -386,9 +378,9 @@ def insert_recommendation(post_id, full_text, method, actual_recommended_json):
             logging.error(DB_INSERTION_ERROR)
             logging.warning(e)
 
+
 def iterate_posts(posts, method, full_text, skip_already_filled=True,
-                  tf_idf_data_handlers=None, fit_by_all_features_matrix=None,
-                  fit_by_title=None, docsim_index=None, dictionary=None, w2v_model=None):
+                  docsim_index=None, dictionary=None, w2v_model=None):
     for post in posts:
         if len(posts) < 1:
             break
@@ -418,13 +410,13 @@ def iterate_posts(posts, method, full_text, skip_already_filled=True,
                                                                       )
             else:
                 actual_recommended_json = load_current_recommended_full_text(method,
-                                                                              slug,
-                                                                              docsim_index,
-                                                                              dictionary,
-                                                                              w2v_model
-                                                                              )
+                                                                             slug,
+                                                                             docsim_index,
+                                                                             dictionary,
+                                                                             w2v_model
+                                                                             )
 
-                insert_recommendation(post_id, full_text, method, actual_recommended_json)
+            insert_recommendation(post_id, full_text, method, actual_recommended_json)
 
 
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
@@ -483,8 +475,7 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
                          "value.")
 
     iterate_posts(posts, method, full_text, skip_already_filled,
-              tf_idf_data_handlers, fit_by_all_features_matrix, fit_by_title,
-              docsim_index, dictionary, w2v_model)
+                  docsim_index, dictionary, w2v_model)
 
 
 def prefilling_job_content_based(method: str, full_text: bool, random_order=False, reversed_order=True,
@@ -534,11 +525,11 @@ class UserBased:
                     fill_recommended_collab_based(method=method, skip_already_filled=skip_already_filled,
                                                   user_id=user_id, test_run=test_run)
                 except psycopg2.OperationalError:
-                    print("DB operational error. Waiting few seconds before trying again...")
+                    logging.error("DB operational error. Waiting few seconds before trying again...")
                     t.sleep(30)  # wait 30 seconds then try again
                     continue
-                except TestRunException as e:
-                    raise e
+                except TestRunException:
+                    raise TestRunException("This was a test run.")
                 break
             else:
                 raise NotImplementedError("Other DB source than PostgreSQL not implemented yet.")

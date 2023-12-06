@@ -170,7 +170,7 @@ def insert_testing_json(received_user_id, method, heroku_testing_db=False):
             [9999999, "test2", 1.0],
         ])
     actual_json = json.dumps(test_dict)
-    logging.debug("actual_json:")
+    logging.debug("_actual_json:")
     logging.debug(str(actual_json))
     logging.debug(type(actual_json))
 

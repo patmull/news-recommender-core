@@ -31,7 +31,7 @@ from src.recommender_core.data_handling.evaluation.evaluation_results import get
     append_training_results
 from src.recommender_core.data_handling.hyperparam_tuning import random_hyperparameter_choice, \
     prepare_hyperparameters_grid
-from src.recommender_core.data_handling.reader import MongoReader, get_preprocessed_dict_idnes
+from src.recommender_core.data_handling.reader import get_preprocessed_dict_idnes
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
     calculate_similarity_idnes_model_gensim
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder
@@ -467,24 +467,26 @@ class Word2VecClass:
                     raise ValueError("Bad ource specified")
                 model_results['Validation_Set'].append(set_title + " " + corpus_title[0])
 
-                append_training_results(source=source,
-                                        corpus_title=corpus_title[0],
-                                        model_variant=model_variant,
-                                        negative_sampling_variant=negative_sampling_variant,
-                                        vector_size=vector_size,
-                                        window=window,
-                                        min_count=min_count,
-                                        epochs=epochs, sample=sample,
-                                        hs_softmax=hs_softmax,
-                                        pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
-                                        pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
-                                        spearman_p_val_word_pairs_eval=word_pairs_eval[1][
-                                            1],
-                                        spearman_coeff_word_pairs_eval=word_pairs_eval[1][
-                                            0],
-                                        out_of_vocab_ratio=word_pairs_eval[2],
-                                        analogies_eval=analogies_eval,
-                                        model_results=model_results)
+                training_results_params = {
+                    'source': source,
+                    'corpus_title': corpus_title[0],
+                    'model_variant': model_variant,
+                    'negative_sampling_variant': negative_sampling_variant,
+                    'vector_size': vector_size,
+                    'window': window,
+                    'min_count': min_count,
+                    'epochs': epochs,
+                    'sample': sample,
+                    'hs_softmax': hs_softmax,
+                    'pearson_coeff_word_pairs_eval': word_pairs_eval[0][0],
+                    'pearson_p_val_word_pairs_eval': word_pairs_eval[0][1],
+                    'spearman_p_val_word_pairs_eval': word_pairs_eval[1][1],
+                    'spearman_coeff_word_pairs_eval': word_pairs_eval[1][0],
+                    'out_of_vocab_ratio': word_pairs_eval[2],
+                    'analogies_eval': analogies_eval,
+                }
+
+                append_training_results(model_results, **training_results_params)
 
                 pbar.update(1)
                 if source == "idnes":
@@ -492,7 +494,7 @@ class Word2VecClass:
                 elif source == "cswiki":
                     csv_file_name = 'word2vec_tuning_results_idnes.csv'
                 else:
-                    ValueError("Bad source specified")
+                    raise ValueError("Bad source specified")
                 # noinspection PyTypeChecker
                 pd.DataFrame(model_results).to_csv(csv_file_name, index=False,
                                                    mode="w")
@@ -531,21 +533,27 @@ class Word2VecClass:
                                                                           force_update_model=True)
 
                 model_results['Validation_Set'].append("cs.wikipedia.org " + corpus_title[0])
+
+                training_results_params = {
+                    'source': source,
+                    'corpus_title': corpus_title[0],
+                    'model_variant': model_variant,
+                    'negative_sampling_variant': negative_sampling_variant,
+                    'vector_size': vector_size,
+                    'window': window,
+                    'min_count': min_count,
+                    'epochs': epochs,
+                    'sample': sample,
+                    'hs_softmax': hs_softmax,
+                    'pearson_coeff_word_pairs_eval': word_pairs_eval[0][0],
+                    'pearson_p_val_word_pairs_eval': word_pairs_eval[0][1],
+                    'spearman_p_val_word_pairs_eval': word_pairs_eval[1][1],
+                    'spearman_coeff_word_pairs_eval': word_pairs_eval[1][0],
+                    'out_of_vocab_ratio': word_pairs_eval[2],
+                    'analogies_eval': analogies_eval,
+                }
                 # noinspection DuplicatedCode
-                append_training_results(source=source, corpus_title=corpus_title[0],
-                                        model_variant=model_variant,
-                                        negative_sampling_variant=negative_sampling_variant,
-                                        vector_size=vector_size,
-                                        window=window, min_count=min_count, epochs=epochs,
-                                        sample=sample,
-                                        hs_softmax=hs_softmax,
-                                        pearson_coeff_word_pairs_eval=word_pairs_eval[0][0],
-                                        pearson_p_val_word_pairs_eval=word_pairs_eval[0][1],
-                                        spearman_p_val_word_pairs_eval=word_pairs_eval[1][1],
-                                        spearman_coeff_word_pairs_eval=word_pairs_eval[1][0],
-                                        out_of_vocab_ratio=word_pairs_eval[2],
-                                        analogies_eval=analogies_eval,
-                                        model_results=model_results)
+                append_training_results(model_results, training_results_params)
                 pbar.update(1)
                 if source == "idnes":
                     # noinspection PyTypeChecker

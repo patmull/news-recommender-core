@@ -1,7 +1,7 @@
 import gensim
 import pandas as pd
 
-from src.recommender_core.recommender_algorithms.content_based_algorithms.gensim_methods import preprocess
+from src.prefillers.preprocessing.czech_preprocessing import preprocess
 
 
 def save_wordsim(path_to_cropped_wordsim_file):

@@ -8,11 +8,13 @@ import gensim
 from src.prefillers.preprocessing.bigrams_phrases import PhrasesCreator
 from src.prefillers.preprocessing.czech_preprocessing import preprocess
 from src.prefillers.preprocessing.keyword_extraction import SingleDocKeywordExtractor
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
+    
+SKIP_RECORD_MESSAGE = "Skipping."
+PREFILLING_PREPROCESSING_MESSAGE = "Prefilling body preprocessed in article: "
 
 # NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
@@ -49,14 +51,11 @@ def get_post_columns(post):
     @param post: string of the slug to use
     @return: post_id, slug, article_title, article_excerpt, article_full_text, current_body_preprocess
     """
-    post_id = post[0]
-    slug = post[3]
-    article_title = post[2]
-    article_excerpt = post[4]
-    article_full_text = post[20]
-    current_body_preprocessed = post[21]
+    post_id = post['post-id']
+    slug = post['slug']
+    article_full_text = post['full_text']
 
-    return post_id, slug, article_title, article_excerpt, article_full_text, current_body_preprocessed
+    return post_id, slug, article_full_text
 
 
 def extract_keywords(string_for_extraction):
@@ -72,8 +71,9 @@ def extract_keywords(string_for_extraction):
     single_doc_keyword_extractor = SingleDocKeywordExtractor()
     single_doc_keyword_extractor.set_text(string_for_extraction)
     single_doc_keyword_extractor.clean_text()
-    return single_doc_keyword_extractor.get_keywords_combine_all_methods(string_for_extraction=single_doc_keyword_extractor
-                                                                      .text_raw)
+    return single_doc_keyword_extractor.get_keywords_combine_all_methods(
+        string_for_extraction=single_doc_keyword_extractor
+        .text_raw)
 
 
 def prepare_filling(skip_already_filled, random_order, method):
@@ -109,17 +109,9 @@ def start_preprocessed_columns_prefilling(article_full_text, post_id):
     """
 
     preprocessed_text = preprocess(article_full_text)
-    logging.debug("article_full_text")
-    logging.debug(article_full_text)
-    logging.debug("preprocessed_text:")
-    logging.debug(preprocessed_text)
 
     recommender_methods = RecommenderMethods()
     recommender_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text, article_id=post_id)
-    number_of_inserted_rows = 0
-
-    number_of_inserted_rows += 1
-
 
 class PreFillerAdditional:
 
@@ -127,7 +119,6 @@ class PreFillerAdditional:
     @PendingDeprecationWarning
     def fill_preprocessed(self, skip_already_filled, random_order):
         recommender_methods = RecommenderMethods()
-        database_methods = DatabaseMethods()
 
         if skip_already_filled is False:
             posts_categories = recommender_methods.get_posts_with_not_prefilled_ngrams_text()
@@ -146,21 +137,15 @@ class PreFillerAdditional:
             article_body_preprocessed = post[21]
             # NOTICE: Here can be also other methods.
 
-            logging.debug("Prefilling body preprocessd in article: " + slug)
+            logging.debug(PREFILLING_PREPROCESSING_MESSAGE + slug)
 
             if skip_already_filled is True:
                 if article_body_preprocessed is None or article_all_features_preprocessed is None:
                     preprocessed_text = preprocess(article_full_text)
-                    logging.debug("article_full_text:")
-                    logging.debug(article_full_text)
-                    logging.debug("preprocessed_text:")
-                    logging.debug(preprocessed_text)
-
-                    recommender_methods = RecommenderMethods()
                     start_preprocessed_columns_prefilling(article_full_text=preprocessed_text,
-                                                               post_id=post_id)
+                                                          post_id=post_id)
                 else:
-                    logging.debug("Skipping.")
+                    logging.debug(SKIP_RECORD_MESSAGE)
             else:
                 start_preprocessed_columns_prefilling(article_full_text, post_id)
 
@@ -171,27 +156,24 @@ class PreFillerAdditional:
                 break
 
             # noinspection PyPep8
-            post_id, slug, article_title, article_excerpt, article_full_text, current_body_preprocessed \
-                = get_post_columns(post)
+            (post_id, slug, article_title, article_excerpt,
+             article_full_text, current_body_preprocessed) = get_post_columns(post)
 
-            logging.debug("Prefilling body preprocessed in article: " + slug)
+            logging.debug(PREFILLING_PREPROCESSING_MESSAGE + slug)
 
             if skip_already_filled is True:
                 if current_body_preprocessed is None:
                     preprocessed_text = preprocess(article_full_text)
-                    logging.debug("article_full_text:")
-                    logging.debug(article_full_text)
-                    logging.debug("preprocessed_text:")
-                    logging.debug(preprocessed_text)
 
                     recommender_methods = RecommenderMethods()
                     recommender_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text,
                                                                  article_id=post_id)
 
                 else:
-                    logging.debug("Skipping.")
+                    logging.debug(SKIP_RECORD_MESSAGE)
             else:
                 start_preprocessed_columns_prefilling(article_full_text, post_id)
+
 
     def fill_keywords(self, skip_already_filled, random_order):
         """
@@ -209,10 +191,6 @@ class PreFillerAdditional:
 
         number_of_inserted_rows = 0
 
-        if reversed is True:  # type: ignore
-            logging.debug("Reversing list of posts...")  # type: ignore
-            posts.reverse()
-
         if random_order is True:
             logging.debug("Starting random iteration...")
             time.sleep(5)
@@ -221,14 +199,14 @@ class PreFillerAdditional:
         for post in posts:
             if len(posts) < 1:
                 break
-            post_id = post[0]
-            slug = post[3]
-            article_title = post[2]
-            article_excerpt = post[4]
-            article_full_text = post[20]
+            post_id = post['id']
+            slug = post['slug']
+            article_title = post['title']
+            article_excerpt = post['excerpt']
+            article_full_text = post['full_text']
             features = str(article_title or '') + ' ' + str(article_excerpt or '') + ' ' + str(article_full_text or '')
 
-            logging.debug("Prefilling body preprocessd in article: " + slug)
+            logging.debug(PREFILLING_PREPROCESSING_MESSAGE + slug)
 
             recommender_methods = RecommenderMethods()
             if skip_already_filled is True:
@@ -268,16 +246,14 @@ class PreFillerAdditional:
         for post in posts:
             if len(posts) < 1:
                 break
-            # TODO: Category should be there too
             # noinspection PyPep8
-            post_id, slug, article_title, article_excerpt, article_full_text, current_body_preprocessed\
-                = get_post_columns(post)
-            current_all_features_preprocessed = post[19]
+            post_id, slug, article_full_text = get_post_columns(post)
+            current_all_features_preprocessed = post['all_features_preprocessed']
 
             logging.debug("post:")
             logging.debug(post)
 
-            logging.debug("Prefilling body preprocessd in article: " + slug)
+            logging.debug(PREFILLING_PREPROCESSING_MESSAGE + slug)
 
             recommender_methods = RecommenderMethods()
             if skip_already_filled is True:
@@ -289,7 +265,7 @@ class PreFillerAdditional:
                     logging.debug(preprocessed_text)
                     recommender_methods.insert_all_features_preprocessed_combined(preprocessed_text, post_id)
                 else:
-                    logging.debug("Skipping.")
+                    logging.debug(SKIP_RECORD_MESSAGE)
             else:
                 start_preprocessed_columns_prefilling(article_full_text=article_full_text, post_id=post_id)
 
@@ -314,76 +290,124 @@ class PreFillerAdditional:
             logging.debug("All posts full_text=" + str(full_text) + " prefilled. Skipping.")
             return
 
-        number_of_inserted_rows = 0
-
         if random_order is True:
             logging.debug("Starting random iteration...")
             time.sleep(5)
             random.shuffle(posts)
 
-        phrases_creator = PhrasesCreator()
+        iterate_and_fill_ngrams(posts, full_text)
 
-        for post in posts:
-            if len(posts) < 1:
-                break
-            post_id = post[0]
-            slug = post[3]
-            short_text_preprocessed = post[19]  # == all_features_preprocessed
-            article_full_text = post[20]
-            current_body_preprocessed = post[21]
-            if full_text is False:
-                current_bigrams = post[31]
-            else:
-                current_bigrams = post[32]
-            # TODO: Category should be there too
-            # second part: checking whether current body preprocessed is not none
-            if full_text is True and isinstance(article_full_text, str):
-                if short_text_preprocessed is not None and current_body_preprocessed is not None:
-                    input_text = short_text_preprocessed + " " + current_body_preprocessed
-                else:
-                    # TODO: Almost already fixed this. Just review the logic.
-                    if current_body_preprocessed is None and short_text_preprocessed is not None:
-                        # Using only the short text (= all_features_preprocessed column)
-                        input_text = short_text_preprocessed
-                        logging.warning("body_preprocessed is None. Trigrams are created only from short text."
-                                        "Prefill the body_preprocessed column first to use it for trigrams.")
-                    elif current_body_preprocessed is None and short_text_preprocessed is None:
-                        raise ValueError("Either all_features_preprocessed or "
-                                         "body_preprocessed needs to be filled in,")
 
-            else:
+def load_data_for_ngrams_filling(post, full_text=False):
+    post_id = post['id']
+    slug = post['slug']
+    short_text_preprocessed = post['short_text']
+    article_full_text = post['full_text']
+    current_body_preprocessed = post['body_preprocessed']
+    current_ngrams = post['trigrans'] if full_text else post['bigrams']
+
+    if full_text and isinstance(article_full_text, str):
+        if short_text_preprocessed and current_body_preprocessed:
+            input_text = f"{short_text_preprocessed} {current_body_preprocessed}"
+        else:
+            if not current_body_preprocessed and short_text_preprocessed:
                 input_text = short_text_preprocessed
+                logging.warning("body_preprocessed is None. Trigrams are created only from short text. "
+                                "Prefill the body_preprocessed column first to use it for trigrams.")
+            elif not current_body_preprocessed and not short_text_preprocessed:
+                raise ValueError("Either all_features_preprocessed or body_preprocessed needs to be filled in")
+    else:
+        input_text = short_text_preprocessed
 
-            logging.debug("Prefilling body preprocessd in article: " + slug)
+    if not input_text:
+        raise ValueError("input_text is None. This should not happen.")
 
-            if skip_already_filled is True:
-                if current_bigrams is None:
-                    input_text_split = input_text.split()
-                    preprocessed_text = gensim.utils. \
-                        deaccent(preprocess(phrases_creator.create_trigrams(input_text_split)))
-                    logging.debug("input_text:")
-                    logging.debug(input_text)
-                    logging.debug("preprocessed_text double preprocessed:")
-                    logging.debug(preprocessed_text)
+    loaded_data = {
+        'post_id': post_id,
+        'slug': slug,
+        'input_text': input_text,
+        'current_ngrams': current_ngrams
+    }
 
-                    recommender_methods.insert_phrases_text(bigram_text=preprocessed_text, article_id=post_id,
-                                                            full_text=full_text)
-                else:
-                    logging.debug("Skipping.")
-            else:
+    return loaded_data
+
+
+def load_data_for_ngrams_filling(post, full_text=False):
+    post_id = post['id']
+    slug = post['slug']
+    short_text_preprocessed = post['short_text']  # == all_features_preprocessed
+    article_full_text = post['full_text']
+    current_body_preprocessed = post['body_preprocessed']
+
+    if full_text is False:
+        current_ngrams = post['bigrams']
+    else:
+        current_ngrams = post['trigrams']
+
+    # second part: checking whether current body preprocessed is not none
+    input_text = None
+    if full_text is True and isinstance(article_full_text, str):
+        if short_text_preprocessed is not None and current_body_preprocessed is not None:
+            input_text = short_text_preprocessed + " " + current_body_preprocessed
+        else:
+            if current_body_preprocessed is None and short_text_preprocessed is None:
+                raise ValueError("Either all_features_preprocessed or "
+                                 "body_preprocessed needs to be filled in,")
+            # Using only the short text (= all_features_preprocessed column)
+            input_text = short_text_preprocessed
+            logging.warning("body_preprocessed is None. Trigrams are created only from short text."
+                            "Prefill the body_preprocessed column first to use it for trigrams.")
+    else:
+        input_text = short_text_preprocessed
+
+    if input_text is None:
+        raise ValueError("input_text is None. This should not happen.")
+
+    loaded_data = {
+        'post_id': post_id,
+        'slug': slug,
+        'input_text': input_text,
+        'current_ngrams': current_ngrams
+    }
+
+    return loaded_data
+
+
+def iterate_and_fill_ngrams(posts, full_text=False, skip_already_filled=True, random_order=True):
+    phrases_creator = PhrasesCreator()
+    recommender_methods = RecommenderMethods()
+    prefiller_additonal = PreFillerAdditional()
+    number_of_inserted_rows = 0
+    for post in posts:
+        loaded_post_data = load_data_for_ngrams_filling(post, full_text)
+
+        if len(posts) < 1:
+            break
+
+        logging.debug(PREFILLING_PREPROCESSING_MESSAGE + loaded_post_data['slug'])
+
+        if skip_already_filled is True:
+            if loaded_post_data['current_ngrams'] is None:
                 input_text_split = input_text.split()
-                preprocessed_text = gensim.utils.deaccent(
-                    preprocess(phrases_creator.create_trigrams(input_text_split)))
-                logging.debug("input_text:")
-                logging.debug(input_text)
-                logging.debug("preprocessed_text:")
-                logging.debug(preprocessed_text)
+                preprocessed_text = gensim.utils. \
+                    deaccent(preprocess(phrases_creator.create_trigrams(input_text_split)))
 
-                recommender_methods.insert_phrases_text(bigram_text=preprocessed_text, article_id=post_id,
+                recommender_methods.insert_phrases_text(bigram_text=preprocessed_text,
+                                                        article_id=loaded_post_data['post_id'],
                                                         full_text=full_text)
+            else:
+                logging.debug(SKIP_RECORD_MESSAGE)
+        else:
+            input_text_split = input_text.split()
+            preprocessed_text = gensim.utils.deaccent(
+                preprocess(phrases_creator.create_trigrams(input_text_split)))
 
-                number_of_inserted_rows += 1
-                if number_of_inserted_rows > 300:
-                    logging.debug("Refreshing list of posts for finding only not prefilled posts.")
-                    self.fill_ngrams_for_all_posts(skip_already_filled=skip_already_filled, random_order=random_order,
-                                                   full_text=full_text)
+            recommender_methods.insert_phrases_text(bigram_text=preprocessed_text,
+                                                    article_id=loaded_post_data['post_id'],
+                                                    full_text=full_text)
+
+            number_of_inserted_rows += 1
+            if number_of_inserted_rows > 300:
+                logging.debug("Refreshing list of posts for finding only not prefilled posts.")
+                prefiller_additonal.fill_ngrams_for_all_posts(skip_already_filled=skip_already_filled,
+                                                              random_order=random_order, full_text=full_text)

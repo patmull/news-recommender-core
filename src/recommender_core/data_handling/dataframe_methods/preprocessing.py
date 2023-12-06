@@ -1,5 +1,5 @@
+from src.prefillers.preprocessing.czech_preprocessing import preprocess
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.recommender_algorithms.content_based_algorithms.gensim_methods import preprocess
 
 
 def preprocess_single_post_find_by_slug(slug, supplied_json=False):

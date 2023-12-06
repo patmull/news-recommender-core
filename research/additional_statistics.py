@@ -36,7 +36,7 @@ class RandomForestRegression:
         print("dataset_x_unique:")
         print(dataset_x_unique.head(10).to_string())
 
-        print("Available params:")
+        print("Available stats:")
         print(model.get_params().keys())
 
         dataset_x_unique_dict = dataset_x_unique.to_dict()

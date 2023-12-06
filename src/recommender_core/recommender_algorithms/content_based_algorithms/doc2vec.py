@@ -177,12 +177,12 @@ def prepare_train_test_corpus():
 
 
 def train(tagged_data):
-    # E.g., hardcoded params.
+    # E.g., hardcoded stats.
     max_epochs = 20
     vec_size = 8
     alpha = 0.025
     """
-    E.g., Other possible params:
+    E.g., Other possible stats:
     minimum_alpha = 0.0025
     reduce_alpha = 0.0002
     """
