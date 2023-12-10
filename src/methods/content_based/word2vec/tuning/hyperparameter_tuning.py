@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 
 
 # ***HERE was a RandomForrestRegression. ABANDONED DUE TO: no longer being used
-class Anova():
+class Anova:
 
     def __init__(self, dataset):
         if dataset == "brute-force-word2vec":
@@ -47,7 +47,7 @@ class Anova():
         X_test_fs = fs.transform(X_test)
         return X_train_fs, X_test_fs, fs
 
-    def run(self, run_on, col):
+    def run(self, run_on, _col):
         # load the dataset
         X, y = self.load_dataset(self.filename, run_on, self.semicolon)
         # split into train_enabled and tests sets
@@ -56,12 +56,12 @@ class Anova():
         X_train_fs, X_test_fs, fs = self.select_features(X_train, y_train, X_test)
         # what are scores for the features
         X_column_names = X.columns.values
-        for i in range(len(fs.scores_)):
-            print('Feature %s: %f' % (X_column_names[i], fs.scores_[i]))
+        for j in range(len(fs.scores_)):
+            print('Feature %s: %f' % (X_column_names[j], fs.scores_[j]))
         # plot the scores
-        col.set_title(run_on)
-        col.bar(X_column_names, fs.scores_)
-        col.tick_params(labelrotation=45)
+        _col.set_title(run_on)
+        _col.bar(X_column_names, fs.scores_)
+        _col.tick_params(labelrotation=45)
 
 list_of_y_features = ['Analogies_test',
                       'Word_pairs_test_Out-of-vocab_ratio',

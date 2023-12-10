@@ -132,7 +132,7 @@ class MongoReader(Reader):
             try:
                 self.conn = pymongo.MongoClient(self.mongoURI)[self.dbName][self.collName]
             except Exception as ex:
-                raise ConnectionError("ERROR establishing connection: %s" % ex)
+                raise ConnectionError("ERROR establishing _connection: %s" % ex)
 
         if self.limit:
             cursor = self.conn.find().limit(self.limit)

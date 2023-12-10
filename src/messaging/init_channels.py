@@ -13,7 +13,7 @@ class ChannelConstants:
 def init_df_of_channel_names():
     """
     Global RabbitMQ naming of channels, key, exchange keys. Also contain a dictionary of those values.
-    :return: dictionary of channel attribute names.
+    :return: dictionary of _channel attribute names.
     """
     queue_names = ['evalutation-post-star_rating-updated-queue',
                    'evalutation-keywords-updated-queue',

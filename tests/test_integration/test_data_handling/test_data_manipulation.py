@@ -1,14 +1,12 @@
 import os
-import pickle
 from pathlib import Path
 from unittest import mock
 
 import pandas as pd
-
-# python -m pytest .\tests\test_data_handling\test_data_queries.py
-
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
+
+# python -m pytest .\tests\test_data_handling\test_data_queries.py
 
 TEST_CACHED_PICKLE_PATH = 'tests/db_cache/cached_posts_dataframe.pkl'
 

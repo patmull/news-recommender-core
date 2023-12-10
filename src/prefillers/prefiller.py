@@ -15,11 +15,11 @@ from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, R
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import get_most_similar_by_hybrid
 from src.recommender_core.recommender_algorithms.user_based_algorithms.user_keywords_recommendation import \
-    UserBasedMethods
+    UserBased
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
-from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdfDataHandlers
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
@@ -52,11 +52,11 @@ def return_recommended(method, current_user_id):
         svd = SvdClass()
         _actual_json = svd.run_svd(user_id=current_user_id, num_of_recommendations=20)
     elif method == "user_keywords":
-        tfidf = TfIdf()
+        tfidf = TfIdfDataHandlers()
         input_keywords = ' '.join(user_methods.get_user_keywords(current_user_id)["keyword_name"])
         _actual_json = tfidf.keyword_based_comparison(input_keywords)
     elif method == "best_rated_by_others_in_user_categories":
-        user_based_methods = UserBasedMethods()
+        user_based_methods = UserBased()
         _actual_json = user_based_methods.load_best_rated_by_others_in_user_categories(current_user_id)
     elif method == "hybrid":
         _actual_json, _actual_json_fuzzy = get_most_similar_by_hybrid(user_id=current_user_id,
@@ -71,9 +71,9 @@ def return_recommended(method, current_user_id):
     return _actual_json, _actual_json_fuzzy
 
 
-def insert_recommended_json_colab(method, current_user_id, actual_json=None, actual_json_fuzzy=None):
+def insert_recommended_json_colab(method, current_user_id, actual_json=None, _actual_json_fuzzy=None):
     user_methods = UserMethods()
-    if actual_json is None and actual_json_fuzzy is None:
+    if actual_json is None and _actual_json_fuzzy is None:
         raise ValueError("_actual_json and actual_json_fuzzy cannot be None at the same time.")
 
     try:
@@ -84,10 +84,10 @@ def insert_recommended_json_colab(method, current_user_id, actual_json=None, act
 
         if method == "hybrid":
             method = 'hybrid_fuzzy'
-            user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
+            user_methods.insert_recommended_json_user_based(recommended_json=_actual_json_fuzzy,
                                                             user_id=current_user_id, db="pgsql",
                                                             method=method)
-            user_methods.insert_recommended_json_user_based(recommended_json=actual_json_fuzzy,
+            user_methods.insert_recommended_json_user_based(recommended_json=_actual_json_fuzzy,
                                                             user_id=current_user_id, db="redis",
                                                             method=method)
     except Exception as e:
@@ -142,10 +142,10 @@ def get_tfidf_full_text_fit():
     recommender_methods = RecommenderMethods()
     df = recommender_methods.get_posts_categories_dataframe(from_cache=False)
 
-    tf_idf_data_handlers = TfIdfDataHandlers(df)
-    fit_by_full_text = tf_idf_data_handlers.get_fit_by_feature_('body_preprocessed')
+    _tf_idf_data_handlers = TfIdfDataHandlers(df)
+    _fit_by_full_text = _tf_idf_data_handlers.get_fit_by_feature_('body_preprocessed')
 
-    return fit_by_full_text
+    return _fit_by_full_text
 
 
 def get_word2vec_docsim_index_model(method):
@@ -240,35 +240,35 @@ def get_current_recommended_full_text(method, post):
 
 
 def load_recommended_tfidf(slug):
-    tfidf = TfIdf()
-    actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
-    return actual_recommended_json
+    tfidf = TfIdfDataHandlers()
+    _actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed(slug)
+    return _actual_recommended_json
 
 
 def load_recommended_short_text(method, slug, docsim_index=None, dictionary=None, w2v_model=None):
     if "PYTEST_CURRENT_TEST" in os.environ:
-        logging.debug('In testing environment, inserting testing actual_recommended_json.')
+        logging.debug('In testing environment, inserting testing _actual_recommended_json.')
         if method == "test_prefilled_all":
-            actual_recommended_json = "[{test: test-json}]"
-            return actual_recommended_json
+            _actual_recommended_json = "[{test: test-json}]"
+            return _actual_recommended_json
     else:
         if method == "terms_frequencies":
-            actual_recommended_json = load_recommended_tfidf(slug)
-            return actual_recommended_json
+            _actual_recommended_json = load_recommended_tfidf(slug)
+            return _actual_recommended_json
         elif method == "word2vec":
             if docsim_index is None or dictionary is None or w2v_model is None:
                 raise ValueError("docsim_index, dictionary or w2v_model not set.")
             word2vec = Word2VecClass()
-            actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
+            _actual_recommended_json = word2vec.get_similar_word2vec(searched_slug=slug,
                                                                     model=w2v_model,
                                                                     model_name='idnes',
                                                                     docsim_index=docsim_index,
                                                                     dictionary=dictionary)
-            return actual_recommended_json
+            return _actual_recommended_json
         elif method == "doc2vec":
             doc2vec = Doc2VecClass()
-            actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug)
-            return actual_recommended_json
+            _actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug)
+            return _actual_recommended_json
         else:
             raise ValueError("Method %s not implemented." % method)
 
@@ -328,8 +328,8 @@ def handle_word2vec_variants(method, slug, w2v_model, docsim_index, dictionary):
 
 def load_current_recommended_full_text(method, slug, w2v_model=None, docsim_index=None, dictionary=None):
     if method == "terms_frequencies":
-        tfidf = TfIdf()
-        actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(
+        tfidf = TfIdfDataHandlers()
+        _actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(
             searched_slug=slug,
             tf_idf_data_handlers=tf_idf_data_handlers,
             fit_by_all_features_matrix=fit_by_all_features_matrix,
@@ -338,39 +338,39 @@ def load_current_recommended_full_text(method, slug, w2v_model=None, docsim_inde
         )
     elif method == "word2vec":
         word2vec = Word2VecClass()
-        actual_recommended_json = word2vec.get_similar_word2vec_full_text(searched_slug=slug)
+        _actual_recommended_json = word2vec.get_similar_word2vec_full_text(searched_slug=slug)
     elif method == "doc2vec":
         doc2vec = Doc2VecClass()
-        actual_recommended_json = doc2vec.get_similar_doc2vec_with_full_text(slug)
+        _actual_recommended_json = doc2vec.get_similar_doc2vec_with_full_text(slug)
     elif method == "topics":
         lda = Lda()
-        actual_recommended_json = lda.get_similar_lda_full_text(slug)
+        _actual_recommended_json = lda.get_similar_lda_full_text(slug)
     elif method == "word2vec_eval_idnes_1":
         if w2v_model is None and docsim_index is None and dictionary is None:
-            actual_recommended_json = handle_word2vec_variants(method, slug, w2v_model,
+            _actual_recommended_json = handle_word2vec_variants(method, slug, w2v_model,
                                                                docsim_index, dictionary)
         else:
             raise ValueError("w2v_model, docsim_index and dictionary must be None.")
     elif method == "doc2vec_eval_cswiki_1":
         doc2vec = Doc2VecClass()
-        actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug)
+        _actual_recommended_json = doc2vec.get_similar_doc2vec(searched_slug=slug)
     else:
         raise ValueError("Method %s not implemented." % method)
 
-    return actual_recommended_json
+    return _actual_recommended_json
 
 
-def insert_recommendation(post_id, full_text, method, actual_recommended_json):
-    if len(actual_recommended_json) == 0:
+def insert_recommendation(post_id, full_text, method, _actual_recommended_json):
+    if len(_actual_recommended_json) == 0:
         logging.info("No recommended post found. Skipping.")
     else:
-        actual_recommended_json = json.dumps(actual_recommended_json)
+        _actual_recommended_json = json.dumps(_actual_recommended_json)
         try:
             database_methods = DatabaseMethods()
 
             database_methods.connect()
             database_methods.insert_recommended_json_content_based(
-                articles_recommended_json=actual_recommended_json,
+                articles_recommended_json=_actual_recommended_json,
                 article_id=post_id, full_text=full_text, db="pgsql",
                 method=method)
             database_methods.disconnect()
@@ -402,21 +402,21 @@ def iterate_posts(posts, method, full_text, skip_already_filled=True,
             logging.debug("Has currently no recommended posts.")
             logging.debug("Trying to find recommended...")
             if full_text is False:
-                actual_recommended_json = load_recommended_short_text(method,
+                _actual_recommended_json = load_recommended_short_text(method,
                                                                       slug,
                                                                       docsim_index,
                                                                       dictionary,
                                                                       w2v_model
                                                                       )
             else:
-                actual_recommended_json = load_current_recommended_full_text(method,
+                _actual_recommended_json = load_current_recommended_full_text(method,
                                                                              slug,
                                                                              docsim_index,
                                                                              dictionary,
                                                                              w2v_model
                                                                              )
 
-            insert_recommendation(post_id, full_text, method, actual_recommended_json)
+            insert_recommendation(post_id, full_text, method, _actual_recommended_json)
 
 
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,

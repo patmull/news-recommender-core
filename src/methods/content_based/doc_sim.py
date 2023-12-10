@@ -2,15 +2,13 @@ import logging
 import os.path
 import pickle
 import re
-import traceback
 from pathlib import Path
 
 import gensim
 import numpy as np
 from gensim.corpora import Dictionary
-from gensim.models import TfidfModel, KeyedVectors
+from gensim.models import KeyedVectors
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix, SoftCosineSimilarity
-from gensim.similarities.annoy import AnnoyIndexer
 from scipy import spatial
 from sklearn.feature_extraction.text import HashingVectorizer
 from src.recommender_core.recommender_algorithms.content_based_algorithms.gensim_methods import GensimMethods

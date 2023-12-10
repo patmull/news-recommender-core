@@ -18,7 +18,6 @@ from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_wtf.csrf import CSRFProtect
 
-
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
@@ -53,7 +52,9 @@ def check_if_cache_exists_and_fresh():
     else:
         return False
 
+
 csrf = CSRFProtect()
+
 
 def create_app():
     # initializing files needed for the start of application

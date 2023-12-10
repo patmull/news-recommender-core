@@ -18,7 +18,7 @@ class TestGetUsersGoodDay:
         for method in methods:
             column_name = "recommended_by_" + method
             all_users = recommender_methods.get_all_users(only_with_id_and_column_named=column_name)
-            assert(isinstance(all_users, pd.DataFrame))
+            assert isinstance(all_users, pd.DataFrame)
 
     def test_get_all_users_database_method(self):
         database = DatabaseMethods()

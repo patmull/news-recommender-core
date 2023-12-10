@@ -1,7 +1,5 @@
 import os
 
-import pytest
-
 from src.prefillers.preprocessing.stopwords_loading import get_cz_stopwords_file_path, \
     get_general_stopwords_file_path
 

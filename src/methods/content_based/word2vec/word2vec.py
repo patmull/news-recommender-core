@@ -11,7 +11,6 @@ import traceback
 from collections import defaultdict
 from pathlib import Path
 
-import gensim
 import numpy as np
 import pandas as pd
 import tqdm
@@ -21,20 +20,19 @@ from gensim.models import KeyedVectors, Word2Vec
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from gensim.similarities.annoy import AnnoyIndexer
 from pymongo import MongoClient
-
-from src.prefillers.preprocessing.czech_preprocessing import preprocess
-from src.prefillers.preprocessing.stopwords_loading import load_cz_stopwords
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.data_handling.dataframe_methods.data_selects import combine_features_from_single_df_row
 from src.recommender_core.data_handling.evaluation.evaluation_data_handling import save_wordsim
-from src.recommender_core.data_handling.evaluation.evaluation_results import get_eval_results_header, \
-    append_training_results
+from src.recommender_core.data_handling.evaluation.evaluation_results import append_training_results
 from src.recommender_core.data_handling.hyperparam_tuning import random_hyperparameter_choice, \
     prepare_hyperparameters_grid
 from src.recommender_core.data_handling.reader import get_preprocessed_dict_idnes
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
+from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, \
     calculate_similarity_idnes_model_gensim
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder
+
+from src.prefillers.preprocessing.czech_preprocessing import preprocess
+from src.prefillers.preprocessing.stopwords_loading import load_cz_stopwords
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -68,8 +66,8 @@ def save_tuple_to_csv(path, data):
 
 
 def get_client():
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
+    for _handler in logging.root.handlers[:]:
+        logging.root.removeHandler(_handler)
 
     # Enabling Word2Vec logging
     logging.basicConfig(format=FORMAT_W2V_LOG,
@@ -151,8 +149,8 @@ class ModelTrainer:
         self.init_logging()
 
     def init_logging(self):
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
+        for _handler in logging.root.handlers[:]:
+            logging.root.removeHandler(_handler)
         logging.basicConfig(format=FORMAT_W2V_LOG, level=logging.NOTSET)
         self.logger = logging.getLogger()
 
@@ -453,7 +451,7 @@ class Word2VecClass:
             del documents_df
             # https://github.com/v1shwa/document-similarity with my edits
 
-            calculatd_similarities_for_posts = calculate_similarity(found_post,
+            calculatd_similarities_for_posts = calculate_similarity_idnes_model_gensim(found_post,
                                                                     list_of_document_features)[:21]
             # removing post itself
             del calculatd_similarities_for_posts[0]  # removing post itself
@@ -505,8 +503,8 @@ class Word2VecClass:
         number_of_trials: default value according to random_order search study:
         https://dl.acm.org/doi/10.5555/2188385.2188395
         """
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
+        for _handler in logging.root.handlers[:]:
+            logging.root.removeHandler(_handler)
         # Enabling Word2Vec logging
         logging.basicConfig(format=FORMAT_W2V_LOG,
                             level=logging.NOTSET)

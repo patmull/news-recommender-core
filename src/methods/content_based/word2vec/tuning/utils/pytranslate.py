@@ -26,7 +26,7 @@ def translate_question_words():
             pass
         else:
             try:
-                translation = GoogleTranslator(source='en', target='cs').translate((text))
+                translation = GoogleTranslator(source='en', target='cs').translate(text)
                 translations.append(translation + "\n")
                 if batch_counter == BATCH_SIZE:
                     with open('../../../../../../stats/evaluations/word2vec/analogies/questions-words-cs.txt', 'a', encoding="utf-8") as file:
@@ -41,7 +41,7 @@ def translate_question_words():
 
 
 def google_translate(text_to_translate):
-    translation = GoogleTranslator(source='en', target='cs').translate((text_to_translate))
+    translation = GoogleTranslator(source='en', target='cs').translate(text_to_translate)
     return translation
 
 

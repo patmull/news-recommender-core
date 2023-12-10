@@ -1,5 +1,3 @@
-import os
-
 import pika
 
 from src.recommender_core.data_handling.data_connection import init_rabbitmq

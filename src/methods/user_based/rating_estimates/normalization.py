@@ -1,11 +1,9 @@
 import random
-import sys
 
 import gensim
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 

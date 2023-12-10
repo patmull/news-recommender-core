@@ -1,5 +1,3 @@
-import json
-
 import pandas as pd
 
 from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \

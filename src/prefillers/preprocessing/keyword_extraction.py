@@ -1,11 +1,11 @@
 import logging
+from itertools import zip_longest
 from pathlib import Path
 
 import pandas as pd
 from multi_rake import Rake
-from yake import KeywordExtractor
 from summa import keywords as summa_keywords
-from itertools import chain, zip_longest
+from yake import KeywordExtractor
 
 pd.set_option('display.max_columns', None)
 
@@ -128,13 +128,13 @@ class SingleDocKeywordExtractor:
         @return: list of keywords combined from supported keyword extractors
         """
         rake_keywords = self.get_keywords_multi_rake(string_for_extraction)
-        summa_keywords = self.get_keywords_summa(string_for_extraction)
+        _summa_keywords = self.get_keywords_summa(string_for_extraction)
         yake_keywords = self.get_keywords_yake(string_for_extraction)
 
         rake_only_words = [x[0] for x in rake_keywords]
         yake_only_words = [y[0] for y in yake_keywords]
 
-        combined_keywords = rake_only_words + yake_only_words + summa_keywords
+        combined_keywords = rake_only_words + yake_only_words + _summa_keywords
         combined_keywords = combined_keywords[:5]
 
         combined_keywords_flat = [item for sublist in zip_longest(*combined_keywords) for item in sublist if

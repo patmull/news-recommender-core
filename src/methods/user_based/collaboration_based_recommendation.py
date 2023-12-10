@@ -1,12 +1,9 @@
 import json
 
-from sklearn.metrics import mean_squared_error
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
-
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from scipy.sparse.linalg import svds
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
 

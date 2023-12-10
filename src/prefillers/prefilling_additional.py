@@ -12,7 +12,7 @@ from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
-    
+
 SKIP_RECORD_MESSAGE = "Skipping."
 PREFILLING_PREPROCESSING_MESSAGE = "Prefilling body preprocessed in article: "
 
@@ -113,6 +113,7 @@ def start_preprocessed_columns_prefilling(article_full_text, post_id):
     recommender_methods = RecommenderMethods()
     recommender_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text, article_id=post_id)
 
+
 class PreFillerAdditional:
 
     # universal common method
@@ -155,25 +156,19 @@ class PreFillerAdditional:
             if len(posts) < 1:
                 break
 
-            # noinspection PyPep8
-            (post_id, slug, article_title, article_excerpt,
-             article_full_text, current_body_preprocessed) = get_post_columns(post)
+            (post_id, slug, article_full_text) = get_post_columns(post)
 
             logging.debug(PREFILLING_PREPROCESSING_MESSAGE + slug)
 
             if skip_already_filled is True:
-                if current_body_preprocessed is None:
-                    preprocessed_text = preprocess(article_full_text)
+                preprocessed_text = preprocess(article_full_text)
 
-                    recommender_methods = RecommenderMethods()
-                    recommender_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text,
-                                                                 article_id=post_id)
+                recommender_methods = RecommenderMethods()
+                recommender_methods.insert_preprocessed_body(preprocessed_body=preprocessed_text,
+                                                             article_id=post_id)
 
-                else:
-                    logging.debug(SKIP_RECORD_MESSAGE)
             else:
                 start_preprocessed_columns_prefilling(article_full_text, post_id)
-
 
     def fill_keywords(self, skip_already_filled, random_order):
         """
@@ -308,65 +303,24 @@ def load_data_for_ngrams_filling(post, full_text=False):
 
     if full_text and isinstance(article_full_text, str):
         if short_text_preprocessed and current_body_preprocessed:
-            input_text = f"{short_text_preprocessed} {current_body_preprocessed}"
+            _input_text = f"{short_text_preprocessed} {current_body_preprocessed}"
         else:
             if not current_body_preprocessed and short_text_preprocessed:
-                input_text = short_text_preprocessed
+                _input_text = short_text_preprocessed
                 logging.warning("body_preprocessed is None. Trigrams are created only from short text. "
                                 "Prefill the body_preprocessed column first to use it for trigrams.")
             elif not current_body_preprocessed and not short_text_preprocessed:
                 raise ValueError("Either all_features_preprocessed or body_preprocessed needs to be filled in")
     else:
-        input_text = short_text_preprocessed
+        _input_text = short_text_preprocessed
 
-    if not input_text:
+    if not _input_text:
         raise ValueError("input_text is None. This should not happen.")
 
     loaded_data = {
         'post_id': post_id,
         'slug': slug,
-        'input_text': input_text,
-        'current_ngrams': current_ngrams
-    }
-
-    return loaded_data
-
-
-def load_data_for_ngrams_filling(post, full_text=False):
-    post_id = post['id']
-    slug = post['slug']
-    short_text_preprocessed = post['short_text']  # == all_features_preprocessed
-    article_full_text = post['full_text']
-    current_body_preprocessed = post['body_preprocessed']
-
-    if full_text is False:
-        current_ngrams = post['bigrams']
-    else:
-        current_ngrams = post['trigrams']
-
-    # second part: checking whether current body preprocessed is not none
-    input_text = None
-    if full_text is True and isinstance(article_full_text, str):
-        if short_text_preprocessed is not None and current_body_preprocessed is not None:
-            input_text = short_text_preprocessed + " " + current_body_preprocessed
-        else:
-            if current_body_preprocessed is None and short_text_preprocessed is None:
-                raise ValueError("Either all_features_preprocessed or "
-                                 "body_preprocessed needs to be filled in,")
-            # Using only the short text (= all_features_preprocessed column)
-            input_text = short_text_preprocessed
-            logging.warning("body_preprocessed is None. Trigrams are created only from short text."
-                            "Prefill the body_preprocessed column first to use it for trigrams.")
-    else:
-        input_text = short_text_preprocessed
-
-    if input_text is None:
-        raise ValueError("input_text is None. This should not happen.")
-
-    loaded_data = {
-        'post_id': post_id,
-        'slug': slug,
-        'input_text': input_text,
+        'input_text': _input_text,
         'current_ngrams': current_ngrams
     }
 

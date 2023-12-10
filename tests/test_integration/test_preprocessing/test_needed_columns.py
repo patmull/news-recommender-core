@@ -1,5 +1,3 @@
-import pytest
-
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 

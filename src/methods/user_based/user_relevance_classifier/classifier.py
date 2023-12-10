@@ -10,9 +10,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, balanced_accuracy_score, confusion_matrix
 
 from src.constants.naming import Naming
+from src.data_handling.data_manipulation import get_redis_connection
 from src.logging.data_logging import log_dataframe_info
-from src.recommender_core.data_handling.data_manipulation import get_redis_connection
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 import logging
 

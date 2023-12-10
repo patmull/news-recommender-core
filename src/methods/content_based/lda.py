@@ -280,7 +280,7 @@ def prepare_post_categories_df(recommender_methods, posts_from_cache, searched_s
 
 
 class Lda:
-    # *** HERE WAS a Amazon bucket connection string. ABANDONED DUE TO: not being needed anymore
+    # *** HERE WAS a Amazon bucket _connection string. ABANDONED DUE TO: not being needed anymore
 
     def __init__(self):
         self.most_similar_df = None

@@ -31,7 +31,7 @@ def init_rabbitmq():
         credentials=credentials,
         virtual_host=rabbitmq_vhost,
         heartbeat=600  # This was initially set to 600
-        # ** Here was the blocked connection timeout. Removed due to possible cause of the channel close problem.
+        # ** Here was the blocked _connection timeout. Removed due to possible cause of the _channel close problem.
     )
 
     return pika.BlockingConnection(connection_params)

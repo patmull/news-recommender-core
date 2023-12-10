@@ -1,14 +1,11 @@
 import functools
 import logging
 import os
-import traceback
+import threading
 
 import pika
-import threading
-import time
-
-from mail_sender import send_error_email
 from rabbitmq_receive import is_init_or_test, call_collaborative_prefillers
+
 from src.messaging.init_channels import ChannelConstants
 
 LOG_FORMAT = ('%(levelname) -10s %(asctime)s %(name) -30s %(funcName) '
@@ -19,18 +16,14 @@ logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
 
 
 def ack_message(channel, delivery_tag):
-    """Note that `channel` must be the same pika channel instance via which
+    """Note that `_channel` must be the same pika _channel instance via which
     the message being ACKed was retrieved (AMQP protocol constraint).
     """
     if channel.is_open:
         channel.basic_ack(delivery_tag)
-    else:
-        # Channel is already closed, so we can't ACK this message;
-        # log and/or do something that makes sense for your app in this case.
-        pass
 
 
-def do_work_stars(connection, channel, delivery_tag, body):
+def do_work_stars(_connection, _channel, delivery_tag, body):
     thread_id = threading.get_ident()
     fmt1 = 'Thread id: {} Delivery tag: {} Message body: {}'
     LOGGER.info(fmt1.format(thread_id, delivery_tag, body))
@@ -48,12 +41,13 @@ def do_work_stars(connection, channel, delivery_tag, body):
         raise e
         # send_error_email(traceback.format_exc())
 
-    cb = functools.partial(ack_message, channel, delivery_tag)
-    connection.add_callback_threadsafe(cb)
+    cb = functools.partial(ack_message, _channel, delivery_tag)
+    _connection.add_callback_threadsafe(cb)
+
 
 # NOTICE: The duplication of the code may be needed here for now due to the multithreading
 
-def on_message(channel, method_frame, header_frame, body, args):
+def on_message(_channel, method_frame, header_frame, body, args):
     logging.info("[x] Received %r" % body.decode())
     logging.info("Properties:")
     logging.info(header_frame)
@@ -62,14 +56,14 @@ def on_message(channel, method_frame, header_frame, body, args):
         if not is_init_or_test(body.decode()):
             logging.debug(ChannelConstants.USER_PRINT_CALLING_PREFILLERS)
 
-            (connection, threads) = args
+            (_connection, _threads) = args
             delivery_tag = method_frame.delivery_tag
-            t = threading.Thread(target=do_work_stars, args=(connection, channel, delivery_tag, body))
+            t = threading.Thread(target=do_work_stars, args=(_connection, _channel, delivery_tag, body))
             t.start()
-            threads.append(t)
+            _threads.append(t)
         else:
             logging.debug("ACK for test message")
-            channel.basic_ack(delivery_tag=method_frame.delivery_tag)
+            _channel.basic_ack(delivery_tag=method_frame.delivery_tag)
 
 
 rabbitmq_user = os.environ.get('RABBITMQ_USER')
@@ -89,7 +83,7 @@ connection_params = pika.ConnectionParameters(
     credentials=credentials,
     virtual_host=rabbitmq_vhost,
     heartbeat=600  # This was initially set to 600
-    # ** Here was the blocked connection timeout. Removed due to possible cause of the channel close problem.
+    # ** Here was the blocked _connection timeout. Removed due to possible cause of the _channel close problem.
 )
 
 connection = pika.BlockingConnection(connection_params)

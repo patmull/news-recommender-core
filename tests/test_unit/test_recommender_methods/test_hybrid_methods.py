@@ -1,15 +1,11 @@
-import logging
-from datetime import datetime, timezone, timedelta
-from unittest import TestCase
-
 import pandas as pd
 import pytest
 
 from src.methods.hybrid.hybrid_methods import select_list_of_posts_for_user, get_most_similar_by_hybrid
 from src.methods.user_based.user_relevance_classifier.classifier import get_df_predicted, Classifier
-# RUN WITH: python -m pytest tests/test_unit/test_hybrid_methods.py
-
 from tests.testing_methods.random_posts_generator import get_three_unique_posts
+
+# RUN WITH: python -m pytest tests/test_unit/test_hybrid_methods.py
 
 classifier = Classifier()
 
@@ -29,10 +25,10 @@ def test_select_list_of_posts_for_user():
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
     list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(test_user_id, test_slugs)
 
-    assert(type(list_of_slugs) is list)
-    assert(len(list_of_slugs) > 0)
-    assert(type(list_of_slugs_from_history) is list)
-    assert(len(list_of_slugs_from_history) > 0)
+    assert type(list_of_slugs) is list
+    assert len(list_of_slugs) > 0
+    assert type(list_of_slugs_from_history) is list
+    assert len(list_of_slugs_from_history) > 0
 
 
 @pytest.fixture()

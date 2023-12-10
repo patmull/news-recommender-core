@@ -8,13 +8,14 @@ from unittest.mock import patch
 import pytest
 
 from src.custom_exceptions.exceptions import TestRunException
+from src.data_handling.data_manipulation import DatabaseMethods
 from src.prefillers.prefiller import UserBased
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 database = DatabaseMethods()
 method_options_short_text = ["terms_frequencies", "word2vec", "doc2vec", "topics"]
-method_options_full_text = ["terms_frequencies", "word2vec", "doc2vec", "topics", "word2vec_eval_idnes_1", "word2vec_eval_idnes_2",
+method_options_full_text = ["terms_frequencies", "word2vec", "doc2vec", "topics",
+                            "word2vec_eval_idnes_1", "word2vec_eval_idnes_2",
                             "word2vec_eval_idnes_3", "word2vec_eval_idnes_4", "word2vec_eval_cswiki_1",
                             "doc2vec_eval_cswiki_1"]
 
@@ -62,7 +63,7 @@ def not_prefilled_retriaval(method, full_text):
     database_methods.connect()
     not_prefilled_posts = database_methods.get_not_prefilled_posts(method=method, full_text=full_text)
     database_methods.disconnect()
-    return type(not_prefilled_posts) == list
+    return isinstance(not_prefilled_posts, list)
 
 
 # pytest.mark.integration

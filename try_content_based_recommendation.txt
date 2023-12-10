@@ -1,6 +1,3 @@
-from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 
 word2vec_embedding = None
 doc2vec_model = None

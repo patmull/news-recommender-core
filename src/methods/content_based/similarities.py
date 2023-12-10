@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 import numpy as np
@@ -6,8 +5,6 @@ import pandas as pd
 from scipy import sparse
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-
-from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import get_slug_from_id
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 

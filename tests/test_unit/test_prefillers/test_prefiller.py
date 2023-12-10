@@ -3,7 +3,6 @@ import os
 import unittest
 from unittest import mock
 
-import pandas as pd
 import pytest
 
 from src.prefillers.prefilling_additional import shuffle_and_reverse, PreFillerAdditional
@@ -32,7 +31,8 @@ def mock_start_preprocessed_features_prefilling(self, skip_already_filled, rando
 
 class PrefillingAdditional(unittest.TestCase):
 
-    def test_fill_body_preprocessed(self):
+    @staticmethod
+    def test_fill_body_preprocessed():
         with mock.patch.object(PreFillerAdditional, 'fill_body_preprocessed',
                                new=mock_start_preprocessed_features_prefilling):
             with pytest.raises(SystemExit):

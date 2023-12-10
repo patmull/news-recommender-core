@@ -1,4 +1,5 @@
 import gc
+import logging
 import os
 import pickle
 from pathlib import Path
@@ -6,16 +7,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
-from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer, CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity
-
-import config.trials_counter
-
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
 
-import logging
+import config.trials_counter
 
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
@@ -157,7 +155,7 @@ class TfIdf:
                                                   number_of_recommended_posts=len(self.posts_df.index))
                 except ValueError as e:
                     (logging
-                     .warning(f"Value error had occurred while computing most similar posts by keywords: {e}" )
+                     .warning(f"Value error had occurred while computing most similar posts by keywords: {e}")
                      )
                     logging.info("Trying to solve Value error by updating the terms_frequencies vectorizer file")
                     fit_by_all_features_preprocessed = tfidf_data_handlers.get_fit_by_feature_(

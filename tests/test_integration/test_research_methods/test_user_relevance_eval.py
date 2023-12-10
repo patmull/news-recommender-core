@@ -1,8 +1,8 @@
 import pandas as pd
 
-from research.user_based.user_relevance_eval import create_relevance_stats_df
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.user_evaluation_results import \
+from src.data_handling.data_queries import RecommenderMethods
+from src.methods.user_based.evalutation.user_relevance_eval import create_relevance_stats_df
+from src.methods.user_based.user_relevance_classifier.user_evaluation_results import \
     get_user_evaluation_results_dataframe
 
 

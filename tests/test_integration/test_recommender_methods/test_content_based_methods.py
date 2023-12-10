@@ -1,21 +1,18 @@
-import logging
 import unittest
-from pathlib import Path
 
 import pytest
-from gensim.models import KeyedVectors
-
+from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
 from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda, prepare_post_categories_df
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-
-# python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
-
 # py.test tests/test_recommender_methods/test_content_based_methods.py -k 'test_tfidf_method_bad_input'
 from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
 from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
+
 from tests.test_integration.common_asserts import assert_recommendation
+
+
+# python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
 
 
 @pytest.mark.parametrize("tested_input", [

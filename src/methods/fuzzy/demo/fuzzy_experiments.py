@@ -83,8 +83,6 @@ def example_fuzzy_sets():
     Example of evalutation of the Fuzzy sets in Simpful package
     @return:
     """
-    import simpful as sf
-
     # A showcase of available fuzzy sets.
 
     # Crisp
@@ -191,7 +189,6 @@ def example_output_space():
     ys = array(ys)
     zs = array(zs)
 
-    from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 

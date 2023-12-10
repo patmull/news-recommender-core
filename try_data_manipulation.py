@@ -1,4 +1,3 @@
-"""
 from app import check_if_cache_exists_and_fresh
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
@@ -25,4 +24,3 @@ database_methods = DatabaseMethods()
 database_methods.connect()
 database_methods.null_test_user_prefilled_records(241, ['recommended_by_best_rated_by_others_in_user_categories'])
 database_methods.disconnect()
-"""

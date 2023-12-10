@@ -18,7 +18,7 @@ from src.data_handling.data_tools import flatten
 from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
     load_doc2vec_model
 from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import verify_searched_slug_sanity, \
-    preprocess_columns
+    preprocess
 from src.checks.data_types import check_empty_string, accepts_first_argument
 from src.recommender_core.data_handling.reader import build_sentences
 from src.recommender_core.data_handling.data_queries import RecommenderMethods
@@ -351,7 +351,7 @@ class Doc2VecClass:
         else:
             cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
 
-        documents_all_features_preprocessed = preprocess_columns(self.df, cols)
+        documents_all_features_preprocessed = preprocess(self.df, cols)
         gc.collect()
 
         if 'post_slug' in self.df:
@@ -386,7 +386,7 @@ class Doc2VecClass:
             config.trials_counter.NUM_OF_TRIALS = 0
         except IndexError as e:
             if config.trials_counter.NUM_OF_TRIALS < 1:
-                documents_all_features_preprocessed = preprocess_columns(self.df, cols)
+                documents_all_features_preprocessed = preprocess(self.df, cols)
                 train_doc2vec(documents_all_features_preprocessed)
                 config.trials_counter.NUM_OF_TRIALS += 1
                 recommendations = self.get_similar_doc2vec(searched_slug, train_enabled, limited,
@@ -418,7 +418,7 @@ class Doc2VecClass:
             raise ValueError("searched_slug not in dataframe")
 
         cols = ['keywords', 'all_features_preprocessed', 'body_preprocessed']
-        documents_all_features_preprocessed = preprocess_columns(self.df, cols)
+        documents_all_features_preprocessed = preprocess(self.df, cols)
 
         gc.collect()
 
@@ -458,7 +458,7 @@ class Doc2VecClass:
                 logging.warning(e)
                 logging.info('Trying to deal with this by retraining Doc2Vec...')
                 logging.debug('Preparing test features')
-                documents_all_features_preprocessed = preprocess_columns(self.df, cols)
+                documents_all_features_preprocessed = preprocess(self.df, cols)
                 train_doc2vec(documents_all_features_preprocessed)
                 config.trials_counter.NUM_OF_TRIALS += 1
                 recommendations = self.get_similar_doc2vec_with_full_text(searched_slug, train_enabled,

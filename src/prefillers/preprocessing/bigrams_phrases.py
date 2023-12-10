@@ -1,5 +1,4 @@
 import logging
-import os
 
 import gensim
 import pymongo
