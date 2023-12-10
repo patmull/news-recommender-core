@@ -10,7 +10,7 @@ def prefill_tfidf_full():
     """
     while True:
         try:
-            prefilling_job_content_based("tfidf", full_text=True)
+            prefilling_job_content_based("terms_frequencies", full_text=True)
         except Exception as e:
             print("Exception occurred: ")
             traceback.print_exception(None, e, e.__traceback__)

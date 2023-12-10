@@ -1,6 +1,6 @@
 import logging
 
-from rabbitmq_receive import call_collaborative_prefillers
+from src.messaging.amqp.rabbitmq_receive import call_collaborative_prefillers
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)

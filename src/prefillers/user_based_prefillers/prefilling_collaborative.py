@@ -8,9 +8,9 @@ default_methods = ['svd', 'user_keywords', 'best_rated_by_others_in_user_categor
 
 def run_prefilling_collaborative(methods=None, user_id=None, test_run=False):
     """
-    The main runner for prefilling user recommender articles
+    The main runner for prefilling evalutation recommender articles
     @param methods: list of methods to use, needs to be from the domain of supported methods
-    @param user_id: integer of user ID
+    @param user_id: integer of evalutation ID
     @param test_run: Set to true if this is test_run so it prevents the actual prefilling of value to database.
     This is an workaround and also for making sure that the value does not leak into a database.
     @return:
@@ -19,11 +19,11 @@ def run_prefilling_collaborative(methods=None, user_id=None, test_run=False):
         methods = default_methods
     else:
         if not set(methods).issubset(default_methods):
-            raise ValueError("Methods parameter needs to be set to supported parameters " + str(default_methods))
+            raise ValueError("Methods parameter needs to be set to supported hyperparameters " + str(default_methods))
 
     try:
         for method in methods:
-            # Calling prefilling check_free_space_job user based..."
+            # Calling prefilling check_free_space_job evalutation based..."
             user_based = UserBased()
             user_based.prefilling_job_user_based(method=method, db="pgsql", user_id=user_id, test_run=test_run,
                                                  skip_already_filled=False)

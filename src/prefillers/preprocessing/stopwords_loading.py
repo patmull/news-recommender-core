@@ -3,7 +3,7 @@ from pathlib import Path
 
 from typing import List, Union
 
-from src.recommender_core.data_handling.data_tools import flatten
+from src.data_handling.data_tools import flatten
 
 
 def get_cz_stopwords_file_path():

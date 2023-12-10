@@ -13,8 +13,8 @@ from src.prefillers.user_based_prefillers.prefilling_collaborative import run_pr
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 database = DatabaseMethods()
-method_options_short_text = ["tfidf", "word2vec", "doc2vec", "lda"]
-method_options_full_text = ["tfidf", "word2vec", "doc2vec", "lda", "word2vec_eval_idnes_1", "word2vec_eval_idnes_2",
+method_options_short_text = ["terms_frequencies", "word2vec", "doc2vec", "topics"]
+method_options_full_text = ["terms_frequencies", "word2vec", "doc2vec", "topics", "word2vec_eval_idnes_1", "word2vec_eval_idnes_2",
                             "word2vec_eval_idnes_3", "word2vec_eval_idnes_4", "word2vec_eval_cswiki_1",
                             "doc2vec_eval_cswiki_1"]
 
@@ -49,7 +49,6 @@ class TestConnection:
         database.connect()
         mockconnect.assert_called()
         assert 1 == mockconnect.call_count
-        print(mockconnect.call_args_list[0])
         assert mockconnect.call_args_list[0] == call(user=DB_USER, password=DB_PASSWORD,
                                                      host=DB_HOST, dbname=DB_NAME,
                                                      keepalives=1, keepalives_idle=30, keepalives_interval=5,
@@ -87,8 +86,7 @@ class TestUserPrefillers(TestCase):
 
     def test_user_preferences_prefiller(self):
         with pytest.raises(TestRunException):
-            print("What the heck is going on...")
-            print(run_prefilling_collaborative(test_run=True))
+            run_prefilling_collaborative(test_run=True)
 
     @patch.object(UserBased, "prefilling_job_user_based", autospec=UserBased)
     def test_prefilling_job_user_based_not_called(self, mock_prefilling_job_user_based):

@@ -3,7 +3,7 @@ import time
 import traceback
 
 from mail_sender import send_error_email
-from rabbitmq_receive import init_consuming, restart_channel
+from src.messaging.amqp.rabbitmq_receive import init_consuming, restart_channel
 
 
 def consume_queue(queue_name):

@@ -1,4 +1,4 @@
-from rabbitmq_publisher import publish_channel
+from src.messaging.amqp.rabbitmq_publisher import publish_channel
 
 
 class ChannelConstants:
@@ -15,17 +15,17 @@ def init_df_of_channel_names():
     Global RabbitMQ naming of channels, key, exchange keys. Also contain a dictionary of those values.
     :return: dictionary of channel attribute names.
     """
-    queue_names = ['user-post-star_rating-updated-queue',
-                   'user-keywords-updated-queue',
-                   'user-categories-updated-queue',
+    queue_names = ['evalutation-post-star_rating-updated-queue',
+                   'evalutation-keywords-updated-queue',
+                   'evalutation-categories-updated-queue',
                    'post-features-updated-queue',
-                   'user-post-thumb_rating-updated-queue']
-    routing_keys = ['user.post.star_rating.event.updated',
-                    'user.keywords.event.updated',
-                    'user.categories.event.updated',
+                   'evalutation-post-thumb_rating-updated-queue']
+    routing_keys = ['evalutation.post.star_rating.event.updated',
+                    'evalutation.keywords.event.updated',
+                    'evalutation.categories.event.updated',
                     'post.features.updated.queue',
-                    'user.post.thumb_rating.event.updated']
-    exchanges = ['user', 'user', 'user', 'post', 'user']
+                    'evalutation.post.thumb_rating.event.updated']
+    exchanges = ['evalutation', 'evalutation', 'evalutation', 'post', 'evalutation']
 
     init_messages = [ChannelConstants.MESSAGE] * len(queue_names)
 

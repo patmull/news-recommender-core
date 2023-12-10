@@ -1,6 +1,6 @@
 import re
 
-py_file_path = '/home/patri/Documents/Codes/moje-clanky-core/news-recommender-core/research/relevance_statistics.py'
+py_file_path = '/stats/relevance_statistics.py'
 
 with open(py_file_path, 'r') as file:
     code_string = file.read()

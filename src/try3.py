@@ -19,8 +19,8 @@ def try_prefillers():
 # run_prefilling()
 
 """
-lda = Lda()
-lda.get_similar_lda_full_text('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
+topics = Lda()
+topics.get_similar_lda_full_text('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
 """
 
 """
@@ -72,8 +72,8 @@ word2vecClass.find_optimal_model_idnes(random_search=True)
 """
 
 """
-tfidf = TfIdf()
-tfidf.analyze('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
+terms_frequencies = TfIdf()
+terms_frequencies.analyze('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
 """
 
 # preprocess_question_words_file()

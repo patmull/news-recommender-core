@@ -9,7 +9,7 @@ import pytest
 from src.prefillers.prefilling_additional import shuffle_and_reverse, PreFillerAdditional
 from tests.test_integration.test_data import SAMPLE_LIST_FROM_DB
 
-method_options = ["tfidf", "word2vec", "doc2vec", "lda"]
+method_options = ["terms_frequencies", "word2vec", "doc2vec", "topics"]
 full_text_options = [True, False]
 random_reverse_options = [True, False]
 

@@ -18,13 +18,13 @@ log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from data?manipulation.")
 
-bert_classifier_error_text = ("Value error occurred when trying to get relevant thumbs for user. "
-                              "Skipping this user.")
+bert_classifier_error_text = ("Value error occurred when trying to get relevant thumbs for evalutation. "
+                              "Skipping this evalutation.")
 
 
 def predict_ratings_for_user_store_to_redis(user_id, force_retrain=False):
     """
-    Predictign relevant articles from user base on classifier model (SVC / Random Forrest methods) using BERT
+    Predictign relevant articles from evalutation base on classifier model (SVC / Random Forrest methods) using BERT
     multi-lingual model.
     @param user_id:
     @param force_retrain:
@@ -67,14 +67,14 @@ def predict_ratings_for_all_users_store_to_redis():
         try:
             classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='thumbs', bert_model=bert)
         except ValueError as ve:
-            logging.error("Value error occurred when trying to get relevant thumbs for user. Skipping "
-                  "this user.")
+            logging.error("Value error occurred when trying to get relevant thumbs for evalutation. Skipping "
+                  "this evalutation.")
             logging.warning(ve)
         try:
             classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='stars', bert_model=bert)
         except ValueError as ve:
-            print("Value error occurred when trying to get relevant thumbs for user. Skipping "
-                  "this user.")
+            print("Value error occurred when trying to get relevant thumbs for evalutation. Skipping "
+                  "this evalutation.")
             logging.warning(ve)
 
 # *** HERE were experimental code of BERT models *** ABANDONED DUE TO: not satisfying results

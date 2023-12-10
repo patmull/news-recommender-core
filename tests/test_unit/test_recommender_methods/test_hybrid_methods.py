@@ -5,12 +5,10 @@ from unittest import TestCase
 import pandas as pd
 import pytest
 
-
+from src.methods.hybrid.hybrid_methods import select_list_of_posts_for_user, get_most_similar_by_hybrid
+from src.methods.user_based.user_relevance_classifier.classifier import get_df_predicted, Classifier
 # RUN WITH: python -m pytest tests/test_unit/test_hybrid_methods.py
-from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import select_list_of_posts_for_user, \
-    get_most_similar_by_hybrid, boost_by_article_freshness, HybridConstants
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    Classifier, get_df_predicted
+
 from tests.testing_methods.random_posts_generator import get_three_unique_posts
 
 classifier = Classifier()
@@ -52,11 +50,8 @@ def bad_list_of_methods():
 # Bad Day:
 def test_get_most_similar_by_hybrid(test_user_id, bad_list_of_methods):
     with pytest.raises(NotImplementedError) as nie:
-        print("test_user_id:")
-        print(test_user_id)
-        print("bad_list_of_methods")
-        print(bad_list_of_methods)
-        get_most_similar_by_hybrid(user_id=test_user_id, svd_posts_to_compare=None, list_of_methods=bad_list_of_methods)
+        get_most_similar_by_hybrid(user_id=test_user_id, svd_posts_to_compare=None,
+                                   list_of_methods=bad_list_of_methods)
         assert str(nie) == "Inserted methods must correspond to DB columns."
 
 
@@ -70,6 +65,7 @@ def test_get_most_similar_by_hybrid(test_user_id, bad_list_of_methods):
 def test_get_most_similar_by_hybrid_bad_user(tested_input):
     with pytest.raises(TypeError):
         get_most_similar_by_hybrid(user_id=tested_input, list_of_methods=bad_list_of_methods)
+
 
 @pytest.mark.parametrize("tested_input", [
     '',

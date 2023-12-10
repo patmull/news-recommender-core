@@ -10,7 +10,7 @@ assert len(user_categories_thumbs_df.index) > 0  # assert there are rows in data
 database.disconnect()
 """
 
-# TODO: Add test user who will have some thumbs from posts that have already prefilled BERT vectors...
+# TODO: Add test evalutation who will have some thumbs from posts that have already prefilled BERT vectors...
 # (Currently there are no thumb rated posts that are prefilled)
 """
 svm = Classifier()

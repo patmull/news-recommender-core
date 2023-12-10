@@ -69,8 +69,8 @@ word2vecClass.find_optimal_model(source="cswiki", random_search=True)
 """
 
 """
-tfidf = TfIdf()
-tfidf.analyze('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
+terms_frequencies = TfIdf()
+terms_frequencies.analyze('zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy')
 """
 
 # preprocess_question_words_file()

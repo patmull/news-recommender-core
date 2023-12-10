@@ -41,11 +41,7 @@ def test_tfidf_method():
     posts = database.get_posts_dataframe(from_cache=False)
     random_post = posts.sample()
     random_post_slug = random_post['slug'].iloc[0]
-    print("random_post slug:")
-    print(random_post_slug)
     similar_posts = tfidf.recommend_posts_by_all_features_preprocessed(random_post_slug)
-    print("similar_posts")
-    print(similar_posts)
     assert len(random_post.index) == 1
     assert_recommendation(similar_posts)
 
@@ -53,11 +49,7 @@ def test_tfidf_method():
     posts = posts.sort_values(by="created_at")
     # noinspection DuplicatedCode
     latest_post_slug = posts['slug'].iloc[0]
-    print("random_post slug:")
-    print(latest_post_slug)
     similar_posts = tfidf.recommend_posts_by_all_features_preprocessed(latest_post_slug)
-    print("similar_posts")
-    print(similar_posts)
     assert len(random_post.index) == 1
     assert_recommendation(similar_posts)
 
@@ -109,8 +101,6 @@ class TestLda:
         recommender_methods.df = prepare_post_categories_df(recommender_methods, True, random_post_slug)
         lda = Lda()
         searched_doc_id = lda.get_searched_doc_id(recommender_methods, random_post_slug)
-        print('searched_doc_id:')
-        print(searched_doc_id)
         assert type(searched_doc_id) is int
 
 
@@ -136,14 +126,8 @@ def test_tfidf_full_text_method():
     posts = database.get_posts_dataframe(from_cache=False)
     random_post = posts.sample()
     random_post_slug = random_post['slug'].iloc[0]
-    print("random_post slug:")
-    print(random_post_slug)
     similar_posts = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(random_post_slug,
                                                                                       posts_from_cache=False)
-    print("similar_posts")
-    print(similar_posts)
-    print("similar_posts type:")
-    print(type(similar_posts))
 
     assert len(random_post.index) == 1
     assert_recommendation(similar_posts)

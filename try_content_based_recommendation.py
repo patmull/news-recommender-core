@@ -16,25 +16,25 @@ def main():
     # # print(cz_stem(word))
     # # print(cz_stem(word,aggressive_stemming=True))
 
-    # print(tfidf.preprocess_single_post("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy",supplied_json=True))
+    # print(terms_frequencies.preprocess_single_post("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy",supplied_json=True))
 
     # gensim = GenSim()
     # gensim.get_recommended_by_slug("zemrel-posledni-krkonossky-nosic-helmut-hofer-ikona-velke-upy")
     """
-    tfidf = TfIdf()
-    print(tfidf.recommend_posts_by_all_features_preprocessed('zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik'))
-    tfidf.analyze('zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik')
+    terms_frequencies = TfIdf()
+    print(terms_frequencies.recommend_posts_by_all_features_preprocessed('zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik'))
+    terms_frequencies.analyze('zdrazil-vam-dodavatel-elektrinu-nebo-plyn-brante-se-moznosti-je-nekolik')
     """
     """
-    print(tfidf.recommend_posts_by_all_features_preprocessed(searched_slug))
-    print(tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
+    print(terms_frequencies.recommend_posts_by_all_features_preprocessed(searched_slug))
+    print(terms_frequencies.recommend_posts_by_all_features_preprocessed_with_full_text(searched_slug))
     """
-    # print(tfidf.recommend_posts_by_all_features('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
-    # print(tfidf.recommend_posts_by_all_features_preprocessed('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
+    # print(terms_frequencies.recommend_posts_by_all_features('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
+    # print(terms_frequencies.recommend_posts_by_all_features_preprocessed('sileny-cesky-plan-dva-roky-trenoval-ted-chce-sam-preveslovat-atlantik'))
     """
-    tfidf = TfIdf()
+    terms_frequencies = TfIdf()
     keywords = "fotbal hokej"
-    print(tfidf.keyword_based_comparison(keywords))
+    print(terms_frequencies.keyword_based_comparison(keywords))
     """
 
     """
@@ -42,19 +42,19 @@ def main():
     print(doc2vecClass.get_similar_doc2vec(searched_slug,train_enabled=False))
     print(doc2vecClass.get_similar_doc2vec_with_full_text(searched_slug,train_enabled=False))
 
-    lda = Lda()
+    topics = Lda()
     print("--------------LDA------------------")
-    print(lda.get_similar_lda(searched_slug))
+    print(topics.get_similar_lda(searched_slug))
     print("--------------LDA FULL TEXT------------------")
-    print(lda.get_similar_lda_full_text(searched_slug))
+    print(topics.get_similar_lda_full_text(searched_slug))
     """
-    # lda = Lda()
-    # print(lda.get_similar_lda('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem',
+    # topics = Lda()
+    # print(topics.get_similar_lda('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem',
     # train_enabled=True, display_dominant_topics=True))
-    # print(lda.get_similar_lda_full_text('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem',
+    # print(topics.get_similar_lda_full_text('salah-pomohl-hattrickem-ztrapnit-united-soucek-byl-u-vyhry-nad-tottenhamem',
     # train_enabled=False, display_dominant_topics=False))
-    # lda.display_lda_stats()
-    # lda.find_optimal_model_idnes(body_text_model=True)
+    # topics.display_lda_stats()
+    # topics.find_optimal_model_idnes(body_text_model=True)
     """
     word2vecClass = Word2VecClass()
     start = time.time()
@@ -76,13 +76,13 @@ def main():
     # word2vec.prefilling_job_content_based(full_text=True, reverse=False)
 
     # prefiller = PreFiller()
-    # prefiller.prefilling_job_content_based("tfidf", "pgsql", full_text=False, reverse=False, random_order=True)
+    # prefiller.prefilling_job_content_based("terms_frequencies", "pgsql", full_text=False, reverse=False, random_order=True)
     # prefiller.prefilling_job_content_based("doc2vec", "pgsql", full_text=False, reverse=False, random_order=True)
-    # prefiller.prefilling_job_content_based("lda", "pgsql", full_text=False, reverse=False, random_order=True)
+    # prefiller.prefilling_job_content_based("topics", "pgsql", full_text=False, reverse=False, random_order=True)
     """
-    prefiller.prefilling_job_content_based("tfidf", "pgsql", full_text=True, reverse=False, random_order=False)
+    prefiller.prefilling_job_content_based("terms_frequencies", "pgsql", full_text=True, reverse=False, random_order=False)
     prefiller.prefilling_job_content_based("doc2vec", "pgsql", full_text=True, reverse=False, random_order=False)
-    prefiller.prefilling_job_content_based("lda", "pgsql", full_text=True, reverse=False, random_order=False)
+    prefiller.prefilling_job_content_based("topics", "pgsql", full_text=True, reverse=False, random_order=False)
     """
     """
     h = hpy()
@@ -109,8 +109,8 @@ def main():
     """
     """
     test_slugs = [searched_slug_1, searched_slug_2, searched_slug_3]
-    tfidf = TfIdf()
-    tfidf.get_similarity_matrix(test_slugs)
+    terms_frequencies = TfIdf()
+    terms_frequencies.get_similarity_matrix(test_slugs)
     """
 
     from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import load_tfidf_vectorizer

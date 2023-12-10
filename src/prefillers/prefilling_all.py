@@ -37,7 +37,7 @@ def prefill_ngrams():
 
 
 def prefill_tfidf_similarity_matrix():
-    precalculate_and_save_sim_matrix_for_all_posts(methods=['tfidf'])
+    precalculate_and_save_sim_matrix_for_all_posts(methods=['terms_frequencies'])
 
 
 def prefill_content_based(methods_short_text, methods_full_text, database):
@@ -53,7 +53,7 @@ def prefill_content_based(methods_short_text, methods_full_text, database):
 
     full_text = False
     if methods_short_text is None:
-        methods = ["tfidf", "doc2vec"]  # Supported short text methods
+        methods = ["terms_frequencies", "doc2vec"]  # Supported short text methods
     else:
         methods = methods_short_text
 
@@ -62,7 +62,7 @@ def prefill_content_based(methods_short_text, methods_full_text, database):
 
     full_text = True
     if methods_full_text is None:
-        methods = ["tfidf", "word2vec_eval_idnes_3", "lda"]  # NOTICE: Evaluated Word2Vec is full text!
+        methods = ["terms_frequencies", "word2vec_eval_idnes_3", "topics"]  # NOTICE: Evaluated Word2Vec is full text!
     else:
         methods = methods_full_text
 

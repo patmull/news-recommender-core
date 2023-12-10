@@ -27,7 +27,6 @@ from tests.testing_methods.random_posts_generator import get_three_unique_posts
 # pytest.mark.integration
 def test_bert_loading():
     bert_model = load_bert_model()
-    print(str(type(bert_model)))
     assert str(type(bert_model)) == "<class 'spacy.lang.xx.MultiLanguage'>"
 
 
@@ -37,8 +36,6 @@ def test_doc2vec_vector_representation():
     posts = database.get_posts_dataframe()
     random_post = posts.sample()
     random_post_slug = random_post['slug'].iloc[0]
-    print("random_post slug:")
-    print(random_post_slug)
 
     doc2vec = Doc2VecClass()
     doc2vec.load_model()
@@ -54,8 +51,6 @@ def test_thumbs():
     database.connect()
     user_categories_thumbs_df = database.get_posts_users_categories_thumbs()
     database.disconnect()
-    print("user_categories_thumbs_df.columns")
-    print(user_categories_thumbs_df.columns)
     assert isinstance(user_categories_thumbs_df, pd.DataFrame)
     THUMBS_COLUMNS_NEEDED = ['thumbs_values', 'thumbs_created_at', 'all_features_preprocessed', 'full_text']
     assert all(elem in user_categories_thumbs_df.columns.values for elem in THUMBS_COLUMNS_NEEDED)

@@ -23,16 +23,12 @@ def test_user_categories():
     user_methods = UserMethods()
     # TODO: Repair Error
     users = user_methods.get_users_dataframe()
-    print("users:")
-    print(users.columns)
     list_of_user_ids = users['id'].to_list()
     random_position = random.randrange(len(list_of_user_ids))
     random_id = list_of_user_ids[random_position]
     num_of_recommended_posts = 5
     recommendations = user_based_recommendation.load_best_rated_by_others_in_user_categories(random_id,
                                                                                              num_of_recommended_posts)
-    print("Recommendations:")
-    print(recommendations)
     assert type(recommendations) is dict
     assert len(recommendations) > 0
     assert type(recommendations['columns']) is list
@@ -84,7 +80,7 @@ def db_columns(methods):
 
 
 def test_insert_recommended_json_user_based(methods, dict_for_test, db_columns, user_id_for_test, json_for_test):
-    # TODO: Insert user from the start
+    # TODO: Insert evalutation from the start
     recommended_methods = RecommenderMethods()
     db = 'pgsql'
 
@@ -105,8 +101,6 @@ def test_insert_recommended_json_user_based(methods, dict_for_test, db_columns, 
     df = get_users_df(db_columns, user_id_for_test)
 
     for method in db_columns:
-        print("df[method]:")
-        print(df[method])
         assert df[method].iloc[0] is None
 
 

@@ -101,7 +101,7 @@ def fill_recommended_collab_based(method, skip_already_filled, user_id=None, tes
 
     @param method: i.e. "svd", "user_keywords" etc.
     @param skip_already_filled:
-    @param user_id: Insert user id if it is supposed to prefill recommendation only for a single user,
+    @param user_id: Insert evalutation id if it is supposed to prefill recommendation only for a single evalutation,
     otherwise will prefill for all
     @param test_run: Using for tests ensuring that the method is called
     @return:
@@ -193,13 +193,13 @@ def get_word2vec_docsim_dictionary():
 
 def get_current_recommended_short_text(method, post):
     match method:
-        case "tfidf":
+        case "terms_frequencies":
             current_recommended = post['recommended_tfidf']
         case "word2vec":
             current_recommended = post['recommended_tfidf_full_text']
         case "doc2vec":
             current_recommended = post['recommended_doc2vec']
-        case "lda":
+        case "topics":
             current_recommended = post['recommended_doc2vec_full_text']
         case _:
             current_recommended = None
@@ -209,13 +209,13 @@ def get_current_recommended_short_text(method, post):
 
 def get_current_recommended_full_text(method, post):
     match method:
-        case "tfidf":
+        case "terms_frequencies":
             current_recommended = post['recommended_tfidf']
         case "word2vec":
             current_recommended = post['recommended_word2vec']
         case "doc2vec":
             current_recommended = post['recommended_doc2vec']
-        case "lda":
+        case "topics":
             current_recommended = post['recommended_lda']
         case "word2vec_eval_idnes_1":
             current_recommended = post['recommended_word2vec_eval_1']
@@ -252,7 +252,7 @@ def load_recommended_short_text(method, slug, docsim_index=None, dictionary=None
             actual_recommended_json = "[{test: test-json}]"
             return actual_recommended_json
     else:
-        if method == "tfidf":
+        if method == "terms_frequencies":
             actual_recommended_json = load_recommended_tfidf(slug)
             return actual_recommended_json
         elif method == "word2vec":
@@ -327,7 +327,7 @@ def handle_word2vec_variants(method, slug, w2v_model, docsim_index, dictionary):
 
 
 def load_current_recommended_full_text(method, slug, w2v_model=None, docsim_index=None, dictionary=None):
-    if method == "tfidf":
+    if method == "terms_frequencies":
         tfidf = TfIdf()
         actual_recommended_json = tfidf.recommend_posts_by_all_features_preprocessed_with_full_text(
             searched_slug=slug,
@@ -342,7 +342,7 @@ def load_current_recommended_full_text(method, slug, w2v_model=None, docsim_inde
     elif method == "doc2vec":
         doc2vec = Doc2VecClass()
         actual_recommended_json = doc2vec.get_similar_doc2vec_with_full_text(slug)
-    elif method == "lda":
+    elif method == "topics":
         lda = Lda()
         actual_recommended_json = lda.get_similar_lda_full_text(slug)
     elif method == "word2vec_eval_idnes_1":
@@ -454,7 +454,7 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
         t.sleep(5)
         random.shuffle(posts)
 
-    if method.startswith("tfidf"):
+    if method.startswith("terms_frequencies"):
         fit_by_full_text = get_tfidf_full_text_fit()
         logging.info("Starting prefilling of the TF-IDF method.")
     elif method.startswith("word2vec_"):
@@ -466,7 +466,7 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
             # Notice: Doc2Vec model gets loaded inside the Doc2Vec's class method
             logging.debug("Similarities on FastText doc2vec_model.")
             logging.debug("Loading Dov2Vec cs.Wikipedia.org doc2vec_model...")
-    elif method == "lda":
+    elif method == "topics":
         logging.debug("Prefilling with LDA method.")
     elif method.startswith("test_"):
         logging.debug("Testing method")
@@ -510,7 +510,7 @@ class UserBased:
 
     def prefilling_job_user_based(self, method, db, user_id=None, test_run=False, skip_already_filled=False):
         """
-        Exception handler for the user based methods.
+        Exception handler for the evalutation based methods.
 
         @param method:
         @param db:

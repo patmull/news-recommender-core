@@ -4,24 +4,25 @@ import os
 import traceback
 
 from src.constants.file_paths import get_cached_posts_file_path
+from src.data_handling.data_queries import RecommenderMethods
+from src.data_handling.dataframe_methods.preprocessing import preprocess_single_post_find_by_slug
+from src.methods.content_based.doc2vec import Doc2VecClass
+from src.methods.content_based.lda import Lda
+from src.methods.content_based.tfidf import TfIdf
+from src.methods.content_based.word2vec.word2vec import Word2VecClass
+from src.methods.user_based.collaboration_based_recommendation import SvdClass
+from src.methods.user_based.user_keywords_recommendation import UserBasedMethods
 from src.prefillers.preprocessing.czech_preprocessing import cz_lemma
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda
-from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from src.recommender_core.recommender_algorithms.user_based_algorithms \
-    .collaboration_based_recommendation import SvdClass
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.dataframe_methods.preprocessing import preprocess_single_post_find_by_slug
-from src.recommender_core.recommender_algorithms \
-    .user_based_algorithms.user_keywords_recommendation import UserBasedMethods
+
 from flask import Flask, request
 from flask_restful import Resource, Api
+from flask_wtf.csrf import CSRFProtect
+
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
-# NOTICE: Logging didn't work really well for Pika so far... That's way using prints.
+# NOTICE: Logging didn't work really well for Pika so far... That's why using prints, although not ideal.
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging.")
@@ -52,12 +53,14 @@ def check_if_cache_exists_and_fresh():
     else:
         return False
 
+csrf = CSRFProtect()
 
 def create_app():
     # initializing files needed for the start of application
     # checking needed parts...
 
     if not check_if_cache_exists_and_fresh():
+        # NOTICE: Logging not working here, using prints
         print("Posts cache file does not exists, older than 1 day or columns do not match PostgreSQL columns.")
         print("Creating posts cache file...")
         recommender_methods = RecommenderMethods()
@@ -65,6 +68,7 @@ def create_app():
     print("Crating flask app...")
     flask_app = Flask(__name__)
     print("FLASK APP READY TO START!")
+    csrf.init_app(flask_app)
     return flask_app
 
 
@@ -190,15 +194,6 @@ class GetPostsByUserPreferences(Resource):
         return {"data": "Posted"}
 
 
-class GetPostsByLearnToRank(Resource):
-
-    def get(self, param1, param2):
-        return linear_regression(param1, param2)
-
-    def post(self):
-        return {"data": "Posted"}
-
-
 class GetWordLemma(Resource):
 
     def get(self, word):
@@ -227,24 +222,22 @@ def set_global_exception_handler(flask_app):
         return response, 500
 
 
-api.add_resource(GetPostsByOtherUsers, "/api/user/<int:param1>/<int:param2>")
-api.add_resource(GetPostsByUserPreferences, "/api/user-preferences/<int:param1>/<int:param2>")
-api.add_resource(GetPostsByKeywords, "/api/user-keywords")
-
-api.add_resource(GetPostsByLearnToRank, "/api/learn-to-rank/<int:param1>/<string:param2>")
+api.add_resource(GetPostsByOtherUsers, "/api/evalutation/<int:param1>/<int:param2>")
+api.add_resource(GetPostsByUserPreferences, "/api/evalutation-preferences/<int:param1>/<int:param2>")
+api.add_resource(GetPostsByKeywords, "/api/evalutation-keywords")
 
 api.add_resource(GetWordLemma, "/api/lemma/<string:word>")
 api.add_resource(Preprocess, "/api/preprocess/<string:slug>")
 
-api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-tfidf/<string:param>")
+api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-terms_frequencies/<string:param>")
 api.add_resource(GetPostsByOtherPostWord2Vec, "/api/post-word2vec/<string:param>")
 api.add_resource(GetPostsByOtherPostDoc2Vec, "/api/post-doc2vec/<string:param>")
-api.add_resource(GetPostsByOtherPostLda, "/api/post-lda/<string:param>")
+api.add_resource(GetPostsByOtherPostLda, "/api/post-topics/<string:param>")
 
-api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-tfidf-full-text/<string:param>")
+api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-terms_frequencies-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostDoc2VecFullText, "/api/post-doc2vec-full-text/<string:param>")
-api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-lda-full-text/<string:param>")
+api.add_resource(GetPostsByOtherPostLdaFullText, "/api/post-topics-full-text/<string:param>")
 
 if __name__ == "__main__":
     app.run(debug=True)
