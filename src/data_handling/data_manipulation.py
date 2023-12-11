@@ -69,10 +69,12 @@ class DatabaseMethods(object):
             raise ValueError("No from selected databases are implemented.")
 
     def load_env_variables(self):
-        self.DB_USER = os.environ['DB_RECOMMENDER_HEROKU_TESTING_USER']
-        self.DB_PASSWORD = os.environ['DB_RECOMMENDER_HEROKU_TESTING_PASSWORD']
-        self.DB_HOST = os.environ['DB_RECOMMENDER_HEROKU_TESTING_HOST']
-        self.DB_NAME = os.environ['DB_RECOMMENDER_HEROKU_TESTING_NAME']
+        db_user = os.environ['DB_RECOMMENDER_HEROKU_TESTING_USER']
+        db_password = os.environ['DB_RECOMMENDER_HEROKU_TESTING_PASSWORD']
+        db_host = os.environ['DB_RECOMMENDER_HEROKU_TESTING_HOST']
+        db_name = os.environ['DB_RECOMMENDER_HEROKU_TESTING_NAME']
+        
+        return db_user, db_password, db_host, db_name
 
     def connect(self):
         """
