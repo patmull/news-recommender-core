@@ -134,7 +134,7 @@ def prepare_and_run(database, method, full_text, reverse, random):
 
 def check_needed_columns():
     """
-    # 'all_features_preprocessed' (probably every method relies on this)
+    # 'all_features_preprocessed' (probably every method_name relies on this)
     # 'keywords' (LDA but probably also other methods relies on this)
     # 'body_preprocessed' (LDA relies on this)
     """

@@ -30,7 +30,7 @@ input_text = None
 
 def shuffle_and_reverse(posts, random_order, reversed_order=True):
     """
-    Sometimes may be beneficial to run prefilling in the random order. This is rather experimental method.
+    Sometimes may be beneficial to run prefilling in the random order. This is rather experimental method_name.
     @param posts: list of post slugs
     @param random_order: nomen omen
     @param reversed_order: nomen omen
@@ -141,7 +141,7 @@ def fill_body_preprocessed(skip_already_filled, random_order):
 
 def fill_all_features_preprocessed(skip_already_filled, random_order):
     """
-    Handles the data loaders and inserts fot the 'all_features_preprocessed' method.
+    Handles the data loaders and inserts fot the 'all_features_preprocessed' method_name.
 
     @param skip_already_filled:
     @param random_order:
@@ -208,7 +208,7 @@ def fill_ngrams_for_all_posts(skip_already_filled, random_order, full_text):
 
 class PreFillerAdditional:
 
-    # universal common method
+    # universal common method_name
     @PendingDeprecationWarning
     def fill_preprocessed(self, skip_already_filled, random_order):
         recommender_methods = RecommenderMethods()

@@ -75,7 +75,7 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     Method for actual live, deployed use. This uses the already filled vectors from PostgreSQL but if doesn't
     exists, calculate new ones from passed BERT model.
 
-    If this method takes a lot of time, prefill BERT vectors with prefilling function fill_bert_vector_representation().
+    If this method_name takes a lot of time, prefill BERT vectors with prefilling function fill_bert_vector_representation().
     """
     if predicted_var_for_redis_key_name == Naming.PREDICTED_BY_THUMBS_REDIS_KEY_NAME:
         if testing_mode is False:
@@ -124,7 +124,7 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
     logging.debug("df_results:")
     logging.debug(df_results.columns)
 
-    # NOTICE: Freshness of articles is already handled in predict_relevance_for_user() method
+    # NOTICE: Freshness of articles is already handled in predict_relevance_for_user() method_name
 
     if save_testing_csv is True:
         # noinspection PyTypeChecker
@@ -229,7 +229,7 @@ def save_eval_results(file, user_id, method, y_test, y_pred, to_txt=True, to_csv
             'precision_score': precision_score_list,
             'y_test': len(y_test_list),
             'y_pred': len(y_pred_list),
-            'method': method_list
+            'method_name': method_list
         })
 
         output_file = Path("stats/hybrid/classifier_eval_results.csv")
@@ -302,7 +302,7 @@ class Classifier:
                                                             df_predicted[target_variable_name]
                                                             .tolist(), test_size=test_size)
 
-        logging.info("Training using SVC method...")
+        logging.info("Training using SVC method_name...")
 
         # defining parameter range
         param_grid = {
@@ -356,7 +356,7 @@ class Classifier:
             "criterion": ["gini", "entropy"]
         }
 
-        logging.info("Training using RandomForest method...")
+        logging.info("Training using RandomForest method_name...")
         grid = GridSearchCV(RandomForestClassifier(), param_grid, refit=True, verbose=3)
 
         grid.fit(X_train, y_train)

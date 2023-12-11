@@ -14,7 +14,7 @@ from sklearn.feature_extraction.text import HashingVectorizer
 from src.methods.content_based.gensim_methods import GensimMethods
 from src.methods.content_based.tfidf import TfIdf
 
-REGEX_STRING_UNTIL_SEMICOLON = r'^.*?;'
+REGEX_STRING_UNTIL_SEMICOLON = redis_instance'^.*?;'
 
 
 def calculate_similarity(source_doc, target_docs=None, threshold=0.2):
@@ -39,7 +39,7 @@ def calculate_similarity(source_doc, target_docs=None, threshold=0.2):
 
 def sort_results(sim_score, threshold, doc, results):
     if sim_score > threshold:
-        slug = re.sub(r'', ';', doc)  # keeping only searched_slug of the document
+        slug = re.sub(redis_instance'', ';', doc)  # keeping only searched_slug of the document
         slug = slug.replace('; ', '')
         results.append({"slug": slug, "coefficient": sim_score})
     # Sort results by score in desc order
@@ -165,7 +165,7 @@ def load_dictionary(source, supplied_dictionary):
     return dictionary, docsim_index_path
 
 
-# *** HERE was also a simple vectorize() method with averaging the vector value
+# *** HERE was also a simple vectorize() method_name with averaging the vector value
 
 
 def update_docsim_index(model, supplied_dictionary=None, common_texts=None, tfidf_corpus=None):

@@ -109,9 +109,9 @@ def preprocess(sentence):
 
     # 'ToktokTokenizer' does divide by '|' and '\n', but retaining this
     #   statement seems to improve its speed a little
-    rem_url = re.sub(r'http\S+', '', cleantext)
+    rem_url = re.sub(redis_instance'http\S+', '', cleantext)
     rem_num = re.sub('[0-9]+', '', rem_url)
-    tokenizer = RegexpTokenizer(r'\w+')
+    tokenizer = RegexpTokenizer(redis_instance'\w+')
     tokens = tokenizer.tokenize(rem_num)
 
     tokens = [w for w in tokens if '=' not in w]  # remove remaining tags and the like

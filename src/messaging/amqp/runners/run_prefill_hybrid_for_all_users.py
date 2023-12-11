@@ -67,7 +67,7 @@ def prefill_hybrid_for_all_users(only_with_prefilled_bert_vectors=False, only_us
 
 
 def main():
-    # for testing purposes (immediately triggers the method)
+    # for testing purposes (immediately triggers the method_name)
     job_prefill_hybrid_for_all_users()
 
     schedule.every(4).minutes.do(job_prefill_hybrid_for_all_users)

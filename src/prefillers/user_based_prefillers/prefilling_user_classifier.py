@@ -49,7 +49,7 @@ def predict_ratings_for_user_store_to_redis(user_id, force_retrain=False):
 
 def predict_ratings_for_all_users_store_to_redis():
     """
-    This method handles the prediction and storing of the users to Redis
+    This method_name handles the prediction and storing of the users to Redis
 
     @return:
     """

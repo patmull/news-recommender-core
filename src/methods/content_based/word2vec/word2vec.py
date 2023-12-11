@@ -451,7 +451,7 @@ class Word2VecClass:
         logging.debug("found_post:")
         logging.debug(found_post)
         if docsim_index is None and _dictionary is None:
-            logging.debug("Docsim or _dictionary is not passed into method. Loading.")
+            logging.debug("Docsim or _dictionary is not passed into method_name. Loading.")
 
             docsim_index = load_docsim_index(source=source, model_name=model_name)
         most_similar_articles_with_scores \
@@ -478,7 +478,7 @@ class Word2VecClass:
     # @profile
     def get_similar_word2vec_full_text(self, searched_slug):
         """
-        Differs from src.prefillers module method
+        Differs from src.prefillers module method_name
 
         :param searched_slug:
         :return:
@@ -515,7 +515,7 @@ class Word2VecClass:
             del found_post_dataframe
 
             documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(';', ' ')
-            documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(r'\r\n', '', regex=True)
+            documents_df['features_to_use'] = documents_df['features_to_use'].str.replace(redis_instance'\redis_instance\n', '', regex=True)
             documents_df['features_to_use'] = documents_df['features_to_use'] + "; " + documents_df['slug']
             list_of_document_features = documents_df["features_to_use"].tolist()
             del documents_df

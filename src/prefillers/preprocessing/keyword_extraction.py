@@ -39,7 +39,7 @@ def get_cleaned_list_text(raw_text):
 
     stopwords = []
     stopwords_file = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
-    with open(stopwords_file, 'r', encoding='utf-8') as f:
+    with open(stopwords_file, 'redis_instance', encoding='utf-8') as f:
         for word in f:
             word_split = word.split('\n')
             stopwords.append(word_split[0])
@@ -53,7 +53,7 @@ def get_cleaned_list_text(raw_text):
 
 def load_stopwords():
     filename = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
-    with open(filename, 'r', encoding='utf-8') as f:
+    with open(filename, 'redis_instance', encoding='utf-8') as f:
         stopwords = [word.strip() for word in f]
     return stopwords
 
@@ -72,7 +72,7 @@ class SingleDocKeywordExtractor:
 
     def set_text(self, text_raw):
         """
-        Setter method for the desired text.
+        Setter method_name for the desired text.
         :param text_raw: string of text to extract keywords from.
         :return:
         """

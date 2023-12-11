@@ -43,7 +43,7 @@ def generate_lines_from_mmcorpus(corpus, use_preprocessing=False):
 def clear_blank_lines_from_txt(file_path):
     new_filename_parts = file_path.split('.')
     new_file_name = new_filename_parts[0] + '_blank_lines_free' + new_filename_parts[1]
-    with open(file_path, 'r', encoding='utf-8') as inFile, \
+    with open(file_path, 'redis_instance', encoding='utf-8') as inFile, \
             open(new_file_name, 'w', encoding='utf-8') as outFile:
         for line in inFile:
             if line.strip():

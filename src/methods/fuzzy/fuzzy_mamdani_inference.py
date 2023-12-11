@@ -89,7 +89,7 @@ def inference_simple_mamdani_cb_mixing(similarity, freshness, returned_method):
     logging.debug(freshness)
 
     if returned_method not in allowed_methods:
-        raise ValueError("Neither from passed returned method is in allowed methods")
+        raise ValueError("Neither from passed returned method_name is in allowed methods")
 
     # A simple fuzzy inference system for the EnsembleRatio problem
     # Create a fuzzy system object

@@ -50,7 +50,7 @@ def check_free_space_job():
 
 
 def main():
-    check_free_space_job()  # for testing purposes (immidiately triggers the method)
+    check_free_space_job()  # for testing purposes (immidiately triggers the method_name)
 
     schedule.every(30).minutes.do(check_free_space_job)
 

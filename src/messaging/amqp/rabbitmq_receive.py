@@ -79,8 +79,8 @@ def user_rated_by_stars_callback(ch, method, properties, body):
             Classifier was commented out for now to make SVD and hybrid faster.
             Classifier of both thumbs and ratings should be updated in thumbs_rating_queue.
             """
-            # method = 'classifier'
-            # call_collaborative_prefillers(method, body)
+            # method_name = 'classifier'
+            # call_collaborative_prefillers(method_name, body)
 
 
 def user_rated_by_thumb_callback(ch, method, properties, body):
@@ -190,7 +190,7 @@ def decode_msg_body_to_user_id(msg_body):
 
 
 def call_collaborative_prefillers(method, msg_body, retrain_classifier=False):
-    logging.debug("I'm calling method for updating of " + method + " prefilled recommendation...")
+    logging.debug("I'm calling method_name for updating of " + method + " prefilled recommendation...")
     try:
         logging.debug("Received JSON")
         received_user_id = decode_msg_body_to_user_id(msg_body)
@@ -231,7 +231,7 @@ def call_collaborative_prefillers(method, msg_body, retrain_classifier=False):
 
 
 """
-** HERE WAS A DECLARATION OF QUEUE ACTIVATED AFTER POST PREFILLING CALLING new_post_scrapped_callback() method.
+** HERE WAS A DECLARATION OF QUEUE ACTIVATED AFTER POST PREFILLING CALLING new_post_scrapped_callback() method_name.
 Abandoned due to unclear use case. **
 """
 

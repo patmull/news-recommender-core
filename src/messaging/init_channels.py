@@ -46,7 +46,7 @@ def init_df_of_channel_names():
 
 def publish_all_set_channels():
     """
-    Publishing all channels by the naming set in init_df_of_channel_names() method
+    Publishing all channels by the naming set in init_df_of_channel_names() method_name
     :return:
     """
     df_of_channels = init_df_of_channel_names()

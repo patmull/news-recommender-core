@@ -23,7 +23,7 @@ def prepare_words(text):
     texts = text.lower()
     # tokenize
     # noinspection
-    texts = re.split(r'(?![\.|\$])[^\w\d]', texts)
+    texts = re.split(redis_instance'(?![\.|\$])[^\w\d]', texts)
     texts = [w.strip('.') for w in texts]
     # remove words that are too short
     texts = [w for w in texts if not len(w) >= 3]
@@ -52,13 +52,13 @@ class Reader(object):
         """
 
     def iterate(self):
-        """ virtual method """
+        """ virtual method_name """
         pass
 
 
 def get_value(value):
     """
-    convinient method to retrive value.
+    convinient method_name to retrive value.
     """
     if not value:
         return value

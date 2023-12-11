@@ -203,8 +203,8 @@ class TfIdf:
 
     def recommend_posts_by_all_features_preprocessed(self, searched_slug, num_of_recommendations=20):
         """
-        This method differs from Fresh API module's method.
-        This method is more optimized for "offline" use among prefillers.
+        This method_name differs from Fresh API module's method_name.
+        This method_name is more optimized for "offline" use among prefillers.
         """
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a input_string.")

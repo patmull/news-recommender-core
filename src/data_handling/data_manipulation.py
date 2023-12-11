@@ -350,12 +350,12 @@ class DatabaseMethods(object):
     def get_posts_df_users_df_ratings_df(self):
         # EXTRACT RESULTS FROM CURSOR
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id
+        sql_rating = """SELECT redis_instance.id AS rating_id, p.id AS post_id, p.slug, u.id
         AS user_id, u.name,
-        r.value AS ratings_values
+        redis_instance.value AS ratings_values
                     FROM posts p
-                    JOIN ratings r ON r.post_id = p.id
-                    JOIN users u ON r.user_id = u.id;"""
+                    JOIN ratings redis_instance ON redis_instance.post_id = p.id
+                    JOIN users u ON redis_instance.user_id = u.id;"""
         # LOAD INTO A DATAFRAME
         df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
 
@@ -409,11 +409,11 @@ class DatabaseMethods(object):
 
         # EXTRACT RESULTS FROM CURSOR
 
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug AS post_slug, r.value AS ratings_values,
+        sql_rating = """SELECT redis_instance.id AS rating_id, p.id AS post_id, p.slug AS post_slug, redis_instance.value AS ratings_values,
         c.title AS category_title, c.slug AS category_slug, p.created_at AS post_created_at
         FROM posts p
-        JOIN ratings r ON r.post_id = p.id
-        JOIN users u ON r.user_id = u.id
+        JOIN ratings redis_instance ON redis_instance.post_id = p.id
+        JOIN users u ON redis_instance.user_id = u.id
         JOIN categories c ON c.id = p.category_id
         LEFT JOIN user_categories uc ON uc.category_id = c.id;"""
 
@@ -503,7 +503,7 @@ class DatabaseMethods(object):
         elif db == "redis":
             raise NotImplementedError("Redis is not implemented yet.")
         else:
-            raise ValueError("Not allowed DB method passed.")
+            raise ValueError("Not allowed DB method_name passed.")
 
     def insert_all_features_preprocessed(self, preprocessed_all_features, post_id):
         try:
@@ -570,7 +570,7 @@ class DatabaseMethods(object):
         if method in method_sql_map:
             sql_command = sql_command.format(method_sql_map[method])
         else:
-            raise ValueError("Selected method " + method + " not implemented.")
+            raise ValueError("Selected method_name " + method + " not implemented.")
 
         query = sql_command
         if self.cursor is not None:
@@ -652,25 +652,25 @@ class DatabaseMethods(object):
 
     def get_posts_users_categories_ratings(self, get_only_posts_with_prefilled_bert_vectors=False, user_id=None):
         if get_only_posts_with_prefilled_bert_vectors is False:
-            sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
-            p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
+            sql_rating = """SELECT redis_instance.id AS rating_id, p.id AS post_id, u.id AS user_id,
+            p.slug AS post_slug, redis_instance.value AS ratings_values, redis_instance.created_at AS ratings_created_at,
             c.title AS category_title, c.slug AS category_slug,
             p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed,
             p.full_text AS full_text
             FROM posts p
-            JOIN ratings r ON r.post_id = p.id
-            JOIN users u ON r.user_id = u.id
+            JOIN ratings redis_instance ON redis_instance.post_id = p.id
+            JOIN users u ON redis_instance.user_id = u.id
             JOIN categories c ON c.id = p.category_id
             LEFT JOIN user_categories uc ON uc.category_id = c.id;"""
         else:
-            sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, u.id AS user_id,
-            p.slug AS post_slug, r.value AS ratings_values, r.created_at AS ratings_created_at,
+            sql_rating = """SELECT redis_instance.id AS rating_id, p.id AS post_id, u.id AS user_id,
+            p.slug AS post_slug, redis_instance.value AS ratings_values, redis_instance.created_at AS ratings_created_at,
             c.title AS category_title, c.slug AS category_slug,
             p.created_at AS post_created_at, p.all_features_preprocessed AS all_features_preprocessed,
             p.full_text AS full_text
             FROM posts p
-            JOIN ratings r ON r.post_id = p.id
-            JOIN users u ON r.user_id = u.id
+            JOIN ratings redis_instance ON redis_instance.post_id = p.id
+            JOIN users u ON redis_instance.user_id = u.id
             JOIN categories c ON c.id = p.category_id
             LEFT JOIN user_categories uc ON uc.category_id = c.id
             WHERE bert_vector_representation IS NOT NULL;"""
@@ -747,8 +747,8 @@ class DatabaseMethods(object):
 
     def get_posts_users_ratings_df(self):
         # EXTRACT RESULTS FROM CURSOR
-        sql_rating = """SELECT r.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name,
-        r.value AS ratings_values FROM posts p JOIN ratings r ON r.post_id = p.id JOIN users u ON r.user_id = u.id;"""
+        sql_rating = """SELECT redis_instance.id AS rating_id, p.id AS post_id, p.slug, u.id AS user_id, u.name,
+        redis_instance.value AS ratings_values FROM posts p JOIN ratings redis_instance ON redis_instance.post_id = p.id JOIN users u ON redis_instance.user_id = u.id;"""
         # LOAD INTO A DATAFRAME
         df_ratings = pd.read_sql_query(sql_rating, self.get_cnx())
         sql_select_all_users = """SELECT u.id AS user_id, u.name FROM users u;"""
@@ -812,7 +812,7 @@ class DatabaseMethods(object):
                 r = get_redis_connection()
                 r.set(('evalutation:%s:evalutation-preferences-recommendation' % str(user_id)), recommended_json)
             else:
-                raise NotImplementedError("Given method for prefilling not implemnted. "
+                raise NotImplementedError("Given method_name for prefilling not implemnted. "
                                           "Cannot insert a recommended JSON.")
         else:
             raise NotImplementedError("Other database _source than PostgreSQL not implemented yet.")

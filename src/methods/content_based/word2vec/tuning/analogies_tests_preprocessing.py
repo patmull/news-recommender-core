@@ -11,7 +11,7 @@ def double_words(sentence):
     return list_of_duplicate_counts
 
 
-with open('../../../../../stats/evaluations/word2vec/analogies/questions-words-cs-preprocessed.txt', mode="r") as f:
+with open('../../../../../stats/evaluations/word2vec/analogies/questions-words-cs-preprocessed.txt', mode="redis_instance") as f:
     with open('../../../../../stats/evaluations/word2vec/analogies/questions-words-cs.txt', mode="w") as f2:
         for line in f:
             print(line)

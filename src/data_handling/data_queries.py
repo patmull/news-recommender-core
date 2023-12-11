@@ -211,7 +211,7 @@ class RecommenderMethods:
 
     def get_sql_columns(self):
         """
-        Init method from app.py. Need for post's cache sanity check
+        Init method_name from app.py. Need for post's cache sanity check
         @return: list of post's columns from DB
         """
         self.database.connect()
@@ -221,7 +221,7 @@ class RecommenderMethods:
 
     def get_sql_num_of_rows(self):
         """
-        Init method from app.py. Need for post's cache sanity check
+        Init method_name from app.py. Need for post's cache sanity check
         @return: number of post's rows from DB
         """
         self.database.connect()
@@ -275,7 +275,7 @@ class RecommenderMethods:
             self.database.insert_recommended_json_user_based(recommended_json=recommended_json,
                                                              user_id=user_id, db=db, method=method)
         else:
-            raise NotImplementedError("Given method not implemented for storing evalutation methods.")
+            raise NotImplementedError("Given method_name not implemented for storing evalutation methods.")
 
     def remove_test_user_prefilled_records(self, user_id, db_columns):
         self.database = DatabaseMethods()

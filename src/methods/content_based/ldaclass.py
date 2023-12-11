@@ -251,7 +251,7 @@ def preprocess_wiki_corpus():
 
         # removing words in greek, azbuka or arabian
         # use only one of the following lines, whichever you prefer
-        tokens = [i for i in tokens.split() if regex.sub(r'[^\p{Latin}]', u'', i)]
+        tokens = [i for i in tokens.split() if regex.sub(redis_instance'[^\p{Latin}]', u'', i)]
         processed_data.append(tokens)
 
         i = i + 1

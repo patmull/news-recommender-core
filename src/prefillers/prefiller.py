@@ -101,13 +101,13 @@ def insert_recommended_json_colab(method, current_user_id, actual_json=None, _ac
 
 def fill_recommended_collab_based(method, skip_already_filled, user_id=None, test_run=False):
     """
-    Handler method for collab-based prefilling.
+    Handler method_name for collab-based prefilling.
 
     @param method: i.e. "svd", "user_keywords" etc.
     @param skip_already_filled:
     @param user_id: Insert evalutation id if it is supposed to prefill recommendation only for a single evalutation,
     otherwise will prefill for all
-    @param test_run: Using for tests ensuring that the method is called
+    @param test_run: Using for tests ensuring that the method_name is called
     @return:
     """
     global actual_json_fuzzy
@@ -154,7 +154,7 @@ def get_tfidf_full_text_fit():
 
 def get_word2vec_docsim_index_model(method):
     if not method.startswith("word2vec_eval"):
-        raise ValueError("Wrong method called! Method param. does not start with 'word2vec_eval'")
+        raise ValueError("Wrong method_name called! Method param. does not start with 'word2vec_eval'")
 
     if method in W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES:
         selected_model_name = W2V_MODELS_FOLDER_PATHS_AND_MODEL_NAMES[method][1]
@@ -321,7 +321,7 @@ def handle_word2vec_variants(method, slug, w2v_model, docsim_index, dictionary):
                                                                 docsim_index=docsim_index,
                                                                 _dictionary=dictionary)
     else:
-        raise ValueError("No method option matches.")
+        raise ValueError("No method_name option matches.")
 
     return actual_recommended_json
 
@@ -422,7 +422,7 @@ def iterate_posts(posts, method, full_text, skip_already_filled=True,
 def fill_recommended_content_based(method, skip_already_filled, full_text=True, random_order=False,
                                    reversed_order=False):
     """
-    Method handling the I/O and recommending method call for the content-based prefilling.
+    Method handling the I/O and recommending method_name call for the content-based prefilling.
     It loads the ML models or pre-calculated files, calls the recommending methods, then saves the recommendations
     into the databse. It also handles the order of the checking, skipping of prefilled files etc...
 
@@ -456,22 +456,22 @@ def fill_recommended_content_based(method, skip_already_filled, full_text=True, 
 
     if method.startswith("terms_frequencies"):
         fit_by_full_text = get_tfidf_full_text_fit()
-        logging.info("Starting prefilling of the TF-IDF method.")
+        logging.info("Starting prefilling of the TF-IDF method_name.")
     elif method.startswith("word2vec_"):
         docsim_index, w2v_model = get_word2vec_docsim_index_model(method)
     elif method == 'word2vec':
         dictionary, docsim_index = get_word2vec_docsim_dictionary()
     elif method.startswith("doc2vec"):  # Here was 'doc2vec_' to distinguish full text variant
         if method == "doc2vec_eval_cswiki_1":
-            # Notice: Doc2Vec model gets loaded inside the Doc2Vec's class method
+            # Notice: Doc2Vec model gets loaded inside the Doc2Vec's class method_name
             logging.debug("Similarities on FastText doc2vec_model.")
             logging.debug("Loading Dov2Vec cs.Wikipedia.org doc2vec_model...")
     elif method == "topics":
-        logging.debug("Prefilling with LDA method.")
+        logging.debug("Prefilling with LDA method_name.")
     elif method.startswith("test_"):
-        logging.debug("Testing method")
+        logging.debug("Testing method_name")
     else:
-        raise ValueError("Non from selected method is supported. Check the 'method' parameter"
+        raise ValueError("Non from selected method_name is supported. Check the 'method_name' parameter"
                          "value.")
 
     iterate_posts(posts, method, full_text, skip_already_filled,

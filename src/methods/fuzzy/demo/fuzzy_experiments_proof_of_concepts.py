@@ -106,7 +106,7 @@ def inference_simple_mamdani_ensembling_ratio(similarity, freshness, returned_me
     """
     Demo of the Mamdani inference using the system's similarity, freshness and boosting measurement.
     Create a fuzzy system object
-    This method was later revisited and integrated into the Recommender Core module of the system.
+    This method_name was later revisited and integrated into the Recommender Core module of the system.
     @return: double of the Takagi-Sugeno fuzzy inference
     """
 
@@ -123,7 +123,7 @@ def inference_simple_mamdani_ensembling_ratio(similarity, freshness, returned_me
     logging.debug(freshness)
 
     if returned_method not in allowed_methods:
-        raise ValueError("Neither from passed returned method is in allowed methods")
+        raise ValueError("Neither from passed returned method_name is in allowed methods")
 
     # A simple fuzzy inference system for the EnsembleRatio problem
     # Create a fuzzy system object

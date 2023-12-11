@@ -35,8 +35,8 @@ def do_work_categories(_connection, _channel, delivery_tag, body):
         method = 'best_rated_by_others_in_user_categories'
         call_collaborative_prefillers(method, body)
         # Removed to ease up the memory
-        # method = 'hybrid'
-        # call_collaborative_prefillers(method, body)
+        # method_name = 'hybrid'
+        # call_collaborative_prefillers(method_name, body)
     except Exception as e:
         logging.warning(str(e))
         raise e

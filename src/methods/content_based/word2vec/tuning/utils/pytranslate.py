@@ -6,11 +6,11 @@ from deep_translator import GoogleTranslator, exceptions
 def translate_question_words():
     texts = []
     already_processed_texts = []
-    with (open('../../../../../../stats/evaluations/word2vec/analogies/questions-words.txt', 'r', encoding="utf-8")
+    with (open('../../../../../../stats/evaluations/word2vec/analogies/questions-words.txt', 'redis_instance', encoding="utf-8")
           as file):
         texts.extend(file.read().split("\n"))
 
-    with (open('../../../../../../stats/evaluations/word2vec/analogies/questions-words-cs.txt', 'r', encoding="utf-8")
+    with (open('../../../../../../stats/evaluations/word2vec/analogies/questions-words-cs.txt', 'redis_instance', encoding="utf-8")
           as file):
         already_processed_texts.extend(file.read().split("\n"))
 
@@ -50,7 +50,7 @@ def google_translate(text_to_translate):
 def clean_console_output_to_file():
 
     texts = []
-    with open('../../../../../../stats/evaluations/word2vec/translations/questions-words-cs-console-copy.txt', 'r',
+    with open('../../../../../../stats/evaluations/word2vec/translations/questions-words-cs-console-copy.txt', 'redis_instance',
               encoding="utf-8") as file:
         texts.extend(file.read().split("\n"))
     print("text:")

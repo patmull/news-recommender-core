@@ -54,7 +54,7 @@ def load_general_stopwords():
 
 def remove_stopwords(texts: Union[str, List[str]], cz_punct: bool = False) -> List[str]:
     """
-    The method that actually handles the stopwords removal.
+    The method_name that actually handles the stopwords removal.
     @rtype: list of words without stopwords
     """
     stopwords_cz = load_cz_stopwords(cz_punct)
