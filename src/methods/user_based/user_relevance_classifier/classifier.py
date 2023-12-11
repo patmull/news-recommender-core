@@ -10,9 +10,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, precision_score, balanced_accuracy_score, confusion_matrix
 
 from src.constants.naming import Naming
+from src.data_handling.data_manipulation import get_redis_connection
+from src.data_handling.data_queries import RecommenderMethods
 from src.logging.data_logging import log_dataframe_info
-from src.recommender_core.data_handling.data_manipulation import get_redis_connection
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 import logging
 
@@ -50,13 +50,13 @@ def show_true_vs_predicted(features_list, contexts_list, clf, bert_model):
         print("CONTENT:")
 
 
-def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, user_id,
+def predict_from_vectors(x_unseen_df, clf, predicted_var_for_redis_key_name, user_id,
                          save_testing_csv=False, bert_model=None, col_to_combine=None, testing_mode=False,
                          store_to_redis=True):
     """
 
     @param store_to_redis:
-    @param X_unseen_df:
+    @param x_unseen_df:
     @param clf:
     @param predicted_var_for_redis_key_name:
     @param user_id:
@@ -89,18 +89,18 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
             raise ValueError("If BERT model is supplied, then column list needs "
                              "to be supplied to col_to_combine_parameter!")
 
-    print("X_unseen_df size:")
-    print(X_unseen_df)
-    print(len(X_unseen_df.index))
+    print("x_unseen_df size:")
+    print(x_unseen_df)
+    print(len(x_unseen_df.index))
 
     print("Vectoring the selected columns...")
     # TODO: Takes a lot of time... Probably pre-calculate.
-    print("X_unseen_df:")
-    print(X_unseen_df)
+    print("x_unseen_df:")
+    print(x_unseen_df)
 
     print("Loading vectors or creating new if does not exists...")
     # noinspection  PyPep8
-    y_pred_unseen = X_unseen_df \
+    y_pred_unseen = x_unseen_df \
         .apply(lambda x: clf
                .predict(pickle
                         .loads(x['bert_vector_representation']))[0] if pd.notnull(x['bert_vector_representation']) else
@@ -108,12 +108,12 @@ def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, use
 
     y_pred_unseen = y_pred_unseen.rename('prediction')
 
-    logging.debug("X_unseen_df:")
-    logging.debug(X_unseen_df.columns)
+    logging.debug("x_unseen_df:")
+    logging.debug(x_unseen_df.columns)
     logging.debug("y_pred_unseen:")
     logging.debug(pd.DataFrame(y_pred_unseen).columns)
 
-    df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
+    df_results = pd.merge(x_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
 
     logging.debug("df_results:")
     logging.debug(df_results.columns)
@@ -265,7 +265,7 @@ class Classifier:
         logging.info("model after hyper-parameter tuning:")
         logging.info(grid.best_estimator_)
 
-        clf_svc = grid
+        _clf_svc = grid
 
         logging.info("SVC results accuracy score:")
 
@@ -341,7 +341,7 @@ class Classifier:
             logging.debug(model_file_name)
             path_to_models_pathlib = Path(self.path_to_models_global_folder)
             path_to_save_svc = Path.joinpath(path_to_models_pathlib, model_file_name)
-            joblib.dump(clf_svc, path_to_save_svc)
+            joblib.dump(_clf_svc, path_to_save_svc)
             logging.info("Saving the random forest model...")
             logging.info("Folder: " + self.path_to_models_global_folder)
             Path(self.path_to_models_global_folder).mkdir(parents=True, exist_ok=True)
@@ -352,12 +352,12 @@ class Classifier:
             path_to_save_forest = Path.joinpath(path_to_models_pathlib, model_file_name)
             joblib.dump(clf_random_forest, path_to_save_forest)
 
-        return clf_svc, clf_random_forest, X_validation, y_validation, self.bert_model
+        return _clf_svc, clf_random_forest, X_validation, y_validation, self.bert_model
 
     def load_classifiers(self, df, input_variables, predicted_variable, user_id=None):
         # https://metatext.io/models/distilbert-base-multilingual-cased
 
-        global clf_random_forest
+        global clf_random_forest, clf_svc
         if predicted_variable == 'thumbs_values' or predicted_variable == 'ratings_values':
             if user_id is None:
                 model_file_name_svc = 'svc_classifier_' + predicted_variable + '.pkl'
@@ -378,26 +378,12 @@ class Classifier:
         try:
             logging.debug("Loading SVC...")
             clf_svc = joblib.load(path_to_load_svc)
-        except FileNotFoundError as file_not_found_error:
-            logging.warning(file_not_found_error)
-            logging.warning("Model file was not found in the location, training from the start...")
-            try:
-                self.train_classifiers(df=df, columns_to_combine=input_variables,
-                                       target_variable_name=predicted_variable, user_id=user_id)
-            except ValueError as ve:
-                logging.warning(ve)
-                raise ve
-            clf_svc = joblib.load(path_to_load_svc)
+        except FileNotFoundError as fnfe:
+            self.handle_faulty_or_missing_model(fnfe, df, input_variables, predicted_variable,
+                                                path_to_load_svc)
         except KeyError as ke:
-            logging.warning(ke)
-            logging.warning("Model file was not found in the location, training from the start...")
-            try:
-                self.train_classifiers(df=df, columns_to_combine=input_variables,
-                                       target_variable_name=predicted_variable, user_id=user_id)
-            except ValueError as ve:
-                logging.warning(ve)
-                raise ve
-            clf_svc = joblib.load(path_to_load_svc)
+            self.handle_faulty_or_missing_model(ke, df, input_variables, predicted_variable,
+                                                path_to_load_svc)
         except Exception as e:
             raise e
 
@@ -411,15 +397,8 @@ class Classifier:
                                    target_variable_name=predicted_variable, user_id=user_id)
             clf_random_forest = joblib.load(path_to_load_random_forest)
         except KeyError as ke:
-            logging.warning(ke)
-            logging.warning("Model file was not found in the location, training from the start...")
-            try:
-                self.train_classifiers(df=df, columns_to_combine=input_variables,
-                                       target_variable_name=predicted_variable, user_id=user_id)
-            except ValueError as ve:
-                logging.warning(ve)
-                raise ve
-            clf_svc = joblib.load(path_to_load_svc)
+            self.handle_faulty_or_missing_model(ke, df, input_variables,
+                                                predicted_variable, path_to_load_svc)
         except Exception as e:
             raise e
 
@@ -575,7 +554,7 @@ class Classifier:
             logging.debug("clf_svc:")
             logging.debug(clf_svc)
 
-            predict_from_vectors(X_unseen_df=X_unseen, clf=clf_svc, user_id=user_id,
+            predict_from_vectors(x_unseen_df=X_unseen, clf=clf_svc, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,
                                  save_testing_csv=True, store_to_redis=store_to_redis)
@@ -583,11 +562,10 @@ class Classifier:
             logging.debug("=========================")
             logging.debug("Inserting by Random Forest:")
             logging.debug("=========================")
-            predict_from_vectors(X_unseen_df=X_unseen, clf=clf_random_forest, user_id=user_id,
+            predict_from_vectors(x_unseen_df=X_unseen, clf=clf_random_forest, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,
                                  save_testing_csv=True, store_to_redis=store_to_redis)
-
 
     def save_eval_results(self, file, user_id, method, y_test, y_pred, to_txt=True, to_csv=True):
 
@@ -644,4 +622,16 @@ class Classifier:
             })
 
             output_file = Path("stats/hybrid/classifier_eval_results.csv")
-            df.to_csv(output_file.as_posix(), mode='a', header=not os.path.exists(output_file))
+            df.to_csv(path_or_buf=output_file.as_posix(), mode='a', header=not os.path.exists(output_file))
+
+    def handle_faulty_or_missing_model(self, file_not_found_error, df, input_variables, predicted_variable,
+                                       path_to_load_svc):
+        logging.warning(file_not_found_error)
+        logging.warning("Model file was not found in the location, training from the start...")
+        try:
+            self.train_classifiers(df=df, columns_to_combine=input_variables,
+                                   target_variable_name=predicted_variable, user_id=user_id)
+        except ValueError as ve:
+            logging.warning(ve)
+            raise ve
+        clf_svc = joblib.load(path_to_load_svc)
