@@ -43,7 +43,7 @@ def prepare_words(text):
 
 class Reader(object):
     """
-    Source reader object feeds other objects to iterate through a source.
+    Source reader object feeds other objects to iterate through a _source.
     """
 
     def __init__(self):
@@ -82,13 +82,13 @@ def build_sentences():
 
 def get_preprocessed_dict_idnes(filter_extremes, path_to_dict):
     sentences = build_sentences()
-    print("Creating dictionary...")
+    print("Creating _dictionary...")
     preprocessed_dictionary = corpora.Dictionary(line for line in sentences)
     del sentences
     gc.collect()
     if filter_extremes is True:
         preprocessed_dictionary.filter_extremes()
-    print("Saving dictionary...")
+    print("Saving _dictionary...")
     preprocessed_dictionary.save(path_to_dict)
     print("Dictionary saved to: " + path_to_dict)
     return preprocessed_dictionary
@@ -127,12 +127,12 @@ class MongoReader(Reader):
         self.return_fields = ['text']
 
     def iterate(self):
-        """ Iterate through the source reader """
+        """ Iterate through the _source reader """
         if not self.conn:
             try:
                 self.conn = pymongo.MongoClient(self.mongoURI)[self.dbName][self.collName]
             except Exception as ex:
-                raise ConnectionError("ERROR establishing connection: %s" % ex)
+                raise ConnectionError("ERROR establishing _connection: %s" % ex)
 
         if self.limit:
             cursor = self.conn.find().limit(self.limit)

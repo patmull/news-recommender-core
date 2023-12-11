@@ -4,9 +4,9 @@ import pandas as pd
 import pytest
 from pandas.io.sql import DatabaseError
 
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
 from src.prefillers.prefiller import fill_recommended_collab_based
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
 
 
 # Good day scenario
@@ -18,7 +18,7 @@ class TestGetUsersGoodDay:
         for method in methods:
             column_name = "recommended_by_" + method
             all_users = recommender_methods.get_all_users(only_with_id_and_column_named=column_name)
-            assert(isinstance(all_users, pd.DataFrame))
+            assert isinstance(all_users, pd.DataFrame)
 
     def test_get_all_users_database_method(self):
         database = DatabaseMethods()

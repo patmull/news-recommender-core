@@ -1,21 +1,17 @@
-import logging
 import unittest
-from pathlib import Path
 
 import pytest
-from gensim.models import KeyedVectors
 
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from src.recommender_core.recommender_algorithms.content_based_algorithms.lda import Lda, prepare_post_categories_df
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
+from src.methods.content_based.doc2vec import Doc2VecClass
+from src.methods.content_based.ldaclass import prepare_post_categories_df, get_searched_doc_id
+from src.methods.content_based.tfidf import TfIdf
+from src.methods.content_based.word2vec.word2vec import Word2VecClass
+from tests.test_integration.common_asserts import assert_recommendation
+
 
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
-
-# py.test tests/test_recommender_methods/test_content_based_methods.py -k 'test_tfidf_method_bad_input'
-from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from src.recommender_core.recommender_algorithms.content_based_algorithms.word2vec import Word2VecClass
-from tests.test_integration.common_asserts import assert_recommendation
 
 
 @pytest.mark.parametrize("tested_input", [
@@ -89,7 +85,8 @@ def test_doc2vec_method_bad_input(tested_input):
 class TestLda:
 
     """
-    pytest tests/test_integration/test_recommender_methods/test_content_based_methods.py::TestLda::test_get_searched_doc_id
+    pytest
+    tests/test_integration/test_recommender_methods/test_content_based_methods.py::TestLda::test_get_searched_doc_id
     """
     def test_get_searched_doc_id(self):
         database = DatabaseMethods()
@@ -99,8 +96,7 @@ class TestLda:
 
         recommender_methods = RecommenderMethods()
         recommender_methods.df = prepare_post_categories_df(recommender_methods, True, random_post_slug)
-        lda = Lda()
-        searched_doc_id = lda.get_searched_doc_id(recommender_methods, random_post_slug)
+        searched_doc_id = get_searched_doc_id(recommender_methods, random_post_slug)
         assert type(searched_doc_id) is int
 
 

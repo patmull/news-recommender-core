@@ -3,9 +3,11 @@ import os
 import random
 import traceback
 from pathlib import Path
+from sqlite3 import DatabaseError
 
 import psycopg2
 import psycopg2.extras
+from psycopg2.sql import Identifier, SQL
 import pandas as pd
 import redis
 from typing import List
@@ -27,6 +29,15 @@ def print_exception_not_inserted(e):
     logging.debug(e)
 
 
+def load_env_variables():
+    db_user = os.environ['DB_RECOMMENDER_HEROKU_TESTING_USER']
+    db_password = os.environ['DB_RECOMMENDER_HEROKU_TESTING_PASSWORD']
+    db_host = os.environ['DB_RECOMMENDER_HEROKU_TESTING_HOST']
+    db_name = os.environ['DB_RECOMMENDER_HEROKU_TESTING_NAME']
+
+    return db_user, db_password, db_host, db_name
+
+
 class DatabaseMethods(object):
     """
     The main class of the database methods.
@@ -45,15 +56,15 @@ class DatabaseMethods(object):
         self.cursor = None
 
         self.commands = {
-            'select-all-posts': self.commands['select-all-posts']
+            'select-all-posts': "SELECT * FROM posts"
         }
 
         if db == "pgsql":
             if "PYTEST_CURRENT_TEST" in os.environ:
-                self.load_env_variables()
+                self.DB_USER, self.DB_PASSWORD, self.DB_HOST, self.DB_NAME = load_env_variables()
             else:
 
-                self.load_env_variables()
+                self.DB_USER, self.DB_PASSWORD, self.DB_HOST, self.DB_NAME = load_env_variables()
 
                 # Debugging prefillers on local production DB copy
                 """
@@ -64,15 +75,9 @@ class DatabaseMethods(object):
                 """
 
         elif db == "pgsql_heroku_testing":
-            self.load_env_variables()
+            load_env_variables()
         else:
             raise ValueError("No from selected databases are implemented.")
-
-    def load_env_variables(self):
-        self.DB_USER = os.environ['DB_RECOMMENDER_HEROKU_TESTING_USER']
-        self.DB_PASSWORD = os.environ['DB_RECOMMENDER_HEROKU_TESTING_PASSWORD']
-        self.DB_HOST = os.environ['DB_RECOMMENDER_HEROKU_TESTING_HOST']
-        self.DB_NAME = os.environ['DB_RECOMMENDER_HEROKU_TESTING_NAME']
 
     def connect(self):
         """
@@ -121,7 +126,7 @@ class DatabaseMethods(object):
     def get_all_posts(self):
         """
 
-        :return: dictionary of columns and data
+        :return: _dictionary of columns and data
         """
         sql_command = self.commands['select-all-posts']
 
@@ -777,7 +782,7 @@ class DatabaseMethods(object):
     def insert_recommended_rdbs(self, method, recommended_json, user_id):
         try:
             column_name = "recommended_by_" + method
-            query = sql_command.sql_command("UPDATE users SET {} = %s WHERE id = %s;").format(sql_command.Identifier(column_name))
+            query = SQL("UPDATE users SET {} = %s WHERE id = %s;").format(Identifier(column_name))
             inserted_values = (recommended_json, user_id)
             if self.cursor is not None and self.cnx is not None:
                 self.cursor.execute(query, inserted_values)
@@ -810,7 +815,7 @@ class DatabaseMethods(object):
                 raise NotImplementedError("Given method for prefilling not implemnted. "
                                           "Cannot insert a recommended JSON.")
         else:
-            raise NotImplementedError("Other database source than PostgreSQL not implemented yet.")
+            raise NotImplementedError("Other database _source than PostgreSQL not implemented yet.")
 
     def null_test_user_prefilled_records(self, user_id: int, db_columns: List[str]):
         """
@@ -838,7 +843,6 @@ class DatabaseMethods(object):
         """
         Method used for testing purposes.
         @param post_id:
-        @param user_id:
         @param db_columns:
         @return:
         """

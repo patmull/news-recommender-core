@@ -7,7 +7,7 @@ from src.constants.file_paths import get_cached_posts_file_path
 from src.data_handling.data_queries import RecommenderMethods
 from src.data_handling.dataframe_methods.preprocessing import preprocess_single_post_find_by_slug
 from src.methods.content_based.doc2vec import Doc2VecClass
-from src.methods.content_based.lda import Lda
+from src.methods.content_based.ldaclass import LdaClass
 from src.methods.content_based.tfidf import TfIdf
 from src.methods.content_based.word2vec.word2vec import Word2VecClass
 from src.methods.user_based.collaboration_based_recommendation import SvdClass
@@ -17,7 +17,6 @@ from src.prefillers.preprocessing.czech_preprocessing import cz_lemma
 from flask import Flask, request
 from flask_restful import Resource, Api
 from flask_wtf.csrf import CSRFProtect
-
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -53,7 +52,9 @@ def check_if_cache_exists_and_fresh():
     else:
         return False
 
+
 csrf = CSRFProtect()
+
 
 def create_app():
     # initializing files needed for the start of application
@@ -83,6 +84,7 @@ def home():
 
 # Here was GetPostByLearnToRiank using XGBoost
 
+# noinspection PyMethodMayBeStatic
 class GetPostsByOtherPostTfIdf(Resource):
 
     def get(self, param):
@@ -93,6 +95,7 @@ class GetPostsByOtherPostTfIdf(Resource):
         return {"data": "Posted"}
 
 
+# noinspection PyMethodMayBeStatic
 class GetPostsByOtherPostWord2Vec(Resource):
 
     def get(self, param):
@@ -103,6 +106,7 @@ class GetPostsByOtherPostWord2Vec(Resource):
         return {"data": "Posted"}
 
 
+# noinspection PyMethodMayBeStatic
 class GetPostsByOtherPostDoc2Vec(Resource):
 
     def get(self, param):
@@ -113,16 +117,7 @@ class GetPostsByOtherPostDoc2Vec(Resource):
         return {"data": "Posted"}
 
 
-class GetPostsByOtherPostLda(Resource):
-
-    def get(self, param):
-        lda = Lda()
-        return lda.get_similar_lda(param)
-
-    def post(self):
-        return {"data": "Posted"}
-
-
+# noinspection PyMethodMayBeStatic
 class GetPostsByOtherPostTfIdfFullText(Resource):
 
     def get(self, param):
@@ -133,6 +128,7 @@ class GetPostsByOtherPostTfIdfFullText(Resource):
         return {"data": "Posted"}
 
 
+# noinspection PyMethodMayBeStatic
 class GetPostsByOtherPostWord2VecFullText(Resource):
 
     def get(self, param):
@@ -143,6 +139,7 @@ class GetPostsByOtherPostWord2VecFullText(Resource):
         return {"data": "Posted"}
 
 
+# noinspection PyMethodMayBeStatic
 class GetPostsByOtherPostDoc2VecFullText(Resource):
 
     def get(self, param):
@@ -153,16 +150,18 @@ class GetPostsByOtherPostDoc2VecFullText(Resource):
         return {"data": "Posted"}
 
 
+# noinspection PyMethodMayBeStatic
 class GetPostsByOtherPostLdaFullText(Resource):
 
     def get(self, param):
-        lda = Lda()
+        lda = LdaClass()
         return lda.get_similar_lda_full_text(param)
 
     def post(self):
         return {"data": "Posted"}
 
 
+# noinspection PyMethodMayBeStatic
 class GetPostsByKeywords(Resource):
 
     def get(self):
@@ -174,6 +173,7 @@ class GetPostsByKeywords(Resource):
         return tfidf.keyword_based_comparison(input_json_keywords["keywords"])
 
 
+# noinspection PyMethodMayBeStatic
 class GetPostsByOtherUsers(Resource):
 
     def get(self, param1, param2):
@@ -184,6 +184,7 @@ class GetPostsByOtherUsers(Resource):
         return {"data": "Posted"}
 
 
+# noinspection PyMethodMayBeStatic
 class GetPostsByUserPreferences(Resource):
 
     def get(self, param1, param2):
@@ -194,6 +195,7 @@ class GetPostsByUserPreferences(Resource):
         return {"data": "Posted"}
 
 
+# noinspection PyMethodMayBeStatic
 class GetWordLemma(Resource):
 
     def get(self, word):
@@ -203,6 +205,7 @@ class GetWordLemma(Resource):
         return {"data": "Posted"}
 
 
+# noinspection PyMethodMayBeStatic
 class Preprocess(Resource):
 
     def get(self, slug):
@@ -232,7 +235,6 @@ api.add_resource(Preprocess, "/api/preprocess/<string:slug>")
 api.add_resource(GetPostsByOtherPostTfIdf, "/api/post-terms_frequencies/<string:param>")
 api.add_resource(GetPostsByOtherPostWord2Vec, "/api/post-word2vec/<string:param>")
 api.add_resource(GetPostsByOtherPostDoc2Vec, "/api/post-doc2vec/<string:param>")
-api.add_resource(GetPostsByOtherPostLda, "/api/post-topics/<string:param>")
 
 api.add_resource(GetPostsByOtherPostTfIdfFullText, "/api/post-terms_frequencies-full-text/<string:param>")
 api.add_resource(GetPostsByOtherPostWord2VecFullText, "/api/post-word2vec-full-text/<string:param>")

@@ -1,24 +1,25 @@
 import logging
 
-from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator, exceptions
 
 
 def translate_question_words():
     texts = []
     already_processed_texts = []
-    with open('../../../../../../stats/evaluations/word2vec/analogies/questions-words.txt', 'r', encoding="utf-8") as file:
+    with (open('../../../../../../stats/evaluations/word2vec/analogies/questions-words.txt', 'r', encoding="utf-8")
+          as file):
         texts.extend(file.read().split("\n"))
 
-    with open('../../../../../../stats/evaluations/word2vec/analogies/questions-words-cs.txt', 'r', encoding="utf-8") as file:
+    with (open('../../../../../../stats/evaluations/word2vec/analogies/questions-words-cs.txt', 'r', encoding="utf-8")
+          as file):
         already_processed_texts.extend(file.read().split("\n"))
 
     num_of_already_processed = len(already_processed_texts)
 
     logging.info("TRANSLATING TEXTS...")
     translations = []
-    BATCH_SIZE = 100
+    batch_size = 100
     batch_counter = 0
-    text_batch = ""
     i = 0
     for text in texts:
         if i < num_of_already_processed:
@@ -26,29 +27,31 @@ def translate_question_words():
             pass
         else:
             try:
-                translation = GoogleTranslator(source='en', target='cs').translate((text))
+                translation = GoogleTranslator(source='en', target='cs').translate(text)
                 translations.append(translation + "\n")
-                if batch_counter == BATCH_SIZE:
-                    with open('../../../../../../stats/evaluations/word2vec/analogies/questions-words-cs.txt', 'a', encoding="utf-8") as file:
+                if batch_counter == batch_size:
+                    with open('../../../../../../stats/evaluations/word2vec/analogies/questions-words-cs.txt', 'a',
+                              encoding="utf-8") as file:
                         file.writelines(translations)
                         batch_counter = 0
                         translations = []
                 batch_counter = batch_counter + 1
-            except Exception as e:
-                print("Translation error.")
+            except exceptions.TranslatorException as e:
+                print("Translation error: ", e)
 
         i = i + 1
 
 
 def google_translate(text_to_translate):
-    translation = GoogleTranslator(source='en', target='cs').translate((text_to_translate))
+    translation = GoogleTranslator(source='en', target='cs').translate(text_to_translate)
     return translation
 
 
 def clean_console_output_to_file():
 
     texts = []
-    with open('../../../../../../stats/evaluations/word2vec/translations/questions-words-cs-console-copy.txt', 'r', encoding="utf-8") as file:
+    with open('../../../../../../stats/evaluations/word2vec/translations/questions-words-cs-console-copy.txt', 'r',
+              encoding="utf-8") as file:
         texts.extend(file.read().split("\n"))
     print("text:")
     print(texts)
@@ -70,8 +73,8 @@ def clean_console_output_to_file():
             i = 0
         i = i + 1
 
-        with open('../../../../../../stats/evaluations/word2vec/translations/questions-words-cs-translated_so_far.txt', 'w+',
-                  encoding="utf-8") as file:
+        with open('../../../../../../stats/evaluations/word2vec/translations/questions-words-cs-translated_so_far.txt',
+                  'w+', encoding="utf-8") as file:
             file.writelines(texts_cleaned)
 
 

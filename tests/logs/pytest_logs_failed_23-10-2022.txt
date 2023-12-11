@@ -102,7 +102,7 @@ tests\test_unit\test_recommender_methods\test_user_relevance_classifier.py .....
 ======================================================================================= FAILURES ========================================================================================
 _______________________________________________________________________________ test_lda_full_text_method _______________________________________________________________________________
 
-self = <src.recommender_core.recommender_algorithms.content_based_algorithms.lda.Lda object at 0x000001A49FE282E0>
+self = <src.recommender_core.recommender_algorithms.content_based_algorithms.lda.LdaClass object at 0x000001A49FE282E0>
 data =     post_id  user_id  ...                                tokenized_full_text                tokenized_all_features_pre... axios, fotografie, zevnitř, nouzový, uby...  [snímka, uká
 zat, podmínka, usa, fotografie, po...
 
@@ -115,7 +115,7 @@ display_dominant_topics = True
             lda_model = LdaModel.load("models/lda_model_full_text")
 >           dictionary = gensim.corpora.Dictionary.load('precalc_vectors/lda/lda/dictionary_full_text.gensim')
 
-src\recommender_core\recommender_algorithms\content_based_algorithms\lda.py:655:
+src\recommender_core\recommender_algorithms\content_based_algorithms\ldaclass.py:655:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 cls = <class 'gensim.corpora.dictionary.Dictionary'>, fname = 'precalc_vectors/lda/lda/dictionary_full_text.gensim', mmap = None
@@ -349,7 +349,7 @@ During handling of the above exception, another exception occurred:
 
     @pytest.mark.integtest
     def test_lda_full_text_method():
-        lda = Lda()
+        lda = LdaClass()
         # random_order article
         database = DatabaseMethods()
         posts = database.get_posts_dataframe()
@@ -359,11 +359,11 @@ During handling of the above exception, another exception occurred:
 
 tests\test_integration\test_only_local_working_methods\test_content_based_local.py:72:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-src\recommender_core\recommender_algorithms\content_based_algorithms\lda.py:595: in get_similar_lda_full_text
+src\recommender_core\recommender_algorithms\content_based_algorithms\ldaclass.py:595: in get_similar_lda_full_text
     dictionary, corpus, lda = self.load_lda_full_text(recommender_methods.df,
-src\recommender_core\recommender_algorithms\content_based_algorithms\lda.py:660: in load_lda_full_text
+src\recommender_core\recommender_algorithms\content_based_algorithms\ldaclass.py:660: in load_lda_full_text
     self.train_lda_full_text(data, display_dominant_topics)
-src\recommender_core\recommender_algorithms\content_based_algorithms\lda.py:744: in train_lda_full_text
+src\recommender_core\recommender_algorithms\content_based_algorithms\ldaclass.py:744: in train_lda_full_text
     np.save('precalc_vectors/lda/lda/lda_doc_topic_dist_full_text.npy',
 <__array_function__ internals>:180: in save
     ???
@@ -617,8 +617,8 @@ DEBUG    root:data_queries.py:371     id category_title  ... created_at updated_
 DEBUG    root:data_queries.py:372 Index(['id', 'category_title', 'description', 'category_slug', 'created_at',
        'updated_at'],
       dtype='object')
-DEBUG    root:lda.py:574 recommender_methods.df
-DEBUG    root:lda.py:575     post_id  user_id  ... created_at_y updated_at_y
+DEBUG    root:ldaclass.py:574 recommender_methods.df
+DEBUG    root:ldaclass.py:575     post_id  user_id  ... created_at_y updated_at_y
 0      1503       22  ...         None         None
 1      1652       22  ...         None         None
 2      1612       22  ...         None         None
@@ -662,7 +662,7 @@ closefd': True, 'opener': None, 'ignore_ext': False, 'compression': None, 'trans
 INFO     gensim.utils:utils.py:481 loading Dictionary object from precalc_vectors/lda/lda/dictionary_full_text.gensim
 DEBUG    smart_open.smart_open_lib:smart_open_lib.py:170 {'uri': 'precalc_vectors/lda/lda/dictionary_full_text.gensim', 'mode': 'rb', 'buffering': -1, 'encoding': None, 'errors': None, '
 newline': None, 'closefd': True, 'opener': None, 'ignore_ext': False, 'compression': None, 'transport_params': None}
-DEBUG    root:lda.py:671 0     [odpykávat šestiletý trest, vězení, zakázka st...
+DEBUG    root:ldaclass.py:671 0     [odpykávat šestiletý trest, vězení, zakázka st...
 1     [třást kolik procent, film procent, jméno pron...
 2     [minulý střed vyplývat, benzin koruna, web spo...
 3     [letošní duben ukazovat, bitcoin, bitcoin prod...
@@ -685,8 +685,8 @@ DEBUG    root:lda.py:671 0     [odpykávat šestiletý trest, vězení, zakázka
 20    [obří metalurgický závod, mariupol, ovládnutí ...
 21    [fotografie poprvé ukazovat, migrant, detenční...
 Name: tokenized, dtype: object
-DEBUG    root:lda.py:222 data_words:
-DEBUG    root:lda.py:223 [['odpykávat šestiletý trest', 'vězení', 'zakázka středočeský kraj', 'zakázka středočeský', 'brnět', 'kott rathův', 'manipulace', 'vězení', 'petra', 'kotta', 'vě
+DEBUG    root:ldaclass.py:222 data_words:
+DEBUG    root:ldaclass.py:223 [['odpykávat šestiletý trest', 'vězení', 'zakázka středočeský kraj', 'zakázka středočeský', 'brnět', 'kott rathův', 'manipulace', 'vězení', 'petra', 'kotta', 'vě
 zení', 'odpykávat', 'šestiletý', 'trest', 'zakázka', 'středočeský', 'zakázka', 'středočeský', 'kraj', 'kott', 'rathův', 'petr', 'kott', 'rathův', 'spolupachatel', 'petr', 'kott', 'rathův
 ', 'spolupachatel', 'z', 'korupční', 'kauza', 'opustit', 'vězení', 'krajský', 'soud', 'v', 'brnět', 'podle', 'server', 'český', 'justice', 'podmínečně', 'propustit', 'z', 'vězení', 'petr
 a', 'kotta', 'bývalý', 'poslanec', 'se', 'odpykávat', 'šestiletý', 'trest', 'za', 'manipulace', 'se', 'zakázka', 'středočeský', 'kraj', 'už', 'červen', 'se', 'dostat', 'na', 'svoboda', '
@@ -1128,8 +1128,8 @@ DEBUG    gensim.utils:utils.py:443 starting a new internal lifecycle event log f
 INFO     gensim.utils:utils.py:447 Phrases lifecycle event {'msg': 'built Phrases<10459 vocab, min_count=5, threshold=100, max_vocab_size=40000000> in 0.03s', 'datetime': '2022-10-23T22:
 29:51.422725', 'gensim': '4.1.2', 'python': '3.8.10 (tags/v3.8.10:3d8993a, May  3 2021, 11:48:03) [MSC v.1928 64 bit (AMD64)]', 'platform': 'Windows-10-10.0.19043-SP0', 'event': 'created
 '}
-DEBUG    root:lda.py:225 bigram
-DEBUG    root:lda.py:226 Phrases<10459 vocab, min_count=5, threshold=100, max_vocab_size=40000000>
+DEBUG    root:ldaclass.py:225 bigram
+DEBUG    root:ldaclass.py:226 Phrases<10459 vocab, min_count=5, threshold=100, max_vocab_size=40000000>
 INFO     gensim.models.phrases:phrases.py:583 collecting all words and their counts
 INFO     gensim.models.phrases:phrases.py:586 PROGRESS: at sentence #0, processed 0 words and 0 word types
 INFO     gensim.models.phrases:phrases.py:607 collected 10455 token types (unigram + bigrams) from a corpus of 8313 words and 22 sentences
@@ -1573,8 +1573,8 @@ INFO     gensim.utils:utils.py:709 not storing attribute state
 DEBUG    smart_open.smart_open_lib:smart_open_lib.py:170 {'uri': 'tests/models/lda_testing.model', 'mode': 'wb', 'buffering': -1, 'encoding': None, 'errors': None, 'newline': None, 'clos
 efd': True, 'opener': None, 'ignore_ext': False, 'compression': None, 'transport_params': None}
 INFO     gensim.utils:utils.py:617 saved tests/models/lda_testing.model
-DEBUG    root:lda.py:799 df_dominant_topic_merged.columns:
-DEBUG    root:lda.py:800 Index(['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords',
+DEBUG    root:ldaclass.py:799 df_dominant_topic_merged.columns:
+DEBUG    root:ldaclass.py:800 Index(['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords',
        'Text', 'tokenized'],
       dtype='object')
 INFO     gensim.utils:utils.py:481 loading LdaModel object from tests/models/lda_testing.model
@@ -2272,12 +2272,12 @@ self = <tests.test_integration.test_recommender_methods.test_content_based_metho
 
         recommender_methods = RecommenderMethods()
         recommender_methods = prepare_post_categories_df(recommender_methods, True, random_post_slug)
-        lda = Lda()
+        lda = LdaClass()
 >       searched_doc_id = lda.get_searched_doc_id(recommender_methods, random_post_slug)
 
 tests\test_integration\test_recommender_methods\test_content_based_methods.py:130:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-src\recommender_core\recommender_algorithms\content_based_algorithms\lda.py:556: in get_searched_doc_id
+src\recommender_core\recommender_algorithms\content_based_algorithms\ldaclass.py:556: in get_searched_doc_id
     recommender_methods.df = recommender_methods.df.rename(columns={'post_slug': 'slug'})
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
@@ -2380,8 +2380,8 @@ DEBUG    root:data_queries.py:371     id category_title  ... created_at updated_
 DEBUG    root:data_queries.py:372 Index(['id', 'category_title', 'description', 'category_slug', 'created_at',
        'updated_at'],
       dtype='object')
-INFO     root:lda.py:554 Finding id for post with slug:
-INFO     root:lda.py:555 poklony-sklizi-i-od-hirschera-odermatt-ted-veri-ze-solden-byl-jen-zacatek
+INFO     root:ldaclass.py:554 Finding id for post with slug:
+INFO     root:ldaclass.py:555 poklony-sklizi-i-od-hirschera-odermatt-ted-veri-ze-solden-byl-jen-zacatek
 ___________________________________________________________________________ test_hybrid_by_svd_history_tfidf ____________________________________________________________________________
 
 self = <src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf.TfIdf object at 0x000001A4B5FEF520>
@@ -3565,7 +3565,7 @@ src\recommender_core\recommender_algorithms\content_based_algorithms\doc_sim.py 
 src\recommender_core\recommender_algorithms\content_based_algorithms\exceptions.py                                           0      0   100%
 src\recommender_core\recommender_algorithms\content_based_algorithms\gensim_methods.py                                      76     34    55%
 src\recommender_core\recommender_algorithms\content_based_algorithms\helper.py                                              58     31    47%
-src\recommender_core\recommender_algorithms\content_based_algorithms\lda.py                                                519    319    39%
+src\recommender_core\recommender_algorithms\content_based_algorithms\ldaclass.py                                                519    319    39%
 src\recommender_core\recommender_algorithms\content_based_algorithms\memory_profiler.py                                     15     15     0%
 src\recommender_core\recommender_algorithms\content_based_algorithms\models_manipulation\__init__.py                         0      0   100%
 src\recommender_core\recommender_algorithms\content_based_algorithms\models_manipulation\models_loaders.py                   8      1    88%

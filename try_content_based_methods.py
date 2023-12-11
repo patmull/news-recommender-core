@@ -1,5 +1,5 @@
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
+from src.data_handling.data_queries import RecommenderMethods
+from src.methods.content_based.tfidf import TfIdf
 
 if __name__ == '__main__':
     recommender_methods = RecommenderMethods()

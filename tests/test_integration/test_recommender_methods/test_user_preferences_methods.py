@@ -4,16 +4,15 @@ import random
 import pandas as pd
 import pytest
 
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
+from src.data_handling.model_methods.user_methods import UserMethods
+from src.methods.content_based.tfidf import TfIdf
+from src.methods.user_based.user_keywords_recommendation import UserBasedMethods
+
 
 # Run with:
 # python -m pytest .\tests\test_integration\test_recommender_methods\test_user_preferences_methods.py
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
-from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from src.recommender_core.recommender_algorithms.user_based_algorithms\
-    .user_keywords_recommendation import UserBasedMethods
-
 
 # TODO:
 # pytest tests\test_integration\test_recommender_methods\test_user_preferences_methods.py::test_user_categories
@@ -42,7 +41,6 @@ def test_user_categories():
 ])
 # pytest.mark.integration
 def test_user_keyword_bad_input(tested_input):
-
     with pytest.raises(ValueError):
         tfidf = TfIdf()
         tfidf.keyword_based_comparison(tested_input)
@@ -113,7 +111,6 @@ def insert_user_recommender_to_db(methods, test_json, test_user_id, db):
 
 
 def get_users_df(db_columns, test_user_id):
-
     database_methods = DatabaseMethods()
     sql = """SELECT {}, {}, {}, {} FROM users WHERE id = {};"""
     # NOTICE: Connection is ok here. Need to stay here due to calling from function that's executing thread

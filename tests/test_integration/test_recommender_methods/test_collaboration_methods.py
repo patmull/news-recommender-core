@@ -1,9 +1,6 @@
-import json
-
 import pandas as pd
 
-from src.recommender_core.recommender_algorithms.user_based_algorithms.collaboration_based_recommendation import \
-    SvdClass
+from src.methods.user_based.collaboration_based_recommendation import SvdClass
 
 
 def test_run_svd():

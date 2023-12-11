@@ -6,28 +6,25 @@ import pickle
 import time
 from pathlib import Path
 
-import pyLDAvis
-import regex
-from gensim.corpora import WikiCorpus
-from gensim.utils import deaccent, flatten
-from nltk import FreqDist
-from pyLDAvis import gensim_models as gensimvis
-
-from src.prefillers.preprocessing.czech_preprocessing import preprocess
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-
 import gensim
 import numpy as np
 import pandas as pd
+import pyLDAvis
+import regex
 from gensim import corpora
-from gensim.models import LdaModel, CoherenceModel
+from gensim.corpora import WikiCorpus
+from gensim.models import Lda, CoherenceModel
+from gensim.utils import deaccent, flatten
+from nltk import FreqDist
+from pyLDAvis import gensim as gensimvis
 from scipy.stats import entropy
 
-from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import generate_lines_from_corpus
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
-
 import config.trials_counter
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
+from src.methods.content_based.helper import generate_lines_from_corpus
+from src.prefillers.preprocessing.czech_preprocessing import preprocess
+from src.prefillers.preprocessing.stopwords_loading import remove_stopwords
 
 CORPUS_FULL_TEXT_PICKLE = 'precalc_vectors/topics/corpus_full_text.pkl'
 DICTIONARY_FULL_TEXT_GENSIM = 'precalc_vectors/topics/dictionary_full_text.gensim'
@@ -55,7 +52,7 @@ def jensen_shannon(query, matrix):
 
 def load_lda():
     try:
-        lda_model = LdaModel.load("models/lda_model")
+        lda_model = Lda.load("models/lda_model")
         dictionary = gensim.corpora.Dictionary.load('precalc_vectors/topics/dictionary_idnes.gensim')
         corpus = pickle.load(open('precalc_vectors/topics/corpus_idnes.pkl', 'rb'))
     except FileNotFoundError as e:
@@ -65,13 +62,13 @@ def load_lda():
 
 
 def save_corpus_dict(corpus, dictionary):
-    # Saving train_corpus and dictionary...
+    # Saving train_corpus and _dictionary...
     pickle.dump(corpus, open('precalc_vectors/topics/corpus_idnes.pkl', 'wb'))
     dictionary.save('precalc_vectors/topics/dictionary_idnes.gensim')
 
 
 def save_corpus_dict_full_text(corpus, dictionary):
-    # Saving train_corpus and dictionary...
+    # Saving train_corpus and _dictionary...
     pickle.dump(corpus, open(CORPUS_FULL_TEXT_PICKLE, "wb"))
     dictionary.save(DICTIONARY_FULL_TEXT_GENSIM)
 
@@ -117,7 +114,7 @@ def compute_coherence_values(corpus, dictionary, num_topics, alpha, eta, passes,
 
     # For ‘u_mass’ train_corpus should be provided, if text is provided,
     # it will be converted to train_corpus using
-    # the dictionary. For ‘c_v’, ‘c_uci’ and ‘c_npmi’ texts should be provided
+    # the _dictionary. For ‘c_v’, ‘c_uci’ and ‘c_npmi’ texts should be provided
     if data_lemmatized is None:
         coherence_model_lda = CoherenceModel(model=lda_model, corpus=corpus, dictionary=dictionary, coherence='u_mass')
     else:
@@ -279,8 +276,19 @@ def prepare_post_categories_df(recommender_methods, posts_from_cache, searched_s
     return df
 
 
-class Lda:
-    # *** HERE WAS a Amazon bucket connection string. ABANDONED DUE TO: not being needed anymore
+def get_searched_doc_id(recommender_methods, searched_slug):
+    logging.info("Finding id for post with slug:")
+    logging.info(searched_slug)
+    recommender_methods.df = recommender_methods.df.rename(columns={'post_slug': 'slug'})
+    searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['slug'] == searched_slug].tolist()
+    logging.debug("searched_doc_id_list:")
+    logging.debug(searched_doc_id_list)
+    searched_doc_id = searched_doc_id_list[0]
+    return searched_doc_id
+
+
+class LdaClass:
+    # *** HERE WAS a Amazon bucket _connection string. ABANDONED DUE TO: not being needed anymore
 
     def __init__(self):
         self.most_similar_df = None
@@ -290,16 +298,6 @@ class Lda:
         self.posts_df = pd.DataFrame()
         self.categories_df = pd.DataFrame()
         self.database = DatabaseMethods()
-
-    def get_searched_doc_id(self, recommender_methods, searched_slug):
-        logging.info("Finding id for post with slug:")
-        logging.info(searched_slug)
-        recommender_methods.df = recommender_methods.df.rename(columns={'post_slug': 'slug'})
-        searched_doc_id_list = recommender_methods.df.index[recommender_methods.df['slug'] == searched_slug].tolist()
-        logging.debug("searched_doc_id_list:")
-        logging.debug(searched_doc_id_list)
-        searched_doc_id = searched_doc_id_list[0]
-        return searched_doc_id
 
     def get_similar_lda_full_text(self, searched_slug: str, n=21, train=False, display_dominant_topics=True,
                                   posts_from_cache=True):
@@ -328,7 +326,7 @@ class Lda:
         _dictionary, _, lda = self.load_lda_full_text(recommender_methods.df,
                                                       display_dominant_topics=display_dominant_topics)
 
-        searched_doc_id = self.get_searched_doc_id(recommender_methods, searched_slug)
+        searched_doc_id = get_searched_doc_id(recommender_methods, searched_slug)
 
         new_sentences = recommender_methods.df.iloc[searched_doc_id, :]
         new_sentences = new_sentences[['tokenized']]
@@ -382,12 +380,12 @@ class Lda:
     def load_lda_full_text(self, data, display_dominant_topics):
 
         try:
-            lda_model = LdaModel.load(LDA_FULL_TEXT_PATH)
+            lda_model = Lda.load(LDA_FULL_TEXT_PATH)
             dictionary = gensim.corpora.Dictionary.load(DICTIONARY_FULL_TEXT_GENSIM)
             corpus = pickle.load(open(CORPUS_FULL_TEXT_PICKLE, 'rb'))
-        except Exception:
+        except FileNotFoundError or EOFError or MemoryError or TypeError:
             self.train_lda_full_text(data, display_dominant_topics)
-            lda_model = LdaModel.load(LDA_FULL_TEXT_PATH)
+            lda_model = Lda.load(LDA_FULL_TEXT_PATH)
             dictionary = gensim.corpora.Dictionary.load(DICTIONARY_FULL_TEXT_GENSIM)
             corpus = pickle.load(open(CORPUS_FULL_TEXT_PICKLE, 'rb'))
 
@@ -425,7 +423,7 @@ class Lda:
         # View
         dictionary = corpora.Dictionary(data_words_bigrams)
         dictionary.filter_extremes()
-        # dictionary.compactify()
+        # _dictionary.compactify()
         corpus = [dictionary.doc2bow(doc) for doc in data_words_bigrams]
 
         save_corpus_dict(corpus, dictionary)
@@ -437,10 +435,10 @@ class Lda:
         eta = 'auto'
         iterations = 200
         logging.info("LDA training...")
-        lda_model = LdaModel(corpus=corpus, num_topics=num_topics, id2word=dictionary,
-                             minimum_probability=0.0, chunksize=chunksize,
-                             eta=eta, alpha='auto',
-                             passes=passes, iterations=iterations)
+        lda_model = Lda(corpus=corpus, num_topics=num_topics, id2word=dictionary,
+                        minimum_probability=0.0, chunksize=chunksize,
+                        eta=eta, alpha='auto',
+                        passes=passes, iterations=iterations)
 
         if "PYTEST_CURRENT_TEST" in os.environ:
             path_to_save = Path('tests/models/lda_testing.model')
@@ -473,8 +471,10 @@ class Lda:
 
         self.df['tokenized_keywords'] = recommender_methods.tokenize_text()
         # noinspection PyPep8
-        self.df['tokenized'] = self.df['tokenized_keywords'] + self.df['tokenized_all_features_preprocessed'] \
-                               + self.df['tokenized_full_text']
+        self.df['tokenized'] = (self.df['tokenized_keywords']
+                                + self.df['tokenized_all_features_preprocessed']
+                                + self.df['tokenized_full_text']
+                                )
         data = self.df
 
         data_words_nostops = remove_stopwords(data['tokenized'])
@@ -490,7 +490,7 @@ class Lda:
         # low eta means each topic is only represented by a small number of words, and vice versa
 
         # LDA loading...
-        lda_model = LdaModel.load(LDA_FULL_TEXT_PATH)
+        lda_model = Lda.load(LDA_FULL_TEXT_PATH)
         t2 = time.time()
         logging.info(f"Time to load_texts LDA model on: {len(self.df)}, articles: {(t2 - t1) / 60} min")
 

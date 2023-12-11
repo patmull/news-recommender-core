@@ -1,5 +1,6 @@
 import string
 import re
+import pandas as pd
 
 import majka
 from html2text import html2text
@@ -13,7 +14,7 @@ general_stopwords = load_general_stopwords()
 
 def cz_lemma(input_string, json=False):
     """
-    Czech lemmatization of the words. Uses the Majka morphological dictionary to create the accurate unified
+    Czech lemmatization of the words. Uses the Majka morphological _dictionary to create the accurate unified
     representation of the similar Czech words in different inflections and grammatical forms.
     :param input_string: string to lemmatize
     :param json: specify whether should return JSON or nor since some of the methods may need it. Defaults to False
@@ -50,6 +51,28 @@ def cz_lemma(input_string, json=False):
         return ls
 
 
+def preprocess_columns(df, cols):
+    documents_df = pd.DataFrame()
+    df['all_features_preprocessed'] = df['all_features_preprocessed'].apply(
+        lambda x: x.replace(' ', ', '))
+
+    df.fillna("", inplace=True)
+
+    df['body_preprocessed'] = df['body_preprocessed'].apply(
+        lambda x: x.replace(' ', ', '))
+    documents_df['all_features_preprocessed'] = df[cols].apply(
+        lambda row: ' '.join(row.values.astype(str)),
+        axis=1)
+
+    documents_df['all_features_preprocessed'] = df['category_title'] + ', ' + documents_df[
+        'all_features_preprocessed'] + ", " + df['body_preprocessed']
+
+    documents_all_features_preprocessed = list(
+        map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
+
+    return documents_all_features_preprocessed
+
+
 def preprocess(sentence):
     """
         Global way of text preprocessing used for content-based or hybrid methods.
@@ -64,8 +87,9 @@ def preprocess(sentence):
         7. Removing numbers (since they usually don't add any value to content-based methods).
         8. Removing single characters
         9. Removing any leftovers digits or unwanted characters.
-        10. CZ lemmatization according to Majka morphological dictionary
-        11. Removing the empty string characters that can occur after lemmatization, i.e. if word is not found in dictionary.
+        10. CZ lemmatization according to Majka morphological _dictionary
+        11. Removing the empty string characters that can occur after lemmatization, i.e.
+        if word is not found in _dictionary.
         12. Removing the Czech stopwords
         13. Remving the general stopwords
         14. Joining the final text to string

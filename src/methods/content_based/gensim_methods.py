@@ -1,8 +1,9 @@
 from collections import defaultdict
 
 import pandas as pd
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
 
 
 class GensimMethods:

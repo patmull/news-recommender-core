@@ -530,7 +530,7 @@ src\recommender_core\recommender_algorithms\content_based_algorithms\doc_sim.py 
 src\recommender_core\recommender_algorithms\content_based_algorithms\exceptions.py                                           0      0   100%
 src\recommender_core\recommender_algorithms\content_based_algorithms\gensim_methods.py                                      77     35    55%
 src\recommender_core\recommender_algorithms\content_based_algorithms\helper.py                                              58     31    47%
-src\recommender_core\recommender_algorithms\content_based_algorithms\lda.py                                                519    385    26%
+src\recommender_core\recommender_algorithms\content_based_algorithms\ldaclass.py                                                519    385    26%
 src\recommender_core\recommender_algorithms\content_based_algorithms\memory_profiler.py                                     15     15     0%
 src\recommender_core\recommender_algorithms\content_based_algorithms\models_manipulation\__init__.py                         0      0   100%
 src\recommender_core\recommender_algorithms\content_based_algorithms\models_manipulation\models_loaders.py                   8      0   100%

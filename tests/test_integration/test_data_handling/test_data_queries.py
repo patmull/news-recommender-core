@@ -4,11 +4,12 @@ import pandas as pd
 import pandas.core.indexes.base
 import pytest
 
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
+from src.data_handling.model_methods.user_methods import UserMethods
 # python -m pytest .\tests\test_data_handling\test_data_queries.py
-from src.recommender_core.data_handling.data_manipulation import get_redis_connection, DatabaseMethods
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
-from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import HybridMethods
+
+from src.methods.hybrid.hybrid_methods import get_user_read_history_with_posts
 
 TEST_CACHED_PICKLE_PATH = 'db_cache/cached_posts_dataframe_test.pkl'
 CRITICAL_COLUMNS_POSTS = ['slug', 'all_features_preprocessed', 'body_preprocessed', 'trigrams_full_text']
@@ -29,10 +30,12 @@ def test_posts_dataframe_good_day():
     assert posts_df[posts_df.columns[0]].count() > 1
     common_asserts_for_dataframes(posts_df, CRITICAL_COLUMNS_POSTS)
 
+
 """
 ** HERE WAS REDIS TESTS test_redis_values() and test_redis() BUT FOR SOME WEIRD REASON DO NOT WORK ON TOX, Python 3.10
 ** MOVED TO ONLY LOCAL TESTS 
 """
+
 
 # pytest.mark.integration
 def test_get_df_from_sql():
@@ -133,8 +136,7 @@ def test_get_sql_rows():
 
 def test_get_user_read_history_with_posts():
     test_user_id = 431
-    hybrid_methods = HybridMethods()
-    user_posts_history = hybrid_methods.get_user_read_history_with_posts(test_user_id)
+    user_posts_history = get_user_read_history_with_posts(test_user_id)
     assert isinstance(user_posts_history, pandas.DataFrame)
     assert type(len(user_posts_history)) is int
 

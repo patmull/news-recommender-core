@@ -1,7 +1,6 @@
 import pytest
 
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    Classifier
+from src.methods.user_based.user_relevance_classifier.classifier import Classifier
 
 
 @pytest.mark.parametrize("tested_input", [

@@ -1,16 +1,17 @@
 import logging
 import traceback
 
-from research.user_based.user_relevance_eval import user_relevance_asessment
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
+from src.methods.content_based.tfidf import TfIdf
+from src.methods.hybrid.hybrid_methods import precalculate_and_save_sim_matrix_for_all_posts
+from src.methods.user_based.evalutation.user_relevance_eval import user_relevance_asessment
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.prefillers.prefiller import prefilling_job_content_based
 from src.prefillers.user_based_prefillers.prefilling_user_classifier import predict_ratings_for_all_users_store_to_redis
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.prefillers.prefilling_additional import PreFillerAdditional
-from src.recommender_core.recommender_algorithms.content_based_algorithms.tfidf import TfIdf
-from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
-    precalculate_and_save_sim_matrix_for_all_posts
+
+from src.prefillers.prefilling_additional import PreFillerAdditional, fill_all_features_preprocessed, \
+    fill_body_preprocessed, fill_ngrams_for_all_posts
 
 prefiller_additional = PreFillerAdditional()
 
@@ -20,7 +21,7 @@ logging.debug("Testing logging in prefilling_all.")
 
 
 def prefill_all_features_preprocessed():
-    prefiller_additional.fill_all_features_preprocessed(skip_already_filled=True, random_order=False)
+    fill_all_features_preprocessed(skip_already_filled=True, random_order=False)
 
 
 def prefill_keywords():
@@ -28,12 +29,12 @@ def prefill_keywords():
 
 
 def prefill_body_preprocessed():
-    prefiller_additional.fill_body_preprocessed(skip_already_filled=True, random_order=False)
+    fill_body_preprocessed(skip_already_filled=True, random_order=False)
 
 
 def prefill_ngrams():
-    prefiller_additional.fill_ngrams_for_all_posts(skip_already_filled=True, random_order=False,
-                                                   full_text=True)
+    fill_ngrams_for_all_posts(skip_already_filled=True, random_order=False,
+                              full_text=True)
 
 
 def prefill_tfidf_similarity_matrix():

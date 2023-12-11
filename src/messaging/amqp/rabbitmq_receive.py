@@ -5,13 +5,12 @@ import traceback
 import pika.exceptions
 
 from mail_sender import send_error_email
+from src.data_handling.data_connection import init_rabbitmq
+from src.data_handling.model_methods.user_methods import UserMethods
 from src.messaging.init_channels import publish_rabbitmq_channel, ChannelConstants
 from src.prefillers.prefilling_all import run_prefilling
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
 from src.prefillers.user_based_prefillers.prefilling_user_classifier import predict_ratings_for_user_store_to_redis
-from src.recommender_core.data_handling.data_connection import init_rabbitmq
-
-from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 
 for handler in logging.root.handlers[:]: logging.root.removeHandler(handler)
 

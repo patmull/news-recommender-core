@@ -1,6 +1,6 @@
 import random
 
-from src.recommender_core.data_handling.evaluation.evaluation_results import get_eval_results_header
+from src.data_handling.evaluation.evaluation_results import get_eval_results_header
 
 
 def random_hyperparameter_choice(model_variants, vector_size_range, window_range, min_count_range,

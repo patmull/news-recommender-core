@@ -1,10 +1,5 @@
-import pytest
-
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-
-
-# pytest.mark.integration
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
 
 
 def test_all_features_preprocessed_column():

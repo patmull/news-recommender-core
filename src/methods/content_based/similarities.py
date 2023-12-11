@@ -1,14 +1,10 @@
-import json
-from typing import Any
-
 import numpy as np
 import pandas as pd
 from scipy import sparse
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import get_slug_from_id
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_manipulation import DatabaseMethods
 
 
 def simple_example():
@@ -20,9 +16,9 @@ def simple_example():
 
 
 def cosine_similarity_n_space(m1, m2=None, batch_size=100):
-    assert m1.shape[1] == m2.shape[1] and isinstance(batch_size, int) == True
+    assert m1.shape[1] == m2.shape[1] and isinstance(batch_size, int)
 
-    ret: Any = np.ndarray((m1.shape[0], m2.shape[0]))  # Added Any due to MyPy typing warning
+    ret = np.ndarray((m1.shape[0], m2.shape[0]))  # Added Any due to MyPy typing warning
 
     batches = m1.shape[0] // batch_size
 

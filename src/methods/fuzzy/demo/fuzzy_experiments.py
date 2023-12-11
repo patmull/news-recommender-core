@@ -4,6 +4,7 @@ from simpful import FuzzySystem, FuzzySet, Triangular_MF, LinguisticVariable, Tr
 DEFAULT_CONCEPT = "Service quality"
 
 
+# noinspection PyPep8Naming
 def weighted_rules_takagi_sugeno():
     """
     A simple fuzzy inference system for the tipping problem
@@ -12,9 +13,9 @@ def weighted_rules_takagi_sugeno():
     fs = sf.FuzzySystem()
 
     # Define fuzzy sets and linguistic variables
-    S_1 = sf.FuzzySet(points=[[0., 1.],  [5., 0.]], term="poor")
+    S_1 = sf.FuzzySet(points=[[0., 1.], [5., 0.]], term="poor")
     S_2 = sf.FuzzySet(points=[[0., 0.], [5., 1.], [10., 0.]], term="good")
-    S_3 = sf.FuzzySet(points=[[5., 0.],  [10., 1.]], term="excellent")
+    S_3 = sf.FuzzySet(points=[[5., 0.], [10., 1.]], term="excellent")
     fs.add_linguistic_variable("Service", sf.LinguisticVariable([S_1, S_2, S_3], concept=DEFAULT_CONCEPT))
 
     LV = sf.AutoTriangle(2, terms=["rancid", "delicious"], universe_of_discourse=[0, 10], verbose=False)
@@ -41,6 +42,20 @@ def weighted_rules_takagi_sugeno():
     print(fs.Sugeno_inference(["Tip"]))
 
 
+def create_fuzzy_set(points, term, membership_function):
+    if membership_function == "triangular":
+        return sf.FuzzySet(points=points, term=term)
+    elif membership_function == "trapezoidal":
+        return sf.FuzzySet(function=sf.Trapezoidal_MF(points[0][0], points[0][1], points[1][0], points[1][1]),
+                           term=term)
+    elif membership_function == "gaussian":
+        return sf.FuzzySet(function=sf.GaussianFuzzySet(points[0][0], points[0][1], term=term))
+    # Add other membership functions here
+    else:
+        raise ValueError("Invalid membership function type")
+
+
+# noinspection PyPep8Naming
 def inference_simple_mamdani():
     """
     # A simple fuzzy inference system for the tipping problem
@@ -77,14 +92,12 @@ def inference_simple_mamdani():
     fs.set_variable("Food", 8)
 
 
-# TODO: Plot functions to the text of the thesis
+# noinspection PyPep8Naming
 def example_fuzzy_sets():
     """
     Example of evalutation of the Fuzzy sets in Simpful package
     @return:
     """
-    import simpful as sf
-
     # A showcase of available fuzzy sets.
 
     # Crisp
@@ -143,6 +156,7 @@ def example_fuzzy_sets():
     sf.LinguisticVariable([ss_1, ss_2], universe_of_discourse=[0, 10]).plot()
 
 
+# noinspection PyPep8Naming
 def example_output_space():
     """
     Example of use of the plotting with the Simpful package.
@@ -171,6 +185,7 @@ def example_output_space():
 
     R1 = "IF (Service IS poor) OR (Food IS rancid) THEN (Tip IS small)"
     R2 = "IF (Service IS good) THEN (Tip IS average)"
+    # noinspection PyPep8Naming
     R3 = "IF (Service IS excellent) OR (Food IS delicious) THEN (Tip IS generous)"
     FS.add_rules([R1, R2, R3])
 
@@ -191,11 +206,8 @@ def example_output_space():
     ys = array(ys)
     zs = array(zs)
 
-    from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-
-    xx, yy = plt.meshgrid(xs, ys)
 
     ax.plot_trisurf(xs, ys, zs, vmin=0, vmax=25, cmap='gnuplot2')
     ax.set_xlabel("Food")

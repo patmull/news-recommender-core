@@ -1,5 +1,4 @@
 import logging
-import os
 
 import gensim
 import pymongo
@@ -36,7 +35,8 @@ def freeze_existing_phrase_model(path_to_existing_phrases_model=None, path_to_fr
         if path_to_existing_phrases_model is None:
             path_to_existing_phrases_model = "full_models/idnes/bigrams.phrases"
             logging.debug(
-                "No path to existing phrases doc2vec_model supplied, using default location: " + path_to_existing_phrases_model)
+                "No path to existing phrases doc2vec_model supplied, using default location: "
+                + path_to_existing_phrases_model)
 
         logging.debug("Loading existing Phrases doc2vec_model")
         phrases_model = gensim.models.Phrases.load(path_to_existing_phrases_model)
@@ -47,7 +47,8 @@ def freeze_existing_phrase_model(path_to_existing_phrases_model=None, path_to_fr
         if path_to_frozen is None:
             path_to_frozen = "full_models/idnes/ngrams/bigrams_phrase_model_frozen.pkl"
             logging.debug(
-                "No path to frozen doc2vec_model supplied, saving frozen doc2vec_model to default location: " + path_to_frozen)
+                "No path to frozen doc2vec_model supplied, saving frozen doc2vec_model to default location: "
+                + path_to_frozen)
             frozen_model.save(path_to_frozen)
 
 

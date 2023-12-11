@@ -1,4 +1,5 @@
 import gc
+import logging
 import os
 import pickle
 from pathlib import Path
@@ -6,16 +7,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
-from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer, CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics.pairwise import cosine_similarity
 
 import config.trials_counter
-
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from src.recommender_core.data_handling.data_queries import TfIdfDataHandlers, RecommenderMethods
-
-import logging
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods, TfIdfDataHandlers
 
 log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
@@ -40,13 +38,6 @@ def convert_to_json_one_row(key, value):
     dict_for_json = {key: value}
     list_for_json.append(dict_for_json)
     return list_for_json
-
-
-def convert_to_json_keyword_based(post_recommendations):
-    list_of_article_slugs = []
-    recommended_posts_dictionary = post_recommendations.to_dict('records')
-    list_of_article_slugs.append(recommended_posts_dictionary.copy())
-    return list_of_article_slugs[0]
 
 
 def save_sparse_csr(filename, array):
@@ -74,6 +65,26 @@ def print_top(word_count):
     tfidf_transformer.fit(word_count)
 
 
+def most_similar_by_keywords(tuple_of_fitted_matrices, keywords,
+                             cached_file_path, number_of_recommended_posts=20):
+    tfidf_data_handlers = TfIdfDataHandlers()
+    try:
+        post_recommendations = tfidf_data_handlers \
+            .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
+                                      number_of_recommended_posts=number_of_recommended_posts)
+    except ValueError as e:
+        # Value error had occurred while computing the most similar posts by keywords.
+        logging.warning(F"Value error had occurred while computing most similar posts by keywords: {e}")
+        logging.info("Trying to solve Value error by updating the terms_frequencies vectorizer file")
+        fit_by_all_features_preprocessed = tfidf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
+        save_tfidf_vectorizer(fit_by_all_features_preprocessed, path=cached_file_path)
+        post_recommendations = tfidf_data_handlers \
+            .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
+                                      number_of_recommended_posts=number_of_recommended_posts)
+
+    return post_recommendations
+
+
 class TfIdf:
 
     def __init__(self):
@@ -87,37 +98,6 @@ class TfIdf:
         self.tfidf_vectorizer = None
         self.cosine_sim_df = pd.DataFrame()
 
-    def most_similar_by_keywords(self, tuple_of_fitted_matrices, keywords,
-                                 cached_file_path, number_of_recommended_posts=20):
-        tfidf_data_handlers = TfIdfDataHandlers()
-        try:
-            post_recommendations = tfidf_data_handlers \
-                .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
-                                          number_of_recommended_posts=number_of_recommended_posts)
-        except ValueError as e:
-            # Value error had occurred while computing the most similar posts by keywords.
-            logging.warning(F"Value error had occurred while computing most similar posts by keywords: {e}")
-            logging.info("Trying to solve Value error by updating the terms_frequencies vectorizer file")
-            fit_by_all_features_preprocessed = tfidf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
-            save_tfidf_vectorizer(fit_by_all_features_preprocessed, path=cached_file_path)
-            post_recommendations = tfidf_data_handlers \
-                .most_similar_by_keywords(keywords, tuple_of_fitted_matrices,
-                                          number_of_recommended_posts=number_of_recommended_posts)
-
-        return post_recommendations
-
-    def load_tfidf_vectorizer(self, cached_file_path):
-        tfidf_data_handlers = TfIdfDataHandlers()
-        if os.path.isfile(cached_file_path):
-            # Cached file already exists.
-            fit_by_all_features_preprocessed = load_tfidf_vectorizer(path=cached_file_path)
-        else:
-            # Not found .pickle file with precalculated vectors. Calculating fresh.
-            fit_by_all_features_preprocessed = tfidf_data_handlers.get_fit_by_feature_('all_features_preprocessed')
-            save_tfidf_vectorizer(fit_by_all_features_preprocessed, path=cached_file_path)
-
-        return fit_by_all_features_preprocessed
-
     def keyword_based_comparison(self, keywords, number_of_recommended_posts=20, all_posts=False):
         if type(keywords) is not str:
             raise ValueError("Entered keywords must be a input_string.")
@@ -125,13 +105,12 @@ class TfIdf:
             if keywords == "":
                 raise ValueError(EMPTY_INPUT_STRING_MSG)
 
-        post_recommendations = None
         if keywords == "":
             return {}
 
         keywords_split_1 = keywords.split(" ")  # splitting sentence into list of keywords by space
 
-        # creating dictionary of words
+        # creating _dictionary of words
         word_dict_a = dict.fromkeys(keywords_split_1, 0)
         for word in keywords_split_1:
             word_dict_a[word] += 1
@@ -141,14 +120,15 @@ class TfIdf:
         tfidf_data_handlers = TfIdfDataHandlers(self.df)
 
         cached_file_path = Path("precalc_vectors/all_features_preprocessed_vectorizer.pickle")
-        fit_by_all_features_preprocessed = self.load_tfidf_vectorizer(cached_file_path)
+        fit_by_all_features_preprocessed = load_tfidf_vectorizer(cached_file_path)
         fit_by_keywords_matrix = tfidf_data_handlers.get_fit_by_feature_('keywords')
         tuple_of_fitted_matrices = (fit_by_all_features_preprocessed, fit_by_keywords_matrix)
         del fit_by_keywords_matrix
         gc.collect()
         if all_posts is False:
-            post_recommendations = self.most_similar_by_keywords(tuple_of_fitted_matrices, keywords, cached_file_path,
-                                                                 number_of_recommended_posts)
+            post_recommendations = tfidf_data_handlers.most_similar_by_keywords(keywords,
+                                                                                tuple_of_fitted_matrices,
+                                                                                number_of_recommended_posts)
         else:
             if self.posts_df.index is not None:
                 try:
@@ -157,7 +137,7 @@ class TfIdf:
                                                   number_of_recommended_posts=len(self.posts_df.index))
                 except ValueError as e:
                     (logging
-                     .warning(f"Value error had occurred while computing most similar posts by keywords: {e}" )
+                     .warning(f"Value error had occurred while computing most similar posts by keywords: {e}")
                      )
                     logging.info("Trying to solve Value error by updating the terms_frequencies vectorizer file")
                     fit_by_all_features_preprocessed = tfidf_data_handlers.get_fit_by_feature_(

@@ -3,10 +3,9 @@ import os
 import unittest
 from unittest import mock
 
-import pandas as pd
 import pytest
 
-from src.prefillers.prefilling_additional import shuffle_and_reverse, PreFillerAdditional
+from src.prefillers.prefilling_additional import shuffle_and_reverse, PreFillerAdditional, fill_body_preprocessed
 from tests.test_integration.test_data import SAMPLE_LIST_FROM_DB
 
 method_options = ["terms_frequencies", "word2vec", "doc2vec", "topics"]
@@ -26,15 +25,16 @@ def test_shuffle_and_reverse():
     assert isinstance(shuffle_and_reverse(SAMPLE_LIST_FROM_DB, random_order=False), list)
 
 
-def mock_start_preprocessed_features_prefilling(self, skip_already_filled, random_order):
+def mock_start_preprocessed_features_prefilling():
     raise SystemExit(1)
 
 
 class PrefillingAdditional(unittest.TestCase):
 
-    def test_fill_body_preprocessed(self):
+    @staticmethod
+    def test_fill_body_preprocessed():
         with mock.patch.object(PreFillerAdditional, 'fill_body_preprocessed',
                                new=mock_start_preprocessed_features_prefilling):
             with pytest.raises(SystemExit):
-                PreFillerAdditional().fill_body_preprocessed(True, False)
+                fill_body_preprocessed(True, False)
 

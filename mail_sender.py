@@ -26,6 +26,6 @@ def send_error_email(error_text):
         try:
             smtp_server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
             smtp_server.sendmail(EMAIL_ADDRESS, EMAIL_ADDRESS, text)
-        except Exception as e:
+        except smtplib.SMTPException as e:
             # CANNOT SEND E-MAIL!
             raise e

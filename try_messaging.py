@@ -1,8 +1,6 @@
-import os
-
 import pika
 
-from src.recommender_core.data_handling.data_connection import init_rabbitmq
+from src.data_handling.data_connection import init_rabbitmq
 
 
 def notify_scrapper_prefiller():

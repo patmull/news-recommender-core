@@ -8,9 +8,9 @@ from matplotlib import pyplot as plt
 from sklearn.metrics import average_precision_score, precision_score, balanced_accuracy_score, confusion_matrix, \
     dcg_score, f1_score, ndcg_score
 
-import \
-    src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.user_evaluation_results
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.data_handling.data_queries import RecommenderMethods
+from src.methods.user_based.user_relevance_classifier.user_evaluation_results import \
+    get_admin_evaluation_results_dataframe
 
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
 warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "module" or "once"
@@ -18,10 +18,7 @@ warnings.filterwarnings('always')  # "error", "ignore", "always", "default", "mo
 
 # ***HERE WAS A TRY_STATISTICS, CHECK TO SEE BASIC WORK WITH THE STATISTICS.***
 def model_ap(investigate_by='model_name'):
-    evaluation_results_df = (src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier
-                             .user_evaluation_results
-                             .get_admin_evaluation_results_dataframe()
-                             )
+    evaluation_results_df = get_admin_evaluation_results_dataframe()
 
     list_of_models = [[x for x in evaluation_results_df[investigate_by]]]
 
@@ -38,12 +35,7 @@ def model_ap(investigate_by='model_name'):
 
 
 def model_variant_ap(variant=None):
-    evaluation_results_df = (src.recommender_core
-                             .recommender_algorithms
-                             .user_based_algorithms.user_relevance_classifier
-                             .user_evaluation_results
-                             .get_admin_evaluation_results_dataframe()
-                             )
+    evaluation_results_df = get_admin_evaluation_results_dataframe()
 
     if variant is not None:
         evaluation_results_df = evaluation_results_df.loc[evaluation_results_df['model_variant'] == variant]
@@ -61,13 +53,7 @@ def model_variant_ap(variant=None):
 
 def models_complete_statistics(investigate_by, k=5, save_results_for_every_item=False, crop_by_date=False,
                                last_n_by_date=None):
-    evaluation_results_df = (src.recommender_core
-                             .recommender_algorithms
-                             .user_based_algorithms
-                             .user_relevance_classifier
-                             .user_evaluation_results
-                             .get_admin_evaluation_results_dataframe()
-                             )
+    evaluation_results_df = get_admin_evaluation_results_dataframe()
 
     if crop_by_date:
         if last_n_by_date is not None:
@@ -208,11 +194,7 @@ def plot_confusion_matrix(cm, title):
 
 def show_confusion_matrix():
     # Please be aware that confusion matrix is only
-    evaluation_results_df = (src.recommender_core.recommender_algorithms
-                             .user_based_algorithms.user_relevance_classifier
-                             .user_evaluation_results
-                             .get_admin_evaluation_results_dataframe()
-                             )
+    evaluation_results_df = get_admin_evaluation_results_dataframe()
     list_of_models = [[x for x in evaluation_results_df['model_variant']]]
 
     y_pred = np.full((1, 20), 1)[0]

@@ -26,14 +26,14 @@ def extract_and_sort_columns_from_results(target_model_variant, sort_by='categor
     df_queries = df_queries.sort_values(by=sort_by)
     # df_queries = df_queries.drop('post_slug')
     target_csv_path = '../../../../stats/filtered_results.csv'
-    df_queries.to_csv(target_csv_path, index=False) # Set to false to get rid of "Unnamed: 0" column
+    df_queries.to_csv(target_csv_path, index=False)  # Set to false to get rid of "Unnamed: 0" column
     if target_stats is not None:
         target_csv_path = '../../../../stats/relevance/transposed_and_filtered_results.csv'
         res = df_queries.pivot_table(index=['slug'], columns='model_variant',
-                             values=target_stats, aggfunc='first').reset_index()
+                                     values=target_stats, aggfunc='first').reset_index()
         print(res.to_string())
         res.to_csv(target_csv_path)
 
 
-extract_and_sort_columns_from_results(target_model_variant=['word2vec-eval-2', 'terms_frequencies-full-text'], target_stats=['AP','DCG'])
-# random_row_remover()
+extract_and_sort_columns_from_results(target_model_variant=['word2vec-eval-2', 'terms_frequencies-full-text'],
+                                      target_stats=['AP', 'DCG'])

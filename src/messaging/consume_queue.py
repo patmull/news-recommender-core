@@ -18,7 +18,7 @@ def consume_queue(queue_name):
         except Exception as e:
             logging.warning(f"EXCEPTION OCCURRED WHEN RUNNING PIKA: {e}")
             send_error_email(traceback.format_exc())
-            logging.warning("Trying to restart the channel")
+            logging.warning("Trying to restart the _channel")
             restart_channel(queue_name)
 
         time.sleep(15)

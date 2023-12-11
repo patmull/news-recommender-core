@@ -1,14 +1,9 @@
 import logging
-import pickle
-import random
-import time
 
 import spacy_sentence_bert
 
-from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    Classifier
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.model_methods.user_methods import UserMethods
+from src.methods.user_based.user_relevance_classifier.classifier import Classifier
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -68,7 +63,7 @@ def predict_ratings_for_all_users_store_to_redis():
             classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='thumbs', bert_model=bert)
         except ValueError as ve:
             logging.error("Value error occurred when trying to get relevant thumbs for evalutation. Skipping "
-                  "this evalutation.")
+                          "this evalutation.")
             logging.warning(ve)
         try:
             classifier.predict_relevance_for_user(user_id=user_row[0], relevance_by='stars', bert_model=bert)

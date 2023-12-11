@@ -1,11 +1,11 @@
 import logging
+from itertools import zip_longest
 from pathlib import Path
 
 import pandas as pd
 from multi_rake import Rake
-from yake import KeywordExtractor
 from summa import keywords as summa_keywords
-from itertools import chain, zip_longest
+from yake import KeywordExtractor
 
 pd.set_option('display.max_columns', None)
 
@@ -20,6 +20,42 @@ def smart_truncate(content, length=250):
 def get_cleaned_text(list_text_clean):
     text_clean = ' '.join(list_text_clean)
     return text_clean
+
+
+def get_cleaned_list_text(raw_text):
+    """
+    Raw string representation of text preprocessing and conversion to list.
+    :param raw_text: string representation of desired text to extract keywords from
+    :return: preprocessed list of words
+    """
+    cleaned_text = raw_text.replace("\n", " ")
+    cleaned_text = cleaned_text.replace("\'", "")
+    cleaned_text = cleaned_text.replace(".", "")
+    cleaned_text = cleaned_text.replace(":", "")
+    cleaned_text = cleaned_text.replace("(", "")
+    cleaned_text = cleaned_text.replace(")", "")
+
+    sentence_split = cleaned_text.split(" ")
+
+    stopwords = []
+    stopwords_file = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
+    with open(stopwords_file, 'r', encoding='utf-8') as f:
+        for word in f:
+            word_split = word.split('\n')
+            stopwords.append(word_split[0])
+
+    lowercase_words = [word.lower() for word in sentence_split]
+
+    list_text_clean = [word for word in lowercase_words if word not in stopwords]
+
+    return list_text_clean
+
+
+def load_stopwords():
+    filename = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
+    with open(filename, 'r', encoding='utf-8') as f:
+        stopwords = [word.strip() for word in f]
+    return stopwords
 
 
 class SingleDocKeywordExtractor:
@@ -47,42 +83,8 @@ class SingleDocKeywordExtractor:
         Handles the transformation of the raw text and performance of the text cleaning operations.
         :return:
         """
-        self.list_text_clean = self.get_cleaned_list_text(self.text_raw)
+        self.list_text_clean = get_cleaned_list_text(self.text_raw)
         self.text_clean = get_cleaned_text(self.list_text_clean)
-
-    def get_cleaned_list_text(self, raw_text):
-        """
-        Raw string representation of text preprocessing and conversion to list.
-        :param raw_text: string representation of desired text to extract keywords from
-        :return: preprocessed list of words
-        """
-        cleaned_text = raw_text.replace("\n", " ")
-        cleaned_text = cleaned_text.replace("\'", "")
-        cleaned_text = cleaned_text.replace(".", "")
-        cleaned_text = cleaned_text.replace(":", "")
-        cleaned_text = cleaned_text.replace("(", "")
-        cleaned_text = cleaned_text.replace(")", "")
-
-        sentence_split = cleaned_text.split(" ")
-
-        stopwords = []
-        stopwords_file = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
-        with open(stopwords_file, 'r', encoding='utf-8') as f:
-            for word in f:
-                word_split = word.split('\n')
-                stopwords.append(word_split[0])
-
-        lowercase_words = [word.lower() for word in sentence_split]
-
-        list_text_clean = [word for word in lowercase_words if word not in stopwords]
-
-        return list_text_clean
-
-    def load_stopwords(self):
-        filename = Path("src/prefillers/preprocessing/stopwords/czech_stopwords.txt")
-        with open(filename, 'r', encoding='utf-8') as f:
-            stopwords = [word.strip() for word in f]
-        return stopwords
 
     def get_keywords_multi_rake(self, string_for_extraction):
         """
@@ -128,13 +130,13 @@ class SingleDocKeywordExtractor:
         @return: list of keywords combined from supported keyword extractors
         """
         rake_keywords = self.get_keywords_multi_rake(string_for_extraction)
-        summa_keywords = self.get_keywords_summa(string_for_extraction)
+        _summa_keywords = self.get_keywords_summa(string_for_extraction)
         yake_keywords = self.get_keywords_yake(string_for_extraction)
 
         rake_only_words = [x[0] for x in rake_keywords]
         yake_only_words = [y[0] for y in yake_keywords]
 
-        combined_keywords = rake_only_words + yake_only_words + summa_keywords
+        combined_keywords = rake_only_words + yake_only_words + _summa_keywords
         combined_keywords = combined_keywords[:5]
 
         combined_keywords_flat = [item for sublist in zip_longest(*combined_keywords) for item in sublist if

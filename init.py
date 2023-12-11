@@ -3,7 +3,9 @@ import logging
 import os
 
 from src.constants.file_paths import get_cached_posts_file_path
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.data_handling.data_queries import RecommenderMethods
+
+
 # TODO: Replace logging.debugs with debug logging. Priority: MEDIUM
 
 

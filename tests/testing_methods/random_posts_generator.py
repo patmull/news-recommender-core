@@ -1,4 +1,4 @@
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_manipulation import DatabaseMethods
 
 
 def get_three_unique_posts():

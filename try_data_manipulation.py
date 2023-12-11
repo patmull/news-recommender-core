@@ -1,9 +1,7 @@
-"""
 from app import check_if_cache_exists_and_fresh
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
-
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
+from src.data_handling.model_methods.user_methods import UserMethods
 
 database_methods = DatabaseMethods()
 df = database_methods.get_posts_dataframe_from_cache()
@@ -25,4 +23,3 @@ database_methods = DatabaseMethods()
 database_methods.connect()
 database_methods.null_test_user_prefilled_records(241, ['recommended_by_best_rated_by_others_in_user_categories'])
 database_methods.disconnect()
-"""

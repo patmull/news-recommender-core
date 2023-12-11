@@ -1,3 +1,4 @@
+import smtplib
 import traceback
 
 from mail_sender import send_error_email
@@ -9,5 +10,5 @@ def email_sending():
 
 try:
     email_sending()
-except Exception as e:
+except smtplib.SMTPException as e:
     send_error_email(traceback.format_exc())

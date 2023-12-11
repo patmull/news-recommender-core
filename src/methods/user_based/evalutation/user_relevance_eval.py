@@ -7,10 +7,9 @@ import pandas as pd
 from sklearn.metrics import precision_score, balanced_accuracy_score, dcg_score, f1_score, jaccard_score, ndcg_score
 
 from src.constants.naming import Naming
-from src.recommender_core.data_handling.data_manipulation import get_redis_connection
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.user_evaluation_results import \
+from src.data_handling.data_manipulation import get_redis_connection
+from src.methods.user_based.user_relevance_classifier.user_evaluation_results import \
     get_user_evaluation_results_dataframe
-
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -35,7 +34,7 @@ def create_relevance_stats_df(sections):
     ndcg_score_at_k_list = []
     balanced_accuracy_score_list = []
     precision_score_list = []
-    N_list = []
+    n_list = []
     sections_list = []
 
     for section in sections:
@@ -62,7 +61,7 @@ def create_relevance_stats_df(sections):
             logging.debug(precision_score_list_cleaned)
             precision_score_list.append(precision_score_list_cleaned[0])
             sections_list.append(section)
-            N_list.append(len(true_relevance))
+            n_list.append(len(true_relevance))
 
     df = pd.DataFrame({
         'precision_score': precision_score_list,
@@ -75,7 +74,7 @@ def create_relevance_stats_df(sections):
         'ndcg_at_k_score': ndcg_score_at_k_list,
         'precision_score_weighted': precision_score_weighted_list,
         'sections_list': sections_list,
-        'N': N_list
+        'N': n_list
     })
 
     return df
@@ -97,8 +96,8 @@ def user_relevance_asessment(save_to_redis=True):
     logging.info("Saved evalutation tuning results to: %s" % output_file.as_posix())
 
     if save_to_redis:
-        REDIS_TOP_FOLDER = 'evaluation'
-        testing_redis_key = REDIS_TOP_FOLDER + Naming.REDIS_DELIMITER + 'testing-redis-key'
+        redis_top_folder = 'evaluation'
+        testing_redis_key = redis_top_folder + Naming.REDIS_DELIMITER + 'testing-redis-key'
         r = get_redis_connection()
         if "PYTEST_CURRENT_TEST" in os.environ:
             r.set(testing_redis_key, 'testing-redis-value')
@@ -107,7 +106,7 @@ def user_relevance_asessment(save_to_redis=True):
             list_of_columns.remove('sections_list')
             for section in df['sections_list'].tolist():
                 for column_name in list_of_columns[1:]:
-                    redis_key = REDIS_TOP_FOLDER + Naming.REDIS_DELIMITER + section + Naming.REDIS_DELIMITER \
+                    redis_key = redis_top_folder + Naming.REDIS_DELIMITER + section + Naming.REDIS_DELIMITER \
                                 + column_name
                     stat_value = df.loc[df['sections_list'] == section, column_name].iloc[0]
                     r.set(redis_key, float(stat_value))

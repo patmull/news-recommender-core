@@ -4,12 +4,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
-from src.recommender_core.recommender_algorithms.hybrid_algorithms.hybrid_methods import \
-    select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity
-from src.recommender_core.recommender_algorithms.user_based_algorithms.user_relevance_classifier.classifier import \
-    load_bert_model, Classifier
+from tests.testing_methods.random_posts_generator import get_three_unique_posts
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.methods.content_based.doc2vec import Doc2VecClass
+from src.methods.hybrid.hybrid_methods import select_list_of_posts_for_user, get_similarity_matrix_from_pairs_similarity
+from src.methods.user_based.user_relevance_classifier.classifier import load_bert_model, Classifier
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -21,7 +20,8 @@ logging.debug("Testing logging from hybrid_methods.")
 
 # RUN WITH:
 # python -m pytest .tests\test_recommender_methods\test_content_based_methods.py::TestClass::test_method
-from tests.testing_methods.random_posts_generator import get_three_unique_posts
+
+THUMBS_COLUMNS_NEEDED = ['thumbs_values', 'thumbs_created_at', 'all_features_preprocessed', 'full_text']
 
 
 # pytest.mark.integration
@@ -52,7 +52,6 @@ def test_thumbs():
     user_categories_thumbs_df = database.get_posts_users_categories_thumbs()
     database.disconnect()
     assert isinstance(user_categories_thumbs_df, pd.DataFrame)
-    THUMBS_COLUMNS_NEEDED = ['thumbs_values', 'thumbs_created_at', 'all_features_preprocessed', 'full_text']
     assert all(elem in user_categories_thumbs_df.columns.values for elem in THUMBS_COLUMNS_NEEDED)
     assert len(user_categories_thumbs_df.index) > 0  # assert there are rows in dataframe
 

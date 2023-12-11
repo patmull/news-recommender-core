@@ -4,7 +4,7 @@ from collections import Counter
 import pandas as pd
 from nltk import FreqDist
 
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.data_handling.data_queries import RecommenderMethods
 
 
 def most_common_words():
@@ -44,6 +44,7 @@ def most_common_words():
     print("TOP 100 WORDS:")
     for word in most_occur:
         print(word[0])
+
 
 # ***HERE WAS also idnes evaluation. ABANDONED DUE TO: no longer needer
 

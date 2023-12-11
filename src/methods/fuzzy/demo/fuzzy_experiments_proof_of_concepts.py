@@ -101,6 +101,7 @@ def fuzzy_weights_coeff():
     return sugeno_inference
 
 
+# noinspection PyPep8Naming
 def inference_simple_mamdani_ensembling_ratio(similarity, freshness, returned_method):
     """
     Demo of the Mamdani inference using the system's similarity, freshness and boosting measurement.

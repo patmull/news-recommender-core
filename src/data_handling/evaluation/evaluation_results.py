@@ -24,7 +24,7 @@ def get_eval_results_header():
 
 def append_training_results(stats):
     model_results = {}
-    model_results['Validation_Set'].append(stats['source'] + " " + stats['corpus_title'])
+    model_results['Validation_Set'].append(stats['_source'] + " " + stats['corpus_title'])
     model_results['Model_Variant'].append(stats['model_variant'])
     model_results['Negative'].append(stats['negative_sampling_variant'])
     model_results['Vector_size'].append(stats['vector_size'])

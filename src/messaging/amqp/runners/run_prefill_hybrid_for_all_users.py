@@ -4,9 +4,10 @@ import time
 import pandas as pd
 import schedule
 
+from src.data_handling.data_queries import RecommenderMethods
+from src.data_handling.model_methods.user_methods import UserMethods
 from src.prefillers.user_based_prefillers.prefilling_collaborative import run_prefilling_collaborative
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
+
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)

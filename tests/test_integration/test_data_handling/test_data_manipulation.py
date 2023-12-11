@@ -1,14 +1,13 @@
 import os
-import pickle
 from pathlib import Path
 from unittest import mock
 
 import pandas as pd
 
-# python -m pytest .\tests\test_data_handling\test_data_queries.py
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
 
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
+# python -m pytest .\tests\test_data_handling\test_data_queries.py
 
 TEST_CACHED_PICKLE_PATH = 'tests/db_cache/cached_posts_dataframe.pkl'
 
@@ -28,7 +27,7 @@ def test_insert_posts_dataframe_to_cache():
 
 @mock.patch('src.recommender_core.data_handling.data_manipulation.pd.read_pickle',
             side_effect=Exception("pickle data was truncated"))
-def test_get_posts_dataframe_from_cache_unpickling_error(capsys):
+def test_get_posts_dataframe_from_cache_unpickling_error():
     recommender_methods = RecommenderMethods()
     recommender_methods.database.insert_posts_dataframe_to_cache(TEST_CACHED_PICKLE_PATH)
 

@@ -1,13 +1,11 @@
 import json
 
-from sklearn.metrics import mean_squared_error
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from scipy.sparse.linalg import svds
 import numpy as np
 import pandas as pd
+from scipy.sparse.linalg import svds
 
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.model_methods.user_methods import UserMethods
 
 
 def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_recommendations):
@@ -39,10 +37,11 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
 class SvdClass:
 
     def __init__(self):
+        self.user_ratings_mean = None
         self.df_ratings = pd.DataFrame()
         self.df_users = pd.DataFrame()
         self.df_posts = pd.DataFrame()
-        self.user_ratings_mean: np.ndarray()
+        self.user_ratings_mean: np.ndarray
         self.user_item_table = pd.DataFrame()
 
     def get_all_users_ids(self):
@@ -68,6 +67,7 @@ class SvdClass:
 
         return self.user_item_table
 
+    # noinspection PyPep8Naming
     def convert_to_matrix(self, R_df):
         """
         self.user_ratings_mean = np.array(R_df.mean(axis=1))
@@ -110,7 +110,7 @@ class SvdClass:
 
         if self.df_posts is not None and self.df_ratings is not None:
             _, predictions = recommend_posts(preds_df, user_id, self.df_posts, self.df_ratings,
-                                                         num_of_recommendations)
+                                             num_of_recommendations)
         else:
             raise ValueError("Dataframe of posts is None. Cannot continue with next operation.")
         if dict_results is True:

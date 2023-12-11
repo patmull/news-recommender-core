@@ -2,9 +2,9 @@ import json
 
 import pandas as pd
 
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
-from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
+from src.data_handling.model_methods.user_methods import UserMethods
 
 
 def convert_to_json(df):
@@ -56,8 +56,8 @@ class UserBasedMethods:
         # noinspection PyPep8
         df_posts_users_of_categories = load_ratings()[
             load_ratings()
-                .category_slug
-                .isin(load_user_categories(user_id)['category_slug'].tolist())
+            .category_slug
+            .isin(load_user_categories(user_id)['category_slug'].tolist())
         ]
         df_filter_current_user = df_posts_users_of_categories[
             df_posts_users_of_categories.rating_id != self.get_user_id()]

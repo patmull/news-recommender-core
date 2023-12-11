@@ -1,3 +1,3 @@
-from research.relevance_statistics import print_model_variant_relevances
+from src.methods.evaluation.relevance_statistics import print_model_variant_relevances
 
 print_model_variant_relevances()

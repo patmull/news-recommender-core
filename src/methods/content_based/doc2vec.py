@@ -4,28 +4,26 @@ import logging
 import os
 import random
 from pathlib import Path
+
 import gensim
 import pandas as pd
 from gensim import corpora
-from gensim.models import Word2Vec
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 from pymongo import MongoClient
 from scipy import spatial
 from sklearn.model_selection import train_test_split
 
-from src.prefillers.preprocessing.czech_preprocessing import preprocess
-from src.data_handling.data_tools import flatten
-from src.recommender_core.recommender_algorithms.content_based_algorithms.models_manipulation.models_loaders import \
-    load_doc2vec_model
-from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import verify_searched_slug_sanity, \
-    preprocess_columns
-from src.checks.data_types import check_empty_string, accepts_first_argument
-from src.recommender_core.data_handling.reader import build_sentences
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.evaluation.evaluation_data_handling import save_wordsim
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 
 import config.trials_counter
+from src.checks.data_types import check_empty_string, accepts_first_argument
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_queries import RecommenderMethods
+from src.data_handling.data_tools import flatten
+from src.data_handling.evaluation.evaluation_data_handling import save_wordsim
+from src.data_handling.reader import build_sentences
+from src.methods.content_based.helper import verify_searched_slug_sanity
+from src.methods.content_based.models_manipulation.models_loaders import load_doc2vec_model
+from src.prefillers.preprocessing.czech_preprocessing import preprocess, preprocess_columns
 
 DEFAULT_MODEL_LOCATION = "models/d2v_limited.model"
 TESTING_MODEL_LOCATION = "tests/models/d2v_testing.model"
@@ -53,7 +51,7 @@ def print_eval_values(source, train_corpus=None, test_corpus=None, model_variant
     elif source == "cswiki":
         model_path = "models/d2v_cswiki.model"
     else:
-        raise ValueError("No source matches available options.")
+        raise ValueError("No _source matches available options.")
 
     if os.path.isfile(model_path) is False or force_update_model is True:
         # Started training on iDNES.cz dataset...
@@ -110,13 +108,13 @@ def create_dictionary_from_mongo_idnes(sentences=None, force_update=False, filte
             sentences = build_sentences()
 
         sentences_train, _ = train_test_split(sentences, train_size=0.2, shuffle=True)
-        # Creating dictionary...
+        # Creating _dictionary...
         preprocessed_dictionary_train = gensim.corpora.Dictionary(line for line in sentences_train)
         del sentences
         gc.collect()
         if filter_extremes is True:
             preprocessed_dictionary_train.filter_extremes()
-        # Saving dictionary...
+        # Saving _dictionary...
         preprocessed_dictionary_train.save(path_to_train_dict)
         # Dictionary save
         return preprocessed_dictionary_train
@@ -267,23 +265,6 @@ def get_similar_by_posts_slug(most_similar_items, documents_slugs, number_of_rec
     return flatten(list_of_articles)
 
 
-def load_doc2vec_model(limited, full_text):
-    if "PYTEST_CURRENT_TEST" in os.environ:
-        doc2vec_loaded_model = Doc2Vec.load(TESTING_MODEL_LOCATION)
-    else:
-        if limited is True:
-            if full_text is False:
-                doc2vec_loaded_model = Doc2Vec.load("models/d2v_limited.model")
-            else:
-                doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text_limited.model")
-        else:
-            if full_text is False:
-                doc2vec_loaded_model = Doc2Vec.load("models/d2v.model")  # or download from Dropbox / AWS bucket
-            else:
-                doc2vec_loaded_model = Doc2Vec.load("models/d2v_full_text.model")
-    return doc2vec_loaded_model
-
-
 class Doc2VecClass:
 
     def __init__(self):
@@ -364,7 +345,7 @@ class Doc2VecClass:
         del documents_all_features_preprocessed
         gc.collect()
 
-        doc2vec_loaded_model = load_doc2vec_model(limited, full_text)
+        doc2vec_loaded_model = load_doc2vec_model()
 
         recommender_methods = RecommenderMethods()
         post_found = recommender_methods.find_post_by_slug(searched_slug)
@@ -497,7 +478,7 @@ class Doc2VecClass:
         logging.debug(slug_2)
 
         if d2v_model is None:
-            d2v_model = self.load_model('models/d2v_full_text_limited.model')
+            d2v_model = self.load_model()
 
         recommend_methods = RecommenderMethods()
         post_1 = recommend_methods.find_post_by_slug(slug_1)
@@ -521,6 +502,6 @@ class Doc2VecClass:
 
         return cos_distance
 
-    def load_model(self, path=None):
-        self.doc2vec_model = load_doc2vec_model(path_to_model=path)
+    def load_model(self):
+        self.doc2vec_model = load_doc2vec_model()
         return self.doc2vec_model

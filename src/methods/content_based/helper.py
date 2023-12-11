@@ -1,6 +1,6 @@
 import json
+
 import numpy as np
-import pandas as pd
 from gensim.utils import deaccent
 
 from src.prefillers.preprocessing.czech_preprocessing import preprocess
@@ -56,27 +56,6 @@ def verify_searched_slug_sanity(searched_slug):
     else:
         if searched_slug == "":
             raise ValueError("Entered input_string is empty.")
-
-def preprocess_columns(df, cols):
-    documents_df = pd.DataFrame()
-    df['all_features_preprocessed'] = df['all_features_preprocessed'].apply(
-        lambda x: x.replace(' ', ', '))
-
-    df.fillna("", inplace=True)
-
-    df['body_preprocessed'] = df['body_preprocessed'].apply(
-        lambda x: x.replace(' ', ', '))
-    documents_df['all_features_preprocessed'] = df[cols].apply(
-        lambda row: ' '.join(row.values.astype(str)),
-        axis=1)
-
-    documents_df['all_features_preprocessed'] = df['category_title'] + ', ' + documents_df[
-        'all_features_preprocessed'] + ", " + df['body_preprocessed']
-
-    documents_all_features_preprocessed = list(
-        map(' '.join, documents_df[['all_features_preprocessed']].values.tolist()))
-
-    return documents_all_features_preprocessed
 
 
 class NumpyEncoder(json.JSONEncoder):

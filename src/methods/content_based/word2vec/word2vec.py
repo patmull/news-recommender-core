@@ -11,30 +11,26 @@ import traceback
 from collections import defaultdict
 from pathlib import Path
 
-import gensim
 import numpy as np
 import pandas as pd
 import tqdm
 from gensim import corpora
 from gensim.corpora import Dictionary
-from gensim.models import KeyedVectors, Word2Vec
+from gensim.models import KeyedVectors, Word2Vec, TfidfModel
 from gensim.similarities import WordEmbeddingSimilarityIndex, SparseTermSimilarityMatrix
 from gensim.similarities.annoy import AnnoyIndexer
 from pymongo import MongoClient
 
+from src.data_handling.data_queries import RecommenderMethods
+from src.data_handling.dataframe_methods.data_selects import combine_features_from_single_df_row
+from src.data_handling.evaluation.evaluation_data_handling import save_wordsim
+from src.data_handling.evaluation.evaluation_results import append_training_results
+from src.data_handling.hyperparam_tuning import random_hyperparameter_choice, prepare_hyperparameters_grid
+from src.data_handling.reader import get_preprocessed_dict_idnes
+from src.methods.content_based.doc_sim import calculate_similarity_idnes_model_gensim, load_docsim_index
+from src.methods.content_based.helper import NumpyEncoder
 from src.prefillers.preprocessing.czech_preprocessing import preprocess
 from src.prefillers.preprocessing.stopwords_loading import load_cz_stopwords
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
-from src.recommender_core.data_handling.dataframe_methods.data_selects import combine_features_from_single_df_row
-from src.recommender_core.data_handling.evaluation.evaluation_data_handling import save_wordsim
-from src.recommender_core.data_handling.evaluation.evaluation_results import get_eval_results_header, \
-    append_training_results
-from src.recommender_core.data_handling.hyperparam_tuning import random_hyperparameter_choice, \
-    prepare_hyperparameters_grid
-from src.recommender_core.data_handling.reader import get_preprocessed_dict_idnes
-from src.recommender_core.recommender_algorithms.content_based_algorithms.doc_sim import DocSim, calculate_similarity, \
-    calculate_similarity_idnes_model_gensim
-from src.recommender_core.recommender_algorithms.content_based_algorithms.helper import NumpyEncoder
 
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -44,8 +40,12 @@ logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from Word2vec.")
 FORMAT_W2V_LOG = "%(asctime)s:%(levelname)s:%(message)s"
 
-
 W2V_IDNES_MODEL_PATH = "models/w2v_idnes.model"
+DEFAULT_MODEL = 'idnes_3'
+
+# defining globals
+source = None
+dictionary = None
 
 
 def save_to_mongo(data, number_of_processed_files, supplied_mongo_collection):
@@ -68,8 +68,8 @@ def save_tuple_to_csv(path, data):
 
 
 def get_client():
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
+    for _handler in logging.root.handlers[:]:
+        logging.root.removeHandler(_handler)
 
     # Enabling Word2Vec logging
     logging.basicConfig(format=FORMAT_W2V_LOG,
@@ -82,6 +82,7 @@ def get_client():
 
 
 def create_dictionary_from_dataframe(force_update=False):
+    global dictionary
     path_to_dict = "full_models/idnes/unprocessed/idnes.dict"
     path_to_corpus = "full_models/idnes/unprocessed/idnes.mm"
     if os.path.exists(path_to_dict) is False or os.path.exists(path_to_corpus) is False or force_update is True:
@@ -125,6 +126,8 @@ def create_dictionary_from_dataframe(force_update=False):
         # Serializing and saving...
         corpora.MmCorpus.serialize(path_to_corpus, corpus)  # store to disk, for later use
 
+    return dictionary
+
 
 def get_preprocessed_dictionary(filter_extremes, path_to_dict):
     return get_preprocessed_dict_idnes(filter_extremes=filter_extremes,
@@ -140,50 +143,51 @@ def create_dictionary_from_mongo_idnes(force_update=False, filter_extremes=False
         return preprocessed_dictionary
     else:
         # Dictionary already exists. Loading...
-        loaded_dict = corpora.Dictionary.load("full_models/idnes/preprocessed/dictionary")
+        loaded_dict = corpora.Dictionary.load("full_models/idnes/preprocessed/_dictionary")
         return loaded_dict
+
+
+def grid_like_search(_source, model_results, corpus_title, *hyperparameters_search_field):
+    pbar = tqdm.tqdm(total=540)
+    # loop over the cartesian product of the hyperparameters
+    for _ in itertools.product(*hyperparameters_search_field):
+
+        if _source == "idnes":
+            set_title = "idnes"
+        elif _source == "cswiki":
+            set_title = "cswiki"
+        else:
+            raise ValueError("Bad ource specified")
+        model_results['Validation_Set'].append(set_title + " " + corpus_title[0])
+
+        append_training_results(model_results)
+
+        pbar.update(1)
+        pbar.close()
 
 
 class ModelTrainer:
 
     def __init__(self):
+        self.w2v_model = None
+        self.logger = None
         self.client = MongoClient("localhost", 27017, maxPoolSize=50)
         self.init_logging()
 
     def init_logging(self):
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
+        for _handler in logging.root.handlers[:]:
+            logging.root.removeHandler(_handler)
         logging.basicConfig(format=FORMAT_W2V_LOG, level=logging.NOTSET)
         self.logger = logging.getLogger()
 
-    def get_sentences_from_db(self, source):
-        db = self.client[source]
+    def get_sentences_from_db(self, _source):
+        db = self.client[_source]
         collection = db.preprocessed_articles_trigrams
         cursor = collection.find({})
         sentences = [document['text'] for document in cursor]
         return sentences
 
-    def grid_like_search(self, source, model_results, corpus_title, *hyperparameters_search_field):
-        pbar = tqdm.tqdm(total=540)
-        # loop over the cartesian product of the hyperparameters
-        for hyperparameter_combination in itertools.product(*hyperparameters_search_field):
-            (model_variant, negative_sampling_variant,
-             vector_size, window, min_count, epochs, sample, hs_softmax) = hyperparameter_combination
-
-            if source == "idnes":
-                set_title = "idnes"
-            elif source == "cswiki":
-                set_title = "cswiki"
-            else:
-                raise ValueError("Bad ource specified")
-            model_results['Validation_Set'].append(set_title + " " + corpus_title[0])
-
-            append_training_results(model_results)
-
-            pbar.update(1)
-            pbar.close()
-
-    def random_like_search(self, sentences, source, corpus_title, number_of_trials=None, model_variants=None,
+    def random_like_search(self, sentences, _source, corpus_title, number_of_trials=None, model_variants=None,
                            vector_size_range=None, sample_range=None, epochs_range=None, window_range=None,
                            min_count_range=None, negative_sampling_variants=None, hs_softmax_variants=None,
                            word2vec_hyperparameters=None):
@@ -202,11 +206,11 @@ class ModelTrainer:
             negative_sampling_variant = random.choice(negative_sampling_variants)
 
             if hs_softmax == 1:
-                word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, source=source,
+                word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, _source=_source,
                                                                       force_update_model=True,
                                                                       )
             else:
-                word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, source=source,
+                word_pairs_eval, analogies_eval = self.evaluate_model(sentences=sentences, _source=_source,
                                                                       hyperparameters=word2vec_hyperparameters,
                                                                       force_update_model=True)
 
@@ -223,19 +227,19 @@ class ModelTrainer:
                 "analogies_eval": analogies_eval
             }
 
-            # Create dictionary using dictionary comprehension
+            # Create _dictionary using _dictionary comprehension
             model_results = {var: eval(var) for var in model_results}
             model_results['Validation_Set'].append("cs.wikipedia.org " + corpus_title[0])
 
             # noinspection DuplicatedCode
             append_training_results(model_results)
 
-            if source == "idnes":
+            if _source == "idnes":
                 # noinspection PyTypeChecker
                 pd.DataFrame(model_results).to_csv('word2vec_tuning_results_random_search_idnes.csv',
                                                    index=False,
                                                    mode="w")
-            elif source == "cswiki":
+            elif _source == "cswiki":
                 # noinspection PyTypeChecker
                 pd.DataFrame(model_results).to_csv('word2vec_tuning_results_random_search_cswiki.csv',
                                                    index=False,
@@ -246,26 +250,26 @@ class ModelTrainer:
             pbar.update(1)
             pbar.close()
 
-    def evaluate_model(self, sentences, source, hyperparameters=None, force_update_model=True,
+    def evaluate_model(self, sentences, _source, hyperparameters=None, force_update_model=True,
                        use_default_model=False, save_model=True):
-        if source == "idnes":
+        if _source == "idnes":
             model_path = Path(W2V_IDNES_MODEL_PATH)
-        elif source == "cswiki":
+        elif _source == "cswiki":
             model_path = Path("full_models/cswiki/word2vec/w2v_cswiki.model")
         else:
-            raise ValueError("Wrong source of the model was chosen.")
+            raise ValueError("Wrong _source of the model was chosen.")
 
         if os.path.isfile(model_path) is False or force_update_model is True:
             if hyperparameters is None:
                 raise ValueError("You must provide hyperparameters to evaluate the model.")
 
-            if source == "idnes":
+            if _source == "idnes":
                 logging.info("Started training on iDNES.cz dataset...")
-            elif source == "cswiki":
+            elif _source == "cswiki":
                 logging.info("Started training on cs.Wikipedia.cz dataset...")
 
             word2vec = Word2VecClass()
-            word2vec.save_w2v_model(sentences, hyperparameters, use_default_model, save_model, source)
+            word2vec.save_w2v_model(sentences, hyperparameters, use_default_model, save_model, _source)
         else:
             # Loading Word2Vec model from saved model file"
             self.w2v_model = Word2Vec.load(model_path)
@@ -273,9 +277,9 @@ class ModelTrainer:
         word2vec = Word2VecClass()
         overall_score, word_pairs_eval = word2vec.prepare_and_run_evaluation()
 
-        if source == "idnes":
+        if _source == "idnes":
             logging.info("Analogies tuning of iDnes.cz model:")
-        elif source == "cswiki":
+        elif _source == "cswiki":
             logging.info("Analogies tuning of cs.wikipedia.org model:")
 
         return overall_score, word_pairs_eval
@@ -298,19 +302,84 @@ def path_to_idnes_folder(model_name):
     return path_to_folder
 
 
+def init_word2vec(hyperparams):
+    w2v_model = Word2Vec(sentences=hyperparams['sentences'], sg=hyperparams['model_variant'],
+                         negative=hyperparams['negative_sampling_bias'],
+                         vector_size=hyperparams['vector_size'], window=hyperparams['window'],
+                         min_count=hyperparams['min_count'], epochs=hyperparams['epochs'],
+                         sample=hyperparams['sample'], workers=7)
+    return w2v_model
+
+
+def find_optimal_model(_source, random_search=False):
+    """
+    number_of_trials: default value according to random_order search study:
+    https://dl.acm.org/doi/10.5555/2188385.2188395
+    """
+    for _handler in logging.root.handlers[:]:
+        logging.root.removeHandler(_handler)
+    # Enabling Word2Vec logging
+    logging.basicConfig(format=FORMAT_W2V_LOG,
+                        level=logging.NOTSET)
+    logger = logging.getLogger()  # get the root logger
+    logger.info("Testing file write")
+
+    sentences = []
+
+    client = MongoClient("localhost", 27017, maxPoolSize=50)
+    if _source == "idnes":
+        db = client.idnes
+    elif _source == "cswiki":
+        db = client.cswiki
+    else:
+        raise ValueError("No from selected sources are in options.")
+
+    collection = db.preprocessed_articles_trigrams
+    cursor = collection.find({})
+    for document in cursor:
+        sentences.append(document['text'])
+
+    model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
+    hs_softmax_variants = [0]  # 1 = Hierarchical SoftMax
+    negative_sampling_variants, _, vector_size_range, window_range, min_count_range, \
+        epochs_range, sample_range, corpus_title, model_results = prepare_hyperparameters_grid()
+
+    # CUSTOM:
+    if random_search is False:
+        # list of lists of hyperparameters
+        hyperparameters_search_field = [model_variants, negative_sampling_variants, vector_size_range, window_range,
+                                        min_count_range, epochs_range, sample_range, hs_softmax_variants]
+
+        grid_like_search(sentences, _source, model_results, corpus_title,
+                         hyperparameters_search_field)
+
+        if _source == "idnes":
+            csv_file_name = 'word2vec_tuning_results_cswiki.csv'
+        elif _source == "cswiki":
+            csv_file_name = 'word2vec_tuning_results_idnes.csv'
+        else:
+            raise ValueError("Bad _source specified")
+        # noinspection PyTypeChecker
+        pd.DataFrame(model_results).to_csv(csv_file_name, index=False,
+                                           mode="w")
+    else:
+        model_trainer = ModelTrainer()
+        model_trainer.random_like_search(sentences, _source, corpus_title)
+
+
 class Word2VecClass:
 
     def __init__(self):
         self.w2v_model = None
-        self.documents = None
         self.df = None
         self.posts_df = None
         self.categories_df = None
         self.w2v_model: Word2Vec
 
-    def get_similar_word2vec(self, searched_slug, model_name, model=None, docsim_index=None, dictionary=None,
+    def get_similar_word2vec(self, searched_slug, model_name, model=None, docsim_index=None, _dictionary=None,
                              force_update_data=False, posts_from_cache=True):
 
+        global source
         logging.debug("Testing logging from Word2vec.")
         if type(searched_slug) is not str:
             raise ValueError("Entered slug must be a input_string.")
@@ -379,17 +448,16 @@ class Word2VecClass:
             self.load_w2v_from_keyed_vectors(model_name)
 
         logging.info("Calculating similarities on iDNES.cz model.")
-        ds = DocSim(self.w2v_model)
         logging.debug("found_post:")
         logging.debug(found_post)
-        if docsim_index is None and dictionary is None:
-            logging.debug("Docsim or dictionary is not passed into method. Loading.")
+        if docsim_index is None and _dictionary is None:
+            logging.debug("Docsim or _dictionary is not passed into method. Loading.")
 
-            docsim_index = ds.load_docsim_index(source=source, model_name=model_name)
+            docsim_index = load_docsim_index(source=source, model_name=model_name)
         most_similar_articles_with_scores \
             = calculate_similarity_idnes_model_gensim(found_post,
                                                       docsim_index,
-                                                      dictionary,
+                                                      _dictionary,
                                                       list_of_document_features)[:21]
 
         # removing post itself
@@ -452,39 +520,35 @@ class Word2VecClass:
             list_of_document_features = documents_df["features_to_use"].tolist()
             del documents_df
             # https://github.com/v1shwa/document-similarity with my edits
+            _dictionary = create_dictionary_from_dataframe()
 
-            calculatd_similarities_for_posts = calculate_similarity(found_post,
-                                                                    list_of_document_features)[:21]
+            docsim_index = load_docsim_index(source=source, model_name=DEFAULT_MODEL)
+            calculatd_similarities_for_posts = calculate_similarity_idnes_model_gensim(found_post,
+                                                                                       docsim_index,
+                                                                                       _dictionary,
+                                                                                       list_of_document_features)[:21]
             # removing post itself
             del calculatd_similarities_for_posts[0]  # removing post itself
 
             # workaround due to float32 error in while converting to JSON
             return json.loads(json.dumps(calculatd_similarities_for_posts, cls=NumpyEncoder))
 
-    def init_word2vec(self, hyperparams):
-        w2v_model = Word2Vec(sentences=hyperparams['sentences'], sg=hyperparams['model_variant'],
-                             negative=hyperparams['negative_sampling_bias'],
-                             vector_size=hyperparams['vector_size'], window=hyperparams['window'],
-                             min_count=hyperparams['min_count'], epochs=hyperparams['epochs'],
-                             sample=hyperparams['sample'], workers=7)
-        return w2v_model
-
-    def save_w2v_model(self, sentences, hyperparams, use_default_model=False, save_model=True, source="idnes"):
+    def save_w2v_model(self, sentences, hyperparams, use_default_model=False, save_model=True, _source="idnes"):
         if use_default_model is True:
             # DEFAULT:
             self.w2v_model = Word2Vec(sentences=sentences)
             if save_model is True:
-                if source == "idnes":
+                if _source == "idnes":
                     self.w2v_model.save(W2V_IDNES_MODEL_PATH)
-                elif source == "cswiki":
+                elif _source == "cswiki":
                     self.w2v_model.save("models/w2v_cswiki.model")
         else:
             # CUSTOM:
-            self.w2v_model = self.init_word2vec(hyperparams)
+            self.w2v_model = init_word2vec(hyperparams)
 
-            if source == "idnes":
+            if _source == "idnes":
                 self.w2v_model.save(W2V_IDNES_MODEL_PATH)
-            elif source == "cswiki":
+            elif _source == "cswiki":
                 self.w2v_model.save("models/w2v_cswiki.model")
 
     def prepare_and_run_evaluation(self):
@@ -500,67 +564,10 @@ class Word2VecClass:
             'stats/word2vec/analogies/questions-words-cs.txt')
         return overall_score, word_pairs_eval
 
-    def find_optimal_model(self, source, random_search=False):
-        """
-        number_of_trials: default value according to random_order search study:
-        https://dl.acm.org/doi/10.5555/2188385.2188395
-        """
-        for handler in logging.root.handlers[:]:
-            logging.root.removeHandler(handler)
-        # Enabling Word2Vec logging
-        logging.basicConfig(format=FORMAT_W2V_LOG,
-                            level=logging.NOTSET)
-        logger = logging.getLogger()  # get the root logger
-        logger.info("Testing file write")
-
-        sentences = []
-
-        client = MongoClient("localhost", 27017, maxPoolSize=50)
-        if source == "idnes":
-            db = client.idnes
-        elif source == "cswiki":
-            db = client.cswiki
-        else:
-            raise ValueError("No from selected sources are in options.")
-
-        collection = db.preprocessed_articles_trigrams
-        cursor = collection.find({})
-        for document in cursor:
-            sentences.append(document['text'])
-
-        model_variants = [0, 1]  # sg parameter: 0 = CBOW; 1 = Skip-Gram
-        hs_softmax_variants = [0]  # 1 = Hierarchical SoftMax
-        negative_sampling_variants, _, vector_size_range, window_range, min_count_range, \
-            epochs_range, sample_range, corpus_title, model_results = prepare_hyperparameters_grid()
-
-        # CUSTOM:
-        if random_search is False:
-            # list of lists of hyperparameters
-            hyperparameters_search_field = [model_variants, negative_sampling_variants, vector_size_range, window_range,
-                                            min_count_range, epochs_range, sample_range, hs_softmax_variants]
-
-            model_trainer = ModelTrainer()
-            model_trainer.grid_like_search(sentences, source, model_results, corpus_title,
-                                           hyperparameters_search_field)
-
-            if source == "idnes":
-                csv_file_name = 'word2vec_tuning_results_cswiki.csv'
-            elif source == "cswiki":
-                csv_file_name = 'word2vec_tuning_results_idnes.csv'
-            else:
-                raise ValueError("Bad source specified")
-            # noinspection PyTypeChecker
-            pd.DataFrame(model_results).to_csv(csv_file_name, index=False,
-                                               mode="w")
-        else:
-            model_trainer = ModelTrainer()
-            model_trainer.random_like_search(sentences, source, corpus_title)
-
     @staticmethod
     def get_prefilled_full_text(slug, variant):
         recommender_methods = RecommenderMethods()
         found_post = recommender_methods.find_post_by_slug(slug)
-        column_name = None
         if variant == "idnes_short_text":
             column_name = 'recommended_word2vec'
         elif variant == "idnes_full_text":
@@ -618,16 +625,16 @@ class Word2VecClass:
 
         documents = [first_text, second_text]
 
-        dictionary = Dictionary(documents)
+        _dictionary = Dictionary(documents)
 
-        first_text = dictionary.doc2bow(first_text)
-        second_text = dictionary.doc2bow(second_text)
+        first_text = _dictionary.doc2bow(first_text)
+        second_text = _dictionary.doc2bow(second_text)
 
         if w2v_model is None:
             w2v_model = KeyedVectors.load("full_models/idnes/evaluated_models/word2vec_model_3/w2v_idnes.model")
 
         documents = [first_text, second_text]
-        termsim_matrix = self.prepare_termsim_and_dictionary_for_pair(dictionary, first_text,
+        termsim_matrix = self.prepare_termsim_and_dictionary_for_pair(_dictionary, first_text,
                                                                       second_text, w2v_model)
 
         from gensim.models import TfidfModel
@@ -642,13 +649,12 @@ class Word2VecClass:
         return similarity
 
     @staticmethod
-    def prepare_termsim_and_dictionary_for_pair(dictionary, first_text, second_text, w2v_model):
+    def prepare_termsim_and_dictionary_for_pair(_dictionary, first_text, second_text, w2v_model):
 
-        from gensim.models import TfidfModel
         documents = [first_text, second_text]
         tfidf = TfidfModel(documents)
 
-        words = [word for word, count in dictionary.most_common()]
+        words = [word for word, count in _dictionary.most_common()]
 
         try:
             word_vectors = w2v_model.wv.vectors_for_all(words, allow_inference=False)
@@ -664,7 +670,7 @@ class Word2VecClass:
         indexer = AnnoyIndexer(word_vectors, num_trees=2)  # use Annoy for faster word similarity lookups
         # for similarity index
         termsim_index = WordEmbeddingSimilarityIndex(word_vectors, kwargs={'indexer': indexer})
-        termsim_matrix = SparseTermSimilarityMatrix(termsim_index, dictionary, tfidf)
+        termsim_matrix = SparseTermSimilarityMatrix(termsim_index, _dictionary, tfidf)
 
         return termsim_matrix
 

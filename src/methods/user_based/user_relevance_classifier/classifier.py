@@ -24,6 +24,12 @@ log_format = '[%(asctime)s] [%(levelname)s] - %(message)s'
 logging.basicConfig(level=logging.DEBUG, format=log_format)
 logging.debug("Testing logging from classifier.")
 
+# defining globals
+clf_random_forest = None
+clf_svc = None
+_clf_svc = None
+_clf_random_forest = None
+
 
 def load_bert_model():
     bert_model = spacy_sentence_bert.load_model('xx_stsb_xlm_r_multilingual')
@@ -50,13 +56,13 @@ def show_true_vs_predicted(features_list, contexts_list, clf, bert_model):
         print("CONTENT:")
 
 
-def predict_from_vectors(x_unseen_df, clf, predicted_var_for_redis_key_name, user_id,
+def predict_from_vectors(X_unseen_df, clf, predicted_var_for_redis_key_name, user_id,
                          save_testing_csv=False, bert_model=None, col_to_combine=None, testing_mode=False,
-                         store_to_redis=True):
+                         store_to_redis=False):
     """
 
     @param store_to_redis:
-    @param x_unseen_df:
+    @param X_unseen_df:
     @param clf:
     @param predicted_var_for_redis_key_name:
     @param user_id:
@@ -89,18 +95,18 @@ def predict_from_vectors(x_unseen_df, clf, predicted_var_for_redis_key_name, use
             raise ValueError("If BERT model is supplied, then column list needs "
                              "to be supplied to col_to_combine_parameter!")
 
-    print("x_unseen_df size:")
-    print(x_unseen_df)
-    print(len(x_unseen_df.index))
+    print("X_unseen_df size:")
+    print(X_unseen_df)
+    print(len(X_unseen_df.index))
 
     print("Vectoring the selected columns...")
     # TODO: Takes a lot of time... Probably pre-calculate.
-    print("x_unseen_df:")
-    print(x_unseen_df)
+    print("X_unseen_df:")
+    print(X_unseen_df)
 
     print("Loading vectors or creating new if does not exists...")
     # noinspection  PyPep8
-    y_pred_unseen = x_unseen_df \
+    y_pred_unseen = X_unseen_df \
         .apply(lambda x: clf
                .predict(pickle
                         .loads(x['bert_vector_representation']))[0] if pd.notnull(x['bert_vector_representation']) else
@@ -108,12 +114,12 @@ def predict_from_vectors(x_unseen_df, clf, predicted_var_for_redis_key_name, use
 
     y_pred_unseen = y_pred_unseen.rename('prediction')
 
-    logging.debug("x_unseen_df:")
-    logging.debug(x_unseen_df.columns)
+    logging.debug("X_unseen_df:")
+    logging.debug(X_unseen_df.columns)
     logging.debug("y_pred_unseen:")
     logging.debug(pd.DataFrame(y_pred_unseen).columns)
 
-    df_results = pd.merge(x_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
+    df_results = pd.merge(X_unseen_df, pd.DataFrame(y_pred_unseen), how='left', left_index=True, right_index=True)
 
     logging.debug("df_results:")
     logging.debug(df_results.columns)
@@ -171,6 +177,63 @@ def show_predicted(X_unseen_df, input_variables, clf, bert_model, save_testing_c
     if save_testing_csv is True:
         # noinspection PyTypeChecker
         df_results.head(20).to_csv('stats/hybrid/testing_hybrid_classifier_df_results.csv')
+
+
+def save_eval_results(file, user_id, method, y_test, y_pred, to_txt=True, to_csv=True):
+    if to_txt:
+        with open(file, 'a') as f:
+            f.write("==========================\n")
+            f.write("MODEL %s.\n" % method)
+            f.write("===========================\n")
+            f.write("===========================\n")
+            f.write("==============\n")
+            f.write("USER ID:\n")
+            f.write(str(user_id))
+            f.write("==================\n")
+            f.write("ACCURACY SCORE:\n")
+            f.write(str(accuracy_score(y_test, y_pred)))
+            f.write("PRECISION SCORE:\n")
+            f.write(str(precision_score(y_test, y_pred, average='weighted')))
+            f.write("BALANCED_ACCURACY:\n")
+            f.write(str(balanced_accuracy_score(y_test, y_pred)))
+            f.write("CONFUSION MATRIX:\n")
+            f.write(str(confusion_matrix(y_test, y_pred)))
+            f.write("PRECISION SCORE:\n")
+            f.write(str(precision_score(y_test, y_pred, average=None)))
+
+    if to_csv:
+        user_id_list = []
+        accuracy_score_list = []
+        precision_score_weighted = []
+        balanced_accuracy_score_list = []
+        precision_score_list = []
+        method_list = []
+        y_test_list = []
+        y_pred_list = []
+
+        user_id_list.append(user_id)
+        accuracy_score_list.append(accuracy_score(y_test, y_pred))
+        precision_score_weighted.append(precision_score(y_test, y_pred, average='weighted'))
+        balanced_accuracy_score_list.append(balanced_accuracy_score(y_test, y_pred))
+        precision_score_list.append(precision_score(y_test, y_pred, average=None))
+        y_test_list.append(len(y_test))
+        y_pred_list.append(len(y_pred))
+
+        method_list.append(method)
+
+        df = pd.DataFrame({
+            'user_id': user_id_list,
+            'accuracy_score': accuracy_score_list,
+            'precision_score_weighted': precision_score_weighted,
+            'balanced_accuracy_score': balanced_accuracy_score_list,
+            'precision_score': precision_score_list,
+            'y_test': len(y_test_list),
+            'y_pred': len(y_pred_list),
+            'method': method_list
+        })
+
+        output_file = Path("stats/hybrid/classifier_eval_results.csv")
+        df.to_csv(path_or_buf=output_file.as_posix(), mode='a', header=not os.path.exists(output_file))
 
 
 class Classifier:
@@ -265,7 +328,7 @@ class Classifier:
         logging.info("model after hyper-parameter tuning:")
         logging.info(grid.best_estimator_)
 
-        _clf_svc = grid
+        _clf_svc_ = grid
 
         logging.info("SVC results accuracy score:")
 
@@ -281,8 +344,8 @@ class Classifier:
 
         path_to_eval_results_file = Path("stats/hybrid/classifier_eval_results.txt")
 
-        self.save_eval_results(path_to_eval_results_file, user_id=user_id, method="SVC", y_test=y_test,
-                               y_pred=y_pred)
+        save_eval_results(path_to_eval_results_file, user_id=user_id, method="SVC", y_test=y_test,
+                          y_pred=y_pred)
 
         param_grid = {
             "max_depth": [3, None],
@@ -298,13 +361,13 @@ class Classifier:
 
         grid.fit(X_train, y_train)
         logging.info("best hyperparameters after tuning:")
-        print(grid.best_params_)
+        logging.info(grid.best_params_)
         logging.info("model after hyper-parameter tuning:")
-        print(grid.best_estimator_)
+        logging.info(grid.best_estimator_)
 
-        clf_random_forest = grid
+        _clf_random_forest_ = grid
 
-        y_pred = clf_random_forest.predict(X_test)
+        y_pred = _clf_random_forest_.predict(X_test)
 
         logging.info("================================")
         logging.info("Hyper parameter tuning results:")
@@ -316,8 +379,8 @@ class Classifier:
         logging.info("Random Forest classifier accuracy score:")
         logging.info(accuracy_score(y_test, y_pred))
 
-        self.save_eval_results(path_to_eval_results_file, user_id=user_id, method="Random Forrest", y_test=y_test,
-                               y_pred=y_pred)
+        save_eval_results(path_to_eval_results_file, user_id=user_id, method="Random Forrest", y_test=y_test,
+                          y_pred=y_pred)
 
         logging.info("Saving the SVC model...")
         if user_id is not None:
@@ -329,9 +392,9 @@ class Classifier:
                                             + str(user_id) + '.pkl'
             path_to_models_pathlib = Path(self.path_to_models_user_folder)
             path_to_save_svc = Path.joinpath(path_to_models_pathlib, model_file_name_svc)
-            joblib.dump(clf_random_forest, path_to_save_svc)
+            joblib.dump(_clf_random_forest_, path_to_save_svc)
             path_to_save_forest = Path.joinpath(path_to_models_pathlib, model_file_name_random_forest)
-            joblib.dump(clf_random_forest, path_to_save_forest)
+            joblib.dump(_clf_random_forest_, path_to_save_forest)
 
         else:
             logging.info("Folder: " + self.path_to_models_global_folder)
@@ -341,7 +404,7 @@ class Classifier:
             logging.debug(model_file_name)
             path_to_models_pathlib = Path(self.path_to_models_global_folder)
             path_to_save_svc = Path.joinpath(path_to_models_pathlib, model_file_name)
-            joblib.dump(_clf_svc, path_to_save_svc)
+            joblib.dump(_clf_svc_, path_to_save_svc)
             logging.info("Saving the random forest model...")
             logging.info("Folder: " + self.path_to_models_global_folder)
             Path(self.path_to_models_global_folder).mkdir(parents=True, exist_ok=True)
@@ -350,14 +413,14 @@ class Classifier:
             logging.debug(model_file_name)
             path_to_models_pathlib = Path(self.path_to_models_global_folder)
             path_to_save_forest = Path.joinpath(path_to_models_pathlib, model_file_name)
-            joblib.dump(clf_random_forest, path_to_save_forest)
+            joblib.dump(_clf_random_forest_, path_to_save_forest)
 
-        return _clf_svc, clf_random_forest, X_validation, y_validation, self.bert_model
+        return _clf_svc_, _clf_random_forest_, X_validation, y_validation, self.bert_model
 
     def load_classifiers(self, df, input_variables, predicted_variable, user_id=None):
         # https://metatext.io/models/distilbert-base-multilingual-cased
 
-        global clf_random_forest, clf_svc
+        global _clf_svc, _clf_random_forest
         if predicted_variable == 'thumbs_values' or predicted_variable == 'ratings_values':
             if user_id is None:
                 model_file_name_svc = 'svc_classifier_' + predicted_variable + '.pkl'
@@ -377,32 +440,30 @@ class Classifier:
 
         try:
             logging.debug("Loading SVC...")
-            clf_svc = joblib.load(path_to_load_svc)
+            _clf_svc = joblib.load(path_to_load_svc)
         except FileNotFoundError as fnfe:
-            self.handle_faulty_or_missing_model(fnfe, df, input_variables, predicted_variable,
-                                                path_to_load_svc)
+            self.handle_faulty_or_missing_model(fnfe, df, input_variables, predicted_variable)
         except KeyError as ke:
-            self.handle_faulty_or_missing_model(ke, df, input_variables, predicted_variable,
-                                                path_to_load_svc)
+            self.handle_faulty_or_missing_model(ke, df, input_variables, predicted_variable)
         except Exception as e:
             raise e
 
         try:
             logging.warning("Loading Random Forest...")
-            clf_random_forest = joblib.load(path_to_load_random_forest)
+            _clf_random_forest = joblib.load(path_to_load_random_forest)
         except FileNotFoundError as file_not_found_error:
             logging.warning(file_not_found_error)
             logging.warning("Model file was not found in the location, training from the start...")
             self.train_classifiers(df=df, columns_to_combine=input_variables,
                                    target_variable_name=predicted_variable, user_id=user_id)
-            clf_random_forest = joblib.load(path_to_load_random_forest)
+            _clf_random_forest = joblib.load(path_to_load_random_forest)
         except KeyError as ke:
             self.handle_faulty_or_missing_model(ke, df, input_variables,
-                                                predicted_variable, path_to_load_svc)
+                                                predicted_variable)
         except Exception as e:
             raise e
 
-        return clf_svc, clf_random_forest
+        return _clf_svc, _clf_random_forest
 
     def predict_relevance_for_user(self, relevance_by, force_retraining=False, use_only_sample_of=None, user_id=None,
                                    experiment_mode=False, only_with_prefilled_bert_vectors=False, bert_model=None,
@@ -421,17 +482,17 @@ class Classifier:
         logging.debug("all_user_df.columns")
         logging.debug(all_user_df.columns)
 
-        if type(user_id) == int:
+        if isinstance(user_id, int):
             if user_id not in all_user_df["id"].values:
                 raise ValueError("User with id %d not found in DB." % (user_id,))
         else:
             raise ValueError("Bad data type for argument user_id")
 
-        if not type(relevance_by) == str:
+        if not isinstance(relevance_by, str):
             raise ValueError("Bad data type for argument relevance_by")
 
         if use_only_sample_of is not None:
-            if not type(use_only_sample_of) == int:
+            if not isinstance(use_only_sample_of, int):
                 raise ValueError("Bad data type for argument use_only_sample_of")
 
         if relevance_by == 'thumbs':
@@ -511,37 +572,36 @@ class Classifier:
         if force_retraining is True:
             logging.info("Retraining the classifier")
             # noinspection PyPep8Naming
-            clf_svc, clf_random_forest, X_validation, y_validation, bert_model \
+            _clf_svc_, _clf_random_forest_, X_validation, y_validation, bert_model \
                 = self.train_classifiers(df=df_posts_users_categories_relevance, columns_to_combine=columns_to_combine,
                                          target_variable_name=target_variable_name, user_id=user_id)
         else:
-            clf_svc, clf_random_forest \
+            _clf_svc_, _clf_random_forest_ \
                 = self.load_classifiers(df=df_posts_users_categories_relevance, input_variables=columns_to_combine,
                                         predicted_variable=target_variable_name, user_id=user_id)
 
         if experiment_mode is True:
             # noinspection PyPep8Naming
             X_unseen = df_posts_categories[columns_to_combine]
-            if not type(use_only_sample_of) is None:
-                if type(use_only_sample_of) is int:
-                    # noinspection PyPep8Naming
-                    X_unseen = X_unseen.sample(use_only_sample_of)
+            if isinstance(use_only_sample_of, int):
+                # noinspection PyPep8Naming
+                X_unseen = X_unseen.sample(use_only_sample_of)
             logging.debug("Loading sentence bert multilingual model...")
             logging.debug("=========================")
             logging.debug("Results of SVC:")
             logging.debug("=========================")
-            show_predicted(X_unseen_df=X_unseen, input_variables=columns_to_combine, clf=clf_svc,
+            show_predicted(X_unseen_df=X_unseen, input_variables=columns_to_combine, clf=_clf_svc_,
                            bert_model=bert_model)
             logging.debug("=========================")
             logging.debug("Results of Random Forest:")
             logging.debug("=========================")
-            show_predicted(X_unseen_df=X_unseen, input_variables=columns_to_combine, clf=clf_random_forest,
+            show_predicted(X_unseen_df=X_unseen, input_variables=columns_to_combine, clf=_clf_random_forest_,
                            bert_model=bert_model)
         else:
             columns_to_select = columns_to_combine + ['slug', 'bert_vector_representation']
             # noinspection PyPep8Naming
             X_unseen = df_posts_categories[columns_to_select]
-            if not type(use_only_sample_of) is None:
+            if type(use_only_sample_of) is not None:
                 if type(use_only_sample_of) is int:
                     # noinspection PyPep8Naming
                     X_unseen = X_unseen.sample(use_only_sample_of)
@@ -552,9 +612,9 @@ class Classifier:
             logging.debug("X_unseen:")
             logging.debug(X_unseen)
             logging.debug("clf_svc:")
-            logging.debug(clf_svc)
+            logging.debug(_clf_svc_)
 
-            predict_from_vectors(x_unseen_df=X_unseen, clf=clf_svc, user_id=user_id,
+            predict_from_vectors(X_unseen_df=X_unseen, clf=_clf_svc_, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,
                                  save_testing_csv=True, store_to_redis=store_to_redis)
@@ -562,76 +622,17 @@ class Classifier:
             logging.debug("=========================")
             logging.debug("Inserting by Random Forest:")
             logging.debug("=========================")
-            predict_from_vectors(x_unseen_df=X_unseen, clf=clf_random_forest, user_id=user_id,
+            predict_from_vectors(X_unseen_df=X_unseen, clf=_clf_random_forest_, user_id=user_id,
                                  predicted_var_for_redis_key_name=predicted_var_for_redis_key_name,
                                  bert_model=bert_model, col_to_combine=columns_to_combine,
                                  save_testing_csv=True, store_to_redis=store_to_redis)
 
-    def save_eval_results(self, file, user_id, method, y_test, y_pred, to_txt=True, to_csv=True):
-
-        if to_txt:
-            with open(file, 'a') as f:
-                f.write("==========================\n")
-                f.write("MODEL %s.\n" % method)
-                f.write("===========================\n")
-                f.write("===========================\n")
-                f.write("==============\n")
-                f.write("USER ID:\n")
-                f.write(str(user_id))
-                f.write("==================\n")
-                f.write("ACCURACY SCORE:\n")
-                f.write(str(accuracy_score(y_test, y_pred)))
-                f.write("PRECISION SCORE:\n")
-                f.write(str(precision_score(y_test, y_pred, average='weighted')))
-                f.write("BALANCED_ACCURACY:\n")
-                f.write(str(balanced_accuracy_score(y_test, y_pred)))
-                f.write("CONFUSION MATRIX:\n")
-                f.write(str(confusion_matrix(y_test, y_pred)))
-                f.write("PRECISION SCORE:\n")
-                f.write(str(precision_score(y_test, y_pred, average=None)))
-
-        if to_csv:
-            user_id_list = []
-            accuracy_score_list = []
-            precision_score_weighted = []
-            balanced_accuracy_score_list = []
-            precision_score_list = []
-            method_list = []
-            y_test_list = []
-            y_pred_list = []
-
-            user_id_list.append(user_id)
-            accuracy_score_list.append(accuracy_score(y_test, y_pred))
-            precision_score_weighted.append(precision_score(y_test, y_pred, average='weighted'))
-            balanced_accuracy_score_list.append(balanced_accuracy_score(y_test, y_pred))
-            precision_score_list.append(precision_score(y_test, y_pred, average=None))
-            y_test_list.append(len(y_test))
-            y_pred_list.append(len(y_pred))
-
-            method_list.append(method)
-
-            df = pd.DataFrame({
-                'user_id': user_id_list,
-                'accuracy_score': accuracy_score_list,
-                'precision_score_weighted': precision_score_weighted,
-                'balanced_accuracy_score': balanced_accuracy_score_list,
-                'precision_score': precision_score_list,
-                'y_test': len(y_test_list),
-                'y_pred': len(y_pred_list),
-                'method': method_list
-            })
-
-            output_file = Path("stats/hybrid/classifier_eval_results.csv")
-            df.to_csv(path_or_buf=output_file.as_posix(), mode='a', header=not os.path.exists(output_file))
-
-    def handle_faulty_or_missing_model(self, file_not_found_error, df, input_variables, predicted_variable,
-                                       path_to_load_svc):
+    def handle_faulty_or_missing_model(self, file_not_found_error, df, input_variables, predicted_variable):
         logging.warning(file_not_found_error)
         logging.warning("Model file was not found in the location, training from the start...")
         try:
             self.train_classifiers(df=df, columns_to_combine=input_variables,
-                                   target_variable_name=predicted_variable, user_id=user_id)
+                                   target_variable_name=predicted_variable)
         except ValueError as ve:
             logging.warning(ve)
             raise ve
-        clf_svc = joblib.load(path_to_load_svc)

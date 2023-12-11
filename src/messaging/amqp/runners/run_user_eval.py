@@ -1,5 +1,5 @@
-from research.relevance_statistics import save_model_variant_relevances
-from research.user_based.user_relevance_eval import user_relevance_asessment
+from src.methods.evaluation.relevance_statistics import save_model_variant_relevances
+from src.methods.user_based.evalutation.user_relevance_eval import user_relevance_asessment
 
 if __name__ == '__main__':
     """

@@ -7,13 +7,15 @@ import pandas as pd
 from scipy import sparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from src.recommender_core.data_handling.dataframe_methods.conversions import convert_to_json_keyword_based, \
-    convert_dataframe_posts_to_json
-from src.methods.content_based_algorithms.similarities import CosineTransformer
-from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 import os
 
 import logging
+
+from src.data_handling.data_manipulation import DatabaseMethods
+from src.data_handling.data_tools import flatten
+from src.data_handling.dataframe_methods.conversions import convert_to_json_keyword_based, \
+    convert_dataframe_posts_to_json
+from src.methods.content_based.similarities import CosineTransformer
 
 CACHED_FILE_PATH = "db_cache/cached_posts_dataframe.pkl"
 
@@ -163,8 +165,6 @@ class RecommenderMethods:
         return self.df
 
     def get_posts_categories_full_text(self):
-        posts_df = self.get_posts_dataframe()
-        posts_df = posts_df.rename(columns={'title': 'post_title'})
         categories_df = self.get_categories_dataframe()
         categories_df = categories_df.rename(columns={'title': 'category_title'})
 

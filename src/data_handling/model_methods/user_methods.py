@@ -1,4 +1,4 @@
-from src.recommender_core.data_handling.data_queries import RecommenderMethods
+from src.data_handling.data_queries import RecommenderMethods
 
 
 class UserMethods(RecommenderMethods):
