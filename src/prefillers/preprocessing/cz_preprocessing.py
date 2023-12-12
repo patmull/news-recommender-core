@@ -2,6 +2,7 @@ import re
 import string
 
 import majka
+from gensim.utils import deaccent
 from html2text import html2text
 from nltk import RegexpTokenizer
 
@@ -114,6 +115,11 @@ def preprocess(sentence):
     edited_words = [word for word in edited_words if word not in cz_stopwords]
     edited_words = [word for word in edited_words if word not in general_stopwords]
 
+    # special characters removal
+    print("edites_words: ", edited_words)
+    edited_words = [deaccent(word) for word in edited_words]
+    print("edites_words: ", edited_words)
+
     return " ".join(edited_words)
 
 
@@ -132,5 +138,3 @@ class CzPreprocess:
         self.categories_df = None
 
     # pre-worked
-
-    # TODO: Will stemming be supported?

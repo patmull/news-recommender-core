@@ -81,8 +81,10 @@ def dropbox_file_download(dropbox_file_path, local_folder_name):
 def preprocess_single_post_find_by_slug(slug, supplied_json=False):
     recommender_methods = RecommenderMethods()
     post_dataframe = recommender_methods.find_post_by_slug(slug)
-    post_dataframe["title"] = post_dataframe["title"].map(lambda s: preprocess(s))
-    post_dataframe["excerpt"] = post_dataframe["excerpt"].map(lambda s: preprocess(s))
+    print('post_dataframe["titile"]:', post_dataframe["title"])
+    post_dataframe["title"] = post_dataframe["title"].apply(preprocess)
+    print('post_dataframe["titile"]:', post_dataframe["title"])
+    post_dataframe["excerpt"] = post_dataframe["excerpt"].apply(preprocess)
     if supplied_json is False:
         return post_dataframe
     else:
