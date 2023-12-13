@@ -270,7 +270,6 @@ def precalculate_and_save_sim_matrix_for_all_posts(methods=None):
 
         # NOTICE: Without reset_index(), there is: ValueError:
         similarity_matrix_of_all_posts = similarity_matrix_of_all_posts.reset_index()
-
         similarity_matrix_of_all_posts.to_feather(file_path)
 
 
@@ -437,6 +436,13 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
         list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, svd_posts_to_compare)
 
+        with open("logs/svd_posts_to_compare.txt", "w") as f:
+            f.write("\n-------------------------\n")
+            f.write("Selected posts from user history for the comparison, simply filtered from rated by thumbs down:")
+            f.write("NOTE: Can be replacd by a classifier.")
+            f.write("\n-------------------------\n")
+            f.write(list_of_slugs_from_history)
+
         list_of_similarity_results = []
         list_of_similarity_results_fuzzy = []
         r = get_redis_connection()
@@ -494,14 +500,39 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                     # Calculating new similarity matrix only based on posts we are interested
                     similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
 
+                with open("logs/output_sim_matrix.txt", "w") as f:
+                    f.write("\n-------------------------\n")
+                    f.write("TF-IDF similarity matrix. Either loaded from saved or computed if not saved yet.:")
+                    f.write("\n-------------------------\n")
+                    f.write(similarity_matrix)
+
                 similarity_matrix = personalize_similarity_matrix(similarity_matrix, svd_posts_to_compare,
                                                                   list_of_slugs_from_history)
 
+                with open("logs/output_sim_matrix.txt", "w") as f:
+                    f.write("\n-------------------------\n")
+                    f.write("Dropping the already read and rated articles from the similarity matrix:")
+                    f.write("\n-------------------------\n")
+                    f.write(similarity_matrix)
+
                 similarity_matrix = similarity_matrix * constant
+
+                f.write("\n-------------------------\n")
+                f.write("Boosting the similarities by a confidence coefficient for a given method "
+                        "based on a fuzzy inference (or crisp set value in the administration:")
+                f.write("\n-------------------------\n")
+                f.write(similarity_matrix)
+
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+
                 if use_fuzzy is True:
                     similarity_matrix_not_boosted = similarity_matrix.copy()
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
+
+                    f.write("\n-------------------------\n")
+                    f.write("Additional fuzzy boosting or boosting for freshness: \n:")
+                    f.write("\n-------------------------\n")
+                    f.write(results_fuzzy)
 
             elif method == "doc2vec" or "word2vec":
                 file_path = prepare_sim_matrix_path(method)
@@ -530,12 +561,24 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                 if use_fuzzy is True:
                     similarity_matrix_not_boosted = similarity_matrix.copy()
                 similarity_matrix = similarity_matrix * constant
-
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
+
+                with open("logs/output_sim_matrix.txt", "w") as f:
+                    f.write("\n-------------------------\n")
+                    f.write("Doing the same procedure for the Word2Vec and Doc2Vec methods:\n")
+                    f.write(f"Now for showed for: {method}")
+                    f.write("\n-------------------------\n")
+                    f.write(similarity_matrix)
+
                 if use_fuzzy is True:
                     # Fuzzy is still waiting for the boosting
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
                     results_fuzzy = mix_methods_by_fuzzy(results_fuzzy, method)
+
+                    f.write("\n-------------------------\n")
+                    f.write("After fuzzy boosting:\n")
+                    f.write("\n-------------------------\n")
+                    f.write(results_fuzzy)
             else:
                 raise NotImplementedError("Supplied method not implemented")
 
@@ -546,6 +589,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             logging.debug(list_of_similarity_results)
         logging.debug("list_of_similarity_matrices after finished for loop:")
         logging.debug(list_of_similarity_results)
+
         list_of_prefixed_methods = ['coefficient_' + x for x in list_of_methods if not str(x) == "nan"]
         list_of_keys = ['slug'] + list_of_prefixed_methods
 

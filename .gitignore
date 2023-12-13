@@ -143,6 +143,7 @@ models/old_models
 precalc_vectors/old
 text_classification
 
+database/db_cache/cached_posts_dataframe.pkl
 db_cache/cached_posts_dataframe.pkl
 db_cache/cached_posts_dataframe_1.pkl
 

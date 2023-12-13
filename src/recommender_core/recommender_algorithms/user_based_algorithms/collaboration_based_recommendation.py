@@ -101,38 +101,40 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
     # Get and sort the user's predictions
     user_row_number = user_id  # UserID starts at 1, not # 0
 
-    print("predictions_df:")
-    print(predictions_df)
-    print("original_ratings_df:")
-    print(original_ratings_df)
-    print("user_id:")
-    print(user_id)
-    print("original_ratings_df['user_id'].values:")
-    print(original_ratings_df['user_id'].values)
+    with open("logs/output_hybrid_example.txt", "w") as f:
+        f.write("-------------------------")
+        f.write("\nPreictions for user of id:\n")
+        f.write(str(user_id))
+        f.write("-------------------------")
+        f.write("predictions_df:\n")
+        f.write(str(predictions_df))
+        f.write("\nThis user rated:\n")
+        f.write(str(original_ratings_df['user_id'].values))
+
     if user_id not in original_ratings_df['user_id'].values:
         raise ValueError("User id not found dataframe of original ratings.")
-    sorted_user_predictions = predictions_df.loc[user_row_number].sort_values(ascending=False).to_frame()
 
-    print("sorted_user_predictions")
-    print(sorted_user_predictions)
+    sorted_user_predictions = predictions_df.loc[user_row_number].sort_values(ascending=False).to_frame()
 
     # Get the user's data and merge in the post information.
     user_data = original_ratings_df[original_ratings_df.user_id == user_id]
     user_full = (
         user_data.merge(posts_df, how='left', left_on='post_id', right_on='post_id').
-            sort_values(['ratings_values'], ascending=False)
-                 )
-    print("user_full")
-    print(user_full)
+        sort_values(['ratings_values'], ascending=False)
+    )
+
     # Recommend the highest predicted rating posts that the user hasn't rated yet.
     # noinspection PyPep8
     recommendations = (posts_df[~posts_df['post_id'].isin(user_full['post_id'])]
-                           .merge(pd.DataFrame(sorted_user_predictions).reset_index(), how='left', left_on='post_id',
-                                  right_on='post_id')
-                           .rename(columns={user_row_number: 'ratings_values'})
-                           .sort_values('ratings_values', ascending=False).iloc[:num_recommendations, :])
-    print("recommendations")
-    print(recommendations)
+                       .merge(pd.DataFrame(sorted_user_predictions).reset_index(), how='left', left_on='post_id',
+                              right_on='post_id')
+                       .rename(columns={user_row_number: 'ratings_values'})
+                       .sort_values('ratings_values', ascending=False).iloc[:num_recommendations, :])
+    with open("logs/output_hybrid_example.txt", "a") as f:
+        f.write("-------------------------")
+        f.write("\nRecommendations for user excluding his already rated posts:\n")
+        f.write(str(recommendations))
+
     return user_full, recommendations
 
 
@@ -211,8 +213,17 @@ class SvdClass:
         user_methods = UserMethods()
         self.df_posts, self.df_users, self.df_ratings = user_methods.get_posts_df_users_df_ratings_df()
         user_item_table = self.combine_user_item(self.df_ratings)
+
         # noinspection PyPep8Naming
         R_demeaned = self.convert_to_matrix(user_item_table)
+        with open("logs/output_hybrid_example.txt", "a") as f:
+            f.write("-------------------------")
+            f.write("\nUser item table:\n")
+            f.write(str(user_item_table))
+            f.write("-------------------------")
+            f.write("\nConverting to matrix and demaning (centering) the data (R_demeaned):\n")
+            f.write(str(R_demeaned))
+
         return R_demeaned
 
     # noinspection DuplicatedCode
@@ -255,7 +266,7 @@ class SvdClass:
         return preds_df
 
     # @profile
-    def run_svd(self, user_id : int, num_of_recommendations=10, dict_results=True):
+    def run_svd(self, user_id: int, num_of_recommendations=10, dict_results=True):
         """
 
         @param dict_results: bool to determine whether you need JSON or rather Pandas Dataframe
@@ -272,10 +283,18 @@ class SvdClass:
                                                          num_of_recommendations)
         else:
             raise ValueError("Dataframe of posts is None. Cannot continue with next operation.")
-        print("already_rated.head(num_of_recommendations)")
-        print(already_rated.head(num_of_recommendations))
-        print("List of predictions based on already rated items:")
-        print(predictions.head(num_of_recommendations))
+
+        with open("logs/output_hybrid_example.txt", "w") as f:
+            f.write("\n-------------------------\n")
+            f.write("SVD IN and OUT:")
+            f.write("\n-------------------------\n")
+            f.write("Rated by users:")
+            f.write(already_rated)
+            f.write("\n-------------------------\n")
+            f.write("Predictions:")
+            f.write(predictions)
+            f.write("\n-------------------------\n")
+
         if dict_results is True:
             predictions_json = predictions.to_json(orient="split")
             predictions_json_parsed = json.loads(predictions_json)
@@ -286,8 +305,28 @@ class SvdClass:
     def get_all_users_predicted_ratings(self):
         # noinspection PyPep8Naming
         U, sigma, Vt = svds(self.get_user_item_from_db(), k=5)
-        sigma = np.diag(sigma)
-        all_user_predicted_ratings = np.dot(np.dot(U, sigma), Vt) + self.user_ratings_mean.reshape(-1, 1)
+        sigma_diag = np.diag(sigma)
+        all_user_predicted_ratings = np.dot(np.dot(U, sigma_diag), Vt) + self.user_ratings_mean.reshape(-1, 1)
+        with open("logs/output_hybrid_example.txt", "a") as f:
+            f.write("--------------------------")
+            f.write("The SVD parts:\n")
+            f.write("-------------------------")
+            f.write("\nU:\n")
+            f.write(str(U))
+            f.write("-------------------------")
+            f.write("\nsigma:\n")
+            f.write(str(sigma))
+            f.write("-------------------------")
+            f.write("\nVt:\n")
+            f.write(str(Vt))
+            f.write("-------------------------")
+            f.write("Diagonal matrix of sigma:\n")
+            f.write(sigma_diag)
+            f.write("user_ratings_mean.reshape(-1, 1)\n")
+            f.write(self.user_ratings_mean.reshape(-1, 1))
+            f.write("Dot products: (U . sigma_diag) . Vt) + user_ratings_mean.reshape(-1, 1) "
+                         "= 'predicted rating for all users'")
+            f.write(all_user_predicted_ratings)
         return all_user_predicted_ratings
 
     def rmse_all_users(self):
