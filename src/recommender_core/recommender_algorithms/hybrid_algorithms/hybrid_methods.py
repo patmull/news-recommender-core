@@ -6,8 +6,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import redis
 from gensim.models import KeyedVectors
+from tabulate import tabulate
 
+from src.presentation.data_logging import save_dataframe, refer_to_file
 from src.recommender_core.data_handling.data_manipulation import get_redis_connection, RedisConstants
 from src.recommender_core.data_handling.model_methods.user_methods import UserMethods
 from src.recommender_core.recommender_algorithms.content_based_algorithms.doc2vec import Doc2VecClass
@@ -40,14 +43,20 @@ class HybridConstants:
     def __init__(self):
         r = get_redis_connection()
         redis_constants = RedisConstants()
-        self.coeff_and_hours_1 = (int(r.get(redis_constants.boost_fresh_keys[1]['coeff'])),
-                                  int(r.get(redis_constants.boost_fresh_keys[1]['hours'])))
-        self.coeff_and_hours_2 = (int(r.get(redis_constants.boost_fresh_keys[2]['coeff'])),
-                                  int(r.get(redis_constants.boost_fresh_keys[2]['hours'])))
-        self.coeff_and_hours_3 = (int(r.get(redis_constants.boost_fresh_keys[3]['coeff'])),
-                                  int(r.get(redis_constants.boost_fresh_keys[3]['hours'])))
-        self.coeff_and_hours_4 = (int(r.get(redis_constants.boost_fresh_keys[4]['coeff'])),
-                                  int(r.get(redis_constants.boost_fresh_keys[4]['hours'])))
+        try:
+            self.coeff_and_hours_1 = (int(r.get(redis_constants.boost_fresh_keys[1]['coeff'])),
+                                      int(r.get(redis_constants.boost_fresh_keys[1]['hours'])))
+            self.coeff_and_hours_2 = (int(r.get(redis_constants.boost_fresh_keys[2]['coeff'])),
+                                      int(r.get(redis_constants.boost_fresh_keys[2]['hours'])))
+            self.coeff_and_hours_3 = (int(r.get(redis_constants.boost_fresh_keys[3]['coeff'])),
+                                      int(r.get(redis_constants.boost_fresh_keys[3]['hours'])))
+            self.coeff_and_hours_4 = (int(r.get(redis_constants.boost_fresh_keys[4]['coeff'])),
+                                      int(r.get(redis_constants.boost_fresh_keys[4]['hours'])))
+        except redis.exceptions.ConnectionError:
+            self.coeff_and_hours_1 = (4, 1)
+            self.coeff_and_hours_2 = (3, 24)
+            self.coeff_and_hours_3 = (2, 168)
+            self.coeff_and_hours_4 = (1, 720)
 
         self.dict_of_coeffs_and_hours = {
             'boost_fresh_1': self.coeff_and_hours_1,
@@ -325,16 +334,60 @@ def boost_by_article_freshness(results_df):
     now = pd.to_datetime('now')
     r = get_redis_connection()
     redis_constants = RedisConstants()
+
+    try:
+        boost_fresh_keys_1_coeff = int(r.get(redis_constants.boost_fresh_keys[1]['coeff']))
+    except redis.exceptions.ConnectionError as ce:
+        logging.error(ce)
+        boost_fresh_keys_1_coeff = 1
+
+    try:
+        boost_fresh_keys_1_hours = int(r.get(redis_constants.boost_fresh_keys[1]['hours']))
+    except redis.exceptions.ConnectionError as ce:
+        logging.error(ce)
+        boost_fresh_keys_1_hours = 4
+
+    try:
+        boost_fresh_keys_2_coeff = int(r.get(redis_constants.boost_fresh_keys[2]['coeff']))
+    except redis.exceptions.ConnectionError as ce:
+        logging.error(ce)
+        boost_fresh_keys_2_coeff = 1
+
+    try:
+        boost_fresh_keys_2_hours = int(r.get(redis_constants.boost_fresh_keys[2]['hours']))
+    except redis.exceptions.ConnectionError as ce:
+        logging.error(ce)
+        boost_fresh_keys_2_hours = 4
+
+    try:
+        boost_fresh_keys_3_coeff = int(r.get(redis_constants.boost_fresh_keys[3]['coeff']))
+    except redis.exceptions.ConnectionError as ce:
+        logging.error(ce)
+        boost_fresh_keys_3_coeff = 1
+
+    try:
+        boost_fresh_keys_3_hours = int(r.get(redis_constants.boost_fresh_keys[3]['hours']))
+    except redis.exceptions.ConnectionError as ce:
+        logging.error(ce)
+        boost_fresh_keys_3_hours = 4
+
+    try:
+        boost_fresh_keys_4_coeff = int(r.get(redis_constants.boost_fresh_keys[4]['coeff']))
+    except redis.exceptions.ConnectionError as ce:
+        logging.error(ce)
+        boost_fresh_keys_4_coeff = 1
+
     results_df['coefficient'] = results_df.apply(
-        lambda x: boost_coefficient(x['coefficient'], int(r.get(redis_constants.boost_fresh_keys[1]['coeff'])))
-        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get(redis_constants.boost_fresh_keys[1]['hours'])), 'h'))
-        else (boost_coefficient(x['coefficient'], int(r.get(redis_constants.boost_fresh_keys[2]['coeff']))))
-        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get(redis_constants.boost_fresh_keys[2]['hours'])), 'h'))
-        else (boost_coefficient(x['coefficient'], int(r.get(redis_constants.boost_fresh_keys[3]['coeff']))))
-        if ((now - x['post_created_at']) < pd.Timedelta(int(r.get(redis_constants.boost_fresh_keys[3]['hours'])), 'h'))
-        else (boost_coefficient(x['coefficient'], int(r.get(redis_constants.boost_fresh_keys[4]['coeff']))))
+        lambda x: boost_coefficient(x['coefficient'], boost_fresh_keys_1_coeff)
+        if ((now - x['post_created_at']) < pd.Timedelta(boost_fresh_keys_1_hours, 'h'))
+        else (boost_coefficient(x['coefficient'], boost_fresh_keys_2_coeff))
+        if ((now - x['post_created_at']) < pd.Timedelta(boost_fresh_keys_2_hours, 'h'))
+        else (boost_coefficient(x['coefficient'], boost_fresh_keys_3_coeff))
+        if ((now - x['post_created_at']) < pd.Timedelta(boost_fresh_keys_3_hours, 'h'))
+        else (boost_coefficient(x['coefficient'], boost_fresh_keys_4_coeff))
         , axis=1
     )
+
     return results_df
 
 
@@ -399,7 +452,7 @@ def mix_methods_by_fuzzy(results_df, method):
 
 def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, svd_posts_to_compare=None,
                                list_of_methods=None, save_result=False,
-                               load_saved_result=False, use_fuzzy=True, do_not_boost=False, num_of_svd=30, top_n=20):
+                               load_saved_result=False, use_fuzzy=True, do_not_boost=False, num_of_svd=10, top_n=5):
     """
     Get most similar from content based matrix and delivered posts.
 
@@ -418,7 +471,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
     @param load_saved_result: if True, skips the recommending calculation and jumps to final calculations.
     Added to help with debugging of final boosting
     """
-    global hybrid_recommended_json_fuzzy, results_fuzzy
+    global hybrid_recommended_json_fuzzy, results_fuzzy, SAVE_COUNTER
     path_to_save_results = Path('research/hybrid/results_df.pkl')  # Primarily for debugging purposes
 
     if load_saved_result is False or not os.path.exists(path_to_save_results):
@@ -436,12 +489,12 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
 
         list_of_slugs, list_of_slugs_from_history = select_list_of_posts_for_user(user_id, svd_posts_to_compare)
 
-        with open("logs/svd_posts_to_compare.txt", "w") as f:
+        with open("logs/output_hybrid_example.txt", "a") as f:
             f.write("\n-------------------------\n")
             f.write("Selected posts from user history for the comparison, simply filtered from rated by thumbs down:")
             f.write("NOTE: Can be replacd by a classifier.")
             f.write("\n-------------------------\n")
-            f.write(list_of_slugs_from_history)
+            f.write(str(list_of_slugs_from_history))
 
         list_of_similarity_results = []
         list_of_similarity_results_fuzzy = []
@@ -451,7 +504,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             if method == "tfidf":
                 try:
                     constant = r.get('settings:content-based:tfidf:coeff')
-                except ConnectionError as ce:
+                except redis.exceptions.ConnectionError as ce:
                     logging.warning(ce)
                     logging.warning("Getting field number of posts. "
                                     "This is not getting values from Moje články settings!")
@@ -459,7 +512,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             elif method == "doc2vec":
                 try:
                     constant = r.get('settings:content-based:doc2vec:coeff')
-                except ConnectionError as ce:
+                except redis.exceptions.ConnectionError as ce:
                     logging.warning(ce)
                     logging.warning("Getting field number of posts. "
                                     "This is not getting values from Moje články settings!")
@@ -467,7 +520,7 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             elif method == "word2vec":
                 try:
                     constant = r.get('settings:content-based:word2vec:coeff')
-                except ConnectionError as ce:
+                except redis.exceptions.ConnectionError as ce:
                     logging.warning(ce)
                     logging.warning("Getting field number of posts. "
                                     "This is not getting values from Moje články settings!")
@@ -500,28 +553,32 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                     # Calculating new similarity matrix only based on posts we are interested
                     similarity_matrix = get_similarity_matrix_from_pairs_similarity(method, list_of_slugs)
 
-                with open("logs/output_sim_matrix.txt", "w") as f:
+                save_dataframe(similarity_matrix)
+                with open("logs/output_hybrid_example.txt", "a") as f:
                     f.write("\n-------------------------\n")
                     f.write("TF-IDF similarity matrix. Either loaded from saved or computed if not saved yet.:")
                     f.write("\n-------------------------\n")
-                    f.write(similarity_matrix)
+                    f.write(refer_to_file())
 
                 similarity_matrix = personalize_similarity_matrix(similarity_matrix, svd_posts_to_compare,
                                                                   list_of_slugs_from_history)
 
-                with open("logs/output_sim_matrix.txt", "w") as f:
+                save_dataframe(similarity_matrix)
+                with open("logs/output_hybrid_example.txt", "a") as f:
                     f.write("\n-------------------------\n")
                     f.write("Dropping the already read and rated articles from the similarity matrix:")
                     f.write("\n-------------------------\n")
-                    f.write(similarity_matrix)
+                    f.write(refer_to_file())
 
                 similarity_matrix = similarity_matrix * constant
 
-                f.write("\n-------------------------\n")
-                f.write("Boosting the similarities by a confidence coefficient for a given method "
-                        "based on a fuzzy inference (or crisp set value in the administration:")
-                f.write("\n-------------------------\n")
-                f.write(similarity_matrix)
+                save_dataframe(similarity_matrix)
+                with open("logs/output_hybrid_example.txt", "a") as f:
+                    f.write("\n-------------------------\n")
+                    f.write("Boosting the similarities by a confidence coefficient for a given method "
+                            "based on a fuzzy inference (or crisp set value in the administration:")
+                    f.write("\n-------------------------\n")
+                    f.write(refer_to_file())
 
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
 
@@ -529,10 +586,13 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                     similarity_matrix_not_boosted = similarity_matrix.copy()
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
 
-                    f.write("\n-------------------------\n")
-                    f.write("Additional fuzzy boosting or boosting for freshness: \n:")
-                    f.write("\n-------------------------\n")
-                    f.write(results_fuzzy)
+                    save_dataframe(results_fuzzy)
+                    with open('logs/output_hybrid_example.txt', 'a') as f:
+                        f.write("\n-------------------------\n")
+                        f.write("Additional fuzzy boosting or boosting of confidence on given method: \n:")
+                        f.write("\n-------------------------\n")
+                        f.write(refer_to_file())
+
 
             elif method == "doc2vec" or "word2vec":
                 file_path = prepare_sim_matrix_path(method)
@@ -563,22 +623,25 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
                 similarity_matrix = similarity_matrix * constant
                 results = convert_similarity_matrix_to_results_dataframe(similarity_matrix)
 
-                with open("logs/output_sim_matrix.txt", "w") as f:
+                save_dataframe(similarity_matrix)
+                with open("logs/output_hybrid_example.txt", "a") as f:
                     f.write("\n-------------------------\n")
                     f.write("Doing the same procedure for the Word2Vec and Doc2Vec methods:\n")
                     f.write(f"Now for showed for: {method}")
                     f.write("\n-------------------------\n")
-                    f.write(similarity_matrix)
+                    f.write(refer_to_file())
 
                 if use_fuzzy is True:
                     # Fuzzy is still waiting for the boosting
                     results_fuzzy = convert_similarity_matrix_to_results_dataframe(similarity_matrix_not_boosted)
                     results_fuzzy = mix_methods_by_fuzzy(results_fuzzy, method)
 
-                    f.write("\n-------------------------\n")
-                    f.write("After fuzzy boosting:\n")
-                    f.write("\n-------------------------\n")
-                    f.write(results_fuzzy)
+                    save_dataframe(results_fuzzy)
+                    with open("logs/output_hybrid_example.txt", "a") as f:
+                        f.write("\n-------------------------\n")
+                        f.write("After fuzzy boosting:\n")
+                        f.write("\n-------------------------\n")
+                        f.write(refer_to_file())
             else:
                 raise NotImplementedError("Supplied method not implemented")
 
@@ -620,13 +683,20 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         coefficient_columns = list_of_prefixed_methods
 
         # Normalizing columns
-        results_df[coefficient_columns] = (results_df[coefficient_columns] - results_df[coefficient_columns].mean()) \
+        results_df[coefficient_columns] = (results_df[coefficient_columns]
+                                           - results_df[coefficient_columns].mean()) \
                                           / results_df[coefficient_columns].std()
         if use_fuzzy is True:
-            results_df_fuzzy[coefficient_columns] = (results_df_fuzzy[coefficient_columns] - results_df_fuzzy[coefficient_columns].mean()) \
+            results_df_fuzzy[coefficient_columns] = (results_df_fuzzy[coefficient_columns]
+                                                     - results_df_fuzzy[coefficient_columns].mean()) \
                                               / results_df_fuzzy[coefficient_columns].std()
-        logging.debug("normalized_df:")
-        logging.debug(results_df)
+
+            save_dataframe(results_df_fuzzy)
+            with open("logs/output_hybrid_example.txt", "a") as f:
+                f.write("\n-------------------\n")
+                f.write("normalizing results:")
+                f.write("\n-------------------\n")
+                refer_to_file()
 
         if use_fuzzy is True:
             logging.debug("normalized_df_fuzzy:")
@@ -635,6 +705,13 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         results_df['coefficient'] = results_df.sum(axis=1)
         if use_fuzzy is True:
             results_df_fuzzy['coefficient'] = results_df_fuzzy.sum(axis=1)
+
+            save_dataframe(results_df_fuzzy)
+            with open("logs/output_hybrid_example.txt", "a") as f:
+                f.write("\n-------------------\n")
+                f.write("summing of the calculated coefficient into a final coefficient:")
+                f.write("\n-------------------\n")
+                f.write(refer_to_file())
 
         recommender_methods = RecommenderMethods()
         df_posts_categories = recommender_methods.get_posts_categories_dataframe()
@@ -657,11 +734,17 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
             logging.debug(results_df_fuzzy)
             logging.debug(results_df_fuzzy.columns)
 
+            save_dataframe(results_df_fuzzy)
+            with open("logs/output_hybrid_example.txt", "a") as f:
+                f.write("\n---------------\n")
+                f.write("consolidating computed results with the information about the articles")
+                f.write("\n---------------\n")
+                f.write(refer_to_file())
+
         # WARNING: Fuzzy not supported here!
         if save_result:
             path_to_save_results.parent.mkdir(parents=True, exist_ok=True)
             results_df.to_pickle(path_to_save_results.as_posix())
-
     else:
         # WARNING: Fuzzy not supported here!
         results_df = pd.read_pickle(path_to_save_results.as_posix())
@@ -681,7 +764,6 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         results_df.coefficient)
 
     if use_fuzzy is True:
-
         results_df_fuzzy.coefficient = np.where(
             results_df_fuzzy["category_slug"].isin(user_categories_list),
             results_df_fuzzy.coefficient * 2.0,
@@ -698,9 +780,23 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         logging.debug("Fuzzy results column:")
         logging.debug(results_df_fuzzy.columns)
 
+        save_dataframe(results_df)
+        with open("logs/output_hybrid_example.txt", "a") as f:
+            f.write("\n----------------\n")
+            f.write("After favourite category boosting x2.")
+            f.write("\n----------------\n")
+            f.write(refer_to_file())
+
     if use_fuzzy is True:
         results_df_fuzzy = boost_by_fuzzy(results_df_fuzzy)
     results_df = boost_by_article_freshness(results_df)
+
+    save_dataframe(results_df)
+    with open("logs/output_hybrid_example.txt", "a") as f:
+        f.write("\n----------------\n")
+        f.write("After favourite article recency boosting.")
+        f.write("\n----------------\n")
+        f.write(refer_to_file())
 
     results_df = results_df.set_index('slug')
     results_df = results_df.sort_values(by='coefficient', ascending=False)
@@ -727,6 +823,13 @@ def get_most_similar_by_hybrid(user_id: int, load_from_precalc_sim_matrix=True, 
         hybrid_recommended_json_fuzzy = json.dumps(parsed)
         logging.debug("Fuzzy Hybrid recommended JSON:")
         logging.debug(hybrid_recommended_json_fuzzy)
+
+    save_dataframe(hybrid_recommended_json_fuzzy)
+    with open("logs/output_hybrid_example.txt", "a") as f:
+        f.write("\n----------------\n")
+        f.write("After favourite article recency boosting.")
+        f.write("\n----------------\n")
+        f.write(refer_to_file())
 
     if use_fuzzy is False:
         return hybrid_recommended_json

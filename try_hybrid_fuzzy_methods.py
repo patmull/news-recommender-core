@@ -15,6 +15,8 @@ logging.debug("Testing logging from try_hybrid_methods.")
 
 
 def main():
+    with open("logs/output_hybrid_example.txt", "w") as f:
+        f.write("")  # erase/reset the outputs
     print(run_prefilling_collaborative(methods=["hybrid"], user_id=3124))
 
 

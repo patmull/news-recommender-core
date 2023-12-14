@@ -1,0 +1,5 @@
+
+-------------------------
+Selected posts from user history for the comparison, simply filtered from rated by thumbs down:NOTE: Can be replacd by a classifier.
+-------------------------
+['jde-li-o-kybernetiku-nikdy-nejsme-v-bezpeci', 'online-banik-hosti-bohemians-liberec-hraje-s-teplicemi-a-jablonec-proti-boleslavi']

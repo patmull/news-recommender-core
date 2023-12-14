@@ -4,6 +4,9 @@ import operator
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import train_test_split
+from tabulate import tabulate
+
+from src.presentation.data_logging import save_dataframe, refer_to_file, display_tabulate
 from src.recommender_core.data_handling.data_manipulation import DatabaseMethods
 from scipy.sparse.linalg import svds
 import numpy as np
@@ -101,15 +104,17 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
     # Get and sort the user's predictions
     user_row_number = user_id  # UserID starts at 1, not # 0
 
-    with open("logs/output_hybrid_example.txt", "w") as f:
-        f.write("-------------------------")
-        f.write("\nPreictions for user of id:\n")
+    save_dataframe(predictions_df)
+    save_dataframe(original_ratings_df)
+    with open("logs/output_hybrid_example.txt", "a") as f:
+        f.write("\n-------------------------\n")
+        f.write("\nPredictions for user of id:\n")
         f.write(str(user_id))
-        f.write("-------------------------")
+        f.write("\n-------------------------\n")
         f.write("predictions_df:\n")
-        f.write(str(predictions_df))
+        f.write(refer_to_file())
         f.write("\nThis user rated:\n")
-        f.write(str(original_ratings_df['user_id'].values))
+        f.write(refer_to_file())
 
     if user_id not in original_ratings_df['user_id'].values:
         raise ValueError("User id not found dataframe of original ratings.")
@@ -130,10 +135,11 @@ def recommend_posts(predictions_df, user_id, posts_df, original_ratings_df, num_
                               right_on='post_id')
                        .rename(columns={user_row_number: 'ratings_values'})
                        .sort_values('ratings_values', ascending=False).iloc[:num_recommendations, :])
+    save_dataframe(recommendations)
     with open("logs/output_hybrid_example.txt", "a") as f:
-        f.write("-------------------------")
+        f.write("\n-------------------------\n")
         f.write("\nRecommendations for user excluding his already rated posts:\n")
-        f.write(str(recommendations))
+        f.write(refer_to_file())
 
     return user_full, recommendations
 
@@ -216,13 +222,15 @@ class SvdClass:
 
         # noinspection PyPep8Naming
         R_demeaned = self.convert_to_matrix(user_item_table)
+
+        save_dataframe(user_item_table)
         with open("logs/output_hybrid_example.txt", "a") as f:
-            f.write("-------------------------")
+            f.write("\n-------------------------\n")
             f.write("\nUser item table:\n")
-            f.write(str(user_item_table))
-            f.write("-------------------------")
+            f.write(refer_to_file())
+            f.write("\n-------------------------\n")
             f.write("\nConverting to matrix and demaning (centering) the data (R_demeaned):\n")
-            f.write(str(R_demeaned))
+            f.write(display_tabulate(R_demeaned))
 
         return R_demeaned
 
@@ -284,15 +292,17 @@ class SvdClass:
         else:
             raise ValueError("Dataframe of posts is None. Cannot continue with next operation.")
 
-        with open("logs/output_hybrid_example.txt", "w") as f:
+        save_dataframe(already_rated[['user_id', 'slug_x', 'ratings_values']])
+        predictions[['slug', 'ratings_values']]
+        with open("logs/output_hybrid_example.txt", "a") as f:
             f.write("\n-------------------------\n")
             f.write("SVD IN and OUT:")
             f.write("\n-------------------------\n")
             f.write("Rated by users:")
-            f.write(already_rated)
+            f.write(refer_to_file())
             f.write("\n-------------------------\n")
             f.write("Predictions:")
-            f.write(predictions)
+            f.write(refer_to_file())
             f.write("\n-------------------------\n")
 
         if dict_results is True:
@@ -308,25 +318,30 @@ class SvdClass:
         sigma_diag = np.diag(sigma)
         all_user_predicted_ratings = np.dot(np.dot(U, sigma_diag), Vt) + self.user_ratings_mean.reshape(-1, 1)
         with open("logs/output_hybrid_example.txt", "a") as f:
-            f.write("--------------------------")
+            f.write("\n--------------------------\n")
             f.write("The SVD parts:\n")
-            f.write("-------------------------")
+            f.write("\n-------------------------\n")
             f.write("\nU:\n")
-            f.write(str(U))
-            f.write("-------------------------")
+            f.write(display_tabulate(U))
+            f.write("\n-------------------------\n")
             f.write("\nsigma:\n")
-            f.write(str(sigma))
-            f.write("-------------------------")
+            try:
+                f.write(display_tabulate(sigma))
+            except TypeError as e:
+                f.write("Could not tabulate, saving just as sigma.")
+                f.write(str(sigma))
+            f.write("\n-------------------------\n")
             f.write("\nVt:\n")
-            f.write(str(Vt))
-            f.write("-------------------------")
+            f.write(display_tabulate(Vt))
+            f.write(display_tabulate(Vt))
+            f.write("\n-------------------------\n")
             f.write("Diagonal matrix of sigma:\n")
-            f.write(sigma_diag)
+            f.write(display_tabulate(sigma_diag))
             f.write("user_ratings_mean.reshape(-1, 1)\n")
-            f.write(self.user_ratings_mean.reshape(-1, 1))
+            f.write(display_tabulate(self.user_ratings_mean.reshape(-1, 1)))
             f.write("Dot products: (U . sigma_diag) . Vt) + user_ratings_mean.reshape(-1, 1) "
-                         "= 'predicted rating for all users'")
-            f.write(all_user_predicted_ratings)
+                    "= 'predicted rating for all users'")
+            f.write(display_tabulate(all_user_predicted_ratings))
         return all_user_predicted_ratings
 
     def rmse_all_users(self):

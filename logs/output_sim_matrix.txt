@@ -1,0 +1,5 @@
+
+-------------------------
+Doing the same procedure for the Word2Vec and Doc2Vec methods:
+Now for showed for: doc2vec
+-------------------------
